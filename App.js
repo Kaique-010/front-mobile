@@ -1,10 +1,11 @@
-import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Login from "./screens/Login";
-import DrawerNavigator from "./navigation/DrawerNavigation"; // <- seu menu lateral
+import React from 'react'
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import Login from './screens/Login'
+import ProdutoForm from './screens/ProdutoForm'
+import DrawerNavigator from './navigation/DrawerNavigation'
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator()
 
 export default function App() {
   return (
@@ -18,9 +19,14 @@ export default function App() {
         <Stack.Screen
           name="MainApp"
           component={DrawerNavigator}
-          options={{ headerShown: false }} // esconde o header do Stack, o Drawer cuida disso
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ProdutoForm"
+          component={ProdutoForm}
+          options={{ title: 'Produto' }} // título da tela
         />
       </Stack.Navigator>
     </NavigationContainer>
-  );
+  )
 }

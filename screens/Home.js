@@ -1,26 +1,50 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiFetch } from '../utils/api'
 
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadUser = async () => {
-      const storedUser = await AsyncStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      try {
+        const storedUser = await AsyncStorage.getItem('user')
+        if (storedUser) {
+          setUser(JSON.parse(storedUser))
+        }
+      } catch (err) {
+        console.error('Erro ao carregar usuário:', err)
+      } finally {
+        setLoading(false)
       }
-    };
-    loadUser();
-  }, []);
+    }
 
-  if (!user) return <Text>Carregando...</Text>;
+    loadUser()
+  }, [])
+
+  if (loading) return <Text style={styles.text}>Carregando...</Text>
 
   return (
-    <View>
-      <Text>Bem-vindo, {user.nome}</Text>
+    <View style={styles.container}>
+      <Text style={styles.text}>
+        Bem-vindo, {user?.username || 'Usuário'}!
+      </Text>
     </View>
-  );
+  )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    color: '#007bff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+})
