@@ -1,5 +1,5 @@
-// screens/ProdutoFormScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react'
+import { ActivityIndicator } from 'react-native'
 import {
   View,
   TextInput,
@@ -7,94 +7,182 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
-} from "react-native";
-import axios from "axios";
-import { BASE_URL } from "../utils/api";
+} from 'react-native'
+import { apiPost, apiPut, apiDelete } from '../utils/api'
 
 export default function ProdutoFormScreen({ route, navigation }) {
-  const produto = route.params?.produto;
+  const produto = route.params?.produto
 
-  const [nome, setNome] = useState(produto?.prod_nome || "");
-  const [unidade, setUnidade] = useState(produto?.prod_unme || "");
-  const [ncm, setNcm] = useState(produto?.prod_ncm || "");
+  const [nome, setNome] = useState(produto?.prod_nome || '')
+  const [unidade, setUnidade] = useState(produto?.prod_unme || '')
+  const [ncm, setNcm] = useState(produto?.prod_ncm || '')
+  const [empresa, setEmpresa] = useState(produto?.prod_empr || '')
+  const [loading, setLoading] = useState(false)
+  const [dots, setDots] = useState('')
+
+  useEffect(() => {
+    let interval
+    if (loading) {
+      interval = setInterval(() => {
+        setDots((prev) => (prev.length < 3 ? prev + '.' : ''))
+      }, 500)
+    }
+    return () => clearInterval(interval)
+  }, [loading])
 
   const salvar = async () => {
+    setLoading(true)
     const data = {
       prod_nome: nome,
       prod_unme: unidade,
       prod_ncm: ncm,
-      prod_empr: 1,
-    };
+      prod_empr: empresa,
+    }
 
     try {
       if (produto?.prod_codi) {
-        // Atualizar produto existente
-        await axios.put(`${BASE_URL}/api/produtos/${produto.prod_codi}/`, data);
-        Alert.alert("Sucesso", "Produto atualizado com sucesso!");
+        await apiPut(`/api/produtos/${produto.prod_codi}/`, data)
+        Alert.alert('Sucesso', 'Produto atualizado com sucesso!')
       } else {
-        // Criar novo produto
-        const response = await axios.post(`${BASE_URL}/api/produtos/`, data);
-        const novoCodigo = response.data.prod_codi;
-        Alert.alert("Criado", `Produto criado com código: ${novoCodigo}`);
+        const response = await apiPost(`/api/produtos/`, data)
+        const novoCodigo = response.prod_codi
+        Alert.alert('Criado', `Produto criado com código: ${novoCodigo}`)
       }
-      navigation.goBack();
+      navigation.goBack()
     } catch (error) {
       console.error(
-        "❌ Erro ao salvar produto:",
+        '❌ Erro ao salvar produto:',
         error.response?.data || error.message
-      );
-      Alert.alert("Erro", "Não foi possível salvar o produto.");
+      )
+      Alert.alert('Erro', 'Não foi possível salvar o produto.')
+    } finally {
+      setLoading(false)
+      setDots('')
     }
-  };
+  }
+
+  const excluir = () => {
+    Alert.alert('Confirmar', 'Tem certeza que deseja excluir o produto?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiDelete(`/api/produtos/${produto.prod_codi}/`)
+            Alert.alert('Excluído', 'Produto removido com sucesso.')
+            navigation.goBack()
+          } catch (error) {
+            console.error(
+              '❌ Erro ao excluir:',
+              error.response?.data || error.message
+            )
+            Alert.alert('Erro', 'Não foi possível excluir o produto.')
+          }
+        },
+      },
+    ])
+  }
 
   return (
     <View style={styles.container}>
+      <Text style={styles.label}>Empresa</Text>
+      <TextInput
+        value={empresa}
+        onChangeText={setEmpresa}
+        style={styles.input}
+        keyboardType="number-pad"
+      />
+      <Text style={styles.label}>Produto</Text>
       <TextInput
         placeholder="Nome do Produto"
         value={nome}
         onChangeText={setNome}
         style={styles.input}
       />
+      <Text style={styles.label}>UN</Text>
       <TextInput
         placeholder="Unidade de Medida"
         value={unidade}
         onChangeText={setUnidade}
         style={styles.input}
       />
+      <Text style={styles.label}>NCM</Text>
       <TextInput
-        placeholder="NCM"
+        placeholder="inclua um NCM"
         value={ncm}
         onChangeText={setNcm}
         style={styles.input}
+        keyboardType="number-pad"
       />
-      <TouchableOpacity onPress={salvar} style={styles.button}>
-        <Text style={styles.buttonText}>Salvar</Text>
+
+      <TouchableOpacity
+        onPress={salvar}
+        style={[styles.button, styles.rowCenter, loading && { opacity: 0.6 }]}
+        disabled={loading}>
+        <View style={styles.rowCenter}>
+          <Text style={styles.buttonText}>
+            {loading ? `Gravando${dots}` : 'Salvar'}
+          </Text>
+          {loading && (
+            <ActivityIndicator
+              size="small"
+              color="#fff"
+              style={{ marginLeft: 8 }}
+            />
+          )}
+        </View>
       </TouchableOpacity>
+
+      {produto?.prod_codi && (
+        <TouchableOpacity onPress={excluir} style={styles.deleteButton}>
+          <Text style={styles.buttonText}>Excluir</Text>
+        </TouchableOpacity>
+      )}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 35,
+    backgroundColor: '#0B141A',
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#ccc',
     borderRadius: 8,
     marginBottom: 12,
     padding: 10,
     fontSize: 16,
+    color: 'white',
   },
   button: {
-    backgroundColor: "#007bff",
+    backgroundColor: '#0058A2',
     padding: 12,
     borderRadius: 8,
   },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    textAlign: "center",
+  deleteButton: {
+    backgroundColor: 'red',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
   },
-});
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  label: {
+    marginBottom: 4,
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#fff',
+  },
+  rowCenter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+})

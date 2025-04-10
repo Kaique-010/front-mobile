@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -6,47 +6,42 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-} from "react-native";
-import { apiFetch, BASE_URL } from "../utils/api";
-import styles from "../styles/produtosStyles";
+} from 'react-native'
+import { apiGet } from '../utils/api'
+import styles from '../styles/produtosStyles'
 
 export default function Produtos({ navigation }) {
-  const [produtos, setProdutos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSearching, setIsSearching] = useState(false); // para mostrar mini loading se quiser
+  const [produtos, setProdutos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
 
-  // Função de busca manual (usada pelo botão ou Enter)
+  // Buscar produtos com search
   const buscarProdutos = async () => {
-    setIsSearching(true);
+    setIsSearching(true)
     try {
-      const response = await apiFetch(
-        `${BASE_URL}/api/produtos/?search=${searchTerm}`
-      );
-      setProdutos(response.data);
+      const data = await apiGet('/api/produtos/', { search: searchTerm })
+      setProdutos(data)
     } catch (error) {
-      console.log(
-        "❌ Erro ao buscar produtos:",
-        error.response?.data || error.message
-      );
+      console.log('❌ Erro ao buscar produtos:', error.message)
     } finally {
-      setIsSearching(false);
-      setLoading(false); // primeira carga
+      setIsSearching(false)
+      setLoading(false)
     }
-  };
+  }
 
   // Busca automática com debounce (500ms)
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      buscarProdutos();
-    }, 500);
-    return () => clearTimeout(delayDebounce);
-  }, [searchTerm]);
+      buscarProdutos()
+    }, 500)
+    return () => clearTimeout(delayDebounce)
+  }, [searchTerm])
 
   // Primeira carga sem filtro
   useEffect(() => {
-    buscarProdutos();
-  }, []);
+    buscarProdutos()
+  }, [])
 
   // Renderiza cada item do produto
   const renderItem = ({ item }) => (
@@ -60,8 +55,7 @@ export default function Produtos({ navigation }) {
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => navigation.navigate("ProdutoForm", { produto: item })}
-        >
+          onPress={() => navigation.navigate('ProdutoForm', { produto: item })}>
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.botao}>
@@ -69,7 +63,7 @@ export default function Produtos({ navigation }) {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  )
 
   if (loading) {
     return (
@@ -78,7 +72,7 @@ export default function Produtos({ navigation }) {
         color="#007bff"
         style={{ marginTop: 50 }}
       />
-    );
+    )
   }
 
   return (
@@ -86,8 +80,7 @@ export default function Produtos({ navigation }) {
       {/* Botão de inclusão */}
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate("ProdutoForm")}
-      >
+        onPress={() => navigation.navigate('ProdutoForm')}>
         <Text style={styles.incluirButtonText}>+ Incluir Produto</Text>
       </TouchableOpacity>
 
@@ -103,7 +96,7 @@ export default function Produtos({ navigation }) {
         />
         <TouchableOpacity style={styles.searchButton} onPress={buscarProdutos}>
           <Text style={styles.searchButtonText}>
-            {isSearching ? "🔍..." : "Buscar"}
+            {isSearching ? '🔍...' : 'Buscar'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -115,5 +108,5 @@ export default function Produtos({ navigation }) {
         keyExtractor={(item) => item.prod_codi}
       />
     </View>
-  );
+  )
 }
