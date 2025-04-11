@@ -3,7 +3,8 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import Home from "../screens/Home";
 import Produtos from "../screens/Produtos";
 import CustomDrawer from "./CustomDrawer";
-import Icon from "react-native-vector-icons/Feather"; 
+import Icon from "react-native-vector-icons/Feather";
+import Entidades from "../screens/Entidades";
 
 const Drawer = createDrawerNavigator();
 
@@ -24,6 +25,15 @@ export default function DrawerNavigator() {
         options={{
           drawerIcon: ({ color, size }) => (
             <Icon name="home" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Entidades"
+        component={Entidades}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <Icon name="" color={color} size={size} />
           ),
         }}
       />

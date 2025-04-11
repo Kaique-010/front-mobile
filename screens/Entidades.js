@@ -1,0 +1,112 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
+import { apiGet } from "../utils/api";
+import styles from "../styles/produtosStyles"; 
+
+export default function Entidades({ navigation }) {
+  const [entidades, setEntidades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  const buscarEntidades = async () => {
+    setIsSearching(true);
+    try {
+      const data = await apiGet("/api/entidades/", { search: searchTerm });
+      setEntidades(data);
+    } catch (error) {
+      console.log("❌ Erro ao buscar entidades:", error.message);
+    } finally {
+      setIsSearching(false);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      buscarEntidades();
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    buscarEntidades();
+  }, []);
+
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={styles.nome}>{item.enti_nome}</Text>
+      <Text style={styles.codigo}>Tipo: {item.enti_tipo_enti}</Text>
+      <Text style={styles.unidade}>CPF: {item.enti_cpf || "---"}</Text>
+      <Text style={styles.unidade}>CNPJ: {item.enti_cnpj || "---"}</Text>
+      <Text style={styles.saldo}>Cidade: {item.enti_cida}</Text>
+
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.botao}
+          onPress={() =>
+            navigation.navigate("EntidadeForm", { entidade: item })
+          }
+        >
+          <Text style={styles.botaoTexto}>✏️</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.botao}>
+          <Text style={styles.botaoTexto}>🗑️</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <ActivityIndicator
+        size="large"
+        color="#007bff"
+        style={{ marginTop: 50 }}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Botão de inclusão */}
+      <TouchableOpacity
+        style={styles.incluirButton}
+        onPress={() => navigation.navigate("EntidadeForm")}
+      >
+        <Text style={styles.incluirButtonText}>+ Incluir Entidade</Text>
+      </TouchableOpacity>
+
+      {/* Campo de busca */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Buscar por nome ou tipo"
+          placeholderTextColor="#777"
+          style={styles.input}
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          onSubmitEditing={buscarEntidades}
+        />
+        <TouchableOpacity style={styles.searchButton} onPress={buscarEntidades}>
+          <Text style={styles.searchButtonText}>
+            {isSearching ? "🔍..." : "Buscar"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Lista de entidades */}
+      <FlatList
+        data={entidades}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.enti_clie.toString()}
+      />
+    </View>
+  );
+}
