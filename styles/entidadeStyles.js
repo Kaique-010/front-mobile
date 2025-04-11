@@ -1,48 +1,74 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet } from 'react-native'
 
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B141A",
+    backgroundColor: '#0B141A',
+    padding: 45,
   },
-  innerContainer: {
-    padding: 16,
-    backgroundColor: "#0B141A",
+  tabsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
   },
+
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+
+  tabButtonAtiva: {
+    borderBottomColor: '#007bff',
+  },
+
+  tabText: {
+    fontSize: 16,
+    color: '#777',
+  },
+
+  tabTextAtivo: {
+    color: '#007bff',
+    fontWeight: 'bold',
+  },
+
   titulo: {
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginTop: 10,
-    marginBottom: 8,
-    color: "#fff", // <-- Aqui
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 12,
+    color: '#ffffff',
   },
   label: {
     fontSize: 14,
-    fontWeight: "bold",
-    marginTop: 10,
+    fontWeight: '600',
+    marginTop: 12,
     marginBottom: 4,
-    color: "#fff",
+    color: '#ffffff',
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: '#666',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     fontSize: 14,
-    backgroundColor: "#fafafa",
+    backgroundColor: '#ffffff',
+    color: '#000000',
   },
   botaoSalvar: {
-    backgroundColor: "#007bff",
+    backgroundColor: '#007bff',
     paddingVertical: 14,
-    
-    borderRadius: 10,
-    alignItems: "center",
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    margin: 16,
+    alignItems: 'center',
   },
   botaoTexto: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: '#ffffff',
+    fontWeight: 'bold',
     fontSize: 16,
   },
-});
+})

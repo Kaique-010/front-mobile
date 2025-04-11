@@ -1,24 +1,24 @@
-import React from "react";
-import { createDrawerNavigator } from "@react-navigation/drawer";
-import Home from "../screens/Home";
-import Produtos from "../screens/Produtos";
-import CustomDrawer from "./CustomDrawer";
-import Icon from "react-native-vector-icons/Feather";
-import Entidades from "../screens/Entidades";
+import React from 'react'
+import { createDrawerNavigator } from '@react-navigation/drawer'
+import Home from '../screens/Home'
+import Produtos from '../screens/Produtos'
+import Pedidos from '../screens/Pedidos'
+import CustomDrawer from './CustomDrawer'
+import Icon from 'react-native-vector-icons/Feather'
+import Entidades from '../screens/Entidades'
 
-const Drawer = createDrawerNavigator();
+const Drawer = createDrawerNavigator()
 
 export default function DrawerNavigator() {
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawer {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: "#222" },
-        headerTintColor: "#fff",
-        drawerStyle: { backgroundColor: "#333" },
-        drawerLabelStyle: { color: "#fff", fontSize: 16 },
-      }}
-    >
+        headerStyle: { backgroundColor: '#222' },
+        headerTintColor: '#fff',
+        drawerStyle: { backgroundColor: '#333' },
+        drawerLabelStyle: { color: '#fff', fontSize: 16 },
+      }}>
       <Drawer.Screen
         name="Home"
         component={Home}
@@ -33,7 +33,16 @@ export default function DrawerNavigator() {
         component={Entidades}
         options={{
           drawerIcon: ({ color, size }) => (
-            <Icon name="" color={color} size={size} />
+            <Icon name="users" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Pedidos"
+        component={Pedidos}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <Icon name="shopping-cart" color={color} size={size} />
           ),
         }}
       />
@@ -47,5 +56,5 @@ export default function DrawerNavigator() {
         }}
       />
     </Drawer.Navigator>
-  );
+  )
 }
