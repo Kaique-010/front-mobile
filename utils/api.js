@@ -1,128 +1,99 @@
-import axios from 'axios'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const BASE_URL = 'http://192.168.10.35:8000'
+export const BASE_URL = "http://192.168.0.13:8000";
 
-// Função para tentar renovar o access token
+// 🔁 Tenta renovar o access token
 const refreshToken = async () => {
-  const refresh = await AsyncStorage.getItem('refresh')
-
-  if (!refresh) {
-    throw new Error('Refresh token não encontrado')
-  }
+  const refresh = await AsyncStorage.getItem("refresh");
+  if (!refresh) throw new Error("Refresh token não encontrado");
 
   try {
-    const response = await axios.post(`${BASE_URL}/api/token/refresh/`, {
-      refresh: refresh,
-    })
+    const response = await axios.post(`${BASE_URL}/api/auth/token/refresh/`, {
+      refresh,
+    });
 
-    const newAccess = response.data.access
-    await AsyncStorage.setItem('access', newAccess)
-    return newAccess
+    const newAccess = response.data.access;
+    await AsyncStorage.setItem("access", newAccess);
+    return newAccess;
   } catch (error) {
     console.log(
-      '❌ Erro ao tentar renovar o token:',
+      "❌ Erro ao tentar renovar token:",
       error.response?.data || error.message
-    )
-    throw error
+    );
+    throw error;
   }
-}
+};
 
-// Função principal de requisição com verificação automática do token
-export const apiFetch = async (url, method = 'get', data = null) => {
-  let token = await AsyncStorage.getItem('access')
+// 🌐 Requisição com verificação e renovação de token automática
+export const apiFetch = async (
+  endpoint,
+  method = "get",
+  data = null,
+  params = null
+) => {
+  let token = await AsyncStorage.getItem("access");
 
   try {
     const config = {
       method,
-      url,
+      url: `${BASE_URL}${endpoint}`,
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-    }
+      ...(data && { data }),
+      ...(params && { params }),
+    };
 
-    if (data) {
-      config.data = data
-    }
-
-    return await axios(config)
+    return await axios(config);
   } catch (error) {
-    // Verifica se o erro foi de token expirado
+    // Se token expirou, tenta renovar
     if (error.response?.status === 401) {
-      console.log('🔄 Token expirado, tentando renovar...')
+      console.log("🔄 Token expirado, tentando renovar...");
 
       try {
-        token = await refreshToken()
+        token = await refreshToken();
 
-        // Tenta novamente a requisição original com o novo token
         const retryConfig = {
           method,
-          url,
+          url: `${BASE_URL}${endpoint}`,
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-        }
+          ...(data && { data }),
+          ...(params && { params }),
+        };
 
-        if (data) {
-          retryConfig.data = data
-        }
-
-        return await axios(retryConfig)
+        return await axios(retryConfig);
       } catch (refreshError) {
-        console.log('🚫 Não foi possível renovar o token. Logout necessário.')
-        throw refreshError
+        console.log("🚫 Não foi possível renovar o token. Logout necessário.");
+        throw refreshError;
       }
     }
 
-    throw error
+    throw error;
   }
-}
+};
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 5000,
-})
-
-// GET: listar ou buscar dados com query params
+// 📦 Métodos simplificados
 export const apiGet = async (endpoint, params = {}) => {
-  try {
-    const response = await api.get(endpoint, { params })
-    return response.data
-  } catch (error) {
-    throw error
-  }
-}
+  const response = await apiFetch(endpoint, "get", null, params);
+  return response.data;
+};
 
-// POST: criar novo registro com token
 export const apiPost = async (endpoint, data) => {
-  try {
-    const response = await apiFetch(`${BASE_URL}${endpoint}`, 'post', data)
-    return response.data
-  } catch (error) {
-    console.error('Erro no apiPost:', error)
-    throw error
-  }
-}
+  const response = await apiFetch(endpoint, "post", data);
+  return response.data;
+};
 
-// PUT: atualizar registro com token
 export const apiPut = async (endpoint, data) => {
-  try {
-    const response = await apiFetch(`${BASE_URL}${endpoint}`, 'put', data)
-    return response.data
-  } catch (error) {
-    console.error('Erro no apiPut:', error)
-    throw error
-  }
-}
+  const response = await apiFetch(endpoint, "put", data);
+  return response.data;
+};
 
-// DELETE: remover registro
 export const apiDelete = async (endpoint) => {
-  try {
-    const response = await api.delete(endpoint)
-    return response.data
-  } catch (error) {
-    throw error
-  }
-}
+  const response = await apiFetch(endpoint, "delete");
+  return response.data;
+};

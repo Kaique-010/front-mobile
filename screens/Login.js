@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState } from "react";
 import {
   View,
   TextInput,
@@ -7,46 +7,49 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-} from 'react-native'
-import axios from 'axios'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import styles from '../styles/loginStyles'
+} from "react-native";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import styles from "../styles/loginStyles";
 
 export default function Login({ navigation }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://192.168.10.35:8000/login/', {
-        username,
-        password,
-      })
+      const response = await axios.post(
+        "http://192.168.0.13:8000/api/auth/login/",
+        {
+          username,
+          password,
+        }
+      );
 
-      const { access, refresh, user } = response.data
+      const { access, refresh, user } = response.data;
 
       // Armazena os tokens e dados do usuário no AsyncStorage
       await AsyncStorage.multiSet([
-        ['access', access],
-        ['refresh', refresh],
-        ['user', JSON.stringify(user)],
-      ])
+        ["access", access],
+        ["refresh", refresh],
+        ["user", JSON.stringify(user)],
+      ]);
 
-      console.log('[LOGIN] Tokens armazenados com sucesso.')
+      console.log("[LOGIN] Tokens armazenados com sucesso.");
 
       // Redireciona para a tela principal apenas após garantir que tudo foi salvo
-      navigation.navigate('MainApp')
+      navigation.navigate("SelectEmpresa");
     } catch (err) {
-      console.error('[LOGIN ERROR]', err?.response?.data || err.message)
-      setError('Login falhou. Verifique suas credenciais.')
+      console.error("[LOGIN ERROR]", err?.response?.data || err.message);
+      setError("Login falhou. Verifique suas credenciais.");
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/logo.png')} // substitua pelo caminho da sua logo
+        source={require("../assets/logo.png")} // substitua pelo caminho da sua logo
         style={styles.logo}
         resizeMode="contain"
       />
@@ -72,5 +75,5 @@ export default function Login({ navigation }) {
       </TouchableOpacity>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
-  )
+  );
 }
