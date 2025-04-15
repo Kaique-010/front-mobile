@@ -97,3 +97,39 @@ export const apiDelete = async (endpoint) => {
   const response = await apiFetch(endpoint, "delete");
   return response.data;
 };
+
+// 🔧 Versões com empresa/filial embutidas (quando aplicável)
+const addContexto = async (obj = {}) => {
+  const empresa = await AsyncStorage.getItem("empresa");
+  const filial = await AsyncStorage.getItem("filial");
+  return {
+    ...obj,
+    ...(empresa && { empresa_id: empresa }),
+    ...(filial && { filial_id: filial }),
+  };
+};
+
+export const apiGetComContexto = async (endpoint, params = {}) => {
+  const paramsComContexto = await addContexto(params);
+  const response = await apiFetch(endpoint, "get", null, paramsComContexto);
+  return response.data;
+};
+
+export const apiPostComContexto = async (endpoint, data = {}) => {
+  const dataComContexto = await addContexto(data);
+  const response = await apiFetch(endpoint, "post", dataComContexto);
+  return response.data;
+};
+
+export const apiPutComContexto = async (endpoint, data = {}) => {
+  const dataComContexto = await addContexto(data);
+  const response = await apiFetch(endpoint, "put", dataComContexto);
+  return response.data;
+};
+
+export const apiDeleteComContexto = async (endpoint) => {
+  // DELETE normalmente não envia corpo, então só usamos params se precisar
+  const paramsComContexto = await addContexto();
+  const response = await apiFetch(endpoint, "delete", null, paramsComContexto);
+  return response.data;
+};
