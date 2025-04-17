@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import Toast from "react-native-toast-message";
+
 import { apiGet } from "../utils/api";
-import styles from "../styles/produtosStyles"; 
+import styles from "../styles/produtosStyles";
 
 export default function Entidades({ navigation }) {
   const [entidades, setEntidades] = useState([]);
@@ -39,10 +41,28 @@ export default function Entidades({ navigation }) {
   useEffect(() => {
     buscarEntidades();
   }, []);
+  useEffect(() => {
+    if (
+      navigation?.getState()?.routes?.[navigation?.getState()?.index]?.params
+        ?.mensagemSucesso
+    ) {
+      const mensagem =
+        navigation?.getState()?.routes?.[navigation?.getState()?.index]?.params
+          ?.mensagemSucesso;
+      Toast.show({
+        type: "success",
+        text1: "Sucesso!",
+        text2: mensagem,
+      });
 
+      // Limpa a mensagem para não mostrar na próxima navegação
+      navigation.setParams({ mensagemSucesso: null });
+    }
+  }, [navigation]);
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.nome}>{item.enti_nome}</Text>
+      <Text style={styles.numero}>Nº {item.enti_clie}</Text>
       <Text style={styles.codigo}>Tipo: {item.enti_tipo_enti}</Text>
       <Text style={styles.unidade}>CPF: {item.enti_cpf || "---"}</Text>
       <Text style={styles.unidade}>CNPJ: {item.enti_cnpj || "---"}</Text>

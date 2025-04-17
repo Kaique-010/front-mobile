@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { TextInputMask } from "react-native-masked-text";
+import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiPostComContexto, apiPutComContexto, BASE_URL } from "../utils/api";
 import styles from "../styles/entidadeStyles";
 
@@ -29,29 +31,40 @@ export default function EntidadeForm({ navigation, route }) {
     enti_fone: "",
     enti_celu: "",
     enti_emai: "",
-    enti_clie: "1000",
-    enti_fili: 1,
-    enti_empr: 1,
+    enti_fili: "",
+    enti_empr: "",
   });
 
+  const [abaAtual, setAbaAtual] = useState("dados");
+
+  // 🧠 1. Carregar empresa/filial se for novo
   useEffect(() => {
     if (isEdicao && entidade) {
       setFormData({ ...entidade });
+    } else {
+      const carregarEmpresaFilial = async () => {
+        const empresaId = await AsyncStorage.getItem("empresaId");
+        const filialId = await AsyncStorage.getItem("filialId");
+
+        setFormData((prev) => ({
+          ...prev,
+          enti_empr: empresaId,
+          enti_fili: filialId,
+        }));
+      };
+
+      carregarEmpresaFilial();
     }
   }, [entidade, isEdicao]);
 
   const limparMascara = (campo, valor) => {
     switch (campo) {
       case "enti_cep":
-        return valor.replace(/\D/g, ""); // remove tudo que não for número
       case "enti_cpf":
-        return valor.replace(/\D/g, ""); // remove tudo que não for número
       case "enti_cnpj":
-        return valor.replace(/\D/g, ""); // remove tudo que não for número
       case "enti_fone":
-        return valor.replace(/\D/g, ""); // remove tudo que não for número
       case "enti_celu":
-        return valor.replace(/\D/g, ""); // remove tudo que não for número
+        return valor.replace(/\D/g, "");
       default:
         return valor;
     }
@@ -60,7 +73,7 @@ export default function EntidadeForm({ navigation, route }) {
   const handleChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: limparMascara(field, value), // Limpar máscara antes de atualizar
+      [field]: limparMascara(field, value),
     }));
   };
 
@@ -73,36 +86,49 @@ export default function EntidadeForm({ navigation, route }) {
       Alert.alert("Validação", "O e-mail é obrigatório.");
       return false;
     }
+    if (!formData.enti_empr || !formData.enti_fili) {
+      Alert.alert("Erro", "Empresa ou filial não está definida.");
+      return false;
+    }
     return true;
   };
 
   const salvarEntidade = async () => {
-    console.log("Botão salvar foi clicado");
+    if (!validarFormulario()) return;
 
-    if (!validarFormulario()) {
-      console.log("Formulário inválido, saindo da função");
-      return;
-    }
-
-    console.log("Dados que serão enviados:", formData);
+    // Remover o campo `enti_clie` de formData, caso ele exista
+    const { enti_clie, ...dadosEntidade } = formData;
 
     try {
       if (isEdicao) {
+        // A URL já contém o ID (enti_clie) para edição
         await apiPutComContexto(
           `/api/entidades/${entidade.enti_clie}/`,
-          formData
+          dadosEntidade
         );
       } else {
-        await apiPostComContexto("/api/entidades/", formData);
+        // Para criação, envia os dados sem o campo enti_clie
+        await apiPostComContexto("/api/entidades/", dadosEntidade);
       }
 
-      Alert.alert("Sucesso", "Entidade salva com sucesso!");
+      Toast.show({
+        type: "success",
+        text1: "Sucesso!",
+        text2: "Entidade salva com sucesso 👌",
+      });
+      navigation.navigate("Entidades", {
+        mensagemSucesso: "Entidade salva com sucesso 👌",
+      });
     } catch (error) {
       console.log(
         "Erro ao salvar entidade:",
         error.response?.data || error.message
       );
-      Alert.alert("Erro", "Não foi possível salvar a entidade.");
+      Toast.show({
+        type: "error",
+        text1: "Erro!",
+        text2: "Não foi possível salvar a entidade 😞",
+      });
     }
   };
 
@@ -131,8 +157,6 @@ export default function EntidadeForm({ navigation, route }) {
       Alert.alert("Erro na busca do CEP");
     }
   };
-
-  const [abaAtual, setAbaAtual] = useState("dados");
 
   return (
     <ScrollView style={styles.container}>

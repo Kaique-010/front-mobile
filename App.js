@@ -1,11 +1,13 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import Toast from "react-native-toast-message";
 import Login from "./screens/Login";
 import SelectEmpresa from "./screens/SelectEmpresa";
 import SelectFilial from "./screens/SelectFilial";
 import ProdutoForm from "./screens/ProdutoForm";
 import EntidadeForm from "./screens/EntidadeForm";
+import Entidades from "./screens/Entidades";
 import DrawerNavigator from "./navigation/DrawerNavigation";
 import PedidosForm from "./screens/PedidosForm";
 
@@ -42,7 +44,13 @@ export default function App() {
           component={EntidadeForm}
           options={{ title: "Entidades" }}
         />
+        <Stack.Screen
+          name="Entidades"
+          component={Entidades}
+          options={{ title: "Entidades" }}
+        />
       </Stack.Navigator>
+      <Toast />
     </NavigationContainer>
   );
 }

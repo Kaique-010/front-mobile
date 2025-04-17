@@ -76,7 +76,9 @@ const styles = StyleSheet.create({
   saldo: {
     color: "#fff",
   },
-
+  numero: {
+    color: "#fff",
+  },
   // ====== Ações (Editar / Excluir) ======
   actions: {
     flexDirection: "row",
