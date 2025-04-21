@@ -8,9 +8,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Toast from "react-native-toast-message";
-
-import { apiGet } from "../utils/api";
+import axios from "axios";
 import styles from "../styles/produtosStyles";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 export default function Entidades({ navigation }) {
   const [entidades, setEntidades] = useState([]);
@@ -21,8 +21,13 @@ export default function Entidades({ navigation }) {
   const buscarEntidades = async () => {
     setIsSearching(true);
     try {
-      const data = await apiGet("/api/entidades/", { search: searchTerm });
-      setEntidades(data);
+      const response = await axios.get(
+        "http://192.168.0.13:8000/api/entidades/",
+        {
+          params: { search: searchTerm },
+        }
+      );
+      setEntidades(response.data);
     } catch (error) {
       console.log("❌ Erro ao buscar entidades:", error.message);
     } finally {
