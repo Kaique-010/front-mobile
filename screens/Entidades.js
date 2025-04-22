@@ -22,7 +22,7 @@ export default function Entidades({ navigation }) {
     setIsSearching(true);
     try {
       const response = await axios.get(
-        "http://192.168.0.13:8000/api/entidades/",
+        "http://192.168.10.35:8000/api/entidades/",
         {
           params: { search: searchTerm },
         }

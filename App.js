@@ -1,17 +1,19 @@
-import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Toast from "react-native-toast-message";
-import Login from "./screens/Login";
-import SelectEmpresa from "./screens/SelectEmpresa";
-import SelectFilial from "./screens/SelectFilial";
-import ProdutoForm from "./screens/ProdutoForm";
-import EntidadeForm from "./screens/EntidadeForm";
-import Entidades from "./screens/Entidades";
-import DrawerNavigator from "./navigation/DrawerNavigation";
-import PedidosForm from "./screens/PedidosForm";
+import React from 'react'
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import Toast from 'react-native-toast-message'
+import Login from './screens/Login'
+import SelectEmpresa from './screens/SelectEmpresa'
+import SelectFilial from './screens/SelectFilial'
+import ProdutoForm from './screens/ProdutoForm'
+import EntidadeForm from './screens/EntidadeForm'
+import Entidades from './screens/Entidades'
+import DrawerNavigator from './navigation/DrawerNavigation'
+import PedidosForm from './screens/PedidosForm'
+import ListaCasamentoForm from './screens/ListaCasamentoForm'
+import ItensListaModal from './screens/ItensListaModal'
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator()
 
 export default function App() {
   return (
@@ -32,25 +34,35 @@ export default function App() {
         <Stack.Screen
           name="ProdutoForm"
           component={ProdutoForm}
-          options={{ title: "Produtos" }}
+          options={{ title: 'Produtos' }}
         />
         <Stack.Screen
           name="PedidosForm"
           component={PedidosForm}
-          options={{ title: "Pedidos" }}
+          options={{ title: 'Pedidos' }}
         />
         <Stack.Screen
           name="EntidadeForm"
           component={EntidadeForm}
-          options={{ title: "Entidades" }}
+          options={{ title: 'Entidades' }}
         />
         <Stack.Screen
           name="Entidades"
           component={Entidades}
-          options={{ title: "Entidades" }}
+          options={{ title: 'Entidades' }}
+        />
+        <Stack.Screen
+          name="ListaCasamentoForm"
+          component={ListaCasamentoForm}
+          options={{ title: 'Lista de Casamento' }}
+        />
+        <Stack.Screen
+          name="ItensListaModal"
+          component={ItensListaModal}
+          options={{ title: 'Adicionar Itens à Lista' }}
         />
       </Stack.Navigator>
       <Toast />
     </NavigationContainer>
-  );
+  )
 }
