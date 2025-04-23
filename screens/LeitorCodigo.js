@@ -1,67 +1,36 @@
-import React, { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
-import { RNCamera } from 'react-native-camera'
+import React, { useState, useEffect } from 'react'
+import { Text, View, Button } from 'react-native'
+import { BarCodeScanner } from 'expo-barcode-scanner'
 
-export default function LeitorCodigo({ onCodigoDetectado, navigation }) {
+export default function Scanner() {
+  const [hasPermission, setHasPermission] = useState(null)
   const [scanned, setScanned] = useState(false)
 
-  const handleBarCodeScanned = ({ data }) => {
+  useEffect(() => {
+    ;(async () => {
+      const { status } = await BarCodeScanner.requestPermissionsAsync()
+      setHasPermission(status === 'granted')
+    })()
+  }, [])
+
+  const handleBarCodeScanned = ({ type, data }) => {
     setScanned(true)
-    Alert.alert('Código escaneado', data)
-    onCodigoDetectado(data) // Envia o código para o componente pai
-    navigation.goBack() // Fecha o modal após escanear
+    alert(`Código escaneado: ${data}`)
+    // aqui você pode chamar sua API ou atualizar estado
   }
 
+  if (hasPermission === null) return <Text>Pedindo permissão...</Text>
+  if (hasPermission === false) return <Text>Sem acesso à câmera</Text>
+
   return (
-    <View style={styles.container}>
-      <RNCamera
-        style={styles.camera}
-        type={RNCamera.Constants.Type.back}
-        onBarCodeRead={scanned ? undefined : handleBarCodeScanned}
-        captureAudio={false}>
-        <View style={styles.overlay} />
-        <Text style={styles.texto}>Escaneie o código de barras</Text>
-      </RNCamera>
+    <View style={{ flex: 1 }}>
+      <BarCodeScanner
+        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        style={{ flex: 1 }}
+      />
       {scanned && (
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => setScanned(false)}>
-          <Text style={styles.buttonText}>Escanear novamente</Text>
-        </TouchableOpacity>
+        <Button title="Escanear de novo" onPress={() => setScanned(false)} />
       )}
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  camera: { flex: 1, width: '100%' },
-  overlay: {
-    position: 'absolute',
-    width: '80%',
-    height: '50%',
-    borderColor: '#fff',
-    borderWidth: 2,
-    borderRadius: 10,
-    borderStyle: 'dashed',
-  },
-  texto: {
-    position: 'absolute',
-    bottom: 40,
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  button: {
-    position: 'absolute',
-    bottom: 100,
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-})

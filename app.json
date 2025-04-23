@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "front-mobile-sps",
+    "name": "SpsMobile",
     "slug": "front-mobile-sps",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,20 +14,29 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.leokaique.SpsMobile",
       "infoPlist": {
-        "NSCameraUsageDescription": "Este aplicativo precisa de permissão para usar a câmera para escanear códigos de barras."
+        "NSCameraUsageDescription": "Este aplicativo precisa de permissão para usar a câmera para escanear códigos de barras.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
-
     "android": {
+      "name": "SpsMobile",
+      "package": "com.leokaique.SpsMobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": ["CAMERA"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-font"]
+    "plugins": ["expo-font"],
+    "extra": {
+      "eas": {
+        "projectId": "f67c96b2-c0c0-466a-b244-fe205b575bef"
+      }
+    }
   }
 }
