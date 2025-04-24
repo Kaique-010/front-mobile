@@ -27,8 +27,9 @@ export default function SelectFilial({ route, navigation }) {
           return
         }
 
+        // Ajuste na URL para refletir o parâmetro correto
         const response = await axios.get(
-          `${BASE_URL}/api/auth/filiais/?empresa=${empresaId}`,
+          `${BASE_URL}/api/auth/filiais/?empresa_id=${empresaId}`, // Aqui mudamos para empresa_id
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -46,6 +47,7 @@ export default function SelectFilial({ route, navigation }) {
         setLoading(false)
       }
     }
+
     fetchFiliais()
   }, [empresaId])
 
@@ -59,7 +61,7 @@ export default function SelectFilial({ route, navigation }) {
       ])
       console.log('[STORAGE] Filial salva:', filialId, filialNome)
 
-      navigation.navigate('MainApp')
+      navigation.navigate('MainApp') // Redireciona após salvar a filial
     } catch (error) {
       console.error('Erro ao salvar filial selecionada:', error)
     }
@@ -78,7 +80,9 @@ export default function SelectFilial({ route, navigation }) {
       <Text style={styles.text}>Selecione a Filial</Text>
       <FlatList
         data={filiais}
-        keyExtractor={(item) => item.empr_codi.toString()}
+        keyExtractor={(item) =>
+          item.empr_codi ? item.empr_codi.toString() : 'default-key'
+        } // Verificando se existe empr_codi
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() => handleSelectFilial(item.empr_codi, item.empr_nome)}

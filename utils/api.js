@@ -26,9 +26,11 @@ const refreshToken = async () => {
 const getEmpresaFilialHeaders = async () => {
   const empresa = await AsyncStorage.getItem('empresa')
   const filial = await AsyncStorage.getItem('filial')
+  const docu = await AsyncStorage.getItem('docu')
   return {
     'X-Empresa': empresa || '',
     'X-Filial': filial || '',
+    docu: docu || '',
   }
 }
 

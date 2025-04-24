@@ -1,4 +1,3 @@
-// SelectEmpresa.js
 import React, { useState, useEffect } from 'react'
 import {
   View,
@@ -17,32 +16,38 @@ export default function SelectEmpresa({ navigation }) {
   const [empresas, setEmpresas] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedEmpresa, setSelectedEmpresa] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     async function fetchEmpresas() {
       try {
+        // Recupera o token de acesso do AsyncStorage
         const accessToken = await AsyncStorage.getItem('access')
 
         if (!accessToken) {
           console.error('[ERROR] Token de acesso não encontrado.')
+          setError('Token de acesso não encontrado.')
           return
         }
 
-        const response = await axios.get(
-          `${BASE_URL}/api/auth/user-empresas/`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        )
+        // Faz a requisição com o token de acesso
+        const response = await axios.get(`${BASE_URL}/api/auth/empresas/`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
         setEmpresas(response.data)
       } catch (error) {
-        console.error('Erro ao carregar empresas:', error)
+        console.error(
+          'Erro ao carregar empresas:',
+          error.response || error.message
+        )
+        setError('Erro ao carregar empresas. Tente novamente.')
       } finally {
         setLoading(false)
       }
     }
+
     fetchEmpresas()
   }, [])
 
@@ -52,6 +57,7 @@ export default function SelectEmpresa({ navigation }) {
 
     try {
       await AsyncStorage.setItem('empresaId', empresaId.toString())
+      await AsyncStorage.setItem('empresaNome', empresaNome) // Salvando o nome também
       console.log('[STORAGE] Empresa salva:', empresaId)
 
       navigation.navigate('SelectFilial', {
@@ -60,6 +66,7 @@ export default function SelectEmpresa({ navigation }) {
       })
     } catch (error) {
       console.error('Erro ao salvar empresa:', error)
+      setError('Erro ao salvar a empresa. Tente novamente.')
     }
   }
 
@@ -74,6 +81,9 @@ export default function SelectEmpresa({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Selecione a Empresa</Text>
+      {/* Exibindo erro, caso haja algum */}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
       <FlatList
         data={empresas}
         keyExtractor={(item) => item.empr_codi.toString()}
