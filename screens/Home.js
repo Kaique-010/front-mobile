@@ -22,13 +22,21 @@ export default function Home() {
     const loadData = async () => {
       try {
         const stored = await getStoredData();
-        const dashboard = await fetchDashboardData();
         setUser(stored.user);
         setEmpresaNome(stored.empresaNome);
         setFilialNome(stored.filialNome);
-        setDashboardData(dashboard);
+
+        if (stored.user && stored.empresaNome && stored.filialNome) {
+          const dashboard = await fetchDashboardData();
+          setDashboardData(dashboard);
+        } else {
+          console.warn(
+            "⚠️ Empresa ou Filial não encontrados. Dashboard não carregado."
+          );
+          setDashboardData(null);
+        }
       } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+        console.error("❌ Erro ao carregar dados:", err);
       } finally {
         setLoading(false);
       }
@@ -69,17 +77,25 @@ export default function Home() {
         <Text style={styles.value}>{filialNome || "Não selecionada"}</Text>
       </View>
 
-      <Text style={styles.chartTitle}>Saldos de Produtos</Text>
-      <SaldosChart
-        data={dashboardData?.saldos_produto || []}
-        chartConfig={chartConfig}
-      />
+      {dashboardData ? (
+        <>
+          <Text style={styles.chartTitle}>Saldos de Produtos</Text>
+          <SaldosChart
+            data={dashboardData.saldos_produto || []}
+            chartConfig={chartConfig}
+          />
 
-      <Text style={styles.chartTitle}>Pedidos por Cliente</Text>
-      <PedidosChart
-        data={dashboardData?.pedidos_por_cliente || []}
-        chartConfig={chartConfig}
-      />
+          <Text style={styles.chartTitle}>Pedidos por Cliente</Text>
+          <PedidosChart
+            data={dashboardData.pedidos_por_cliente || []}
+            chartConfig={chartConfig}
+          />
+        </>
+      ) : (
+        <Text style={styles.noDataText}>
+          📊 Sem dados de dashboard disponíveis.
+        </Text>
+      )}
     </ScrollView>
   );
 }
@@ -126,5 +142,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 10,
     alignSelf: "flex-start",
+  },
+  noDataText: {
+    fontSize: 14,
+    color: "#aaa",
+    marginTop: 20,
+    textAlign: "center",
   },
 });

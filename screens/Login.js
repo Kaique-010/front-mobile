@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState } from "react";
 import {
   View,
   TextInput,
@@ -6,74 +6,76 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-} from 'react-native'
-import { FontAwesome } from '@expo/vector-icons'
-import axios from 'axios'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { BASE_URL } from '../utils/api'
-import { useFonts, FaunaOne_400Regular } from '@expo-google-fonts/fauna-one'
-import styles from '../styles/loginStyles'
-import { MotiView, MotiText } from 'moti'
+} from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { BASE_URL } from "../utils/api";
+import { useFonts, FaunaOne_400Regular } from "@expo-google-fonts/fauna-one";
+import styles from "../styles/loginStyles";
+import { MotiView, MotiText } from "moti";
 
 export default function Login({ navigation }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [docu, setDocu] = useState('')
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [docu, setDocu] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const [fontsLoaded] = useFonts({
     FaunaOne_400Regular,
-  })
+  });
 
-  if (!fontsLoaded) return null
+  if (!fontsLoaded) return null;
 
   const handleDocuChange = (text) => {
-    // Remove qualquer formatação e deixa apenas os números
-    setDocu(text.replace(/\D/g, '')) // Remove todos os caracteres não numéricos
-  }
+    setDocu(text.replace(/\D/g, "")); // Remove todos os caracteres não numéricos
+  };
 
   const handleLogin = async () => {
     if (!docu || !username || !password) {
-      setError('Preencha todos os campos.')
-      return
+      setError("Preencha todos os campos.");
+      return;
     }
 
-    console.log('[LOGIN ATTEMPT]', { docu, username })
+    console.log("[LOGIN ATTEMPT]", { docu, username, password });
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const response = await axios.post(
-        `${BASE_URL}/api/auth/login/`,
+        `${BASE_URL}/api/licencas/login/`,
         {
           username,
           password,
-          docu, 
+          docu,
         },
         {
           headers: {
-            docu, 
+            "X-CNPJ": docu, // CNPJ
+            "X-Username": username, // Username
           },
         }
-      )
+      );
 
-      const { access, refresh, user } = response.data
+      const { access, refresh, user } = response.data;
+      console.log(user, username);
 
       await AsyncStorage.multiSet([
-        ['access', access],
-        ['refresh', refresh],
-        ['user', JSON.stringify(user)],
-        ['docu', docu],
-      ])
+        ["access", access],
+        ["refresh", refresh],
+        ["user", JSON.stringify(user)],
+        ["docu", docu],
+      ]);
+      console.log("Login bem-sucedido, navegação para SelectEmpresa");
 
-      navigation.navigate('SelectEmpresa')
+      navigation.navigate("SelectEmpresa"); // Redirecionar para a tela de Seleção de Empresa
     } catch (err) {
-      console.error('[LOGIN ERROR]', err?.response?.data || err.message)
-      setError('Login falhou. Verifique suas credenciais.')
+      console.error("[LOGIN ERROR]", err?.response?.data || err.message);
+      setError("Login falhou. Verifique suas credenciais.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -81,9 +83,10 @@ export default function Login({ navigation }) {
       <MotiView
         from={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', delay: 200 }}>
+        transition={{ type: "spring", delay: 200 }}
+      >
         <Image
-          source={require('../assets/logo.png')}
+          source={require("../assets/logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -94,29 +97,30 @@ export default function Login({ navigation }) {
         from={{ opacity: 0, translateY: -20 }}
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ delay: 400 }}
-        style={styles.title}>
+        style={styles.title}
+      >
         SPARTACUS MOBILE
       </MotiText>
 
       {/* Campos com animação */}
       {[
         [
-          'CNPJ',
+          "CNPJ",
           docu,
           handleDocuChange,
-          'building',
-          '00.000.000/0001-00',
-          'number-pad',
+          "building",
+          "00.000.000/0001-00",
+          "number-pad",
         ],
         [
-          'Usuário',
+          "Usuário",
           username,
           (text) => setUsername(text.toLowerCase()),
-          'user',
-          'Digite seu usuário',
-          'default',
+          "user",
+          "Digite seu usuário",
+          "default",
         ],
-        ['Senha', password, setPassword, 'lock', '••••••••', 'default', true],
+        ["Senha", password, setPassword, "lock", "••••••••", "default", true],
       ].map(
         ([label, value, onChange, icon, placeholder, keyboard, secure], i) => (
           <MotiView
@@ -124,7 +128,8 @@ export default function Login({ navigation }) {
             from={{ opacity: 0, translateY: 30 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ delay: 600 + i * 100 }}
-            style={styles.inputContainer}>
+            style={styles.inputContainer}
+          >
             <Text style={styles.label}>{label}</Text>
             <View style={styles.inputBox}>
               <FontAwesome
@@ -135,7 +140,10 @@ export default function Login({ navigation }) {
               />
               <TextInput
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text) => {
+                  onChange(text);
+                  setError(""); // Limpa o erro ao digitar
+                }}
                 placeholder={placeholder}
                 placeholderTextColor="#aaa"
                 keyboardType={keyboard}
@@ -152,11 +160,13 @@ export default function Login({ navigation }) {
       <MotiView
         from={{ scale: 0.95 }}
         animate={{ scale: isLoading ? 0.95 : 1 }}
-        transition={{ type: 'timing', duration: 150 }}>
+        transition={{ type: "timing", duration: 150 }}
+      >
         <TouchableOpacity
           style={styles.button}
           onPress={handleLogin}
-          disabled={isLoading}>
+          disabled={isLoading}
+        >
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
@@ -170,11 +180,12 @@ export default function Login({ navigation }) {
         <MotiText
           from={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ type: 'timing', duration: 300 }}
-          style={styles.error}>
+          transition={{ type: "timing", duration: 300 }}
+          style={styles.error}
+        >
           {error}
         </MotiText>
       ) : null}
     </View>
-  )
+  );
 }
