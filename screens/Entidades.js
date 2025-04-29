@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -6,41 +6,41 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-} from "react-native";
-import Toast from "react-native-toast-message";
-import { apiGet } from "../utils/api";
-import styles from "../styles/produtosStyles";
+} from 'react-native'
+import Toast from 'react-native-toast-message'
+import { apiGet } from '../utils/api'
+import styles from '../styles/produtosStyles'
 
 export default function Entidades({ navigation }) {
-  const [entidades, setEntidades] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const [entidades, setEntidades] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
 
   // Buscar entidades com pesquisa
   const buscarEntidades = async () => {
-    setIsSearching(true);
+    setIsSearching(true)
     try {
-      const data = await apiGet("/api/entidades/", { search: searchTerm });
-      setEntidades(data);
+      const data = await apiGet('/api/entidades/', { search: searchTerm })
+      setEntidades(data)
     } catch (error) {
-      console.log("❌ Erro ao buscar Entidades:", error.message);
+      console.log('❌ Erro ao buscar Entidades:', error.message)
     } finally {
-      setIsSearching(false);
-      setLoading(false);
+      setIsSearching(false)
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      buscarEntidades();
-    }, 500);
-    return () => clearTimeout(delayDebounce);
-  }, [searchTerm]);
+      buscarEntidades()
+    }, 500)
+    return () => clearTimeout(delayDebounce)
+  }, [searchTerm])
 
   useEffect(() => {
-    buscarEntidades();
-  }, []);
+    buscarEntidades()
+  }, [])
 
   useEffect(() => {
     if (
@@ -49,30 +49,30 @@ export default function Entidades({ navigation }) {
     ) {
       const mensagem =
         navigation?.getState()?.routes?.[navigation?.getState()?.index]?.params
-          ?.mensagemSucesso;
+          ?.mensagemSucesso
       Toast.show({
-        type: "success",
-        text1: "Sucesso!",
+        type: 'success',
+        text1: 'Sucesso!',
         text2: mensagem,
-      });
+      })
 
       // Limpa a mensagem para não mostrar na próxima navegação
-      navigation.setParams({ mensagemSucesso: null });
+      navigation.setParams({ mensagemSucesso: null })
     }
-  }, [navigation]);
+  }, [navigation])
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.nome}>{item.enti_nome}</Text>
       <Text style={styles.numero}>Nº {item.enti_clie}</Text>
       <Text style={styles.codigo}>Tipo: {item.enti_tipo_enti}</Text>
-      <Text style={styles.unidade}>CPF: {item.enti_cpf || "---"}</Text>
-      <Text style={styles.unidade}>CNPJ: {item.enti_cnpj || "---"}</Text>
+      <Text style={styles.unidade}>CPF: {item.enti_cpf || '---'}</Text>
+      <Text style={styles.unidade}>CNPJ: {item.enti_cnpj || '---'}</Text>
       <Text style={styles.saldo}>Cidade: {item.enti_cida}</Text>
 
       {/* Nome da Empresa */}
-      {item.empresa ? (
-        <Text style={styles.saldo}>Empresa: {item.empresa.nome}</Text>
+      {item.enti_empr ? (
+        <Text style={styles.saldo}>Empresa: {item.enti_empr}</Text>
       ) : (
         <Text style={styles.saldo}>Empresa: Não atribuída</Text>
       )}
@@ -81,9 +81,8 @@ export default function Entidades({ navigation }) {
         <TouchableOpacity
           style={styles.botao}
           onPress={() =>
-            navigation.navigate("EntidadeForm", { entidade: item })
-          }
-        >
+            navigation.navigate('EntidadeForm', { entidade: item })
+          }>
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.botao}>
@@ -91,7 +90,7 @@ export default function Entidades({ navigation }) {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  )
 
   if (loading) {
     return (
@@ -100,7 +99,7 @@ export default function Entidades({ navigation }) {
         color="#007bff"
         style={{ marginTop: 50 }}
       />
-    );
+    )
   }
 
   return (
@@ -108,8 +107,7 @@ export default function Entidades({ navigation }) {
       {/* Botão de inclusão */}
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate("EntidadeForm")}
-      >
+        onPress={() => navigation.navigate('EntidadeForm')}>
         <Text style={styles.incluirButtonText}>+ Incluir Entidade</Text>
       </TouchableOpacity>
 
@@ -125,7 +123,7 @@ export default function Entidades({ navigation }) {
         />
         <TouchableOpacity style={styles.searchButton} onPress={buscarEntidades}>
           <Text style={styles.searchButtonText}>
-            {isSearching ? "🔍..." : "Buscar"}
+            {isSearching ? '🔍...' : 'Buscar'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -134,8 +132,8 @@ export default function Entidades({ navigation }) {
       <FlatList
         data={entidades}
         renderItem={renderItem}
-        keyExtractor={(item) => `${item.enti_clie}-${item.empresa?.id}`} // Chave única com base no código da entidade e no ID da empresa
+        keyExtractor={(item) => `${item.enti_clie}-${item.enti_empr}`}
       />
     </View>
-  );
+  )
 }
