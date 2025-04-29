@@ -1,80 +1,79 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-} from "react-native";
-import { getStoredData } from "../services/storageService";
-import { fetchDashboardData } from "../services/apiService";
-import SaldosChart from "../components/SaldosChart";
-import PedidosChart from "../components/PedidosChart";
+} from 'react-native'
+import { getStoredData } from '../services/storageService'
+import { fetchDashboardData } from '../services/apiService'
+import SaldosChart from '../components/SaldosChart'
+import PedidosChart from '../components/PedidosChart'
 
 export default function Home() {
-  const [user, setUser] = useState(null);
-  const [empresaNome, setEmpresaNome] = useState(null);
-  const [filialNome, setFilialNome] = useState(null);
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUsuario] = useState(null)
+  const [empresaNome, setEmpresaNome] = useState(null)
+  const [filialNome, setFilialNome] = useState(null)
+  const [dashboardData, setDashboardData] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const stored = await getStoredData();
-        setUser(stored.user);
-        setEmpresaNome(stored.empresaNome);
-        setFilialNome(stored.filialNome);
+        const stored = await getStoredData()
+        setUsuario(stored.usuario)
+        setEmpresaNome(stored.empresaNome)
+        setFilialNome(stored.filialNome)
 
-        if (stored.user && stored.empresaNome && stored.filialNome) {
-          const dashboard = await fetchDashboardData();
-          setDashboardData(dashboard);
+        if (stored.usuario && stored.empresaNome && stored.filialNome) {
+          const dashboard = await fetchDashboardData()
+          setDashboardData(dashboard)
         } else {
           console.warn(
-            "⚠️ Empresa ou Filial não encontrados. Dashboard não carregado."
-          );
-          setDashboardData(null);
+            '⚠️ Empresa ou Filial não encontrados. Dashboard não carregado.'
+          )
+          setDashboardData(null)
         }
       } catch (err) {
-        console.error("❌ Erro ao carregar dados:", err);
+        console.error('❌ Erro ao carregar dados:', err)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    loadData();
-  }, []);
+    }
+    loadData()
+  }, [])
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00bfff" />
       </View>
-    );
+    )
   }
 
   const chartConfig = {
-    backgroundGradientFrom: "#121212",
-    backgroundGradientTo: "#121212",
+    backgroundGradientFrom: '#121212',
+    backgroundGradientTo: '#121212',
     color: (opacity = 1) => `rgba(0, 191, 255, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     barPercentage: 0.7,
     useShadowColorFromDataset: false,
-  };
+  }
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#121212" }}
-      contentContainerStyle={styles.container}
-    >
+      style={{ flex: 1, backgroundColor: '#121212' }}
+      contentContainerStyle={styles.container}>
       <Text style={styles.welcome}>
-        ✔️ Bem-vindo, {user?.username || "Usuário"}!
+        ✔️ Bem-vindo, {user?.username || 'Usuário'}!
       </Text>
 
       <View style={styles.card}>
         <Text style={styles.label}>Empresa:</Text>
-        <Text style={styles.value}>{empresaNome || "Não selecionada"}</Text>
+        <Text style={styles.value}>{empresaNome || 'Não selecionada'}</Text>
         <Text style={styles.label}>Filial:</Text>
-        <Text style={styles.value}>{filialNome || "Não selecionada"}</Text>
+        <Text style={styles.value}>{filialNome || 'Não selecionada'}</Text>
       </View>
 
       {dashboardData ? (
@@ -97,56 +96,56 @@ export default function Home() {
         </Text>
       )}
     </ScrollView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: "center",
+    alignItems: 'center',
     padding: 20,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#121212",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#121212',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   welcome: {
     fontSize: 16,
-    color: "#fff",
-    fontWeight: "600",
+    color: '#fff',
+    fontWeight: '600',
     marginBottom: 20,
   },
   card: {
-    backgroundColor: "#1e1e1e",
+    backgroundColor: '#1e1e1e',
     padding: 10,
     borderRadius: 12,
-    width: "100%",
+    width: '100%',
     marginBottom: 20,
   },
   label: {
     fontSize: 12,
-    color: "#aaa",
+    color: '#aaa',
     marginBottom: 4,
   },
   value: {
     fontSize: 13,
-    color: "#00bfff",
-    fontWeight: "bold",
+    color: '#00bfff',
+    fontWeight: 'bold',
     marginBottom: 12,
   },
   chartTitle: {
     fontSize: 16,
-    color: "#fff",
-    fontWeight: "bold",
+    color: '#fff',
+    fontWeight: 'bold',
     marginBottom: 10,
     marginTop: 10,
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
   },
   noDataText: {
     fontSize: 14,
-    color: "#aaa",
+    color: '#aaa',
     marginTop: 20,
-    textAlign: "center",
+    textAlign: 'center',
   },
-});
+})
