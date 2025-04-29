@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,137 +6,141 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
-} from 'react-native'
-import { apiGet, apiPost } from '../utils/api'
-import styles from '../styles/itensStyle'
-import debounce from 'lodash.debounce'
+} from "react-native";
+import { apiGet, apiPost } from "../utils/api";
+import styles from "../styles/itensStyle";
+import debounce from "lodash.debounce";
 
 export default function ItensListaModal({ route, navigation }) {
-  const { listaId } = route.params
-  const [produtos, setProdutos] = useState([])
-  const [busca, setBusca] = useState('')
-  const [selecionados, setSelecionados] = useState([])
-  const [carregando, setCarregando] = useState(false)
+  const { listaId } = route.params;
+  const [produtos, setProdutos] = useState([]);
+  const [busca, setBusca] = useState("");
+  const [selecionados, setSelecionados] = useState([]);
+  const [complemento, setComplemento] = useState('');
+  const [itensLista, setItensLista] = useState([]);
+  const [carregando, setCarregando] = useState(false);
 
-  // Função para buscar produtos
   const buscarProdutos = useCallback(
-    async (novaBusca = false) => {
+    async () => {
+      if (!busca.trim()) {
+        setProdutos([]);
+        return;
+      }
+
+      setCarregando(true);
       try {
-        // Não faz nada se a busca for vazia
-        if (!busca.trim()) {
-          setProdutos([])
-          return
-        }
-
-        setCarregando(true)
-
-        // Chamada à API
-        const response = await apiGet('/api/produtos/', {
-          search: busca,
-        })
-
-        // Verificando a resposta da API
-        if (response && response.results) {
-          setProdutos(response.results)  // Atualiza o estado com os produtos encontrados
-        } else {
-          setProdutos([])  // Caso não haja resultados, limpa a lista
-        }
+        const response = await apiGet("/api/produtos/", { search: busca });
+        setProdutos(response?.results || []);
       } catch (error) {
-        console.log('Erro ao buscar produtos', error.message)
+        console.log("Erro ao buscar produtos", error.message);
       } finally {
-        setCarregando(false)  // Desativa o carregamento
+        setCarregando(false);
       }
     },
     [busca]
-  )
+  );
 
-  // Debounce para evitar muitas chamadas durante a digitação
   const debouncedBuscarProdutos = useCallback(
-    debounce((novaBusca) => buscarProdutos(novaBusca), 500),
-    []
-  )
+    debounce(() => buscarProdutos(), 500),
+    [buscarProdutos]
+  );
 
-  // useEffect para executar o debounce e buscar sempre que a busca for alterada
   useEffect(() => {
-    // Apenas chama a busca se a string de busca não estiver vazia
-    if (busca.trim()) {
-      debouncedBuscarProdutos(true)
-    } else {
-      setProdutos([])  // Limpa os produtos se a busca estiver vazia
-    }
-  }, [busca, debouncedBuscarProdutos])
+    debouncedBuscarProdutos();
+  }, [busca, debouncedBuscarProdutos]);
 
-  // Alterna a seleção do produto
+  const buscarItensLista = async () => {
+    try {
+      const data = await apiGet('/api/itens-lista-casamento/', { lista: listaId });
+      setItensLista(data?.results || []);
+    } catch (error) {
+      console.log('Erro ao carregar itens da lista', error.message);
+    }
+  };
+
+  useEffect(() => {
+    buscarItensLista();
+  }, []);
+
+  const adicionarItens = async () => {
+    if (selecionados.length === 0) {
+      Alert.alert("Erro", "Selecione pelo menos um produto.");
+      return;
+    }
+
+    try {
+      for (const produtoId of selecionados) {
+        const payload = {
+          item_list: listaId,
+          item_prod: produtoId,
+          item_comp: complemento,
+        };
+        await apiPost('/api/itens-lista-casamento/', payload);
+      }
+      Alert.alert('Sucesso', 'Itens adicionados!');
+      setSelecionados([]);
+      setComplemento('');
+      buscarItensLista();
+    } catch (error) {
+      console.log('❌ Erro ao adicionar itens:', error.message);
+      Alert.alert('Erro', 'Falha ao adicionar itens.');
+    }
+  };
+
   const toggleProduto = (produtoId) => {
     setSelecionados((prev) =>
       prev.includes(produtoId)
         ? prev.filter((id) => id !== produtoId)
         : [...prev, produtoId]
-    )
-  }
-
-  // Função para salvar os itens selecionados
-  const salvarItens = async () => {
-    try {
-      for (let prod_id of selecionados) {
-        await apiPost('/api/itens-lista-casamento/', {
-          item_lista: listaId,
-          item_prod: prod_id,
-        })
-      }
-      Alert.alert('Sucesso', 'Itens adicionados com sucesso!')
-      navigation.goBack()
-    } catch (error) {
-      console.log('Erro ao salvar itens:', error.message)
-      Alert.alert('Erro', 'Falha ao salvar os itens.')
-    }
-  }
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Buscar Produto</Text>
+    <View style={styles.inner}>
       <TextInput
-        style={styles.input}
+        placeholder="Buscar produto..."
         value={busca}
         onChangeText={setBusca}
-        placeholder="Nome ou código do produto"
-        placeholderTextColor="#aaa"
+        style={styles.input}
       />
 
       {carregando ? (
-        <View style={{ marginVertical: 10, alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#fff" />
-        </View>
-      ) : produtos.length === 0 && !carregando && busca.trim() ? (
-        <Text style={{ textAlign: 'center', color: '#fff', marginTop: 20 }}>
-          Nenhum produto encontrado.
-        </Text>
+        <Text>Carregando...</Text>
       ) : (
         <FlatList
           data={produtos}
-          keyExtractor={(item) => item.prod_codi.toString()}
-          renderItem={({ item }) => {
-            const isSelected = selecionados.includes(item.prod_codi)
-            return (
-              <TouchableOpacity
-                style={[
-                  styles.sugestaoItem,
-                  isSelected && { backgroundColor: '#4CAF50' },
-                ]}
-                onPress={() => toggleProduto(item.prod_codi)}>
-                <Text style={styles.sugestaoTexto}>
-                  {item.prod_nome} ({item.prod_codi})
-                </Text>
-              </TouchableOpacity>
-            )
-          }}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => toggleProduto(item.id)}>
+              <Text style={{ color: selecionados.includes(item.id) ? 'green' : 'black' }}>
+                {item.nome}
+              </Text>
+            </TouchableOpacity>
+          )}
         />
       )}
 
-      <TouchableOpacity style={styles.incluirButton} onPress={salvarItens}>
-        <Text style={styles.incluirButtonText}>Salvar Itens Selecionados</Text>
+      <TextInput
+        placeholder="Complemento"
+        value={complemento}
+        onChangeText={setComplemento}
+        style={styles.input}
+      />
+
+      <TouchableOpacity style={styles.incluirButton} onPress={adicionarItens}>
+        <Text style={styles.incluirButtonText}>Adicionar Itens</Text>
       </TouchableOpacity>
+
+      <Text style={styles.label}>Itens adicionados:</Text>
+      <FlatList
+        data={itensLista}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View>
+            <Text>{item.produto_nome}</Text> 
+          </View>
+        )}
+      />
     </View>
-  )
+  );
 }

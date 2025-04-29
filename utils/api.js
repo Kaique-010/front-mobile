@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const BASE_URL = "http://192.168.10.35:8000"; // URL do seu backend
+export const BASE_URL = "http://192.168.0.13:8000";
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -29,15 +29,15 @@ const getAuthHeaders = async () => {
   const empresa = await AsyncStorage.getItem("empresa");
   const filial = await AsyncStorage.getItem("filial");
   const docu = await AsyncStorage.getItem("docu");
-  const user_id = await AsyncStorage.getItem("user_id"); // Recuperando o user_id
-  const username = await AsyncStorage.getItem("username"); // Recuperando o username
+  const user_id = await AsyncStorage.getItem("user_id");
+  const username = await AsyncStorage.getItem("username");
 
   return {
     "X-Empresa": empresa || "",
     "X-Filial": filial || "",
     "X-Docu": docu || "",
-    "X-User-Id": user_id || "", // Passando o user_id
-    "X-Username": username || "", // Passando o username
+    "X-User-Id": user_id || "",
+    "X-Username": username || "",
   };
 };
 
@@ -66,7 +66,6 @@ const apiFetch = async (
     const config = buildConfig(token);
     return await axios(config); // Faz a requisição
   } catch (error) {
-    // Caso o token esteja expirado, tenta renová-lo
     if (error.response?.status === 401) {
       console.log("🔄 Token expirado, tentando renovar...");
       try {
@@ -75,7 +74,7 @@ const apiFetch = async (
         return await axios(retryConfig); // Tenta novamente a requisição
       } catch (refreshError) {
         console.log("🚫 Não foi possível renovar o token.");
-        throw refreshError; // Se não conseguir renovar o token, lança erro
+        throw refreshError;
       }
     }
     throw error; // Lança o erro caso não seja 401 ou outro erro de autenticação

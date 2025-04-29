@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Toast from "react-native-toast-message";
-import axios from "axios";
+import { apiGet } from "../utils/api";
 import styles from "../styles/produtosStyles";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 export default function Entidades({ navigation }) {
   const [entidades, setEntidades] = useState([]);
@@ -18,18 +17,14 @@ export default function Entidades({ navigation }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
+  // Buscar entidades com pesquisa
   const buscarEntidades = async () => {
     setIsSearching(true);
     try {
-      const response = await axios.get(
-        "http://192.168.10.35:8000/api/entidades/",
-        {
-          params: { search: searchTerm },
-        }
-      );
-      setEntidades(response.data);
+      const data = await apiGet("/api/entidades/", { search: searchTerm });
+      setEntidades(data);
     } catch (error) {
-      console.log("❌ Erro ao buscar entidades:", error.message);
+      console.log("❌ Erro ao buscar Entidades:", error.message);
     } finally {
       setIsSearching(false);
       setLoading(false);
@@ -46,6 +41,7 @@ export default function Entidades({ navigation }) {
   useEffect(() => {
     buscarEntidades();
   }, []);
+
   useEffect(() => {
     if (
       navigation?.getState()?.routes?.[navigation?.getState()?.index]?.params
@@ -64,6 +60,7 @@ export default function Entidades({ navigation }) {
       navigation.setParams({ mensagemSucesso: null });
     }
   }, [navigation]);
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.nome}>{item.enti_nome}</Text>
@@ -72,6 +69,13 @@ export default function Entidades({ navigation }) {
       <Text style={styles.unidade}>CPF: {item.enti_cpf || "---"}</Text>
       <Text style={styles.unidade}>CNPJ: {item.enti_cnpj || "---"}</Text>
       <Text style={styles.saldo}>Cidade: {item.enti_cida}</Text>
+
+      {/* Nome da Empresa */}
+      {item.empresa ? (
+        <Text style={styles.saldo}>Empresa: {item.empresa.nome}</Text>
+      ) : (
+        <Text style={styles.saldo}>Empresa: Não atribuída</Text>
+      )}
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -130,7 +134,7 @@ export default function Entidades({ navigation }) {
       <FlatList
         data={entidades}
         renderItem={renderItem}
-        keyExtractor={(item) => item.enti_clie.toString()}
+        keyExtractor={(item) => `${item.enti_clie}-${item.empresa?.id}`} // Chave única com base no código da entidade e no ID da empresa
       />
     </View>
   );
