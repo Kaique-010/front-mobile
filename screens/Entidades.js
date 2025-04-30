@@ -72,7 +72,7 @@ export default function Entidades({ navigation }) {
 
       {/* Nome da Empresa */}
       {item.enti_empr ? (
-        <Text style={styles.saldo}>Empresa: {item.enti_empr}</Text>
+        <Text style={styles.saldo}>Empresa: {item.empresa_nome}</Text>
       ) : (
         <Text style={styles.saldo}>Empresa: Não atribuída</Text>
       )}

@@ -17,7 +17,6 @@ export default function ListaCasamento({ navigation }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
 
-
   const buscarListas = async () => {
     setIsSearching(true)
     try {
@@ -33,7 +32,7 @@ export default function ListaCasamento({ navigation }) {
     }
   }
 
-  const excluirLista = (list_nume) => {
+  const excluirLista = (list_codi) => {
     Alert.alert('Confirmação', 'Excluir esta lista?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -41,9 +40,9 @@ export default function ListaCasamento({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(`/api/listas-casamento/${list_nume}/`, {}, 'DELETE')
+            await apiGet(`/api/listas-casamento/${list_codi}/`, {}, 'DELETE')
             setListas((prev) =>
-              prev.filter((lista) => lista.list_nume !== list_nume)
+              prev.filter((lista) => lista.list_codi !== list_codi)
             )
           } catch (error) {
             console.log('❌ Erro ao excluir lista:', error.message)
@@ -67,10 +66,11 @@ export default function ListaCasamento({ navigation }) {
   const renderLista = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.status}>Status: {item.list_stat}</Text>
-      <Text style={styles.numero}>Nº Lista: {item.list_nume}</Text>
+      <Text style={styles.numero}>Nº Lista: {item.list_codi}</Text>
       <Text style={styles.data}>Data: {item.list_data}</Text>
       <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
-      <Text style={styles.total}>Produto: {item.list_prod}</Text>
+      <Text style={styles.total}>Empresa: {item.empresa_nome || '---'}</Text>
+
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -82,7 +82,7 @@ export default function ListaCasamento({ navigation }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => excluirLista(item.list_nume)}>
+          onPress={() => excluirLista(item.list_codi)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>
@@ -126,7 +126,7 @@ export default function ListaCasamento({ navigation }) {
       <FlatList
         data={listas}
         renderItem={renderLista}
-        keyExtractor={(item) => item.list_nume.toString()}
+        keyExtractor={(item) => item.list_codi.toString()}
       />
     </View>
   )
