@@ -26,6 +26,11 @@ export default function BuscaProdutoInput({ onSelect }) {
   }, [searchTerm]);
 
   const handleSelecionarProduto = (produto) => {
+    if (!produto?.prod_codi || isNaN(Number(produto.prod_codi))) {
+      console.warn("❌ Produto inválido selecionado:", produto);
+      return;
+    }
+
     onSelect(produto); // adiciona ao pai
     setSearchTerm(""); // limpa busca
     setProdutos([]); // limpa lista
@@ -42,7 +47,9 @@ export default function BuscaProdutoInput({ onSelect }) {
       />
 
       <FlatList
-        data={produtos}
+        data={produtos.filter(
+          (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
+        )}
         keyExtractor={(item) => item.prod_codi.toString()}
         renderItem={({ item }) => (
           <Card
