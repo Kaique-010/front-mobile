@@ -1,7 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const BASE_URL = "http://192.168.0.13:8000";
+export const BASE_URL = "http://192.168.10.55:8000";
 
 // Função para renovar o token
 const refreshToken = async () => {

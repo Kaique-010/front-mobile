@@ -32,7 +32,17 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-font"],
+    "plugins": [
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir acesso à câmera",
+          "microphonePermission": "Permitir acesso ao microfone",
+          "recordAudioAndroid": true
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "f67c96b2-c0c0-466a-b244-fe205b575bef"
