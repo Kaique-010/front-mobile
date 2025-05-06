@@ -1,43 +1,121 @@
-// styles/listaStyles.js
+// styles/produtosStyles.js
 import { StyleSheet } from 'react-native'
 
 const styles = StyleSheet.create({
+  // ====== Container Principal ======
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#000',
+    padding: 10,
   },
-  inner: {
-    flex: 1,
-    padding: 16,
-  },
-  label: {
-    marginBottom: 4,
-    fontWeight: '600',
-    fontSize: 14,
-    color: '#ddd',
+
+  // ====== Input de Busca ======
+  searchContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
   },
   input: {
-    backgroundColor: '#1e1e1e',
+    flex: 1,
+    backgroundColor: '#222',
+    borderColor: '#007bff',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#333',
     color: '#fff',
     height: 44,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    marginRight: 8,
+    paddingHorizontal: 10,
   },
-  incluirButton: {
-    backgroundColor: '#0a84ff',
+
+  // ====== Botão de Buscar ======
+  searchButton: {
+    backgroundColor: '#345686',
     borderRadius: 8,
-    paddingVertical: 12,
-    marginTop: 20,
+    justifyContent: 'center',
+    padding: 10,
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  // ====== Botão de Incluir Lista ======
+  incluirButton: {
+    backgroundColor: '#345686',
+    borderRadius: 8,
+    marginBottom: 10,
+    padding: 10,
   },
   incluirButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     textAlign: 'center',
-    fontSize: 16,
   },
+
+  // ====== Cartões de Lista ======
+  card: {
+    backgroundColor: '#1a1a1a',
+    borderColor: '#007bff',
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 10,
+    padding: 15,
+  },
+  numero: {
+    color: '#faebd7',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  data: {
+    color: '#aaa',
+    marginBottom: 30,
+  },
+  cliente: {
+    color: '#aaa',
+    marginTop: 2,
+  },
+  empresa: {
+    color: '#faebd7',
+  },
+  status: {
+    color: '#faebd7',
+    marginLeft: 250,
+  },
+  // ====== Ações (Editar / Excluir) ======
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  botao: {
+    marginLeft: 10,
+  },
+  botaoTexto: {
+    color: '#007bff',
+    fontSize: 18,
+  },
+  inner: {
+    flex: 1,
+    padding: 25,
+    color: '#fff',
+  },
+  label: {
+    marginBottom: 10,
+    marginTop: 10,
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#ddd',
+  },
+
+  forminput: {
+    backgroundColor: '#222',
+    borderColor: '#007bff',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#fff',
+    marginRight: 8,
+    paddingHorizontal: 10,
+  },
+
   sugestaoLista: {
     maxHeight: 180,
     backgroundColor: '#2a2a2a',

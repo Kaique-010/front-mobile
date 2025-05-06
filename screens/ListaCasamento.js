@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { apiGet } from '../utils/api' // função padrão sua de GET, POST etc.
-import styles from '../styles/pedidosStyle' // aproveitando o estilo do pedidos
+import { apiGet } from '../utils/api'
+import styles from '../styles/listaStyles'
 
 export default function ListaCasamento({ navigation }) {
   const [listas, setListas] = useState([])
@@ -69,10 +69,19 @@ export default function ListaCasamento({ navigation }) {
       <Text style={styles.numero}>Nº Lista: {item.list_codi}</Text>
       <Text style={styles.data}>Data: {item.list_data}</Text>
       <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
-      <Text style={styles.total}>Empresa: {item.empresa_nome || '---'}</Text>
-
+      <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
 
       <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.botaoitens}
+          onPress={() =>
+            navigation.navigate('ItensListaModal', {
+              listaId: item.list_codi,
+              clienteId: item.cliente_codi,
+            })
+          }>
+          <Text style={styles.botaoTexto}>💍</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}
           onPress={() =>
