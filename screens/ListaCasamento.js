@@ -51,11 +51,18 @@ export default function ListaCasamento({ navigation }) {
       },
     ])
   }
+  const statusMap = {
+    0: 'Aberta',
+    1: 'Aguardando',
+    2: 'Finalizada',
+    3: 'Cancelada',
+  }
 
   useEffect(() => {
     const debounce = setTimeout(() => {
       buscarListas()
     }, 500)
+    
     return () => clearTimeout(debounce)
   }, [searchTerm])
 
@@ -65,9 +72,11 @@ export default function ListaCasamento({ navigation }) {
 
   const renderLista = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.status}>Status: {item.list_stat}</Text>
+      <Text style={styles.status}>
+        Status: {statusMap[item.list_stat] ?? 'Desconhecido'}
+      </Text>
       <Text style={styles.numero}>Nº Lista: {item.list_codi}</Text>
-      <Text style={styles.data}>Data: {item.list_data}</Text>
+      <Text style={styles.datalist}>Data: {item.list_data}</Text>
       <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
       <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
 
@@ -137,6 +146,10 @@ export default function ListaCasamento({ navigation }) {
         renderItem={renderLista}
         keyExtractor={(item) => item.list_codi.toString()}
       />
+      <Text style={styles.footerText}>
+        {listas.length} lista{listas.length !== 1 ? 's' : ''} encontrada
+        {listas.length !== 1 ? 's' : ''}
+      </Text>
     </View>
   )
 }

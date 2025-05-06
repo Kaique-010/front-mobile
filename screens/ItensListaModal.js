@@ -146,13 +146,12 @@ export default function ItensListaModal({ route }) {
       keyExtractor={(item) => `${item.item_item}`}
       ListHeaderComponent={
         <>
-          {/* Scanner botão */}
           <TouchableOpacity onPress={() => setIsScanning(true)}>
             <Button
               icon="barcode-scan"
               mode="outlined"
               onPress={() => setIsScanning(true)}
-              labelStyle={{ color: 'green' }}
+              labelStyle={{ color: '#01ff16' }}
               style={{ marginBottom: 20, borderColor: 'green' }}>
               Escanear código de barras
             </Button>
@@ -180,6 +179,7 @@ export default function ItensListaModal({ route }) {
                 marginTop: 24,
                 marginBottom: 8,
                 color: 'white',
+                textAlign: 'center',
               }}>
               Itens já adicionados à lista:
             </Text>
@@ -191,17 +191,34 @@ export default function ItensListaModal({ route }) {
           style={{
             flexDirection: 'row',
             justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: '#1c1c1c',
+            padding: 12,
+            borderRadius: 8,
             marginBottom: 8,
           }}>
-          <Text style={{ color: 'white' }}>
-            • {item.produto_nome} (ID: {item.item_prod})
-          </Text>
-          <TouchableOpacity onPress={() => marcarParaRemocao(item.item_item)}>
-            <Text style={{ color: 'red' }}>Remover</Text>
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <Text
+              style={{ color: 'white' }}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              • {item.produto_nome} (ID: {item.item_prod})
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => marcarParaRemocao(item.item_item)}
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              backgroundColor: '#ff4d4d',
+              borderRadius: 6,
+            }}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Remover</Text>
           </TouchableOpacity>
         </View>
       )}
-      ListFooterComponent={<View style={{ height: 40 }} />} // padding final
+      ListFooterComponent={<View style={{ height: 40 }} />}
     />
   )
 }

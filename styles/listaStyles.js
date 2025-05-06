@@ -64,14 +64,20 @@ const styles = StyleSheet.create({
     color: '#faebd7',
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 5,
   },
   data: {
     color: '#aaa',
     marginBottom: 30,
   },
+  datalist: {
+    color: '#aaa',
+    marginBottom: 10,
+  },
   cliente: {
     color: '#aaa',
-    marginTop: 2,
+    marginTop: 5,
+    marginBottom: 20,
   },
   empresa: {
     color: '#faebd7',
@@ -96,7 +102,7 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     padding: 25,
-    color: '#fff',
+    color: 'white',
   },
   label: {
     marginBottom: 10,
@@ -142,6 +148,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
+  },
+  footerText: {
+    marginTop: 10,
+    marginBottom: 25,
   },
 })
 
