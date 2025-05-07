@@ -10,7 +10,7 @@ export const fetchDashboardData = async () => {
     usuario_id: stored?.user?.usuario_id || null,
   };
 
-  const response = await axios.get("http://192.168.10.55:8000/api/dashboard/", {
+  const response = await axios.get("http://192.168.0.13:8000/api/dashboard/", {
     params,
   });
   return response.data;
