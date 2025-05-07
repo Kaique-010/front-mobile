@@ -62,7 +62,7 @@ export default function ListaCasamento({ navigation }) {
     const debounce = setTimeout(() => {
       buscarListas()
     }, 500)
-    
+
     return () => clearTimeout(debounce)
   }, [searchTerm])
 
@@ -87,6 +87,8 @@ export default function ListaCasamento({ navigation }) {
             navigation.navigate('ItensListaModal', {
               listaId: item.list_codi,
               clienteId: item.cliente_codi,
+              empresaId: item.list_empr,
+              filialId: item.list_fili,
             })
           }>
           <Text style={styles.botaoTexto}>💍</Text>

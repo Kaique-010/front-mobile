@@ -58,8 +58,8 @@ export default function ListaCasamentoForm({ route, navigation }) {
       if (lista) {
         setForm((prev) => ({
           ...prev,
-          list_data: lista.list_data,
-          list_noiv: lista.list_noiv,
+          list_data: lista.list_data || prev.list_data,
+          list_noiv: lista.list_noiv || prev.list_noiv,
           list_stat: String(lista.list_stat),
         }))
       }
@@ -87,12 +87,15 @@ export default function ListaCasamentoForm({ route, navigation }) {
       if (lista) {
         await apiPutComContexto(
           `/api/listas-casamento/${lista.list_codi}/`,
+
           payload
         )
         Alert.alert('Sucesso', 'Lista atualizada com sucesso!')
         navigation.navigate('ItensListaModal', {
           listaId: lista.list_codi,
           clienteId: lista.list_noiv,
+          empresaId: lista.list_empr,
+          filialId: lista.list_fili,
         })
       } else {
         const novaLista = await apiPostComContexto(
@@ -128,7 +131,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
               console.log('Cliente selecionado:', item)
               setForm((prev) => ({
                 ...prev,
-                list_noiv: item.enti_clie, 
+                list_noiv: item.enti_clie,
               }))
             }}
           />
