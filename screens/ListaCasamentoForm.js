@@ -106,6 +106,8 @@ export default function ListaCasamentoForm({ route, navigation }) {
         navigation.navigate('ItensListaModal', {
           listaId: novaLista.list_codi,
           clienteId: form.list_noiv,
+          empresaId: form.list_empr,
+          filialId: form.list_fili,
         })
       }
     } catch (error) {

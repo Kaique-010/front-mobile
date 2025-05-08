@@ -45,7 +45,16 @@ export default function ListaCasamento({ navigation }) {
               prev.filter((lista) => lista.list_codi !== list_codi)
             )
           } catch (error) {
-            console.log('❌ Erro ao excluir lista:', error.message)
+            console.log(
+              '❌ Erro ao excluir lista:',
+              error.response?.data?.detail || error.message
+            )
+
+            // Mostrando um alerta com a mensagem de erro
+            Alert.alert(
+              'Erro',
+              error.response?.data?.detail || 'Erro ao excluir a lista'
+            )
           }
         },
       },
@@ -86,7 +95,7 @@ export default function ListaCasamento({ navigation }) {
           onPress={() =>
             navigation.navigate('ItensListaModal', {
               listaId: item.list_codi,
-              clienteId: item.cliente_codi,
+              clienteId: item.list_noiv,
               empresaId: item.list_empr,
               filialId: item.list_fili,
             })
