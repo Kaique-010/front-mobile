@@ -23,7 +23,7 @@ export default function ListaCasamento({ navigation }) {
       const data = await apiGet('/api/listas-casamento/', {
         search: searchTerm,
       })
-      setListas(data)
+      setListas(data.results || [])
     } catch (error) {
       console.log('❌ Erro ao buscar listas:', error.message)
     } finally {

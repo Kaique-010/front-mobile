@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -7,64 +7,64 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-} from "react-native";
-import { apiGet } from "../utils/api";
-import styles from "../styles/pedidosStyle";
+} from 'react-native'
+import { apiGet } from '../utils/api'
+import styles from '../styles/pedidosStyle'
 
 export default function Pedidos({ navigation }) {
-  const [pedidos, setPedidos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+  const [pedidos, setPedidos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
 
   // Buscar pedidos com filtro de busca
   const buscarPedidos = async () => {
-    setIsSearching(true);
+    setIsSearching(true)
     try {
-      const data = await apiGet("/api/pedidos/", { search: searchTerm });
-      setPedidos(data);
+      const data = await apiGet('/api/pedidos/', { search: searchTerm })
+      setPedidos(data.results || [])
     } catch (error) {
-      console.log("❌ Erro ao buscar :", error.message);
+      console.log('❌ Erro ao buscar :', error.message)
     } finally {
-      setIsSearching(false);
-      setLoading(false);
+      setIsSearching(false)
+      setLoading(false)
     }
-  };
+  }
 
   // Função para excluir pedido com confirmação
   const excluirPedido = (pedi_nume) => {
-    Alert.alert("Confirmação", "Tem certeza que deseja excluir este pedido?", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert('Confirmação', 'Tem certeza que deseja excluir este pedido?', [
+      { text: 'Cancelar', style: 'cancel' },
       {
-        text: "Excluir",
-        style: "destructive",
+        text: 'Excluir',
+        style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(`/api/pedidos/${pedi_nume}/`, {}, "DELETE");
+            await apiGet(`/api/pedidos/${pedi_nume}/`, {}, 'DELETE')
             // Atualiza a lista removendo o item excluído
             setPedidos((prev) =>
               prev.filter((pedido) => pedido.pedi_nume !== pedi_nume)
-            );
+            )
           } catch (error) {
-            console.log("❌ Erro ao excluir pedido:", error.message);
+            console.log('❌ Erro ao excluir pedido:', error.message)
           }
         },
       },
-    ]);
-  };
+    ])
+  }
 
   // Debounce pra busca
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
-      buscarPedidos();
-    }, 500);
-    return () => clearTimeout(delayDebounce);
-  }, [searchTerm]);
+      buscarPedidos()
+    }, 500)
+    return () => clearTimeout(delayDebounce)
+  }, [searchTerm])
 
   // Carrega os pedidos na primeira renderização
   useEffect(() => {
-    buscarPedidos();
-  }, []);
+    buscarPedidos()
+  }, [])
 
   // Renderização de cada item da lista
   const renderPedidos = ({ item }) => (
@@ -78,21 +78,19 @@ export default function Pedidos({ navigation }) {
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => navigation.navigate("PedidosForm", { pedidos: item })}
-        >
+          onPress={() => navigation.navigate('PedidosForm', { pedidos: item })}>
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
 
         {/* Botão de excluir com chamada da função de exclusão */}
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => excluirPedido(item.pedi_nume)}
-        >
+          onPress={() => excluirPedido(item.pedi_nume)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>
     </View>
-  );
+  )
 
   if (loading) {
     return (
@@ -101,7 +99,7 @@ export default function Pedidos({ navigation }) {
         color="#007bff"
         style={{ marginTop: 50 }}
       />
-    );
+    )
   }
 
   return (
@@ -109,7 +107,7 @@ export default function Pedidos({ navigation }) {
       {/* Botão de inclusão */}
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate("PedidosForm")} // Definido o destino da navegação
+        onPress={() => navigation.navigate('PedidosForm')} // Definido o destino da navegação
       >
         <Text style={styles.incluirButtonText}>+ Incluir pedidos</Text>
       </TouchableOpacity>
@@ -126,7 +124,7 @@ export default function Pedidos({ navigation }) {
         />
         <TouchableOpacity style={styles.searchButton} onPress={buscarPedidos}>
           <Text style={styles.searchButtonText}>
-            {isSearching ? "🔍..." : "Buscar"}
+            {isSearching ? '🔍...' : 'Buscar'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -138,5 +136,5 @@ export default function Pedidos({ navigation }) {
         keyExtractor={(item) => item.pedi_nume.toString()}
       />
     </View>
-  );
+  )
 }

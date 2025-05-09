@@ -19,7 +19,7 @@ export default function ItensListaModal({ route }) {
     filialId,
   })
 
-  const [isScanning, setIsScanning] = useState(false) // Adicionado
+  const [isScanning, setIsScanning] = useState(false) 
 
   const {
     itensSalvos,

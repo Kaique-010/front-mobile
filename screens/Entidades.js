@@ -21,8 +21,10 @@ export default function Entidades({ navigation }) {
   const buscarEntidades = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGet('/api/entidades/', { search: searchTerm })
-      setEntidades(data)
+      const data = await apiGet('/api/entidades/?limit=50&offset=50', {
+        search: searchTerm,
+      })
+      setEntidades(data.results || [])
     } catch (error) {
       console.log('❌ Erro ao buscar Entidades:', error.message)
     } finally {

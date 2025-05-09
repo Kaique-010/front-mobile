@@ -25,7 +25,7 @@ export default function useItensListaCasamento({
         item_empr: empresaId,
         item_fili: filialId,
       })
-      setItensSalvos(data)
+      setItensSalvos(data.results || [])
     } catch (e) {
       console.error('Erro ao carregar:', e)
     } finally {

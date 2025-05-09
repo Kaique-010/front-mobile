@@ -12,6 +12,8 @@ import DrawerNavigator from './navigation/DrawerNavigation'
 import PedidosForm from './screens/PedidosForm'
 import ListaCasamentoForm from './screens/ListaCasamentoForm'
 import ItensListaModal from './screens/ItensListaModal'
+import EntradasForm from './screens/EntradasForm'
+import SaidasForm from './screens/SaidasForm'
 
 const Stack = createNativeStackNavigator()
 
@@ -99,6 +101,26 @@ export default function App() {
           component={ItensListaModal}
           options={{
             title: 'Adicionar Itens à Lista',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="EntradasForm"
+          component={EntradasForm}
+          options={{
+            title: 'Entradas de Estoque',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="SaidasForm"
+          component={SaidasForm}
+          options={{
+            title: 'Saidas de Estoque',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },
