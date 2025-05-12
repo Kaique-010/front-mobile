@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import axios from 'axios'
-import { BASE_URL } from '../utils/api'
+import { BASE_URL, fetchSlugMap } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/loginStyles'
 
@@ -31,21 +31,45 @@ export default function SelectEmpresa({ navigation }) {
           return
         }
 
-        // Faz a requisição com o token de acesso e o CNPJ no cabeçalho
-        const response = await axios.get(
-          `${BASE_URL}/api/licencas/empresas/?limit=50&offset=50`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'X-CNPJ': docu,
-            },
-          }
-        )
+        const slugMap = await fetchSlugMap()
 
-        if (response.data && Array.isArray(response.data)) {
-          setEmpresas(response.data || [])
+        // Encontrando o objeto com o CNPJ correspondente
+        const slugObj = slugMap.find((item) => item.cnpj === docu)
+
+        if (slugObj) {
+          const slug = slugObj.slug
+          console.log('[DEBUG] SLUG:', slug)
+          if (!slug) {
+            console.error('[ERROR] Slug não encontrado para o CNPJ:', docu)
+            setError('CNPJ não encontrado no mapa de licenças.')
+            setLoading(false)
+            return
+          }
+
+          // agora usa o slug aqui embaixo:
+          const response = await axios.get(
+            `${BASE_URL}/api/${slug}/licencas/empresas/?limit=50&offset=50`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'X-CNPJ': docu,
+              },
+            }
+          )
+
+          console.log(
+            '[DEBUG] URL da API:',
+            `${BASE_URL}/api/${slug}/licencas/empresas/`
+          )
+
+          if (response.data && Array.isArray(response.data)) {
+            setEmpresas(response.data)
+          } else {
+            setError('Nenhuma empresa encontrada.')
+          }
         } else {
-          setError('Nenhuma empresa encontrada.')
+          console.error('CNPJ não encontrado no mapa')
+          setError('CNPJ não encontrado no mapa de licenças.')
         }
       } catch (error) {
         console.error(
