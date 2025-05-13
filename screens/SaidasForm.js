@@ -15,6 +15,7 @@ import styles from '../styles/listaStyles'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaProdutosInput from '../components/BuscaProdutosInput'
+import { getStoredData } from '../services/storageService'
 
 export default function SaidasForm({ route, navigation }) {
   const saida = route.params?.saida
@@ -52,6 +53,23 @@ export default function SaidasForm({ route, navigation }) {
       console.error('Erro ao carregar contexto:', error)
     }
   }
+
+  const [slug, setSlug] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+  console.log('Slug:', slug)
 
   useEffect(() => {
     const init = async () => {
@@ -91,14 +109,14 @@ export default function SaidasForm({ route, navigation }) {
 
       if (saida) {
         await apiPutComContexto(
-          `/api/saidas-estoque/${saida.said_prod}/`,
+          `/api/saidas-estoque/${slug}/${saida.said_prod}/`,
           payload
         )
         Alert.alert('Sucesso', 'Saída atualizada com sucesso!')
         navigation.goBack()
       } else {
         const novaSaida = await apiPostComContexto(
-          '/api/saidas-estoque/',
+          `/api/saidas-estoque/${slug}`,
           payload
         )
         Alert.alert('Sucesso', 'Saída criada com sucesso!')

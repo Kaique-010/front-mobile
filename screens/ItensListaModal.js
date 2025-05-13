@@ -7,7 +7,8 @@ import ProdutosSelecionados from '../components/ProdutosSelecionados'
 import LeitorCodigoBarras from '../components/Leitor'
 import useItensListaCasamento from '../hooks/useItensListaCasamento'
 import ListaItens from '../components/ListaItens'
-import { apiGet } from '../utils/api' // você esqueceu de importar isso aqui
+import { apiGet } from '../utils/api'
+import { getStoredData } from '../services/storageService'
 
 export default function ItensListaModal({ route }) {
   const navigation = useNavigation()
@@ -19,7 +20,7 @@ export default function ItensListaModal({ route }) {
     filialId,
   })
 
-  const [isScanning, setIsScanning] = useState(false) 
+  const [isScanning, setIsScanning] = useState(false)
 
   const {
     itensSalvos,
@@ -39,6 +40,21 @@ export default function ItensListaModal({ route }) {
     usuarioId,
   })
 
+  const [slug, setSlug] = useState('')
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+  console.log('Slug:', slug)
+
   useEffect(() => {
     navigation.setOptions({
       title: 'Editar Itens',
@@ -48,7 +64,7 @@ export default function ItensListaModal({ route }) {
 
   const onProdutoLido = async (codigoBarras) => {
     try {
-      const produtos = await apiGet('/api/produtos/busca/', {
+      const produtos = await apiGet(`/api/${slug}/produtos/produtos/busca/`, {
         q: codigoBarras,
       })
 

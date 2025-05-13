@@ -20,11 +20,14 @@ export default function useItensListaCasamento({
   const carregarItens = async () => {
     setCarregando(true)
     try {
-      const data = await apiGet('/api/itens-lista-casamento/', {
-        item_list: listaId,
-        item_empr: empresaId,
-        item_fili: filialId,
-      })
+      const data = await apiGet(
+        `/api/${slug}/listacasamento/itens-lista-casamento/`,
+        {
+          item_list: listaId,
+          item_empr: empresaId,
+          item_fili: filialId,
+        }
+      )
       setItensSalvos(data.results || [])
     } catch (e) {
       console.error('Erro ao carregar:', e)
@@ -75,7 +78,10 @@ export default function useItensListaCasamento({
         })),
       }
 
-      await apiPost('/api/itens-lista-casamento/update-lista/', payload)
+      await apiPost(
+        `/api/${slug}/listacasamento/itens-lista-casamento/update-lista/`,
+        payload
+      )
 
       Alert.alert('Sucesso', 'Alterações salvas com sucesso!')
       setSelecionados([])

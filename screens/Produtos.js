@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { apiGet } from '../utils/api'
+import { getStoredData } from '../services/storageService'
+import Toast from 'react-native-toast-message'
 import styles from '../styles/produtosStyles'
 
 export default function Produtos({ navigation }) {
@@ -15,13 +17,39 @@ export default function Produtos({ navigation }) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [slug, setSlug] = useState('')
+
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+  console.log('Slug:', slug)
 
   // Buscar produtos com search
   const buscarProdutos = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGet('/api/produtos/', { search: searchTerm })
-      setProdutos(data)
+      const data = await apiGet(
+        `/api/${slug}/produtos/produtos/?limit=50&offset=0/`,
+        { search: searchTerm }
+      )
+
+      setProdutos(data.results || [])
+      if (data.count === 0) {
+        Toast.show({
+          type: 'info',
+          text1: 'Nenhum produto encontrado',
+          position: 'top',
+        })
+      }
     } catch (error) {
       console.log('❌ Erro ao buscar produtos:', error.message)
     } finally {

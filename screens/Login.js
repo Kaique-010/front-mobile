@@ -21,6 +21,7 @@ export default function Login({ navigation }) {
   const [docu, setDocu] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [modulos, setModulos] = useState([])
 
   const [fontsLoaded] = useFonts({
     FaunaOne_400Regular,
@@ -80,16 +81,30 @@ export default function Login({ navigation }) {
         }
       )
 
+      // Definir os modulos após a resposta da API
+      setModulos(response.data.modulos)
+
       const { access, refresh, usuario } = response.data
 
+      // Aguardar até o estado de modulos ser atualizado
       await AsyncStorage.multiSet([
         ['access', access],
         ['refresh', refresh],
         ['usuario', JSON.stringify(usuario)],
         ['docu', docu],
-        ['slug', slug], // Armazena o slug
+        ['slug', slug],
         ['user', JSON.stringify(usuario)],
+        ['modulos', JSON.stringify(response.data.modulos)], // Armazenar diretamente os modulos da resposta
       ])
+
+      console.log('Dados armazenados no AsyncStorage:', {
+        access,
+        refresh,
+        usuario,
+        docu,
+        slug,
+        modulos: response.data.modulos,
+      })
 
       console.log('Login bem-sucedido, navegação para SelectEmpresa')
       navigation.navigate('SelectEmpresa')
@@ -100,6 +115,7 @@ export default function Login({ navigation }) {
       setIsLoading(false)
     }
   }
+
   return (
     <View style={styles.container}>
       {/* Logo animada com bounce */}

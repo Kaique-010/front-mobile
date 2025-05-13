@@ -1,7 +1,7 @@
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-export const BASE_URL = 'http://192.168.0.39:8000'
+export const BASE_URL = 'http://192.168.10.59:8000'
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -13,7 +13,7 @@ const refreshToken = async () => {
       refresh,
     })
     const newAccess = response.data.access
-    await AsyncStorage.setItem('access', newAccess) // Atualiza o token de acesso
+    await AsyncStorage.setItem('access', newAccess) 
     return newAccess
   } catch (error) {
     console.log(
@@ -24,13 +24,14 @@ const refreshToken = async () => {
   }
 }
 
-// Função para obter os cabeçalhos de autenticação
+
 const getAuthHeaders = async () => {
   const empresa = await AsyncStorage.getItem('empresa')
   const filial = await AsyncStorage.getItem('filial')
   const docu = await AsyncStorage.getItem('docu')
   const usuario_id = await AsyncStorage.getItem('usuario_id')
   const username = await AsyncStorage.getItem('username')
+  
 
   return {
     'X-Empresa': empresa || '',

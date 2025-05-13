@@ -10,18 +10,35 @@ import {
 } from 'react-native'
 import { apiGet } from '../utils/api'
 import styles from '../styles/pedidosStyle'
+import { getStoredData } from '../services/storageService'
 
 export default function Pedidos({ navigation }) {
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [slug, setSlug] = useState('')
 
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+  console.log('Slug:', slug)
   // Buscar pedidos com filtro de busca
   const buscarPedidos = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGet('/api/pedidos/', { search: searchTerm })
+      const data = await apiGet(`/api/${slug}/pedidos/pedidos/`, {
+        search: searchTerm,
+      })
       setPedidos(data.results || [])
     } catch (error) {
       console.log('❌ Erro ao buscar :', error.message)
@@ -40,7 +57,11 @@ export default function Pedidos({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(`/api/pedidos/${pedi_nume}/`, {}, 'DELETE')
+            await apiGet(
+              `/api/${slug}/pedidos/pedidos/${pedi_nume}/`,
+              {},
+              'DELETE'
+            )
             // Atualiza a lista removendo o item excluído
             setPedidos((prev) =>
               prev.filter((pedido) => pedido.pedi_nume !== pedi_nume)
@@ -52,6 +73,8 @@ export default function Pedidos({ navigation }) {
       },
     ])
   }
+
+  
 
   // Debounce pra busca
   useEffect(() => {

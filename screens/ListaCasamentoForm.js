@@ -15,6 +15,7 @@ import { Picker } from '@react-native-picker/picker'
 import { apiPostComContexto, apiPutComContexto } from '../utils/api'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import styles from '../styles/listaStyles'
+import { getStoredData } from '../services/storageService'
 
 export default function ListaCasamentoForm({ route, navigation }) {
   const lista = route.params?.lista
@@ -52,6 +53,21 @@ export default function ListaCasamentoForm({ route, navigation }) {
     }
   }
 
+  const [slug, setSlug] = useState('')
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+  console.log('Slug:', slug)
+
   useEffect(() => {
     const init = async () => {
       await carregarContexto()
@@ -86,7 +102,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
 
       if (lista) {
         await apiPutComContexto(
-          `/api/listas-casamento/${lista.list_codi}/`,
+          `/api/${slug}/listacasamento/listas-casamento/${lista.list_codi}/`,
 
           payload
         )
@@ -99,7 +115,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
         })
       } else {
         const novaLista = await apiPostComContexto(
-          '/api/listas-casamento/',
+          `/api/${slug}/listacasamento/listas-casamento/`,
           payload
         )
         Alert.alert('Sucesso', 'Lista criada com sucesso!')

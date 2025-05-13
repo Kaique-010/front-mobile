@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { apiGet } from '../utils/api'
 import styles from '../styles/listaEntradasStyles'
+import { getStoredData } from '../services/storageService'
 
 export default function ListaEntradas({ navigation }) {
   const [entradas, setEntradas] = useState([])
@@ -20,6 +21,21 @@ export default function ListaEntradas({ navigation }) {
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const PAGE_SIZE = 50
+  const [slug, setSlug] = useState('')
+
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+  console.log('Slug:', slug)
 
   const buscarEntradas = async (reset = false) => {
     if ((isFetchingMore && !reset) || (!hasMore && !reset)) return
@@ -36,7 +52,7 @@ export default function ListaEntradas({ navigation }) {
 
     try {
       const data = await apiGet(
-        `/api/entradas-estoque/?limit=${PAGE_SIZE}&offset=${atualOffset}`,
+        `/api/${slug}/entradas_estoque/entradas-estoque/?limit=${PAGE_SIZE}&offset=${atualOffset}`,
         { search: searchTerm }
       )
       const newResults = data.results || []

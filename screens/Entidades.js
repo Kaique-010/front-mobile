@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiGet } from '../utils/api'
+import { getStoredData } from '../services/storageService'
 import styles from '../styles/produtosStyles'
 
 export default function Entidades({ navigation }) {
@@ -19,20 +19,19 @@ export default function Entidades({ navigation }) {
   const [isSearching, setIsSearching] = useState(false)
   const [slug, setSlug] = useState('')
 
-  // Pegar slug do AsyncStorage
   useEffect(() => {
     const carregarSlug = async () => {
       try {
-        const empresaStorage = await AsyncStorage.getItem('empresa')
-        const empresa = JSON.parse(empresaStorage)
-        if (empresa?.slug) setSlug(empresa.slug)
-        else console.warn('Slug não encontrado no objeto empresa')
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
       } catch (err) {
         console.error('Erro ao carregar slug:', err.message)
       }
     }
     carregarSlug()
   }, [])
+  console.log('Slug:', slug)
 
   // Buscar entidades da API
   const buscarEntidades = async () => {
@@ -40,8 +39,8 @@ export default function Entidades({ navigation }) {
     setIsSearching(true)
     setLoading(true)
     try {
-      const data = await apiGet(`/api/${slug}/entidades/`, {
-        params: { search: searchTerm, limit: 50, offset: 0 },
+      const data = await apiGet(`/api/${slug}/entidades/entidades/?limit=50&offset=0/`, {
+        search: searchTerm,
       })
       setEntidades(data.results || [])
     } catch (error) {

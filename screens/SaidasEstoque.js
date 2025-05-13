@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
+import { getStoredData } from '../services/storageService'
 import { apiGet } from '../utils/api'
 import styles from '../styles/listaSaidasStyles'
 
@@ -21,6 +22,7 @@ export default function ListaSaidas({ navigation }) {
   const [hasMore, setHasMore] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [slug, setSlug] = useState('')
 
   const buscarSaidas = async (reset = false) => {
     if ((isFetchingMore && !reset) || (!hasMore && !reset)) return
@@ -31,6 +33,20 @@ export default function ListaSaidas({ navigation }) {
       setSaidas([])
     }
 
+    useEffect(() => {
+      const carregarSlug = async () => {
+        try {
+          const { slug } = await getStoredData()
+          if (slug) setSlug(slug)
+          else console.warn('Slug não encontrado')
+        } catch (err) {
+          console.error('Erro ao carregar slug:', err.message)
+        }
+      }
+      carregarSlug()
+    }, [])
+    console.log('Slug:', slug)
+
     const atualOffset = reset ? 0 : offset
     const loadingSetter = reset ? setLoading : setIsFetchingMore
 
@@ -38,7 +54,7 @@ export default function ListaSaidas({ navigation }) {
 
     try {
       const data = await apiGet(
-        `/api/saidas-estoque/?limit=${PAGE_SIZE}&offset=${atualOffset}`,
+        `/api/${slug}/saidas_estoque/saidas-estoque/?limit=${PAGE_SIZE}&offset=${atualOffset}`,
         { search: searchTerm }
       )
       const newResults = data.results || []

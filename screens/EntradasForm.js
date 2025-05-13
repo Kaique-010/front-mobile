@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaProdutosInput from '../components/BuscaProdutosInput'
 import styles from '../styles/listaStyles'
+import { getStoredData } from '../services/storageService'
 
 export default function EntradasForm({ route, navigation }) {
   const entrada = route.params?.entrada
@@ -52,6 +53,21 @@ export default function EntradasForm({ route, navigation }) {
       console.error('Erro ao carregar contexto:', error)
     }
   }
+
+  const [slug, setSlug] = useState('')
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+  console.log('Slug:', slug)
 
   useEffect(() => {
     const init = async () => {
@@ -92,14 +108,14 @@ export default function EntradasForm({ route, navigation }) {
 
       if (entrada) {
         await apiPutComContexto(
-          `/api/entradas-estoque/${entrada.entr_prod}/`,
+          `/api/${slug}/entradas_estoque/entradas-estoque/${entrada.entr_prod}/`,
           payload
         )
         Alert.alert('Sucesso', 'Entrada atualizada com sucesso!')
         navigation.goBack()
       } else {
         const novaEntrada = await apiPostComContexto(
-          '/api/entradas-estoque/',
+          '/api/${slug}/entradas_estoque/entradas-estoque/',
           payload
         )
         Alert.alert('Sucesso', 'Entrada criada com sucesso!')

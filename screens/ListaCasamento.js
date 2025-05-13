@@ -20,7 +20,7 @@ export default function ListaCasamento({ navigation }) {
   const buscarListas = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGet('/api/listas-casamento/', {
+      const data = await apiGet(`/api/${slug}/listacasamento/listas-casamento/`, {
         search: searchTerm,
       })
       setListas(data.results || [])
@@ -40,7 +40,7 @@ export default function ListaCasamento({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(`/api/listas-casamento/${list_codi}/`, {}, 'DELETE')
+            await apiGet(`/api/${slug}/listacasamento/listas-casamento/${list_codi}/`, {}, 'DELETE')
             setListas((prev) =>
               prev.filter((lista) => lista.list_codi !== list_codi)
             )
