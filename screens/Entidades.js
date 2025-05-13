@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiGet } from '../utils/api'
 import styles from '../styles/produtosStyles'
 
@@ -16,13 +17,31 @@ export default function Entidades({ navigation }) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [slug, setSlug] = useState('')
 
-  // Buscar entidades com pesquisa
+  // Pegar slug do AsyncStorage
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const empresaStorage = await AsyncStorage.getItem('empresa')
+        const empresa = JSON.parse(empresaStorage)
+        if (empresa?.slug) setSlug(empresa.slug)
+        else console.warn('Slug não encontrado no objeto empresa')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+
+  // Buscar entidades da API
   const buscarEntidades = async () => {
+    if (!slug) return
     setIsSearching(true)
+    setLoading(true)
     try {
-      const data = await apiGet('/api/entidades/?limit=1&offset=50', {
-        search: searchTerm,
+      const data = await apiGet(`/api/${slug}/entidades/`, {
+        params: { search: searchTerm, limit: 50, offset: 0 },
       })
       setEntidades(data.results || [])
     } catch (error) {
@@ -33,32 +52,31 @@ export default function Entidades({ navigation }) {
     }
   }
 
+  // Debounce na busca
   useEffect(() => {
+    if (!slug) return
     const delayDebounce = setTimeout(() => {
       buscarEntidades()
     }, 500)
     return () => clearTimeout(delayDebounce)
-  }, [searchTerm])
+  }, [searchTerm, slug])
 
+  // Primeira busca
   useEffect(() => {
-    buscarEntidades()
-  }, [])
+    if (slug) buscarEntidades()
+  }, [slug])
 
+  // Mensagem de sucesso
   useEffect(() => {
-    if (
+    const mensagem =
       navigation?.getState()?.routes?.[navigation?.getState()?.index]?.params
         ?.mensagemSucesso
-    ) {
-      const mensagem =
-        navigation?.getState()?.routes?.[navigation?.getState()?.index]?.params
-          ?.mensagemSucesso
+    if (mensagem) {
       Toast.show({
         type: 'success',
         text1: 'Sucesso!',
         text2: mensagem,
       })
-
-      // Limpa a mensagem para não mostrar na próxima navegação
       navigation.setParams({ mensagemSucesso: null })
     }
   }, [navigation])
@@ -71,14 +89,9 @@ export default function Entidades({ navigation }) {
       <Text style={styles.unidade}>CPF: {item.enti_cpf || '---'}</Text>
       <Text style={styles.unidade}>CNPJ: {item.enti_cnpj || '---'}</Text>
       <Text style={styles.saldo}>Cidade: {item.enti_cida}</Text>
-
-      {/* Nome da Empresa */}
-      {item.enti_empr ? (
-        <Text style={styles.saldo}>Empresa: {item.empresa_nome}</Text>
-      ) : (
-        <Text style={styles.saldo}>Empresa: Não atribuída</Text>
-      )}
-
+      <Text style={styles.saldo}>
+        Empresa: {item.empresa_nome || 'Não atribuída'}
+      </Text>
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.botao}
@@ -94,48 +107,47 @@ export default function Entidades({ navigation }) {
     </View>
   )
 
-  if (loading) {
-    return (
-      <ActivityIndicator
-        size="large"
-        color="#007bff"
-        style={{ marginTop: 50 }}
-      />
-    )
-  }
-
   return (
     <View style={styles.container}>
-      {/* Botão de inclusão */}
-      <TouchableOpacity
-        style={styles.incluirButton}
-        onPress={() => navigation.navigate('EntidadeForm')}>
-        <Text style={styles.incluirButtonText}>+ Incluir Entidade</Text>
-      </TouchableOpacity>
-
-      {/* Campo de busca */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Buscar por nome ou tipo"
-          placeholderTextColor="#777"
-          style={styles.input}
-          value={searchTerm}
-          onChangeText={setSearchTerm}
-          onSubmitEditing={buscarEntidades}
+      {!slug || loading ? (
+        <ActivityIndicator
+          size="large"
+          color="#007bff"
+          style={{ marginTop: 50 }}
         />
-        <TouchableOpacity style={styles.searchButton} onPress={buscarEntidades}>
-          <Text style={styles.searchButtonText}>
-            {isSearching ? '🔍...' : 'Buscar'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      ) : (
+        <>
+          <TouchableOpacity
+            style={styles.incluirButton}
+            onPress={() => navigation.navigate('EntidadeForm')}>
+            <Text style={styles.incluirButtonText}>+ Incluir Entidade</Text>
+          </TouchableOpacity>
 
-      {/* Lista de entidades */}
-      <FlatList
-        data={entidades}
-        renderItem={renderItem}
-        keyExtractor={(item) => `${item.enti_clie}-${item.enti_empr}`}
-      />
+          <View style={styles.searchContainer}>
+            <TextInput
+              placeholder="Buscar por nome ou tipo"
+              placeholderTextColor="#777"
+              style={styles.input}
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              onSubmitEditing={buscarEntidades}
+            />
+            <TouchableOpacity
+              style={styles.searchButton}
+              onPress={buscarEntidades}>
+              <Text style={styles.searchButtonText}>
+                {isSearching ? '🔍...' : 'Buscar'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={entidades}
+            renderItem={renderItem}
+            keyExtractor={(item) => `${item.enti_clie}-${item.enti_empr}`}
+          />
+        </>
+      )}
     </View>
   )
 }

@@ -1,7 +1,7 @@
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-export const BASE_URL = 'http://192.168.20.60:8000'
+export const BASE_URL = 'http://192.168.0.39:8000'
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -155,5 +155,22 @@ export async function fetchSlugMap() {
   } catch (error) {
     console.error('[ERROR] ao buscar mapa de licenças:', error)
     throw error
+  }
+}
+
+const getSlug = async () => {
+  const slug = await AsyncStorage.getItem('slug')
+  if (!slug) throw new Error('Slug não encontrado no AsyncStorage')
+  return slug
+}
+
+export const request = async ({ method, endpoint, data = {}, params = {} }) => {
+  try {
+    const slug = await getSlug()
+    const fullEndpoint = `/api/${slug}/${endpoint}`
+    return await apiFetch(fullEndpoint, method, data, params)
+  } catch (error) {
+    console.error('Erro na request:', error.response?.data || error.message)
+    throw error.response?.data || { message: 'Erro inesperado' }
   }
 }

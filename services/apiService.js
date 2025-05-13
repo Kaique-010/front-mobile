@@ -34,9 +34,12 @@ export const fetchDashboardData = async () => {
   }
 
   // Faz a requisição à API
-  const response = await axios.post(`${BASE_URL}/api/${slug}/dashboard/`, {
-    params,
-  })
+  const response = await axios.get(
+    `${BASE_URL}/api/${slug}/dashboards/dashboard/`,
+    {
+      params,
+    }
+  )
   console.log('[DEBUG] Dashboard response:', response.data)
   return response.data
 }
