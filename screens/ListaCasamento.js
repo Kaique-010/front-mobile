@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
+import { getStoredData } from '../services/storageService'
 import { apiGet } from '../utils/api'
 import styles from '../styles/listaStyles'
 
@@ -16,13 +17,30 @@ export default function ListaCasamento({ navigation }) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [slug, setSlug] = useState('')
+
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
 
   const buscarListas = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGet(`/api/${slug}/listacasamento/listas-casamento/`, {
-        search: searchTerm,
-      })
+      const data = await apiGet(
+        `/api/${slug}/listacasamento/listas-casamento/`,
+        {
+          search: searchTerm,
+        }
+      )
       setListas(data.results || [])
     } catch (error) {
       console.log('❌ Erro ao buscar listas:', error.message)
@@ -40,7 +58,11 @@ export default function ListaCasamento({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(`/api/${slug}/listacasamento/listas-casamento/${list_codi}/`, {}, 'DELETE')
+            await apiGet(
+              `/api/${slug}/listacasamento/listas-casamento/${list_codi}/`,
+              {},
+              'DELETE'
+            )
             setListas((prev) =>
               prev.filter((lista) => lista.list_codi !== list_codi)
             )

@@ -1,5 +1,4 @@
-// components/BuscaClienteInput.js
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   TextInput,
   FlatList,
@@ -9,23 +8,45 @@ import {
   Keyboard,
 } from 'react-native'
 import { apiGet } from '../utils/api'
+import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
 
 export default function BuscaClienteInput({ onSelect }) {
   const [termo, setTermo] = useState('')
   const [clientes, setClientes] = useState([])
+  const [slug, setSlug] = useState('') // Estado para armazenar o slug
+
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
 
   const buscar = async (texto) => {
     setTermo(texto)
     if (!texto) return setClientes([])
-    const data = await apiGet('/api/entidades/', { search: texto })
-    setClientes(data)
+
+    try {
+      const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
+        search: texto,
+      })
+      setClientes(data)
+    } catch (err) {
+      console.error('Erro ao buscar clientes:', err.message)
+    }
   }
 
   return (
     <View>
       <TextInput
-        style={(styles.inputcliente = { color: 'white' })}
+        style={styles.inputcliente} // Atribuição direta ao estilo, sem mutação
         value={termo}
         onChangeText={buscar}
         placeholder="Buscar cliente..."
@@ -42,8 +63,8 @@ export default function BuscaClienteInput({ onSelect }) {
             <TouchableOpacity
               onPress={() => {
                 onSelect(item)
-                setClientes([])
-                Keyboard.dismiss()
+                setClientes([]) // Limpa os resultados ao selecionar
+                Keyboard.dismiss() // Fecha o teclado
               }}
               style={styles.sugestaoItem}>
               <Text style={styles.sugestaoTexto}>
