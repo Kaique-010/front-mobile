@@ -35,7 +35,12 @@ export default function ListaEntradas({ navigation }) {
     }
     carregarSlug()
   }, [])
-  console.log('Slug:', slug)
+
+  useEffect(() => {
+    if (slug) {
+      buscarEntradas()
+    }
+  }, [slug])
 
   const buscarEntradas = async (reset = false) => {
     if ((isFetchingMore && !reset) || (!hasMore && !reset)) return
@@ -108,10 +113,6 @@ export default function ListaEntradas({ navigation }) {
 
     return () => clearTimeout(debounce)
   }, [searchTerm])
-
-  useEffect(() => {
-    buscarEntradas()
-  }, [])
 
   const renderEntrada = ({ item }) => (
     <View style={styles.card}>

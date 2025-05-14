@@ -9,6 +9,8 @@ export const getStoredData = async () => {
   const docu = await AsyncStorage.getItem('docu')
   const slug = await AsyncStorage.getItem('slug')
   const user = await AsyncStorage.getItem('user')
+ const token = await AsyncStorage.getItem('access')
+
 
   console.log('Stored usuario:', usuario)
   console.log('Stored empresaNome:', empresaNome)
@@ -28,5 +30,6 @@ export const getStoredData = async () => {
     docu,
     slug,
     user: user ? JSON.parse(user) : null,
+    accessToken: token,
   }
 }

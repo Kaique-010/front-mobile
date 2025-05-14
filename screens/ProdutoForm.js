@@ -62,11 +62,16 @@ export default function ProdutoFormScreen({ route, navigation }) {
     }
     return () => clearInterval(interval)
   }, [loading])
-
+  // Primeira busca
+  useEffect(() => {
+    if (slug) carregarUnidades()
+  }, [slug])
   const carregarUnidades = async () => {
     setLoading(true)
     try {
-      const data = await apiGetComContexto(`/api/${slug}/unidadesmedida/`)
+      const data = await apiGetComContexto(
+        `/api/${slug}/produtos/unidadesmedida/`
+      )
       setUnidades(data)
     } catch (error) {
       console.error('Erro ao carregar unidades', error)
@@ -84,13 +89,19 @@ export default function ProdutoFormScreen({ route, navigation }) {
       prod_ncm: ncm,
       prod_empr: empresa,
     }
-
+    console.log(payload)
     try {
       if (produto?.prod_codi) {
-        await apiPut(`/api/${slug}/produtos/${produto.prod_codi}/`, payload)
+        await apiPut(
+          `/api/${slug}/produtos/produtos/${produto.prod_codi}/`,
+          payload
+        )
         Alert.alert('Sucesso', 'Produto atualizado com sucesso!')
       } else {
-        const { prod_codi } = await apiPost(`/api/${slug}/produtos/`, payload)
+        const { prod_codi } = await apiPost(
+          `/api/${slug}/produtos/produtos/`,
+          payload
+        )
         Alert.alert('Criado', `Produto criado com código: ${prod_codi}`)
       }
 
@@ -112,7 +123,9 @@ export default function ProdutoFormScreen({ route, navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiDelete(`/api/${slug}/produtos/${produto.prod_codi}/`)
+            await apiDelete(
+              `/api/${slug}/produtos/produtos/${produto.prod_codi}/`
+            )
 
             Alert.alert('Excluído', 'Produto removido com sucesso.')
             navigation.goBack()

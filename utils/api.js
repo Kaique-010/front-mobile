@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
+import { getStoredData } from '../services/storageService'
 export const BASE_URL = 'http://192.168.10.59:8000'
 
 // Função para renovar o token
@@ -8,12 +9,17 @@ const refreshToken = async () => {
   const refresh = await AsyncStorage.getItem('refresh')
   if (!refresh) throw new Error('Refresh token não encontrado')
 
+  // Obtenha o slug diretamente
+  const { slug } = await getStoredData()
+  console.log('Slug:', slug)
+
   try {
-    const response = await axios.post(`${BASE_URL}/api/auth/token/refresh/`, {
-      refresh,
-    })
+    const response = await axios.post(
+      `${BASE_URL}/api/${slug}/auth/token/refresh/`,
+      { refresh }
+    )
     const newAccess = response.data.access
-    await AsyncStorage.setItem('access', newAccess) 
+    await AsyncStorage.setItem('access', newAccess)
     return newAccess
   } catch (error) {
     console.log(
@@ -24,14 +30,12 @@ const refreshToken = async () => {
   }
 }
 
-
 const getAuthHeaders = async () => {
   const empresa = await AsyncStorage.getItem('empresa')
   const filial = await AsyncStorage.getItem('filial')
   const docu = await AsyncStorage.getItem('docu')
   const usuario_id = await AsyncStorage.getItem('usuario_id')
   const username = await AsyncStorage.getItem('username')
-  
 
   return {
     'X-Empresa': empresa || '',

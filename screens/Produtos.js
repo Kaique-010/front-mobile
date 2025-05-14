@@ -31,7 +31,12 @@ export default function Produtos({ navigation }) {
     }
     carregarSlug()
   }, [])
-  console.log('Slug:', slug)
+ 
+  useEffect(() => {
+    if (slug) {
+      buscarProdutos()
+    }
+  }, [slug])
 
   // Buscar produtos com search
   const buscarProdutos = async () => {
@@ -65,11 +70,6 @@ export default function Produtos({ navigation }) {
     }, 500)
     return () => clearTimeout(delayDebounce)
   }, [searchTerm])
-
-  // Primeira carga sem filtro
-  useEffect(() => {
-    buscarProdutos()
-  }, [])
 
   // Renderiza cada item do produto
   const renderItem = ({ item }) => (

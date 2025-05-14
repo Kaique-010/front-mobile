@@ -31,8 +31,13 @@ export default function Pedidos({ navigation }) {
     }
     carregarSlug()
   }, [])
-  console.log('Slug:', slug)
-  // Buscar pedidos com filtro de busca
+
+  useEffect(() => {
+    if (slug) {
+      buscarPedidos()
+    }
+  }, [slug])
+
   const buscarPedidos = async () => {
     setIsSearching(true)
     try {
@@ -45,6 +50,7 @@ export default function Pedidos({ navigation }) {
     } finally {
       setIsSearching(false)
       setLoading(false)
+      console.log('Buscando pedidos com slug:', slug)
     }
   }
 
@@ -74,8 +80,6 @@ export default function Pedidos({ navigation }) {
     ])
   }
 
-  
-
   // Debounce pra busca
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -83,11 +87,6 @@ export default function Pedidos({ navigation }) {
     }, 500)
     return () => clearTimeout(delayDebounce)
   }, [searchTerm])
-
-  // Carrega os pedidos na primeira renderização
-  useEffect(() => {
-    buscarPedidos()
-  }, [])
 
   // Renderização de cada item da lista
   const renderPedidos = ({ item }) => (
@@ -97,6 +96,7 @@ export default function Pedidos({ navigation }) {
       <Text style={styles.data}>Data: {item.pedi_data}</Text>
       <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
       <Text style={styles.total}>Total Pedido: {item.pedi_tota}</Text>
+      <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -156,8 +156,12 @@ export default function Pedidos({ navigation }) {
       <FlatList
         data={pedidos}
         renderItem={renderPedidos}
-        keyExtractor={(item) => item.pedi_nume.toString()}
+        keyExtractor={(item) => `${item.pedi_nume}-${item.pedi_empr}`}
       />
+      <Text style={styles.footerText}>
+        {pedidos.length} pedidos{pedidos.length !== 1 ? 's' : ''} encontrados
+        {pedidos.length !== 1 ? 's' : ''}
+      </Text>
     </View>
   )
 }

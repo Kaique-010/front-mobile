@@ -32,6 +32,12 @@ export default function ListaCasamento({ navigation }) {
     carregarSlug()
   }, [])
 
+  useEffect(() => {
+    if (slug) {
+      buscarListas()
+    }
+  }, [slug])
+
   const buscarListas = async () => {
     setIsSearching(true)
     try {
@@ -96,10 +102,6 @@ export default function ListaCasamento({ navigation }) {
 
     return () => clearTimeout(debounce)
   }, [searchTerm])
-
-  useEffect(() => {
-    buscarListas()
-  }, [])
 
   const renderLista = ({ item }) => (
     <View style={styles.card}>
