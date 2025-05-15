@@ -35,7 +35,7 @@ export default function BuscaProdutoInput({ onSelect }) {
         const data = await apiGet(`/api/${slug}/produtos/produtos/`, {
           search: searchTerm,
         })
-        setProdutos(data)
+        setProdutos(data.results)
       } catch (err) {
         console.log('❌ Erro ao buscar produtos:', err.message)
       } finally {

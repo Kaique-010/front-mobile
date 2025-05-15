@@ -115,7 +115,7 @@ export default function EntradasForm({ route, navigation }) {
         navigation.goBack()
       } else {
         const novaEntrada = await apiPostComContexto(
-          '/api/${slug}/entradas_estoque/entradas-estoque/',
+          `/api/${slug}/entradas_estoque/entradas-estoque/`,
           payload
         )
         Alert.alert('Sucesso', 'Entrada criada com sucesso!')

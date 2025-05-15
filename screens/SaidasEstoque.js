@@ -24,28 +24,38 @@ export default function ListaSaidas({ navigation }) {
   const [isSearching, setIsSearching] = useState(false)
   const [slug, setSlug] = useState('')
 
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) {
+          setSlug(slug)
+        } else {
+          console.warn('Slug não encontrado')
+        }
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      } finally {
+        setLoading(false) // libera a tela depois de tentar carregar o slug
+      }
+    }
+    carregarSlug()
+  }, [])
+
+  useEffect(() => {
+    if (slug) {
+      buscarSaidas(true)
+    }
+  }, [slug])
+
   const buscarSaidas = async (reset = false) => {
     if ((isFetchingMore && !reset) || (!hasMore && !reset)) return
-
+    if (!slug) return
     if (reset) {
       setOffset(0)
       setHasMore(true)
       setSaidas([])
     }
-
-    useEffect(() => {
-      const carregarSlug = async () => {
-        try {
-          const { slug } = await getStoredData()
-          if (slug) setSlug(slug)
-          else console.warn('Slug não encontrado')
-        } catch (err) {
-          console.error('Erro ao carregar slug:', err.message)
-        }
-      }
-      carregarSlug()
-    }, [])
-    console.log('Slug:', slug)
 
     const atualOffset = reset ? 0 : offset
     const loadingSetter = reset ? setLoading : setIsFetchingMore
@@ -110,10 +120,6 @@ export default function ListaSaidas({ navigation }) {
     }, 500)
     return () => clearTimeout(debounce)
   }, [searchTerm])
-
-  useEffect(() => {
-    buscarSaidas(true)
-  }, [])
 
   const renderSaida = ({ item }) => (
     <View style={styles.card}>

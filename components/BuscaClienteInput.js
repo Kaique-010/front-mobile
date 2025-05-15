@@ -14,7 +14,7 @@ import styles from '../styles/listaStyles'
 export default function BuscaClienteInput({ onSelect }) {
   const [termo, setTermo] = useState('')
   const [clientes, setClientes] = useState([])
-  const [slug, setSlug] = useState('') // Estado para armazenar o slug
+  const [slug, setSlug] = useState('')
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -37,7 +37,7 @@ export default function BuscaClienteInput({ onSelect }) {
       const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
         search: texto,
       })
-      setClientes(data)
+      setClientes(data.results)
     } catch (err) {
       console.error('Erro ao buscar clientes:', err.message)
     }
