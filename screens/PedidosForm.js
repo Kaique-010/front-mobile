@@ -1,250 +1,114 @@
-// src/screens/PedidosForm.js
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Alert,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  TextInput,
-} from "react-native";
-import { apiPost, apiPut, apiDelete } from "../utils/api";
+import React, { useState, useEffect } from 'react'
+import { View, ScrollView, Button, Text, StyleSheet } from 'react-native'
+import PedidoHeader from '../componentsPedidos/PedidoHeader'
+import ItensList from '../componentsPedidos/ItensLista'
+import ItensModal from '../componentsPedidos/ItensModal'
+import ResumoPedido from '../componentsPedidos/ResumoPedido'
+import { getStoredData } from '../services/storageService'
 
-const InputField = ({ label, value, onChangeText, ...rest }) => (
-  <>
-    <Text style={styles.label}>{label}</Text>
-    <TextInput
-      style={styles.input}
-      value={value}
-      onChangeText={onChangeText}
-      {...rest}
-    />
-  </>
-);
+export default function TelaPedidoVenda() {
+  const [pedido, setPedido] = useState({
+    pedi_empr: null,
+    pedi_fili: null,
+    pedi_forn: null,
+    pedi_vend: null,
+    pedi_data: new Date().toISOString().split('T')[0],
+    pedi_fina: '0',
+    pedi_obse: '',
+    itens: [],
+    pedi_tota: 0,
+  })
 
-export default function PedidosForm({ route, navigation }) {
-  const pedidos = route.params?.pedidos;
-
-  const [empresa, setEmpresa] = useState(pedidos?.pedi_empr || "");
-  const [filial, setFilial] = useState(pedidos?.pedi_fili || "");
-  const [numero, setNumero] = useState(pedidos?.pedi_nume || "");
-  const [cliente, setCliente] = useState(pedidos?.pedi_forn || "");
-  const [date, setDate] = useState(pedidos?.pedi_data || "");
-  const [total, setTotal] = useState(pedidos?.pedi_tota || "");
-  const [financeiro, setFinanceiro] = useState(pedidos?.pedi_fina || "");
-  const [vendedor, setVendedor] = useState(pedidos?.pedi_vend || "");
-  const [status, setStatus] = useState(pedidos?.pedi_stat || "");
-  const [loading, setLoading] = useState(false);
-  const [dots, setDots] = useState("");
+  const [modalVisivel, setModalVisivel] = useState(false)
+  const [carregando, setCarregando] = useState(true)
+  const [itemEditando, setItemEditando] = useState(null)
 
   useEffect(() => {
-    let interval;
-    if (loading) {
-      interval = setInterval(() => {
-        setDots((prev) => (prev.length < 3 ? prev + "." : ""));
-      }, 500);
-    }
-    return () => clearInterval(interval);
-  }, [loading]);
+    const carregarEmpresaFilial = async () => {
+      try {
+        const { empresa, filial } = await getStoredData()
 
-  const salvar = async () => {
-    if (!empresa || !filial || !numero) {
-      Alert.alert(
-        "Erro",
-        "Preencha os campos obrigatórios: Empresa, Filial e Nº Pedido."
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    const data = {
-      empresa,
-      filial,
-      numero,
-      cliente,
-      date,
-      total,
-      financeiro,
-      vendedor,
-      status,
-    };
-
-    try {
-      if (pedidos?.pedi_nume) {
-        await apiPut(`/api/pedidos/${pedidos.pedi_nume}/`, data);
-        Alert.alert("Sucesso", "Pedido atualizado com sucesso!");
-      } else {
-        const response = await apiPost(`/api/pedidos/`, data);
-        const novoPedido = response.pedi_nume;
-        Alert.alert("Criado", `Pedido criado com código: ${novoPedido}`);
+        setPedido((prev) => ({
+          ...prev,
+          pedi_empr: empresa,
+          pedi_fili: filial,
+        }))
+      } catch (err) {
+        console.error('Erro ao carregar empresa/filial:', err.message)
+      } finally {
+        setCarregando(false)
       }
-      navigation.goBack();
-    } catch (error) {
-      console.error(
-        "❌ Erro ao salvar pedido:",
-        error.response?.data || error.message
-      );
-      Alert.alert("Erro", "Não foi possível salvar o pedido.");
-    } finally {
-      setLoading(false);
-      setDots("");
     }
-  };
 
-  const excluir = () => {
-    Alert.alert("Confirmar", "Tem certeza que deseja excluir o pedido?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Excluir",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await apiDelete(`/api/pedidos/${pedidos.pedi_nume}/`);
-            Alert.alert("Excluído", "Pedido removido com sucesso.");
-            navigation.goBack();
-          } catch (error) {
-            console.error(
-              "❌ Erro ao excluir:",
-              error.response?.data || error.message
-            );
-            Alert.alert("Erro", "Não foi possível excluir o pedido.");
-          }
-        },
-      },
-    ]);
-  };
+    carregarEmpresaFilial()
+  }, [])
+
+  const handleAdicionarOuEditarItem = (novoItem) => {
+    let novosItens
+    if (itemEditando) {
+      // edição
+      novosItens = pedido.itens.map((item) =>
+        item === itemEditando ? novoItem : item
+      )
+    } else {
+      // adição
+      novosItens = [...pedido.itens, novoItem]
+    }
+
+    const novoTotal = novosItens.reduce((acc, i) => acc + i.iped_tota, 0)
+    setPedido((prev) => ({
+      ...prev,
+      itens: novosItens,
+      pedi_tota: novoTotal,
+    }))
+    setItemEditando(null)
+    setModalVisivel(false)
+  }
+  if (carregando) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Carregando dados...</Text>
+      </View>
+    )
+  }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <InputField
-          label="Empresa"
-          value={empresa}
-          onChangeText={setEmpresa}
-          keyboardType="number-pad"
-        />
-        <InputField label="Filial" value={filial} onChangeText={setFilial} />
-        <InputField label="Nº Pedido" value={numero} onChangeText={setNumero} />
-        <InputField
-          label="Data"
-          value={date}
-          onChangeText={setDate}
-          keyboardType="number-pad"
-        />
-        <InputField
-          label="Financeiro"
-          value={financeiro}
-          onChangeText={setFinanceiro}
-        />
-        <InputField
-          label="Vendedor"
-          value={vendedor}
-          onChangeText={setVendedor}
-        />
-        <InputField label="Cliente" value={cliente} onChangeText={setCliente} />
-        <InputField label="Status" value={status} onChangeText={setStatus} />
-        <InputField
-          label="Total"
-          value={total}
-          onChangeText={setTotal}
-          keyboardType="decimal-pad"
-        />
+    <View style={styles.container}>
+      <PedidoHeader pedido={pedido} setPedido={setPedido} />
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            onPress={salvar}
-            style={[styles.button, loading && { opacity: 0.6 }]}
-            disabled={loading}
-          >
-            <View style={styles.rowCenter}>
-              <Text style={styles.buttonText}>
-                {loading ? `Gravando${dots}` : "Salvar"}
-              </Text>
-              {loading && (
-                <ActivityIndicator
-                  size="small"
-                  color="#fff"
-                  style={{ marginLeft: 8 }}
-                />
-              )}
-            </View>
-          </TouchableOpacity>
+      <Button title="Adicionar Item" onPress={() => setModalVisivel(true)} />
 
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={[styles.button, styles.cancelButton]}
-          >
-            <Text style={styles.buttonText}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
+      <ItensList
+        itens={pedido.itens} 
+        
+        onEdit={(item) => {
+          setItemEditando(item)
+          setModalVisivel(true)
+        }}
+      />
 
-        {pedidos?.pedi_nume && (
-          <TouchableOpacity onPress={excluir} style={styles.deleteButton}>
-            <Text style={styles.buttonText}>Excluir</Text>
-          </TouchableOpacity>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+      <ItensModal
+        visivel={modalVisivel}
+        onFechar={() => {
+          setModalVisivel(false)
+          setItemEditando(null)
+        }}
+        onAdicionar={handleAdicionarOuEditarItem}
+        itemEditando={itemEditando}
+      />
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   container: {
-    padding: 35,
-    backgroundColor: "#0B141A",
+    padding: 16,
+    flex: 1,
+    backgroundColor: '#21393f',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    marginBottom: 12,
-    padding: 10,
-    fontSize: 16,
-    color: "white",
+  carregandoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  button: {
-    backgroundColor: "#0058A2",
-    padding: 12,
-    borderRadius: 8,
-    width: "48%",
-    alignItems: "center",
-  },
-  deleteButton: {
-    backgroundColor: "red",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 16,
-    alignItems: "center",
-  },
-  cancelButton: {
-    backgroundColor: "#666",
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  label: {
-    marginBottom: 4,
-    fontWeight: "bold",
-    fontSize: 14,
-    color: "#fff",
-  },
-  rowCenter: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 24,
-  },
-});
+})

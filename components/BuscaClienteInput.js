@@ -11,7 +11,11 @@ import { apiGet } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
 
-export default function BuscaClienteInput({ onSelect }) {
+export default function BuscaClienteInput({
+  onSelect,
+  placeholder = 'Buscar...',
+  tipo = null,
+}) {
   const [termo, setTermo] = useState('')
   const [clientes, setClientes] = useState([])
   const [slug, setSlug] = useState('')
@@ -37,19 +41,34 @@ export default function BuscaClienteInput({ onSelect }) {
       const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
         search: texto,
       })
-      setClientes(data.results)
+
+      let resultados = data.results
+
+      if (tipo === 'cliente') {
+        resultados = resultados.filter((e) => e.enti_tipo_enti === 'Cl')
+      } else if (tipo === 'vendedor') {
+        resultados = resultados.filter((e) => e.enti_tipo_enti === 'Ve')
+      }
+
+      setClientes(resultados)
     } catch (err) {
-      console.error('Erro ao buscar clientes:', err.message)
+      console.error('Erro ao buscar entidades:', err.message)
     }
+  }
+
+  const selecionar = (item) => {
+    onSelect(item)
+    setClientes([])
+    Keyboard.dismiss()
   }
 
   return (
     <View>
       <TextInput
-        style={styles.inputcliente} // Atribuição direta ao estilo, sem mutação
+        style={styles.inputcliente}
         value={termo}
         onChangeText={buscar}
-        placeholder="Buscar cliente..."
+        placeholder={placeholder}
         placeholderTextColor="#aaa"
       />
       {clientes.length > 0 && (
@@ -61,14 +80,10 @@ export default function BuscaClienteInput({ onSelect }) {
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => {
-                onSelect(item)
-                setClientes([]) // Limpa os resultados ao selecionar
-                Keyboard.dismiss() // Fecha o teclado
-              }}
+              onPress={() => selecionar(item)}
               style={styles.sugestaoItem}>
               <Text style={styles.sugestaoTexto}>
-                {item.enti_clie}-{item.enti_nome} —{' '}
+                {item.enti_clie} - {item.enti_nome} —{' '}
                 {item.enti_cpf || item.enti_cnpj}
               </Text>
             </TouchableOpacity>
