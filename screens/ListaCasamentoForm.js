@@ -18,8 +18,11 @@ import styles from '../styles/listaStyles'
 import { getStoredData } from '../services/storageService'
 
 export default function ListaCasamentoForm({ route, navigation }) {
-  const lista = route.params?.lista
+  const { lista, cliente_nome, list_noiv } = route.params || {}
 
+  const [clienteSelecionadoTexto, setClienteSelecionadoTexto] = useState(
+    cliente_nome && list_noiv ? `${list_noiv} - ${cliente_nome}` : ''
+  )
   const [form, setForm] = useState({
     list_data: new Date().toISOString().split('T')[0],
     list_noiv: '',
@@ -78,6 +81,15 @@ export default function ListaCasamentoForm({ route, navigation }) {
           list_noiv: lista.list_noiv || prev.list_noiv,
           list_stat: String(lista.list_stat),
         }))
+        setClienteSelecionadoTexto(`${lista.list_noiv} - ${cliente_nome || ''}`)
+      } else {
+        // Se não tem lista, limpa o texto (nova lista)
+        setClienteSelecionadoTexto('')
+        setForm((prev) => ({
+          ...prev,
+          list_noiv: '',
+          list_stat: '0',
+        }))
       }
     }
     init()
@@ -112,6 +124,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
           clienteId: lista.list_noiv,
           empresaId: lista.list_empr,
           filialId: lista.list_fili,
+          list_noiv: clienteSelecionadoTexto,
         })
       } else {
         const novaLista = await apiPostComContexto(
@@ -146,13 +159,14 @@ export default function ListaCasamentoForm({ route, navigation }) {
 
           <BuscaClienteInput
             onSelect={(item) => {
-              console.log('Cliente selecionado:', item)
+              const texto = `${item.enti_clie} - ${item.enti_nome}`
               setForm((prev) => ({
                 ...prev,
                 list_noiv: item.enti_clie,
               }))
             }}
           />
+
           <Text style={styles.label}>Data</Text>
           <TextInput
             style={styles.forminput}

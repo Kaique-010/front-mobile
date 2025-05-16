@@ -37,7 +37,7 @@ export default function Pedidos({ navigation }) {
       buscarPedidos()
     }
   }, [slug])
-
+  console.log('Tela de Pedidos')
   const buscarPedidos = async () => {
     setIsSearching(true)
     try {
@@ -46,11 +46,9 @@ export default function Pedidos({ navigation }) {
       })
       setPedidos(data.results || [])
     } catch (error) {
-      console.log('❌ Erro ao buscar :', error.message)
     } finally {
       setIsSearching(false)
       setLoading(false)
-      console.log('Buscando pedidos com slug:', slug)
     }
   }
 
@@ -79,14 +77,10 @@ export default function Pedidos({ navigation }) {
       },
     ])
   }
+  const statusPedidos = {
+    0: 'Aberto',
 
-  // Debounce pra busca
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      buscarPedidos()
-    }, 500)
-    return () => clearTimeout(delayDebounce)
-  }, [searchTerm])
+  }
 
   // Renderização de cada item da lista
   const renderPedidos = ({ item }) => (
@@ -156,11 +150,14 @@ export default function Pedidos({ navigation }) {
       <FlatList
         data={pedidos}
         renderItem={renderPedidos}
-        keyExtractor={(item) => `${item.pedi_nume}-${item.pedi_empr}`}
+        keyExtractor={(item, index) => {
+          const key = `${item.pedi_nume}-${item.pedi_empr}-${item.pedi_forn}-${index}`
+
+          return key
+        }}
       />
       <Text style={styles.footerText}>
         {pedidos.length} pedidos{pedidos.length !== 1 ? 's' : ''} encontrados
-        {pedidos.length !== 1 ? 's' : ''}
       </Text>
     </View>
   )

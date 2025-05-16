@@ -16,7 +16,6 @@ export default function ListaEntradas({ navigation }) {
   const [entradas, setEntradas] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
   const [offset, setOffset] = useState(0)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -38,36 +37,39 @@ export default function ListaEntradas({ navigation }) {
 
   useEffect(() => {
     if (slug) {
-      buscarEntradas()
+      buscarEntradas(true)
     }
   }, [slug])
 
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      buscarEntradas(true)
-    }, 500)
-
-    return () => clearTimeout(debounce)
-  }, [searchTerm])
-
   const buscarEntradas = async (reset = false) => {
     if ((isFetchingMore && !reset) || (!hasMore && !reset)) return
+    if (!slug) return
 
     if (reset) {
       setOffset(0)
       setEntradas([])
       setHasMore(true)
     }
+
     const atualOffset = reset ? 0 : offset
     const loadingSetter = reset ? setLoading : setIsFetchingMore
-
     loadingSetter(true)
 
     try {
+      const params = {
+        limit: PAGE_SIZE,
+        offset: atualOffset,
+      }
+
+      if (searchTerm.trim()) {
+        params.search = searchTerm
+      }
+
       const data = await apiGet(
-        `/api/${slug}/entradas_estoque/entradas-estoque/?limit=${PAGE_SIZE}&offset=${atualOffset}`,
-        { search: searchTerm }
+        `/api/${slug}/entradas_estoque/entradas-estoque/`,
+        params
       )
+
       const newResults = data.results || []
       if (reset) {
         setEntradas(newResults)
@@ -166,12 +168,12 @@ export default function ListaEntradas({ navigation }) {
           style={styles.input}
           value={searchTerm}
           onChangeText={setSearchTerm}
-          onSubmitEditing={buscarEntradas}
+          onSubmitEditing={() => buscarEntradas(true)}
         />
-        <TouchableOpacity style={styles.searchButton} onPress={buscarEntradas}>
-          <Text style={styles.searchButtonText}>
-            {isSearching ? '🔍...' : 'Buscar'}
-          </Text>
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={() => buscarEntradas(true)}>
+          <Text style={styles.searchButtonText}>🔍 Buscar</Text>
         </TouchableOpacity>
       </View>
 

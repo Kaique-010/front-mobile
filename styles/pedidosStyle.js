@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   numero: {
-    color: '#C0C0C0',
+    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   status: {
     color: '#fff',
-    marginLeft: 300,
+    marginLeft: 220,
   },
   // ====== Ações (Editar / Excluir) ======
   actions: {
@@ -95,6 +95,9 @@ const styles = StyleSheet.create({
   botaoTexto: {
     color: '#007bff',
     fontSize: 18,
+  },
+  footerText: {
+    margin: 20,
   },
 })
 

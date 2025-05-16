@@ -99,7 +99,7 @@ export default function EntidadeForm({ navigation, route }) {
       Alert.alert('Validação', 'O e-mail é obrigatório.')
       return false
     }
-    if (!formData.enti_empr ) {
+    if (!formData.enti_empr) {
       Alert.alert('Erro', 'Empresa nã definida.')
       return false
     }
@@ -132,10 +132,10 @@ export default function EntidadeForm({ navigation, route }) {
       Toast.show({
         type: 'success',
         text1: 'Sucesso!',
-        text2: 'Entidade salva com sucesso 👌',
+        text2: `Entidade: #${enti_clie} salva com sucesso 👌`,
       })
       navigation.navigate('Entidades', {
-        mensagemSucesso: 'Entidade salva com sucesso 👌',
+        mensagemSucesso: `Entidade: #${enti_clie} salva com sucesso 👌`,
       })
     } catch (error) {
       console.log(

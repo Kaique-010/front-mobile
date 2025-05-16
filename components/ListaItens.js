@@ -12,8 +12,8 @@ export default function ListaItens({
       (r) =>
         r.item_empr === item.item_empr &&
         r.item_fili === item.item_fili &&
-        r.item_list === item.item_list &&
-        r.item_item === item.item_item
+        r.item_list === item.item_list &&                                                          
+        r.item_item === item.item_item                        
     )
 
   const idExibido = listaId ?? 'ID não disponível'

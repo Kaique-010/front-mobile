@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native'
 import { apiGet } from '../utils/api'
 import { getStoredData } from '../services/storageService'
@@ -31,7 +32,7 @@ export default function Produtos({ navigation }) {
     }
     carregarSlug()
   }, [])
- 
+
   useEffect(() => {
     if (slug) {
       buscarProdutos()
@@ -75,20 +76,37 @@ export default function Produtos({ navigation }) {
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.nome}>{item.prod_nome}</Text>
-      <Text style={styles.codigo}>Código: {item.prod_codi}</Text>
-      <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
-      <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
-      <Text style={styles.saldo}>Saldo: {item.saldo_estoque}</Text>
+      <View style={styles.cardContent}>
+        {item.imagem_base64 ? (
+          <Image
+            source={{ uri: `data:image/png;base64,${item.imagem_base64}` }}
+            style={styles.imagemProduto}
+          />
+        ) : (
+          <View style={[styles.imagemProduto, styles.imagemPlaceholder]}>
+            <Text style={{ color: '#888' }}>Sem Imagem</Text>
+          </View>
+        )}
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.botao}
-          onPress={() => navigation.navigate('ProdutoForm', { produto: item })}>
-          <Text style={styles.botaoTexto}>✏️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.botao}>
-          <Text style={styles.botaoTexto}>🗑️</Text>
-        </TouchableOpacity>
+        <View style={styles.infoContainer}>
+          <Text style={styles.codigo}>Código: {item.prod_codi}</Text>
+          <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
+          <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
+          <Text style={styles.saldo}>Saldo: {item.saldo_estoque}</Text>
+
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.botao}
+              onPress={() =>
+                navigation.navigate('ProdutoForm', { produto: item })
+              }>
+              <Text style={styles.botaoTexto}>✏️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.botao}>
+              <Text style={styles.botaoTexto}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </View>
   )
@@ -135,6 +153,9 @@ export default function Produtos({ navigation }) {
         renderItem={renderItem}
         keyExtractor={(item) => item.prod_codi}
       />
+      <Text style={styles.footerText}>
+        {produtos.length} produtos{produtos.length !== 1 ? 's' : ''} encontrados
+      </Text>
     </View>
   )
 }

@@ -16,11 +16,12 @@ export default function BuscaClienteInput({
   placeholder = 'Buscar...',
   tipo = null,
   value = '',
+  isEdit = false,  // adiciona a prop isEdit
 }) {
   const [termo, setTermo] = useState(value)
   const [clientes, setClientes] = useState([])
   const [slug, setSlug] = useState('')
-  const digitando = useRef(false) // <- flag pra saber se está editando manualmente
+  const digitando = useRef(false)
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -35,12 +36,26 @@ export default function BuscaClienteInput({
     carregarSlug()
   }, [])
 
-  // Só atualiza termo externo se não estiver digitando manualmente
   useEffect(() => {
-    if (!digitando.current) {
+    if (isEdit) {
+      // Se está em edição, só seta o texto e limpa sugestões, não busca
       setTermo(value)
+      setClientes([])
+      digitando.current = false
+    } else {
+      // Se não está em edição, faz a busca normal
+      if (!digitando.current && value) {
+        if (!value.includes(' - ')) {
+          buscar(value)
+        } else {
+          setTermo(value)
+        }
+      } else if (!value) {
+        setTermo('')
+        setClientes([])
+      }
     }
-  }, [value])
+  }, [value, isEdit])
 
   const buscar = async (texto) => {
     digitando.current = true
@@ -65,6 +80,10 @@ export default function BuscaClienteInput({
       }
 
       setClientes(resultados)
+
+      if (resultados.length === 1 && resultados[0].enti_clie === texto) {
+        selecionar(resultados[0])
+      }
     } catch (err) {
       console.error('Erro ao buscar entidades:', err.message)
     }
@@ -84,7 +103,9 @@ export default function BuscaClienteInput({
       <TextInput
         style={styles.inputcliente}
         value={termo}
-        onChangeText={buscar}
+        onChangeText={(text) => {
+          if (!isEdit) buscar(text)
+        }}
         placeholder={placeholder}
         placeholderTextColor="#aaa"
       />
@@ -100,8 +121,7 @@ export default function BuscaClienteInput({
               onPress={() => selecionar(item)}
               style={styles.sugestaoItem}>
               <Text style={styles.sugestaoTexto}>
-                {item.enti_clie} - {item.enti_nome} —{' '}
-                {item.enti_cpf || item.enti_cnpj}
+                {item.enti_clie} - {item.enti_nome} — {item.enti_cpf || item.enti_cnpj}
               </Text>
             </TouchableOpacity>
           )}

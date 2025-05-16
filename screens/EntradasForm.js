@@ -135,7 +135,7 @@ export default function EntradasForm({ route, navigation }) {
       style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
-          <Text style={styles.label}>Produto</Text>
+          <Text style={styles.label}>Produto:</Text>
 
           <BuscaProdutosInput
             onSelect={(item) => {
@@ -147,7 +147,7 @@ export default function EntradasForm({ route, navigation }) {
             }}
           />
 
-          <Text style={styles.label}>Entidade (Fornecedor)</Text>
+          <Text style={styles.label}>Entidade(Responsável Entrada): </Text>
 
           <BuscaClienteInput
             onSelect={(item) => {

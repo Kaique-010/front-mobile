@@ -53,29 +53,26 @@ export default function ResumoPedido({ total, pedido }) {
     }
 
     try {
-      const response = await apiPostComContexto(
+      const data = await apiPostComContexto(
         `/api/${slug}/pedidos/pedidos/`,
         pedido
       )
 
-      if (response.ok) {
-        // Pega o número/id do pedido gerado - ajuste conforme o formato da sua API
-        const data = await response.json()
-        const numeroPedido = data.id || data.numero || 'desconhecido'
+      console.log('[DEBUG] Pedido salvo:', data)
 
-        Toast.show({
-          type: 'success',
-          text1: `Pedido #${numeroPedido} salvo com sucesso!`,
-          position: 'bottom',
-          visibilityTime: 3000,
-        })
+      const pedi_nume = data.pedi_nume || 'desconhecido'
 
-        navigation.navigate('Pedidos') // volta pra tela de pedidos
-      } else {
-        Alert.alert('Erro', 'Erro ao salvar o pedido.')
-      }
+      Toast.show({
+        type: 'success',
+        text1: `Pedido #${pedi_nume} salvo com sucesso!`,
+        position: 'bottom',
+        visibilityTime: 3000,
+      })
+
+      navigation.navigate('MainApp', { screen: 'Pedidos' })
     } catch (error) {
-      Alert.alert('Erro', 'Falha na conexão com o servidor.')
+      console.error('Erro ao salvar pedido:', error)
+      Alert.alert('Erro', 'Falha ao salvar o pedido.')
     }
   }
 

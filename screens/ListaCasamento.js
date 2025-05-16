@@ -95,14 +95,6 @@ export default function ListaCasamento({ navigation }) {
     3: 'Cancelada',
   }
 
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      buscarListas()
-    }, 500)
-
-    return () => clearTimeout(debounce)
-  }, [searchTerm])
-
   const renderLista = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.status}>
@@ -120,18 +112,19 @@ export default function ListaCasamento({ navigation }) {
             navigation.navigate('ItensListaModal', {
               listaId: item.list_codi,
               clienteId: item.list_noiv,
+              cliente: item.cliente_nome,
               empresaId: item.list_empr,
               filialId: item.list_fili,
             })
           }>
-          <Text style={styles.botaoTexto}>💍</Text>
+          <Text style={styles.botaoTexto}>💍 </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}
           onPress={() =>
             navigation.navigate('ListaCasamentoForm', { lista: item })
           }>
-          <Text style={styles.botaoTexto}>✏️</Text>
+          <Text style={styles.botaoTexto}>✏️ </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}

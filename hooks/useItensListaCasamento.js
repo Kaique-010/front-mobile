@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { apiGet, apiPost } from '../utils/api'
 import { Alert } from 'react-native'
 import useContextoApp from './useContextoApp'
+import { getStoredData } from '../services/storageService'
 
 export default function useItensListaCasamento({
   empresaId,
@@ -16,6 +17,27 @@ export default function useItensListaCasamento({
   const [carregando, setCarregando] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const { usuarioId } = useContextoApp()
+
+  const [slug, setSlug] = useState('')
+
+  useEffect(() => {
+    const carregarSlug = async () => {
+      try {
+        const { slug } = await getStoredData()
+        if (slug) setSlug(slug)
+        else console.warn('Slug não encontrado')
+      } catch (err) {
+        console.error('Erro ao carregar slug:', err.message)
+      }
+    }
+    carregarSlug()
+  }, [])
+
+  useEffect(() => {
+    if (slug) {
+      carregarItens()
+    }
+  }, [slug])
 
   const carregarItens = async () => {
     setCarregando(true)
@@ -35,10 +57,6 @@ export default function useItensListaCasamento({
       setCarregando(false)
     }
   }
-
-  useEffect(() => {
-    if (listaId) carregarItens()
-  }, [listaId])
 
   const adicionarProduto = (produto) => {
     if (!selecionados.find((p) => p.prod_codi === produto.prod_codi)) {

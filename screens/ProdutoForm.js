@@ -18,7 +18,9 @@ export default function ProdutoFormScreen({ route, navigation }) {
 
   const [nome, setNome] = useState(produto?.prod_nome || '')
   const [unidade, setUnidade] = useState(
-    produto?.prod_unme?.unid_codi || produto?.prod_unme || ''
+    typeof produto?.prod_unme === 'object'
+      ? produto?.prod_unme?.unid_codi
+      : produto?.prod_unme || ''
   )
   const [ncm, setNcm] = useState(produto?.prod_ncm || '')
   const [empresa, setEmpresa] = useState('')
@@ -28,30 +30,24 @@ export default function ProdutoFormScreen({ route, navigation }) {
   const [slug, setSlug] = useState('')
 
   useEffect(() => {
-    const carregarSlug = async () => {
+    const carregarContexto = async () => {
       try {
         const { slug } = await getStoredData()
         if (slug) setSlug(slug)
         else console.warn('Slug não encontrado')
-      } catch (err) {
-        console.error('Erro ao carregar slug:', err.message)
-      }
-    }
-    carregarSlug()
-  }, [])
-  console.log('Slug:', slug)
 
-  useEffect(() => {
-    ;(async () => {
-      try {
         const empresaId = await AsyncStorage.getItem('empresaId')
         setEmpresa(empresaId)
-      } catch (error) {
-        console.error('Erro ao carregar contexto:', error)
+      } catch (err) {
+        console.error('Erro ao carregar contexto:', err.message)
       }
-    })()
-    carregarUnidades()
+    }
+    carregarContexto()
   }, [])
+
+  useEffect(() => {
+    if (slug) carregarUnidades()
+  }, [slug])
 
   useEffect(() => {
     let interval
@@ -62,10 +58,7 @@ export default function ProdutoFormScreen({ route, navigation }) {
     }
     return () => clearInterval(interval)
   }, [loading])
-  // Primeira busca
-  useEffect(() => {
-    if (slug) carregarUnidades()
-  }, [slug])
+
   const carregarUnidades = async () => {
     setLoading(true)
     try {
@@ -89,7 +82,7 @@ export default function ProdutoFormScreen({ route, navigation }) {
       prod_ncm: ncm,
       prod_empr: empresa,
     }
-    console.log(payload)
+
     try {
       if (produto?.prod_codi) {
         await apiPut(
@@ -126,7 +119,6 @@ export default function ProdutoFormScreen({ route, navigation }) {
             await apiDelete(
               `/api/${slug}/produtos/produtos/${produto.prod_codi}/`
             )
-
             Alert.alert('Excluído', 'Produto removido com sucesso.')
             navigation.goBack()
           } catch (error) {

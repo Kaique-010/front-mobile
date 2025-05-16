@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { View, ActivityIndicator, Alert, FlatList } from 'react-native'
+import {
+  View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Linking,
+  TouchableOpacity,
+  Text,
+} from 'react-native'
 import { useNavigation } from '@react-navigation/native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Button } from 'react-native-paper'
 import BuscaProdutoInput from '../components/BuscaProdutosInput'
 import ProdutosSelecionados from '../components/ProdutosSelecionados'
@@ -12,12 +21,14 @@ import { getStoredData } from '../services/storageService'
 
 export default function ItensListaModal({ route }) {
   const navigation = useNavigation()
-  const { listaId, clienteId, empresaId, filialId, usuarioId } = route.params
+  const { listaId, clienteId, cliente, empresaId, filialId, usuarioId } =
+    route.params
   console.log('🔍 Params recebidos:', {
     listaId,
     clienteId,
     empresaId,
     filialId,
+    cliente,
   })
 
   const [isScanning, setIsScanning] = useState(false)
@@ -41,6 +52,7 @@ export default function ItensListaModal({ route }) {
   })
 
   const [slug, setSlug] = useState('')
+
   useEffect(() => {
     const carregarSlug = async () => {
       try {
@@ -53,7 +65,6 @@ export default function ItensListaModal({ route }) {
     }
     carregarSlug()
   }, [])
-  console.log('Slug:', slug)
 
   useEffect(() => {
     navigation.setOptions({
@@ -84,54 +95,115 @@ export default function ItensListaModal({ route }) {
     return <ActivityIndicator size="large" style={{ marginTop: 40 }} />
   }
 
+  if (isScanning) {
+    return (
+      <LeitorCodigoBarras
+        onProdutoLido={(codigo) => {
+          onProdutoLido(codigo)
+          setIsScanning(false)
+        }}
+        onCancelar={() => setIsScanning(false)}
+      />
+    )
+  }
+
+  const enviarZapLista = (itens, listaId) => {
+    if (!itens || itens.length === 0) {
+      Alert.alert('Sem itens', 'A lista está vazia.')
+      return
+    }
+
+    const nomeNoiva = cliente || 'Noiva'
+
+    const corpo = itens
+      .map((item, idx) => {
+        const nome = item.produto_nome || 'Sem nome'
+        const codigo = item.item_prod || 'N/A'
+        return `${idx + 1}. ${nome} (Cód: ${codigo})`
+      })
+      .join('\n')
+
+    const mensagem =
+      `💍 *Lista de Presentes - ${nomeNoiva}*\n` +
+      `🆔 Lista Nº ${listaId}\n\n` +
+      `${corpo}`
+
+    const url = `https://wa.me/5542991168004?text=${encodeURIComponent(
+      mensagem
+    )}`
+    Linking.openURL(url)
+  }
+
   return (
-    <FlatList
-      style={{ flex: 1, backgroundColor: '#000', padding: 16 }}
-      data={itensSalvos}
-      keyExtractor={(item) =>
-        `${item.item_empr}-${item.item_fili}-${item.item_list}-${item.item_item}`
-      }
-      ListHeaderComponent={
-        <>
-          <Button
-            icon="barcode-scan"
-            mode="outlined"
-            labelStyle={{ color: '#01ff16' }}
-            style={{ marginBottom: 20, borderColor: 'green', margin: 20 }}
-            onPress={() => setIsScanning(true)}>
-            Escanear código de barras
-          </Button>
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <FlatList
+        contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+        data={itensSalvos}
+        keyExtractor={(item) =>
+          `${item.item_empr}-${item.item_fili}-${item.item_list}-${item.item_item}`
+        }
+        ListHeaderComponent={
+          <>
+            <Button
+              icon="barcode-scan"
+              mode="outlined"
+              labelStyle={{ color: '#01ff16' }}
+              style={{ marginBottom: 20, borderColor: 'green', margin: 20 }}
+              onPress={() => setIsScanning(true)}>
+              Escanear código de barras
+            </Button>
 
-          <BuscaProdutoInput onSelect={adicionarProduto} />
+            <BuscaProdutoInput onSelect={adicionarProduto} />
 
-          <ProdutosSelecionados
-            produtos={selecionados}
-            onRemover={removerProduto}
-          />
+            <ProdutosSelecionados
+              produtos={selecionados}
+              onRemover={removerProduto}
+            />
 
-          <Button
-            mode="contained"
-            onPress={salvarItens}
-            disabled={salvando}
-            loading={salvando}
-            style={{
-              marginTop: 16,
-              backgroundColor: '#284880',
-              paddingVertical: 6,
-              borderRadius: 20,
-            }}>
-            Salvar Itens
-          </Button>
+            <Button
+              mode="contained"
+              onPress={salvarItens}
+              disabled={salvando}
+              loading={salvando}
+              style={{
+                marginTop: 16,
+                backgroundColor: '#284880',
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}>
+              Salvar Itens
+            </Button>
 
-          <ListaItens
-            itensSalvos={itensSalvos}
-            marcarParaRemocao={marcarParaRemocao}
-            removidos={remocoesPendentes}
-            listaId={listaId}
-          />
-        </>
-      }
-      ListFooterComponent={<View style={{ height: 40 }} />}
-    />
+            <ListaItens
+              itensSalvos={itensSalvos}
+              marcarParaRemocao={marcarParaRemocao}
+              removidos={remocoesPendentes}
+              listaId={listaId}
+            />
+          </>
+        }
+        ListFooterComponent={<View style={{ height: 80 }} />}
+      />
+
+      {itensSalvos.length > 0 && (
+        <TouchableOpacity
+          onPress={() => enviarZapLista(itensSalvos, listaId)}
+          style={{
+            position: 'absolute',
+            bottom: 60,
+            right: 20,
+            backgroundColor: '#25D366',
+            padding: 14,
+            borderRadius: 50,
+            elevation: 5,
+            shadowColor: '#000',
+            shadowOpacity: 0.3,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 4,
+          }}>
+          <MaterialCommunityIcons name="whatsapp" size={28} color="#fff" />
+        </TouchableOpacity>
+      )}
+    </View>
   )
 }
