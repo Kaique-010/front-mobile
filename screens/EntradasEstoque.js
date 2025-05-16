@@ -42,6 +42,14 @@ export default function ListaEntradas({ navigation }) {
     }
   }, [slug])
 
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      buscarEntradas(true)
+    }, 500)
+
+    return () => clearTimeout(debounce)
+  }, [searchTerm])
+
   const buscarEntradas = async (reset = false) => {
     if ((isFetchingMore && !reset) || (!hasMore && !reset)) return
 
@@ -105,14 +113,6 @@ export default function ListaEntradas({ navigation }) {
       },
     ])
   }
-
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      buscarEntradas(true)
-    }, 500)
-
-    return () => clearTimeout(debounce)
-  }, [searchTerm])
 
   const renderEntrada = ({ item }) => (
     <View style={styles.card}>

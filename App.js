@@ -65,7 +65,7 @@ export default function App() {
           name="PedidosForm"
           component={PedidosForm}
           options={{
-            title: 'Pedidos',
+            title: 'Pedido de Venda',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },

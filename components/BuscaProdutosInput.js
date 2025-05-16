@@ -52,10 +52,10 @@ export default function BuscaProdutoInput({ onSelect }) {
       return
     }
 
-    onSelect(produto) // adiciona ao pai
-    setSearchTerm('') // limpa busca
-    setProdutos([]) // limpa lista
-    setSnackbarVisible(true) // mostra feedback
+    onSelect(produto)
+    setSearchTerm(produto.prod_nome) // aqui atualiza o campo com o nome
+    setProdutos([])
+    setSnackbarVisible(true)
   }
 
   return (

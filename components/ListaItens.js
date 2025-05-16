@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 
 export default function ListaItens({
   itensSalvos,
@@ -7,8 +7,6 @@ export default function ListaItens({
   removidos = [],
   listaId,
 }) {
-  console.log('ListaItens recebido listaId:', listaId) // Verificando se o listaId está correto
-
   const isRemovido = (item) =>
     removidos.some(
       (r) =>
@@ -18,20 +16,12 @@ export default function ListaItens({
         r.item_item === item.item_item
     )
 
-  const idExibido = listaId ?? 'ID não disponível' // fallback caso o listaId seja undefined
+  const idExibido = listaId ?? 'ID não disponível'
 
   return (
     <>
       {itensSalvos.length > 0 && (
-        <Text
-          style={{
-            fontWeight: 'bold',
-            marginTop: 24,
-            marginBottom: 8,
-            fontSize: 16,
-            color: 'white',
-            textAlign: 'center',
-          }}>
+        <Text style={styles.titulo}>
           Itens já adicionados à lista: {idExibido}
         </Text>
       )}
@@ -42,40 +32,24 @@ export default function ListaItens({
         return (
           <View
             key={`${item.item_empr}-${item.item_fili}-${item.item_list}-${item.item_item}`}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: removido ? '#333' : '#1c1c1c',
-              padding: 12,
-              borderRadius: 8,
-              marginBottom: 8,
-              opacity: removido ? 0.5 : 1,
-            }}>
-            <View style={{ flex: 1, marginRight: 12 }}>
+            style={[
+              styles.itemContainer,
+              removido && styles.itemRemovidoContainer,
+            ]}>
+            <View style={styles.itemInfo}>
               <Text
-                style={{
-                  color: 'white',
-                  textDecorationLine: removido ? 'line-through' : 'none',
-                }}
+                style={[styles.itemTexto, removido && styles.itemTextoRemovido]}
                 numberOfLines={1}
                 ellipsizeMode="tail">
-                • {item.produto_nome} (ID: {item.item_prod})
+                • {item.produto_nome ?? 'Sem nome'} (ID: {item.item_prod})
               </Text>
             </View>
 
             {!removido && (
               <TouchableOpacity
                 onPress={() => marcarParaRemocao(item)}
-                style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  backgroundColor: '#ff4d4d',
-                  borderRadius: 6,
-                }}>
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>
-                  Remover
-                </Text>
+                style={styles.botaoRemover}>
+                <Text style={styles.textoBotao}>Remover</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -84,3 +58,47 @@ export default function ListaItens({
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  titulo: {
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 8,
+    fontSize: 16,
+    color: 'white',
+    textAlign: 'center',
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#1c1c1c',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  itemRemovidoContainer: {
+    backgroundColor: '#333',
+    opacity: 0.5,
+  },
+  itemInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  itemTexto: {
+    color: 'white',
+  },
+  itemTextoRemovido: {
+    textDecorationLine: 'line-through',
+  },
+  botaoRemover: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#ff4d4d',
+    borderRadius: 6,
+  },
+  textoBotao: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+})

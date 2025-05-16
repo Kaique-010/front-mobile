@@ -142,6 +142,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
+  inputcliente: {
+    color: '#fff',
+  },
   scanButton: {
     backgroundColor: '#2196F3',
     padding: 12,

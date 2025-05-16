@@ -5,9 +5,10 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
+  Button,
 } from 'react-native'
 
-export default function ItensList({ itens, onEdit }) {
+export default function ItensList({ itens, onEdit, onRemove }) {
   return (
     <FlatList
       data={itens}
@@ -19,11 +20,21 @@ export default function ItensList({ itens, onEdit }) {
             Produto {item.iped_prod} - {item.iped_quan} x {item.iped_unit} ={' '}
             {item.iped_tota}
           </Text>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => onEdit(item)}>
-            <Text style={styles.editText}>Editar</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => onEdit(item)}>
+              <Text style={styles.editText}>Editar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.editButton,
+                { backgroundColor: 'red', marginLeft: 10 },
+              ]}
+              onPress={() => onRemove(item)}>
+              <Text style={[styles.editText, { color: 'white' }]}>Remover</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     />

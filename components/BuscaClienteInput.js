@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   TextInput,
   FlatList,
@@ -15,10 +15,12 @@ export default function BuscaClienteInput({
   onSelect,
   placeholder = 'Buscar...',
   tipo = null,
+  value = '',
 }) {
-  const [termo, setTermo] = useState('')
+  const [termo, setTermo] = useState(value)
   const [clientes, setClientes] = useState([])
   const [slug, setSlug] = useState('')
+  const digitando = useRef(false) // <- flag pra saber se está editando manualmente
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -33,9 +35,21 @@ export default function BuscaClienteInput({
     carregarSlug()
   }, [])
 
+  // Só atualiza termo externo se não estiver digitando manualmente
+  useEffect(() => {
+    if (!digitando.current) {
+      setTermo(value)
+    }
+  }, [value])
+
   const buscar = async (texto) => {
+    digitando.current = true
     setTermo(texto)
-    if (!texto) return setClientes([])
+
+    if (!texto) {
+      setClientes([])
+      return
+    }
 
     try {
       const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
@@ -57,6 +71,9 @@ export default function BuscaClienteInput({
   }
 
   const selecionar = (item) => {
+    const texto = `${item.enti_clie} - ${item.enti_nome}`
+    setTermo(texto)
+    digitando.current = false
     onSelect(item)
     setClientes([])
     Keyboard.dismiss()
