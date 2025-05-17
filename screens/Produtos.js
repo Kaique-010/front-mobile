@@ -64,14 +64,6 @@ export default function Produtos({ navigation }) {
     }
   }
 
-  // Busca automática com debounce (500ms)
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      buscarProdutos()
-    }, 500)
-    return () => clearTimeout(delayDebounce)
-  }, [searchTerm])
-
   // Renderiza cada item do produto
   const renderItem = ({ item }) => (
     <View style={styles.card}>

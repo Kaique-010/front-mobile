@@ -39,9 +39,12 @@ export default function Entidades({ navigation }) {
     setIsSearching(true)
     setLoading(true)
     try {
-      const data = await apiGet(`/api/${slug}/entidades/entidades/?limit=50&offset=0/`, {
-        search: searchTerm,
-      })
+      const data = await apiGet(
+        `/api/${slug}/entidades/entidades/?limit=50&offset=0/`,
+        {
+          search: searchTerm,
+        }
+      )
       setEntidades(data.results || [])
     } catch (error) {
       console.log('❌ Erro ao buscar Entidades:', error.message)
@@ -145,6 +148,10 @@ export default function Entidades({ navigation }) {
             renderItem={renderItem}
             keyExtractor={(item) => `${item.enti_clie}-${item.enti_empr}`}
           />
+          <Text style={styles.footerText}>
+            {entidades.length} entidades{entidades.length !== 1 ? 's' : ''}{' '}
+            encontrados
+          </Text>
         </>
       )}
     </View>
