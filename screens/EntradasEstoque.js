@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { apiGet } from '../utils/api'
+import { apiGet, apiGetComContexto } from '../utils/api'
 import styles from '../styles/listaEntradasStyles'
 import { getStoredData } from '../services/storageService'
 
@@ -65,9 +65,10 @@ export default function ListaEntradas({ navigation }) {
         params.search = searchTerm
       }
 
-      const data = await apiGet(
-        `/api/${slug}/entradas_estoque/entradas-estoque/`,
-        params
+      const data = await apiGetComContexto(
+        `entradas_estoque/entradas-estoque/`,
+        params,
+        'entr_'
       )
 
       const newResults = data.results || []
@@ -180,7 +181,9 @@ export default function ListaEntradas({ navigation }) {
       <FlatList
         data={entradas}
         renderItem={renderEntrada}
-        keyExtractor={(item, index) => `${item.entr_sequ}_${index}`}
+        keyExtractor={(item, index) =>
+          `${item.entr_sequ}-${item.entr_empr}-${item.entr_fili}_${index}`
+        }
         onEndReached={() => buscarEntradas()}
         onEndReachedThreshold={0.5}
       />

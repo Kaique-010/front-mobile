@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { apiGet } from '../utils/api'
+import { apiGetComContexto } from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
 
@@ -39,13 +39,18 @@ export default function Pedidos({ navigation }) {
   }, [slug])
   console.log('Tela de Pedidos')
   const buscarPedidos = async () => {
+    if (!slug) return
     setIsSearching(true)
+    setLoading(true)
     try {
-      const data = await apiGet(`/api/${slug}/pedidos/pedidos/`, {
-        search: searchTerm,
-      })
+      const data = await apiGetComContexto(
+        'pedidos/pedidos/', // tira query string daqui
+        { limit: 50, offset: 0, search: searchTerm }, // usa params aqui
+        'pedi_'
+      )
       setPedidos(data.results || [])
     } catch (error) {
+      console.error(error)
     } finally {
       setIsSearching(false)
       setLoading(false)
@@ -79,7 +84,6 @@ export default function Pedidos({ navigation }) {
   }
   const statusPedidos = {
     0: 'Aberto',
-
   }
 
   // Renderização de cada item da lista

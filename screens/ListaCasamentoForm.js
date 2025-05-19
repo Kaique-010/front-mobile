@@ -114,7 +114,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
 
       if (lista) {
         await apiPutComContexto(
-          `/api/${slug}/listacasamento/listas-casamento/${lista.list_codi}/`,
+          `listacasamento/listas-casamento/${lista.list_codi}/`,
 
           payload
         )
@@ -128,7 +128,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
         })
       } else {
         const novaLista = await apiPostComContexto(
-          `/api/${slug}/listacasamento/listas-casamento/`,
+          `listacasamento/listas-casamento/`,
           payload
         )
         Alert.alert('Sucesso', 'Lista criada com sucesso!')

@@ -108,15 +108,17 @@ export default function EntradasForm({ route, navigation }) {
 
       if (entrada) {
         await apiPutComContexto(
-          `/api/${slug}/entradas_estoque/entradas-estoque/${entrada.entr_prod}/`,
-          payload
+          `entradas_estoque/entradas-estoque/${entrada.entr_prod}/`,
+          payload,
+          'entr_'
         )
         Alert.alert('Sucesso', 'Entrada atualizada com sucesso!')
         navigation.goBack()
       } else {
         const novaEntrada = await apiPostComContexto(
-          `/api/${slug}/entradas_estoque/entradas-estoque/`,
-          payload
+          `entradas_estoque/entradas-estoque/`,
+          payload,
+          'entr_'
         )
         Alert.alert('Sucesso', 'Entrada criada com sucesso!')
         navigation.goBack()

@@ -53,10 +53,7 @@ export default function ResumoPedido({ total, pedido }) {
     }
 
     try {
-      const data = await apiPostComContexto(
-        `/api/${slug}/pedidos/pedidos/`,
-        pedido
-      )
+      const data = await apiPostComContexto(`pedidos/pedidos/`, pedido)
 
       console.log('[DEBUG] Pedido salvo:', data)
 

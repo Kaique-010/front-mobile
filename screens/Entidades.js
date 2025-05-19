@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
-import { apiGet } from '../utils/api'
+import { apiGetComContextoSemFili } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/produtosStyles'
 
@@ -39,11 +39,10 @@ export default function Entidades({ navigation }) {
     setIsSearching(true)
     setLoading(true)
     try {
-      const data = await apiGet(
-        `/api/${slug}/entidades/entidades/?limit=50&offset=0/`,
-        {
-          search: searchTerm,
-        }
+      const data = await apiGetComContextoSemFili(
+        `entidades/entidades/`,
+        { limit: 50, offset: 0, search: searchTerm },
+        'enti_'
       )
       setEntidades(data.results || [])
     } catch (error) {

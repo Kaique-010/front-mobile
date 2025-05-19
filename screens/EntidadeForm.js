@@ -118,15 +118,12 @@ export default function EntidadeForm({ navigation, route }) {
       if (isEdicao) {
         console.log('Dados enviados para salvar entidade:', dadosEntidade)
         await apiPutComContexto(
-          `/api/${slug}/entidades/entidades/${entidade.enti_clie}/`,
+          `entidades/entidades/${entidade.enti_clie}/`,
           dadosEntidade
         )
       } else {
         console.log('Dados enviados para salvar entidade:', dadosEntidade)
-        await apiPostComContexto(
-          `/api/${slug}/entidades/entidades/`,
-          dadosEntidade
-        )
+        await apiPostComContexto(`entidades/entidades/`, dadosEntidade)
       }
 
       Toast.show({

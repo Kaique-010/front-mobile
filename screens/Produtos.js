@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native'
-import { apiGet } from '../utils/api'
+import { apiGet, apiGetComContextoSemFili } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import Toast from 'react-native-toast-message'
 import styles from '../styles/produtosStyles'
@@ -43,9 +43,10 @@ export default function Produtos({ navigation }) {
   const buscarProdutos = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGet(
-        `/api/${slug}/produtos/produtos/?limit=50&offset=0/`,
-        { search: searchTerm }
+      const data = await apiGetComContextoSemFili(
+        `produtos/produtos/?limit=50&offset=0/`,
+        { search: searchTerm },
+        'prod_'
       )
 
       setProdutos(data.results || [])
@@ -143,7 +144,9 @@ export default function Produtos({ navigation }) {
       <FlatList
         data={produtos}
         renderItem={renderItem}
-        keyExtractor={(item) => item.prod_codi}
+        keyExtractor={(item, index) =>
+          `${item.prod_codi}-${item.prod_empr}-${item.prod_fili}_${index}`
+        }
       />
       <Text style={styles.footerText}>
         {produtos.length} produtos{produtos.length !== 1 ? 's' : ''} encontrados

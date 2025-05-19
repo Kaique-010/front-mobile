@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native'
 import { getStoredData } from '../services/storageService'
-import { apiGet } from '../utils/api'
+import { apiGet, apiGetComContexto } from '../utils/api'
 import styles from '../styles/listaSaidasStyles'
 
 const PAGE_SIZE = 50
@@ -63,9 +63,10 @@ export default function ListaSaidas({ navigation }) {
     loadingSetter(true)
 
     try {
-      const data = await apiGet(
-        `/api/${slug}/saidas_estoque/saidas-estoque/?limit=${PAGE_SIZE}&offset=${atualOffset}`,
-        { search: searchTerm }
+      const data = await apiGetComContexto(
+        `saidas_estoque/saidas-estoque/?limit=${PAGE_SIZE}&offset=${atualOffset}`,
+        { search: searchTerm },
+        'said_'
       )
       const newResults = data.results || []
 
@@ -184,7 +185,9 @@ export default function ListaSaidas({ navigation }) {
       <FlatList
         data={saidas}
         renderItem={renderSaida}
-        keyExtractor={(item) => item.said_sequ.toString()}
+        keyExtractor={(item, index) =>
+          `${item.said_sequ}-${item.said_empr}-${item.said_fili}_${index}`
+        }
         onEndReached={() => buscarSaidas()}
         onEndReachedThreshold={0.5}
         ListFooterComponent={

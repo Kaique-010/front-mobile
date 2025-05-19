@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://192.168.0.39:8000'
+export const BASE_URL = 'http://192.168.10.59:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -31,15 +31,15 @@ const refreshToken = async () => {
 }
 
 const getAuthHeaders = async () => {
-  const empresa = await AsyncStorage.getItem('empresa')
-  const filial = await AsyncStorage.getItem('filial')
+  const empresaId = await AsyncStorage.getItem('empresaId')
+  const filialId = await AsyncStorage.getItem('filialId')
   const docu = await AsyncStorage.getItem('docu')
   const usuario_id = await AsyncStorage.getItem('usuario_id')
   const username = await AsyncStorage.getItem('username')
 
   return {
-    'X-Empresa': empresa || '',
-    'X-Filial': filial || '',
+    'X-Empresa': empresaId || '',
+    'X-Filial': filialId || '',
     'X-Docu': docu || '',
     'X-Usuario-Id': usuario_id || '',
     'X-Username': username || '',
@@ -61,7 +61,7 @@ const apiFetch = async (
     url: `${BASE_URL}${endpoint}`,
     headers: {
       Authorization: `Bearer ${tk}`,
-      ...headersExtras, // Inclui os cabeçalhos adicionais com user_id e username
+      ...headersExtras,
     },
     ...(data && { data }),
     ...(params && { params }),
@@ -69,20 +69,39 @@ const apiFetch = async (
 
   try {
     const config = buildConfig(token)
-    return await axios(config) // Faz a requisição
+    console.log('🚀 API REQUEST:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      params: config.params,
+      data: config.data,
+    })
+    const response = await axios(config)
+
+    return response
   } catch (error) {
     if (error.response?.status === 401) {
       console.log('🔄 Token expirado, tentando renovar...')
       try {
         token = await refreshToken()
-        const retryConfig = buildConfig(token) // Cria a configuração com o novo token
-        return await axios(retryConfig) // Tenta novamente a requisição
+        const retryConfig = buildConfig(token)
+        console.log('🚀 RETRY REQUEST:', {
+          url: retryConfig.url,
+          method: retryConfig.method,
+          headers: retryConfig.headers,
+          params: retryConfig.params,
+          data: retryConfig.data,
+        })
+        const retryResponse = await axios(retryConfig)
+        console.log('✅ RETRY RESPONSE:', retryResponse.data)
+        return retryResponse
       } catch (refreshError) {
         console.log('🚫 Não foi possível renovar o token.')
         throw refreshError
       }
     }
-    throw error // Lança o erro caso não seja 401 ou outro erro de autenticação
+    console.error('❌ API ERROR:', error.response?.data || error.message)
+    throw error
   }
 }
 
@@ -110,36 +129,99 @@ export const apiDelete = async (endpoint, params = {}) => {
 
 // Função para adicionar contexto de empresa/filial no corpo da requisição
 export const addContexto = async (obj = {}, prefixo = '') => {
-  const empresa = await AsyncStorage.getItem('empresa')
-  const filial = await AsyncStorage.getItem('filial')
+  const empresaId = await AsyncStorage.getItem('empresaId')
+  const filialId = await AsyncStorage.getItem('filialId')
   const usuario_id = await AsyncStorage.getItem('usuario_id')
 
   return {
     ...obj,
-    ...(empresa && { [`${prefixo}empr`]: empresa }),
-    ...(filial && { [`${prefixo}fili`]: filial }),
+    ...(empresaId && { [`${prefixo}empr`]: empresaId }),
+    ...(filialId && { [`${prefixo}fili`]: filialId }),
     ...(usuario_id && { [`${prefixo}usua`]: usuario_id }),
   }
 }
 
+export const addContextoSemFili = async (obj = {}, prefixo = '') => {
+  const empresaId = await AsyncStorage.getItem('empresaId')
+  const usuario_id = await AsyncStorage.getItem('usuario_id')
+
+  return {
+    ...obj,
+    ...(empresaId && { [`${prefixo}empr`]: empresaId }),
+    ...(usuario_id && { [`${prefixo}usua`]: usuario_id }),
+  }
+}
 // Funções com contexto (empresa/filial)
-export const apiGetComContexto = async (endpointSemApi, params = {}) => {
+export const apiGetComContexto = async (
+  endpointSemApi,
+  params = {},
+  prefixo = ''
+) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
-  const paramsComContexto = await addContexto(params)
+  const paramsComContexto = await addContexto(params, prefixo)
   const response = await apiFetch(fullEndpoint, 'get', null, paramsComContexto)
   return response.data
 }
 
-export const apiPostComContexto = async (endpoint, data = {}) => {
-  const dataComContexto = await addContexto(data)
-  const response = await apiFetch(endpoint, 'post', dataComContexto)
+// Funções com contexto (empresa/filial)
+export const apiGetComContextoSemFili = async (
+  endpointSemApi,
+  params = {},
+  prefixo = ''
+) => {
+  const slug = await getSlug()
+  const fullEndpoint = `/api/${slug}/${endpointSemApi}`
+  const paramsComContexto = await addContextoSemFili(params, prefixo)
+  const response = await apiFetch(fullEndpoint, 'get', null, paramsComContexto)
   return response.data
 }
 
-export const apiPutComContexto = async (endpoint, data = {}) => {
-  const dataComContexto = await addContexto(data)
-  const response = await apiFetch(endpoint, 'put', dataComContexto)
+export const apiPostComContexto = async (
+  endpointSemApi,
+  params = {},
+  prefixo = ''
+) => {
+  const slug = await getSlug()
+  const fullEndpoint = `/api/${slug}/${endpointSemApi}`
+  const paramsComContexto = await addContexto(params, prefixo)
+  const response = await apiFetch(fullEndpoint, 'post', paramsComContexto)
+  return response.data
+}
+
+export const apiPostComContextoSemFili = async (
+  endpointSemApi,
+  params = {},
+  prefixo = ''
+) => {
+  const slug = await getSlug()
+  const fullEndpoint = `/api/${slug}/${endpointSemApi}`
+  const paramsComContexto = await addContextoSemFili(params, prefixo)
+  const response = await apiFetch(fullEndpoint, 'post', paramsComContexto)
+  return response.data
+}
+
+export const apiPutComContexto = async (
+  endpointSemApi,
+  params = {},
+  prefixo = ''
+) => {
+  const slug = await getSlug()
+  const fullEndpoint = `/api/${slug}/${endpointSemApi}`
+  const paramsComContexto = await addContexto(params, prefixo)
+  const response = await apiFetch(fullEndpoint, 'put', paramsComContexto)
+  return response.data
+}
+
+export const apiPutComContextoSemFili = async (
+  endpointSemApi,
+  params = {},
+  prefixo = ''
+) => {
+  const slug = await getSlug()
+  const fullEndpoint = `/api/${slug}/${endpointSemApi}`
+  const paramsComContexto = await addContextoSemFili(params, prefixo)
+  const response = await apiFetch(fullEndpoint, 'put', paramsComContexto)
   return response.data
 }
 

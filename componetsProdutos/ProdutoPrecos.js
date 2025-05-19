@@ -8,7 +8,12 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native'
-import { apiPut } from '../utils/api'
+import {
+  apiPut,
+  apiPutComContexto,
+  apiGetComContexto,
+  apiPostComContexto,
+} from '../utils/api'
 
 export default function ProdutoPrecos({ produto, atualizarProduto, slug }) {
   const [precoCompra, setPrecoCompra] = useState('')
@@ -40,7 +45,11 @@ export default function ProdutoPrecos({ produto, atualizarProduto, slug }) {
 
   const salvar = async () => {
     setLoading(true)
+
     const payload = {
+      tabe_empr: parseInt(slug?.empresa) || 1,
+      tabe_fili: parseInt(slug?.filial) || 1,
+      tabe_prod: parseInt(produto.prod_codi),
       tabe_prco: parseFloat(precoCompra.replace(',', '.')) || 0,
       tabe_cuge: parseFloat(precoCusto.replace(',', '.')) || 0,
       tabe_avis: parseFloat(aVista.replace(',', '.')) || 0,
@@ -50,18 +59,35 @@ export default function ProdutoPrecos({ produto, atualizarProduto, slug }) {
     }
 
     try {
-      if (!slug || !produto.prod_codi) throw new Error('Contexto incompleto')
-      await apiPut(
-        `/api/${slug}/produtos/produtos/${produto.prod_codi}/`,
-        payload
+      const res = await apiGetComContexto(
+        `produtos/tabelapreco/?produto_id=${produto.prod_codi}`
       )
-      Alert.alert('Sucesso', 'Preços atualizados!')
-      atualizarProduto({ ...produto, ...payload })
+
+      if (Array.isArray(res) && res.length > 0) {
+        const idExistente = res[0].id
+        await apiPutComContexto(`produtos/tabelapreco/${idExistente}/`, payload)
+      } else {
+        try {
+          await apiPostComContexto(`produtos/tabelapreco/`, payload)
+        } catch (err) {
+          if (err?.response?.status === 400 && err.response.data?.tabe_empr) {
+            // fallback: faz GET de novo e tenta PUT
+            const retry = await apiGetComContexto(
+              `produtos/tabelapreco/?produto_id=${produto.prod_codi}`
+            )
+            if (retry.length > 0) {
+              const id = retry[0].id
+              await apiPutComContexto(`produtos/tabelapreco/${id}/`, payload)
+            }
+          } else {
+            throw err
+          }
+        }
+      }
     } catch (error) {
       Alert.alert('Erro', 'Erro ao salvar os preços.')
-      console.log(payload)
-    } finally {
-      setLoading(false)
+      console.log('🔴 payload:', payload)
+      console.log('🔴 erro:', error)
     }
   }
 

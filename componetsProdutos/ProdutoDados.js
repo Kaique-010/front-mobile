@@ -11,16 +11,20 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
 import { Picker } from '@react-native-picker/picker'
-import { apiPost, apiPut, apiGetComContexto } from '../utils/api'
+import {
+  apiGetComContexto,
+  apiPutComContextoSemFili,
+  apiPostComContextoSemFili,
+} from '../utils/api'
 
 export default function ProdutoDados({
   produto,
   atualizarProduto,
   navigation,
 }) {
-  const [nome, setNome] = useState(produto.prod_nome || '')
-  const [unidade, setUnidade] = useState('')
-  const [ncm, setNcm] = useState(produto.prod_ncm || '')
+  const [nome, setNome] = useState(produto?.prod_nome || '')
+  const [unidade, setUnidade] = useState(produto?.prod_unme || '')
+  const [ncm, setNcm] = useState(produto?.prod_ncm || '')
   const [empresa, setEmpresa] = useState('')
   const [unidades, setUnidades] = useState([])
   const [loadingUnidades, setLoadingUnidades] = useState(false)
@@ -30,8 +34,8 @@ export default function ProdutoDados({
   useEffect(() => {
     const carregarContexto = async () => {
       try {
-        const { slug } = await getStoredData()
-        if (slug) setSlug(slug)
+        const dados = await getStoredData()
+        if (dados?.slug) setSlug(dados.slug)
         else console.warn('Slug não encontrado')
 
         const empresaId = await AsyncStorage.getItem('empresaId')
@@ -40,6 +44,7 @@ export default function ProdutoDados({
         console.error('Erro ao carregar contexto:', err.message)
       }
     }
+
     carregarContexto()
   }, [])
 
@@ -69,22 +74,27 @@ export default function ProdutoDados({
       prod_nome: nome,
       prod_unme: unidade,
       prod_ncm: ncm,
-      prod_empr: empresa,
+      prod_empr: parseInt(empresa),
     }
 
     try {
-      if (produto.prod_codi) {
-        await apiPut(
-          `/api/${slug}/produtos/produtos/${produto.prod_codi}/`,
-          payload
+      if (produto?.prod_codi) {
+        console.log('Enviando produto:', payload)
+        console.log('Slug atual:', slug)
+        console.log('Empresa ID:', empresa)
+        await apiPutComContextoSemFili(
+          `produtos/produtos/${produto.prod_codi}/`,
+          payload,
+          'prod_'
         )
         Alert.alert('Sucesso', 'Produto atualizado com sucesso!')
-        atualizarProduto(payload)
+        atualizarProduto({ ...payload, prod_codi: produto.prod_codi })
         navigation.goBack()
       } else {
-        const { prod_codi } = await apiPost(
-          `/api/${slug}/produtos/produtos/`,
-          payload
+        const { prod_codi } = await apiPostComContextoSemFili(
+          `produtos/produtos/`,
+          payload,
+          'prod_'
         )
         Alert.alert('Criado', `Produto criado com código: ${prod_codi}`)
         const novoProduto = { ...payload, prod_codi }

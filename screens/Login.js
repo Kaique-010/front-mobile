@@ -91,10 +91,11 @@ export default function Login({ navigation }) {
         ['access', access],
         ['refresh', refresh],
         ['usuario', JSON.stringify(usuario)],
+        ['usuario_id', usuario.usuario_id.toString()], // salva direto a chave que o getAuthHeaders espera
+        ['username', usuario.username],
         ['docu', docu],
         ['slug', slug],
-        ['user', JSON.stringify(usuario)],
-        ['modulos', JSON.stringify(response.data.modulos)], // Armazenar diretamente os modulos da resposta
+        ['modulos', JSON.stringify(response.data.modulos)],
       ])
 
       console.log('Dados armazenados no AsyncStorage:', {
