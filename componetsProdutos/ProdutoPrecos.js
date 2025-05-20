@@ -4,18 +4,22 @@ import {
   TextInput,
   Text,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native'
+import { useNavigation, useRoute } from '@react-navigation/native'
+import Toast from 'react-native-toast-message'
+
 import {
-  apiPut,
   apiPutComContexto,
   apiGetComContexto,
   apiPostComContexto,
 } from '../utils/api'
 
-export default function ProdutoPrecos({ produto, atualizarProduto, slug }) {
+export default function ProdutoPrecos({ atualizarProduto }) {
+  const navigation = useNavigation()
+  const { params } = useRoute()
+  const { produto = {}, slug = {} } = params || {}
   const [precoCompra, setPrecoCompra] = useState('')
   const [percentualAVista, setPercentualAVista] = useState('10')
   const [percentualAPrazo, setPercentualAPrazo] = useState('20')
@@ -25,12 +29,23 @@ export default function ProdutoPrecos({ produto, atualizarProduto, slug }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    setPrecoCompra(String(produto.tabe_prco || ''))
-    setPrecoCusto(String(produto.tabe_cuge || ''))
-    setAVista(String(produto.tabe_avis || ''))
-    setAPrazo(String(produto.tabe_apra || ''))
-    setPercentualAVista(String(produto.percentual_avis || '10'))
-    setPercentualAPrazo(String(produto.percentual_apra || '20'))
+    if (!produto) return
+
+    const carregarOuIniciarCampos = async () => {
+      let tabela =
+        produto.tabe_prco !== undefined
+          ? produto
+          : (await getTabelaPrecoExistente()) || {}
+
+      setPrecoCompra(String(tabela.tabe_prco || ''))
+      setPrecoCusto(String(tabela.tabe_cuge || ''))
+      setAVista(String(tabela.tabe_avis || ''))
+      setAPrazo(String(tabela.tabe_apra || ''))
+      setPercentualAVista(String(tabela.percentual_avis || '10'))
+      setPercentualAPrazo(String(tabela.percentual_apra || '20'))
+    }
+
+    carregarOuIniciarCampos()
   }, [produto])
 
   useEffect(() => {
@@ -42,6 +57,16 @@ export default function ProdutoPrecos({ produto, atualizarProduto, slug }) {
     setAVista((preco * (1 + pVista / 100)).toFixed(2))
     setAPrazo((preco * (1 + pPrazo / 100)).toFixed(2))
   }, [precoCompra, percentualAVista, percentualAPrazo])
+
+  const getTabelaPrecoExistente = async () => {
+    const { empresa, filial } = slug
+    if (!empresa || !filial) return null
+
+    const res = await apiGetComContexto(
+      `produtos/tabelapreco/?tabe_prod=${produto.prod_codi}&tabe_empr=${empresa}&tabe_fili=${filial}`
+    )
+    return Array.isArray(res) && res.length > 0 ? res[0] : null
+  }
 
   const salvar = async () => {
     setLoading(true)
@@ -59,35 +84,36 @@ export default function ProdutoPrecos({ produto, atualizarProduto, slug }) {
     }
 
     try {
-      const res = await apiGetComContexto(
-        `produtos/tabelapreco/?produto_id=${produto.prod_codi}`
-      )
+      let tabela = await getTabelaPrecoExistente()
 
-      if (Array.isArray(res) && res.length > 0) {
-        const idExistente = res[0].id
-        await apiPutComContexto(`produtos/tabelapreco/${idExistente}/`, payload)
+      if (tabela) {
+        await apiPutComContexto(`produtos/tabelapreco/${tabela.id}/`, payload)
       } else {
-        try {
-          await apiPostComContexto(`produtos/tabelapreco/`, payload)
-        } catch (err) {
-          if (err?.response?.status === 400 && err.response.data?.tabe_empr) {
-            // fallback: faz GET de novo e tenta PUT
-            const retry = await apiGetComContexto(
-              `produtos/tabelapreco/?produto_id=${produto.prod_codi}`
-            )
-            if (retry.length > 0) {
-              const id = retry[0].id
-              await apiPutComContexto(`produtos/tabelapreco/${id}/`, payload)
-            }
-          } else {
-            throw err
-          }
-        }
+        await apiPostComContexto(`produtos/tabelapreco/`, payload)
       }
+
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso!',
+        text2: 'Preços atualizados com sucesso',
+      })
+
+      atualizarProduto({ ...produto, ...payload })
+
+      setTimeout(() => navigation.goBack(), 1000)
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao salvar os preços.')
       console.log('🔴 payload:', payload)
-      console.log('🔴 erro:', error)
+      console.log('🔴 erro:', error?.response || error)
+
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao salvar',
+        text2: error?.response?.data
+          ? JSON.stringify(error.response.data)
+          : 'Tente novamente mais tarde.',
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -136,7 +162,10 @@ function Campo({ label, value, onChange, editable = true, dark = false }) {
         keyboardType="decimal-pad"
         style={[
           styles.input,
-          !editable && { backgroundColor: dark ? '#333' : '#eee' },
+          !editable && {
+            backgroundColor: dark ? '#333' : '#eee',
+            color: dark ? '#fff' : '#000',
+          },
         ]}
       />
     </>
@@ -144,7 +173,11 @@ function Campo({ label, value, onChange, editable = true, dark = false }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 35, backgroundColor: '#0B141A' },
+  container: {
+    flex: 1,
+    padding: 35,
+    backgroundColor: '#0B141A',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -154,7 +187,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
   },
-  label: { marginBottom: 4, fontWeight: 'bold', fontSize: 14, color: '#fff' },
+  label: {
+    marginBottom: 4,
+    fontWeight: 'bold',
+    fontSize: 14,
+    color: '#fff',
+  },
   button: {
     backgroundColor: '#0058A2',
     padding: 12,
@@ -164,5 +202,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
-  buttonText: { color: 'white', fontWeight: 'bold' },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
 })

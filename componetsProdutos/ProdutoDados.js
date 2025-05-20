@@ -89,7 +89,7 @@ export default function ProdutoDados({
         )
         Alert.alert('Sucesso', 'Produto atualizado com sucesso!')
         atualizarProduto({ ...payload, prod_codi: produto.prod_codi })
-        navigation.goBack()
+        navigation.navigate('ProdutoPrecos', { produto, slug })
       } else {
         const { prod_codi } = await apiPostComContextoSemFili(
           `produtos/produtos/`,

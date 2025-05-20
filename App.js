@@ -6,6 +6,7 @@ import Login from './screens/Login'
 import SelectEmpresa from './screens/SelectEmpresa'
 import SelectFilial from './screens/SelectFilial'
 import ProdutoForm from './screens/ProdutoForm'
+import ProdutoPrecos from './componetsProdutos/ProdutoPrecos'
 import EntidadeForm from './screens/EntidadeForm'
 import Entidades from './screens/Entidades'
 import DrawerNavigator from './navigation/DrawerNavigation'
@@ -56,6 +57,16 @@ export default function App() {
           component={ProdutoForm}
           options={{
             title: 'Produtos',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="ProdutoPrecos"
+          component={ProdutoPrecos}
+          options={{
+            title: 'Preços dos Itens',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },
