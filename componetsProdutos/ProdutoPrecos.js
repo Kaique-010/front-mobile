@@ -8,13 +8,9 @@ import {
   StyleSheet,
 } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
-
-import {
-  apiPutComContexto,
-  apiGetComContexto,
-  apiPostComContexto,
-} from '../utils/api'
+import { apiPutComContexto, apiPostComContexto } from '../utils/api'
 
 export default function ProdutoPrecos({ atualizarProduto }) {
   const navigation = useNavigation()
@@ -29,13 +25,22 @@ export default function ProdutoPrecos({ atualizarProduto }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!produto) return
+    if (!produto || !produto.prod_codi) return
 
     const carregarOuIniciarCampos = async () => {
-      let tabela =
-        produto.tabe_prco !== undefined
-          ? produto
-          : (await getTabelaPrecoExistente()) || {}
+      const cacheKey = `precos-produto-${produto.prod_codi}`
+      let tabela
+
+      // tenta do AsyncStorage
+      const json = await AsyncStorage.getItem(cacheKey)
+      if (json) {
+        tabela = JSON.parse(json)
+      } else {
+        // tenta da prop
+        tabela = produto.precos?.[0] || null
+      }
+
+      if (!tabela) return
 
       setPrecoCompra(String(tabela.tabe_prco || ''))
       setPrecoCusto(String(tabela.tabe_cuge || ''))
@@ -58,16 +63,6 @@ export default function ProdutoPrecos({ atualizarProduto }) {
     setAPrazo((preco * (1 + pPrazo / 100)).toFixed(2))
   }, [precoCompra, percentualAVista, percentualAPrazo])
 
-  const getTabelaPrecoExistente = async () => {
-    const { empresa, filial } = slug
-    if (!empresa || !filial) return null
-
-    const res = await apiGetComContexto(
-      `produtos/tabelapreco/?tabe_prod=${produto.prod_codi}&tabe_empr=${empresa}&tabe_fili=${filial}`
-    )
-    return Array.isArray(res) && res.length > 0 ? res[0] : null
-  }
-
   const salvar = async () => {
     setLoading(true)
 
@@ -83,38 +78,33 @@ export default function ProdutoPrecos({ atualizarProduto }) {
       percentual_apra: parseFloat(percentualAPrazo.replace(',', '.')) || 0,
     }
 
+    const chave = `${payload.tabe_empr}-${payload.tabe_fili}-${payload.tabe_prod}`
+
     try {
-      let tabela = await getTabelaPrecoExistente()
-
-      if (tabela) {
-        await apiPutComContexto(`produtos/tabelapreco/${tabela.id}/`, payload)
-      } else {
-        await apiPostComContexto(`produtos/tabelapreco/`, payload)
-      }
-
-      Toast.show({
-        type: 'success',
-        text1: 'Sucesso!',
-        text2: 'Preços atualizados com sucesso',
-      })
-
-      atualizarProduto({ ...produto, ...payload })
-
-      setTimeout(() => navigation.goBack(), 1000)
+      // tenta PUT (atualizar)
+      await apiPutComContexto(`produtos/tabelapreco/${chave}/`, payload)
     } catch (error) {
-      console.log('🔴 payload:', payload)
-      console.log('🔴 erro:', error?.response || error)
-
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao salvar',
-        text2: error?.response?.data
-          ? JSON.stringify(error.response.data)
-          : 'Tente novamente mais tarde.',
-      })
-    } finally {
-      setLoading(false)
+      if (error?.response?.status === 404) {
+        // se não existe, cria com POST
+        await apiPostComContexto(`produtos/tabelapreco/`, payload)
+      } else {
+        throw error
+      }
     }
+
+    Toast.show({
+      type: 'success',
+      text1: 'Sucesso!',
+      text2: 'Preços atualizados com sucesso',
+    })
+    await AsyncStorage.setItem(
+      `precos-produto-${produto.prod_codi}`,
+      JSON.stringify(payload)
+    )
+    atualizarProduto({ ...produto, precos: [payload] })
+    setTimeout(() => navigation.goBack(), 1000)
+
+    setLoading(false)
   }
 
   return (

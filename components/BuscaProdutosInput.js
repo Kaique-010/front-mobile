@@ -4,8 +4,8 @@ import { TextInput, Card, Snackbar } from 'react-native-paper'
 import { getStoredData } from '../services/storageService'
 import { apiGet } from '../utils/api'
 
-export default function BuscaProdutoInput({ onSelect }) {
-  const [searchTerm, setSearchTerm] = useState('')
+export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
+  const [searchTerm, setSearchTerm] = useState(initialValue)
   const [produtos, setProdutos] = useState([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -24,9 +24,14 @@ export default function BuscaProdutoInput({ onSelect }) {
     carregarSlug()
   }, [])
 
+  // Quando o initialValue mudar, atualiza o campo de busca
+  useEffect(() => {
+    if (initialValue) setSearchTerm(initialValue)
+  }, [initialValue])
+
   useEffect(() => {
     const delay = setTimeout(async () => {
-      if (searchTerm.trim() === '') {
+      if (searchTerm.trim() === '' || searchTerm === initialValue) {
         setProdutos([])
         return
       }
@@ -53,7 +58,7 @@ export default function BuscaProdutoInput({ onSelect }) {
     }
 
     onSelect(produto)
-    setSearchTerm(produto.prod_nome) // aqui atualiza o campo com o nome
+    setSearchTerm(produto.prod_nome)
     setProdutos([])
     setSnackbarVisible(true)
   }
@@ -76,17 +81,16 @@ export default function BuscaProdutoInput({ onSelect }) {
         theme={{
           colors: {
             primary: '#cedaf0',
-            text: 'white', // COR DO TEXTO DIGITADO
-            placeholder: '#bbb', // COR DO PLACEHOLDER
-            background: '#232935', // FUNDO DO INPUT
+            text: 'white',
+            placeholder: '#bbb',
+            background: '#232935',
           },
         }}
         contentStyle={{
-          color: 'white', // <- ESSA LINHA É A CHAVE!
+          color: 'white',
         }}
       />
 
-      {/* Indicador de carregamento */}
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -106,7 +110,7 @@ export default function BuscaProdutoInput({ onSelect }) {
                 marginVertical: 4,
                 backgroundColor: '#1c1c1c',
                 borderRadius: 8,
-                elevation: 3, // Leve sombra para destacar o card
+                elevation: 3,
               }}>
               <Card.Title
                 title={item.prod_nome}
@@ -119,7 +123,6 @@ export default function BuscaProdutoInput({ onSelect }) {
         />
       )}
 
-      {/* Feedback para produto adicionado */}
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}

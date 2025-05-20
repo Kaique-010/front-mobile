@@ -1,3 +1,4 @@
+// ItensList.js
 import React from 'react'
 import {
   FlatList,
@@ -5,34 +6,31 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Button,
 } from 'react-native'
 
 export default function ItensList({ itens, onEdit, onRemove }) {
   return (
     <FlatList
       data={itens}
-      keyExtractor={(_, index) => index.toString()}
+      keyExtractor={(item) => item.iped_prod.toString()}
       contentContainerStyle={styles.container}
       renderItem={({ item }) => (
         <View style={styles.item}>
-          <Text style={styles.text}>
-            Produto {item.iped_prod} - {item.iped_quan} x {item.iped_unit} ={' '}
-            {item.iped_tota}
+          <Text style={styles.text} numberOfLines={1} ellipsizeMode="tail">
+            item-{item.iped_prod}- qtd -
+            {(Number(item.iped_quan) || 0).toFixed(2)} x {item.iped_unit} ={' '}
+            {(Number(item.iped_tota) || 0).toFixed(2)}
           </Text>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={styles.botoesContainer}>
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => onEdit(item)}>
-              <Text style={styles.editText}>Editar</Text>
+              <Text style={styles.editText}>✏️</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.editButton,
-                { backgroundColor: 'red', marginLeft: 10 },
-              ]}
+              style={styles.removerButton}
               onPress={() => onRemove(item)}>
-              <Text style={[styles.editText, { color: 'white' }]}>Remover</Text>
+              <Text style={[styles.editText, { color: 'white' }]}>🗑️</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -55,7 +53,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   text: {
-    color: '#d4af37',
+    color: '#faebd7',
     fontWeight: '700',
     fontSize: 12,
     textShadowColor: 'rgba(0,0,0,0.8)',
@@ -63,13 +61,24 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
     flex: 1,
   },
+  botoesContainer: {
+    flexDirection: 'row',
+    marginLeft: 10,
+  },
   editButton: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#fffaaf',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    marginLeft: 10,
     justifyContent: 'center',
+  },
+  removerButton: {
+    backgroundColor: '#ff7b7b',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    justifyContent: 'center',
+    marginLeft: 10,
   },
   editText: {
     color: '#1a1a1a',

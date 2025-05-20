@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Modal,
   View,
@@ -9,22 +9,57 @@ import {
 } from 'react-native'
 import BuscaProdutoInput from '../components/BuscaProdutosInput'
 
-export default function ItensModal({ visivel, onFechar, onAdicionar }) {
+export default function ItensModal({
+  visivel,
+  onFechar,
+  onAdicionar,
+  itemEditando,
+}) {
   const [produtoId, setProdutoId] = useState('')
   const [quantidade, setQuantidade] = useState('')
   const [preco, setPreco] = useState('')
 
-  const adicionar = () => {
-    const item = {
-      iped_prod: parseInt(produtoId),
-      iped_quan: parseFloat(quantidade),
-      iped_unit: parseFloat(preco),
-      iped_tota: parseFloat(quantidade) * parseFloat(preco),
+  // Quando itemEditando mudar, preenche os campos
+  useEffect(() => {
+    if (itemEditando) {
+      setProdutoId(itemEditando.iped_prod?.toString() || '')
+      setQuantidade(itemEditando.iped_quan?.toString() || '')
+      setPreco(itemEditando.iped_unit?.toString() || '')
+    } else {
+      setProdutoId('')
+      setQuantidade('')
+      setPreco('')
     }
-    onAdicionar(item)
-    setProdutoId('')
-    setQuantidade('')
-    setPreco('')
+  }, [itemEditando, visivel])
+
+  const adicionar = () => {
+    const quantidadeNum = parseFloat(quantidade)
+    const precoNum = parseFloat(preco)
+
+    if (!produtoId || quantidadeNum <= 0 || precoNum <= 0) {
+      Alert.alert('Erro', 'Produto, quantidade e preço devem ser válidos.')
+      return
+    }
+
+    const total = quantidadeNum * precoNum
+
+    const novoItem = {
+      iped_prod: parseInt(produtoId),
+      iped_quan: quantidadeNum,
+      iped_unit: precoNum,
+      iped_tota: total,
+    }
+
+    onAdicionar(novoItem)
+
+    // Limpa os campos só se for item novo (não edição)
+    if (!itemEditando) {
+      setProdutoId('')
+      setQuantidade('')
+      setPreco('')
+    }
+
+    onFechar()
   }
 
   return (
@@ -62,7 +97,9 @@ export default function ItensModal({ visivel, onFechar, onAdicionar }) {
         </Text>
 
         <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>
-          <Text style={styles.textoBotao}>Adicionar</Text>
+          <Text style={styles.textoBotao}>
+            {itemEditando ? 'Salvar Alterações' : 'Adicionar'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.botaoCancelar} onPress={onFechar}>
           <Text style={styles.textoBotao}>Cancelar</Text>

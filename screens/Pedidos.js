@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -36,7 +37,7 @@ export default function Pedidos({ navigation }) {
     if (slug) {
       buscarPedidos()
     }
-  }, [slug])
+  }, [slug, searchTerm])
   console.log('Tela de Pedidos')
   const buscarPedidos = async () => {
     if (!slug) return
@@ -44,8 +45,8 @@ export default function Pedidos({ navigation }) {
     setLoading(true)
     try {
       const data = await apiGetComContexto(
-        'pedidos/pedidos/', // tira query string daqui
-        { limit: 50, offset: 0, search: searchTerm }, // usa params aqui
+        'pedidos/pedidos/',
+        { limit: 50, offset: 0, search: searchTerm },
         'pedi_'
       )
       setPedidos(data.results || [])
@@ -99,7 +100,7 @@ export default function Pedidos({ navigation }) {
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => navigation.navigate('PedidosForm', { pedidos: item })}>
+          onPress={() => navigation.navigate('PedidosForm', { pedido: item })}>
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
 
@@ -128,8 +129,7 @@ export default function Pedidos({ navigation }) {
       {/* Botão de inclusão */}
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate('PedidosForm')} // Definido o destino da navegação
-      >
+        onPress={() => navigation.navigate('PedidosForm')}>
         <Text style={styles.incluirButtonText}>+ Incluir pedidos</Text>
       </TouchableOpacity>
 

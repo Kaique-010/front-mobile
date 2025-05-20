@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import {
-  View,
-  ScrollView,
-  Button,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import PedidoHeader from '../componentsPedidos/PedidoHeader'
 import ItensList from '../componentsPedidos/ItensLista'
 import ItensModal from '../componentsPedidos/ItensModal'
 import ResumoPedido from '../componentsPedidos/ResumoPedido'
-import { getStoredData } from '../services/storageService'
+import { apiGetComContexto } from '../utils/api'
 
-export default function TelaPedidoVenda() {
+const PEDIDO_CACHE_ID = 'pedido-edicao-cache'
+
+export default function TelaPedidoVenda({ route, navigation }) {
+  const pedidoParam = route.params?.pedido || null
+
   const [pedido, setPedido] = useState({
     pedi_empr: null,
     pedi_fili: null,
@@ -23,7 +21,8 @@ export default function TelaPedidoVenda() {
     pedi_fina: '0',
     status: 0,
     pedi_obse: 'Pedido Enviado por Mobile',
-    itens: [],
+    itens_input: [],
+    itens_removidos: [],
     pedi_tota: 0,
   })
 
@@ -31,69 +30,90 @@ export default function TelaPedidoVenda() {
   const [carregando, setCarregando] = useState(true)
   const [itemEditando, setItemEditando] = useState(null)
 
-  useEffect(() => {
-    const carregarEmpresaFilial = async () => {
-      try {
-        const { empresaId, filialId } = await getStoredData()
+  const calcularTotal = (itens) =>
+    itens ? itens.reduce((acc, i) => acc + (Number(i.iped_tota) || 0), 0) : 0
 
-        setPedido((prev) => {
-          const novoPedido = {
-            ...prev,
-            pedi_empr: empresaId,
-            pedi_fili: filialId,
-          }
-          console.log(
-            'Empresa e Filial carregadas:',
-            novoPedido.pedi_empr,
-            novoPedido.pedi_fili
+  useEffect(() => {
+    const carregarPedido = async () => {
+      setCarregando(true)
+      try {
+        if (pedidoParam && pedidoParam.pedi_nume) {
+          const data = await apiGetComContexto(
+            `pedidos/pedidos/${pedidoParam.pedi_nume}/`
           )
-          return novoPedido
-        })
-      } catch (err) {
-        console.error('Erro ao carregar empresa/filial:', err.message)
+          const itens = data.itens || []
+
+          setPedido({
+            ...data,
+            itens_input: itens,
+            pedi_tota: calcularTotal(itens),
+          })
+
+          await AsyncStorage.setItem(
+            PEDIDO_CACHE_ID,
+            JSON.stringify({
+              ...data,
+              itens_input: itens,
+              pedi_tota: calcularTotal(itens),
+            })
+          )
+        } else {
+          const cache = await AsyncStorage.getItem(PEDIDO_CACHE_ID)
+          if (cache) {
+            const pedidoCache = JSON.parse(cache)
+            const total = calcularTotal(pedidoCache.itens_input || [])
+            setPedido({ ...pedidoCache, pedi_tota: total })
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar pedido:', error)
       } finally {
         setCarregando(false)
       }
     }
 
-    carregarEmpresaFilial()
-  }, [])
+    carregarPedido()
+  }, [pedidoParam])
 
   const handleAdicionarOuEditarItem = (novoItem) => {
-    let novosItens
-    if (itemEditando) {
-      // edição
-      novosItens = pedido.itens.map((item) =>
-        item === itemEditando ? novoItem : item
-      )
+    let novosItens = [...pedido.itens_input]
+    const index = novosItens.findIndex(
+      (i) => i.iped_prod === novoItem.iped_prod
+    )
+
+    if (index !== -1) {
+      novosItens[index] = novoItem // edição
     } else {
-      novosItens = [...pedido.itens, novoItem]
+      novosItens.push(novoItem) // novo
     }
 
-    const novoTotal = novosItens.reduce((acc, i) => acc + i.iped_tota, 0)
+    const novoTotal = calcularTotal(novosItens)
+
     setPedido((prev) => ({
       ...prev,
-      itens: novosItens,
+      itens_input: novosItens,
       pedi_tota: novoTotal,
     }))
+
     setItemEditando(null)
     setModalVisivel(false)
   }
-  if (carregando) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Carregando dados...</Text>
-      </View>
-    )
-  }
+
   const handleRemoverItem = (item) => {
-    const novosItens = pedido.itens.filter(
+    const novosItens = pedido.itens_input.filter(
       (i) => i.iped_prod !== item.iped_prod
     )
-    const novoTotal = novosItens.reduce((acc, i) => acc + i.iped_tota, 0)
+
+    const novosRemovidos = item.idExistente
+      ? [...pedido.itens_removidos, item.iped_prod]
+      : pedido.itens_removidos
+
+    const novoTotal = calcularTotal(novosItens)
+
     setPedido((prev) => ({
       ...prev,
-      itens: novosItens,
+      itens_input: novosItens,
+      itens_removidos: novosRemovidos,
       pedi_tota: novoTotal,
     }))
   }
@@ -109,14 +129,16 @@ export default function TelaPedidoVenda() {
       </TouchableOpacity>
 
       <ItensList
-        itens={pedido.itens}
+        itens={pedido.itens_input}
         onEdit={(item) => {
           setItemEditando(item)
           setModalVisivel(true)
         }}
         onRemove={handleRemoverItem}
       />
+
       <ResumoPedido total={pedido.pedi_tota} pedido={pedido} />
+
       <ItensModal
         visivel={modalVisivel}
         onFechar={() => {
@@ -149,9 +171,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-
   textobotao: {
-    color: 'BLACK',
+    color: 'black',
     fontWeight: 'bold',
     fontSize: 16,
   },

@@ -30,13 +30,16 @@ export default function ResumoPedido({ total, pedido }) {
     carregarSlug()
   }, [])
 
+  // Garante que total é número válido
+  const totalFormatado = Number(total) || 0
+
   const enviarZap = () => {
     const nomeCliente =
       typeof pedido.pedi_forn === 'string'
         ? pedido.pedi_forn
         : pedido.pedi_forn?.nome ?? 'N/A'
 
-    const texto = `Novo pedido!\nCliente: ${nomeCliente}\nTotal: R$ ${total.toFixed(
+    const texto = `Novo pedido!\nCliente: ${nomeCliente}\nTotal: R$ ${totalFormatado.toFixed(
       2
     )}`
     const url = `https://wa.me/554299752472?text=${encodeURIComponent(texto)}`
@@ -75,7 +78,7 @@ export default function ResumoPedido({ total, pedido }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.total}>Total: R$ {total.toFixed(2)}</Text>
+      <Text style={styles.total}>Total: R$ {totalFormatado.toFixed(2)}</Text>
 
       <View style={styles.botoesContainer}>
         <TouchableOpacity
