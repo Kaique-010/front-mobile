@@ -1,3 +1,4 @@
+// ResumoPedido.js
 import React, { useState, useEffect } from 'react'
 import {
   View,
@@ -7,10 +8,11 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
 
-import { apiPostComContexto } from '../utils/api'
+import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 
 export default function ResumoPedido({ total, pedido }) {
@@ -22,7 +24,6 @@ export default function ResumoPedido({ total, pedido }) {
       try {
         const { slug } = await getStoredData()
         if (slug) setSlug(slug)
-        else console.warn('Slug não encontrado')
       } catch (err) {
         console.error('Erro ao carregar slug:', err.message)
       }
@@ -30,20 +31,54 @@ export default function ResumoPedido({ total, pedido }) {
     carregarSlug()
   }, [])
 
-  // Garante que total é número válido
   const totalFormatado = Number(total) || 0
 
-  const enviarZap = () => {
-    const nomeCliente =
-      typeof pedido.pedi_forn === 'string'
-        ? pedido.pedi_forn
-        : pedido.pedi_forn?.nome ?? 'N/A'
+  const enviarZap = async () => {
+    try {
+      if (!pedido.pedi_forn) {
+        Alert.alert('Erro', 'Cliente tem celular definido ?.')
+        return
+      }
+      const entidade = await apiGetComContexto(
+        `entidades/entidades/${pedido.pedi_forn}/`
+      )
+      console.log('📦 Dados da entidade:', entidade)
+      const numeroPedido = pedido.pedi_nume
+      const numeroRaw = entidade.enti_celu || entidade.enti_fone || ''
+      const numeroLimpo = numeroRaw.replace(/\D/g, '')
+      if (numeroLimpo.length < 10) {
+        Alert.alert(
+          'Sem WhatsApp',
+          'Essa entidade não possui número válido de WhatsApp.'
+        )
+        return
+      }
 
-    const texto = `Novo pedido!\nCliente: ${nomeCliente}\nTotal: R$ ${totalFormatado.toFixed(
-      2
-    )}`
-    const url = `https://wa.me/554299752472?text=${encodeURIComponent(texto)}`
-    Linking.openURL(url)
+      const numeroZap = `55${numeroLimpo}`
+      const nomeCliente = entidade.enti_nome || 'Cliente'
+
+      const corpo = (pedido.itens || [])
+        .map((item, idx) => {
+          const nome = item.produto_nome || 'Sem nome'
+          const codigo = item.iped_prod || 'N/A'
+          const qtd = Number(item.iped_quan || 0).toFixed(2)
+          const valor = Number(item.iped_unit || 0).toFixed(2)
+          return `${
+            idx + 1
+          }. ${nome} (Cód: ${codigo}) - Qtde: ${qtd} - R$ ${valor}`
+        })
+        .join('\n')
+
+      const texto = `Novo pedido:  ${numeroPedido}!\nCliente: ${nomeCliente}\n\nItens:\n${corpo}\n\nTotal: R$ ${totalFormatado.toFixed(
+        2
+      )}`
+
+      const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(texto)}`
+      Linking.openURL(url)
+    } catch (err) {
+      console.error('❌ Erro ao enviar Zap:', err)
+      Alert.alert('Erro', 'Falha ao consultar os dados da entidade.')
+    }
   }
 
   const salvar = async () => {
@@ -57,8 +92,6 @@ export default function ResumoPedido({ total, pedido }) {
 
     try {
       const data = await apiPostComContexto(`pedidos/pedidos/`, pedido)
-
-      console.log('[DEBUG] Pedido salvo:', data)
 
       const pedi_nume = data.pedi_nume || 'desconhecido'
 
@@ -92,7 +125,10 @@ export default function ResumoPedido({ total, pedido }) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.botao2} onPress={enviarZap}>
-          <Text style={styles.textobotao}>Enviar Pedido</Text>
+          <Text style={styles.textobotao}>
+            Enviar
+            <MaterialCommunityIcons name="whatsapp" size={18} color="#fff" />
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -101,52 +137,40 @@ export default function ResumoPedido({ total, pedido }) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 15,
-    backgroundColor: '#233f4d',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#161c23',
   },
   total: {
-    color: 'white',
-    textAlign: 'center',
+    fontSize: 24,
     fontWeight: 'bold',
-    fontSize: 16,
-    marginBottom: 20,
+    color: '#58D58D',
+    textAlign: 'right',
+    marginBottom: 15,
   },
   botoesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 15,
   },
   botao1: {
     flex: 1,
-    padding: 12,
-    backgroundColor: '#1047a7',
+    backgroundColor: '#109ea3',
+    marginRight: 8,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 5,
-    marginBottom: 34,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   botao2: {
     flex: 1,
-    padding: 12,
-    backgroundColor: '#10a72c',
+    backgroundColor: '#25D366',
+    marginLeft: 8,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 5,
-    marginBottom: 34,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   textobotao: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 16,
   },
 })

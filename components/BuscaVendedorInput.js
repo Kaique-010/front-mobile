@@ -11,15 +11,15 @@ import { apiGet } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
 
-export default function BuscaClienteInput({
+export default function BuscaVendedorInput({
   onSelect,
-  placeholder = 'Buscar...',
+  placeholder = 'Buscar vendedor...',
   tipo = null,
   value = '',
-  isEdit = false, // adiciona a prop isEdit
+  isEdit = false,
 }) {
-  const [termo, setTermo] = useState(value)
-  const [clientes, setClientes] = useState([])
+  const [termo, setTermo] = useState(typeof value === 'string' ? value : '')
+  const [vendedores, setVendedores] = useState([])
   const [slug, setSlug] = useState('')
   const digitando = useRef(false)
 
@@ -38,21 +38,24 @@ export default function BuscaClienteInput({
 
   useEffect(() => {
     if (isEdit) {
-      // Se está em edição, só seta o texto e limpa sugestões, não busca
       setTermo(value)
-      setClientes([])
+
+      if (typeof value === 'string' && !value.includes(' - ')) {
+        buscar(value)
+      }
+
+      setVendedores([])
       digitando.current = false
     } else {
-      // Se não está em edição, faz a busca normal
       if (!digitando.current && value) {
-        if (value && !value.includes(' - ')) {
+        if (!value.includes(' - ')) {
           buscar(value)
         } else {
           setTermo(value)
         }
       } else if (!value) {
         setTermo('')
-        setClientes([])
+        setVendedores([])
       }
     }
   }, [value, isEdit])
@@ -62,7 +65,7 @@ export default function BuscaClienteInput({
     setTermo(texto)
 
     if (!texto) {
-      setClientes([])
+      setVendedores([])
       return
     }
 
@@ -73,13 +76,11 @@ export default function BuscaClienteInput({
 
       let resultados = data.results
 
-      if (tipo === 'cliente') {
-        resultados = resultados.filter((e) => e.enti_tipo_enti === 'Cl')
-      } else if (tipo === 'vendedor') {
-        resultados = resultados.filter((e) => e.enti_tipo_enti === 'Ve')
+      if (tipo === 'vendedor') {
+        resultados = resultados.filter((e) => e.enti_tipo_enti === 'VE')
       }
 
-      setClientes(resultados)
+      setVendedores(resultados)
 
       if (resultados.length === 1 && resultados[0].enti_clie === texto) {
         selecionar(resultados[0])
@@ -94,7 +95,7 @@ export default function BuscaClienteInput({
     setTermo(texto)
     digitando.current = false
     onSelect(item)
-    setClientes([])
+    setVendedores([])
     Keyboard.dismiss()
   }
 
@@ -104,14 +105,14 @@ export default function BuscaClienteInput({
         style={styles.inputcliente}
         value={termo}
         onChangeText={(text) => {
-          if (!isEdit) buscar(text)
+          buscar(text)
         }}
         placeholder={placeholder}
         placeholderTextColor="#aaa"
       />
-      {clientes.length > 0 && (
+      {vendedores.length > 0 && (
         <FlatList
-          data={clientes}
+          data={vendedores}
           keyExtractor={(item) =>
             `${item.enti_clie}-${item.enti_fili}-${item.enti_empr}`
           }

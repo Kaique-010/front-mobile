@@ -17,8 +17,9 @@ export default function ItensList({ itens, onEdit, onRemove }) {
       renderItem={({ item }) => (
         <View style={styles.item}>
           <Text style={styles.text} numberOfLines={1} ellipsizeMode="tail">
-            item-{item.iped_prod}- qtd -
-            {(Number(item.iped_quan) || 0).toFixed(2)} x {item.iped_unit} ={' '}
+            {(item?.produto_nome || 'Sem nome').slice(0, 10)} qtd -
+            {(Number(item.iped_quan) || 0).toFixed(2)} x{' '}
+            {(Number(item.iped_unit) || 0).toFixed(2)} ={' '}
             {(Number(item.iped_tota) || 0).toFixed(2)}
           </Text>
           <View style={styles.botoesContainer}>

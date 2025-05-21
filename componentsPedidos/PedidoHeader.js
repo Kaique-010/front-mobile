@@ -2,6 +2,7 @@ import React from 'react'
 import { View, TextInput, Text, StyleSheet } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import BuscaClienteInput from '../components/BuscaClienteInput'
+import BuscaVendedorInput from '../components/BuscaVendedorInput'
 
 export default function PedidoHeader({ pedido = {}, setPedido }) {
   return (
@@ -25,10 +26,12 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
         }}
       />
       <Text style={styles.label}>Vendedor:</Text>
-      <BuscaClienteInput
+      <BuscaVendedorInput
         styles={styles.inputcliente}
+        tipo="vendedor"
+        isEdit={true}
+        value={pedido.pedi_vend}
         onSelect={(item) => {
-          console.log('Vendedor selecionado:', item)
           setPedido((prev) => ({
             ...prev,
             pedi_vend: item.enti_clie,

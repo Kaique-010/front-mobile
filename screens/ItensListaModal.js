@@ -6,7 +6,6 @@ import {
   FlatList,
   Linking,
   TouchableOpacity,
-  Text,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
@@ -23,15 +22,9 @@ export default function ItensListaModal({ route }) {
   const navigation = useNavigation()
   const { listaId, clienteId, cliente, empresaId, filialId, usuarioId } =
     route.params
-  console.log('🔍 Params recebidos:', {
-    listaId,
-    clienteId,
-    empresaId,
-    filialId,
-    cliente,
-  })
 
   const [isScanning, setIsScanning] = useState(false)
+  const [slug, setSlug] = useState('')
 
   const {
     itensSalvos,
@@ -51,13 +44,11 @@ export default function ItensListaModal({ route }) {
     usuarioId,
   })
 
-  const [slug, setSlug] = useState('')
-
   useEffect(() => {
     const carregarSlug = async () => {
       try {
-        const { slug } = await getStoredData()
-        if (slug) setSlug(slug)
+        const data = await getStoredData()
+        if (data.slug) setSlug(data.slug)
         else console.warn('Slug não encontrado')
       } catch (err) {
         console.error('Erro ao carregar slug:', err.message)
@@ -91,6 +82,56 @@ export default function ItensListaModal({ route }) {
     }
   }
 
+ 
+  const enviarZapLista = async (itens, listaId) => {
+    if (!itens || itens.length === 0) {
+      Alert.alert('Sem itens', 'A lista está vazia.')
+      return
+    }
+
+    try {
+     
+      const entidade = await apiGet(
+        `/api/${slug}/entidades/entidades/${clienteId}/`
+      )
+      console.log('📦 Dados da entidade:', entidade)
+
+      const numeroRaw = entidade.enti_celu || entidade.enti_fone || ''
+      const numeroLimpo = numeroRaw.replace(/\D/g, '')
+      if (numeroLimpo.length < 10) {
+        Alert.alert(
+          'Sem WhatsApp',
+          'Essa entidade não possui número válido de WhatsApp.'
+        )
+        return
+      }
+
+      const numeroZap = `55${numeroLimpo}`
+      const nomeNoiva = cliente || entidade.enti_nome || 'Noiva'
+
+      const corpo = itens
+        .map((item, idx) => {
+          const nome = item.produto_nome || 'Sem nome'
+          const codigo = item.item_prod || 'N/A'
+          return `${idx + 1}. ${nome} (Cód: ${codigo})`
+        })
+        .join('\n')
+
+      const mensagem =
+        `💍 *Lista de Presentes - ${nomeNoiva}*\n` +
+        `🆔 Lista Nº ${listaId}\n\n` +
+        `${corpo}`
+
+      const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
+        mensagem
+      )}`
+      Linking.openURL(url)
+    } catch (error) {
+      console.error('Erro ao enviar WhatsApp:', error)
+      Alert.alert('Erro', 'Não foi possível enviar mensagem via WhatsApp.')
+    }
+  }
+
   if (carregando) {
     return <ActivityIndicator size="large" style={{ marginTop: 40 }} />
   }
@@ -105,33 +146,6 @@ export default function ItensListaModal({ route }) {
         onCancelar={() => setIsScanning(false)}
       />
     )
-  }
-
-  const enviarZapLista = (itens, listaId) => {
-    if (!itens || itens.length === 0) {
-      Alert.alert('Sem itens', 'A lista está vazia.')
-      return
-    }
-
-    const nomeNoiva = cliente || 'Noiva'
-
-    const corpo = itens
-      .map((item, idx) => {
-        const nome = item.produto_nome || 'Sem nome'
-        const codigo = item.item_prod || 'N/A'
-        return `${idx + 1}. ${nome} (Cód: ${codigo})`
-      })
-      .join('\n')
-
-    const mensagem =
-      `💍 *Lista de Presentes - ${nomeNoiva}*\n` +
-      `🆔 Lista Nº ${listaId}\n\n` +
-      `${corpo}`
-
-    const url = `https://wa.me/5542991168004?text=${encodeURIComponent(
-      mensagem
-    )}`
-    Linking.openURL(url)
   }
 
   return (

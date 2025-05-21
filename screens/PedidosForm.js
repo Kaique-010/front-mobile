@@ -26,6 +26,19 @@ export default function TelaPedidoVenda({ route, navigation }) {
     pedi_tota: 0,
   })
 
+  const carregarContexto = async () => {
+    try {
+      const [empresaId, filialId] = await Promise.all([
+        AsyncStorage.getItem('empresaId'),
+        AsyncStorage.getItem('filialId'),
+      ])
+      return { empresaId, filialId }
+    } catch (error) {
+      console.error('Erro ao carregar contexto:', error)
+      return { empresaId: null, filialId: null }
+    }
+  }
+
   const [modalVisivel, setModalVisivel] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [itemEditando, setItemEditando] = useState(null)
@@ -37,6 +50,8 @@ export default function TelaPedidoVenda({ route, navigation }) {
     const carregarPedido = async () => {
       setCarregando(true)
       try {
+        const { empresaId, filialId } = await carregarContexto()
+
         if (pedidoParam && pedidoParam.pedi_nume) {
           const data = await apiGetComContexto(
             `pedidos/pedidos/${pedidoParam.pedi_nume}/`
@@ -58,12 +73,20 @@ export default function TelaPedidoVenda({ route, navigation }) {
             })
           )
         } else {
-          const cache = await AsyncStorage.getItem(PEDIDO_CACHE_ID)
-          if (cache) {
-            const pedidoCache = JSON.parse(cache)
-            const total = calcularTotal(pedidoCache.itens_input || [])
-            setPedido({ ...pedidoCache, pedi_tota: total })
-          }
+          await AsyncStorage.removeItem(PEDIDO_CACHE_ID)
+          setPedido({
+            pedi_empr: empresaId,
+            pedi_fili: filialId,
+            pedi_forn: null,
+            pedi_vend: null,
+            pedi_data: new Date().toISOString().split('T')[0],
+            pedi_fina: '0',
+            status: 0,
+            pedi_obse: 'Pedido Enviado por Mobile',
+            itens_input: [],
+            itens_removidos: [],
+            pedi_tota: 0,
+          })
         }
       } catch (error) {
         console.error('Erro ao carregar pedido:', error)

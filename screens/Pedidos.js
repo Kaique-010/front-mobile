@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { apiGetComContexto } from '../utils/api'
+import { apiDelete, apiGetComContexto } from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
 
@@ -67,17 +67,23 @@ export default function Pedidos({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(
+            await apiDelete(
               `/api/${slug}/pedidos/pedidos/${pedi_nume}/`,
               {},
               'DELETE'
             )
-            // Atualiza a lista removendo o item excluído
             setPedidos((prev) =>
               prev.filter((pedido) => pedido.pedi_nume !== pedi_nume)
             )
           } catch (error) {
-            console.log('❌ Erro ao excluir pedido:', error.message)
+            console.log(
+              '❌ Erro ao excluir lista:',
+              error.response?.data?.detail || error.message
+            )
+            Alert.alert(
+              'Erro',
+              error.response?.data?.detail || 'Erro ao excluir a lista'
+            )
           }
         },
       },
@@ -85,12 +91,16 @@ export default function Pedidos({ navigation }) {
   }
   const statusPedidos = {
     0: 'Aberto',
+    1: 'Faturado',
+    2: 'cancelado',
   }
 
   // Renderização de cada item da lista
   const renderPedidos = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.status}>Status: {item.pedi_stat}</Text>
+      <Text style={styles.status}>
+        Status: {statusPedidos[item.pedi_stat] ?? 'Desconhecido'}
+      </Text>
       <Text style={styles.numero}>Nº Pedido: {item.pedi_nume}</Text>
       <Text style={styles.data}>Data: {item.pedi_data}</Text>
       <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>

@@ -1,3 +1,4 @@
+// ItensModal.js
 import React, { useState, useEffect } from 'react'
 import {
   Modal,
@@ -6,6 +7,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native'
 import BuscaProdutoInput from '../components/BuscaProdutosInput'
 
@@ -15,28 +17,37 @@ export default function ItensModal({
   onAdicionar,
   itemEditando,
 }) {
-  const [produtoId, setProdutoId] = useState('')
-  const [quantidade, setQuantidade] = useState('')
-  const [preco, setPreco] = useState('')
+  const [form, setForm] = useState({
+    produtoId: '',
+    quantidade: '',
+    preco: '',
+  })
 
-  // Quando itemEditando mudar, preenche os campos
   useEffect(() => {
     if (itemEditando) {
-      setProdutoId(itemEditando.iped_prod?.toString() || '')
-      setQuantidade(itemEditando.iped_quan?.toString() || '')
-      setPreco(itemEditando.iped_unit?.toString() || '')
+      setForm({
+        produtoId: itemEditando.iped_prod?.toString() || '',
+        quantidade: itemEditando.iped_quan?.toString() || '',
+        preco: itemEditando.iped_unit?.toString() || '',
+      })
     } else {
-      setProdutoId('')
-      setQuantidade('')
-      setPreco('')
+      setForm({
+        produtoId: '',
+        quantidade: '',
+        preco: '',
+      })
     }
   }, [itemEditando, visivel])
 
-  const adicionar = () => {
-    const quantidadeNum = parseFloat(quantidade)
-    const precoNum = parseFloat(preco)
+  const onChange = (field, value) => {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
 
-    if (!produtoId || quantidadeNum <= 0 || precoNum <= 0) {
+  const adicionar = () => {
+    const quantidadeNum = parseFloat(form.quantidade)
+    const precoNum = parseFloat(form.preco)
+
+    if (!form.produtoId || quantidadeNum <= 0 || precoNum <= 0) {
       Alert.alert('Erro', 'Produto, quantidade e preço devem ser válidos.')
       return
     }
@@ -44,7 +55,7 @@ export default function ItensModal({
     const total = quantidadeNum * precoNum
 
     const novoItem = {
-      iped_prod: parseInt(produtoId),
+      iped_prod: parseInt(form.produtoId),
       iped_quan: quantidadeNum,
       iped_unit: precoNum,
       iped_tota: total,
@@ -52,11 +63,8 @@ export default function ItensModal({
 
     onAdicionar(novoItem)
 
-    // Limpa os campos só se for item novo (não edição)
     if (!itemEditando) {
-      setProdutoId('')
-      setQuantidade('')
-      setPreco('')
+      setForm({ produtoId: '', quantidade: '', preco: '' })
     }
 
     onFechar()
@@ -69,31 +77,34 @@ export default function ItensModal({
 
         <Text style={styles.label}>Produto</Text>
         <BuscaProdutoInput
+          value={form.produtoId}
           onSelect={(item) => {
-            console.log('Produto selecionado:', item)
-            setProdutoId(item.prod_codi.toString())
+            setForm((f) => ({ ...f, produtoId: item.prod_codi.toString() }))
           }}
         />
 
         <Text style={styles.label}>Quantidade:</Text>
         <TextInput
           keyboardType="numeric"
-          value={quantidade}
-          onChangeText={setQuantidade}
+          value={form.quantidade}
+          onChangeText={(v) => onChange('quantidade', v)}
           style={styles.input}
         />
 
         <Text style={styles.label}>Preço Unitário:</Text>
         <TextInput
           keyboardType="numeric"
-          value={preco}
-          onChangeText={setPreco}
+          value={form.preco}
+          onChangeText={(v) => onChange('preco', v)}
           style={styles.input}
         />
 
         <Text style={styles.total}>
           Total: R${' '}
-          {(parseFloat(quantidade || 0) * parseFloat(preco || 0)).toFixed(2)}
+          {(
+            (parseFloat(form.quantidade) || 0) *
+            (parseFloat(form.preco) || 0)
+          ).toFixed(2)}
         </Text>
 
         <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>

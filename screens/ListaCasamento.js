@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native'
 import { getStoredData } from '../services/storageService'
-import { apiGet } from '../utils/api'
+import { apiDelete, apiGet } from '../utils/api'
 import styles from '../styles/listaStyles'
 
 export default function ListaCasamento({ navigation }) {
@@ -64,7 +64,7 @@ export default function ListaCasamento({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(
+            await apiDelete(
               `/api/${slug}/listacasamento/listas-casamento/${list_codi}/`,
               {},
               'DELETE'
@@ -77,8 +77,6 @@ export default function ListaCasamento({ navigation }) {
               '❌ Erro ao excluir lista:',
               error.response?.data?.detail || error.message
             )
-
-            // Mostrando um alerta com a mensagem de erro
             Alert.alert(
               'Erro',
               error.response?.data?.detail || 'Erro ao excluir a lista'
