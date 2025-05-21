@@ -55,9 +55,9 @@ export default function Home() {
   const chartConfig = {
     backgroundGradientFrom: '#121212',
     backgroundGradientTo: '#121212',
-    color: (opacity = 1) => `rgba(0, 191, 255, ${opacity})`,
+    color: (opacity = 5) => `rgba(10, 150, 350, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    barPercentage: 0.7,
+    barPercentage: 1.6,
     useShadowColorFromDataset: false,
   }
 
@@ -121,7 +121,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 12,
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 15,
+    alignItems: 'center',
   },
   label: {
     fontSize: 12,
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   chartTitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#fff',
     fontWeight: 'bold',
     marginBottom: 10,
