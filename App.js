@@ -11,6 +11,7 @@ import EntidadeForm from './screens/EntidadeForm'
 import Entidades from './screens/Entidades'
 import DrawerNavigator from './navigation/DrawerNavigation'
 import PedidosForm from './screens/PedidosForm'
+import OrcamentosForm from './screens/OrcamentosForm'
 import ListaCasamentoForm from './screens/ListaCasamentoForm'
 import ItensListaModal from './screens/ItensListaModal'
 import EntradasForm from './screens/EntradasForm'
@@ -77,6 +78,16 @@ export default function App() {
           component={PedidosForm}
           options={{
             title: 'Pedido de Venda',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="OrcamentosForm"
+          component={OrcamentosForm}
+          options={{
+            title: 'Orçamentos',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },

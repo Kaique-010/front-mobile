@@ -1,49 +1,58 @@
 import React from 'react'
-import { View } from 'react-native'
+import { View, Text, Dimensions } from 'react-native'
 import { BarChart } from 'react-native-chart-kit'
-import { Dimensions } from 'react-native'
 
 const screenWidth = Dimensions.get('window').width
 
 export default function DashboardVendasStatusPedidos({
-  totalPedidos,
   totalFaturado,
   ticketMedio,
 }) {
   const data = {
-    labels: ['Pedidos', 'Faturado (R$)', 'Ticket Médio (R$)'],
-    datasets: [
-      {
-        data: [totalPedidos, totalFaturado, ticketMedio],
-      },
-    ],
+    labels: ['Faturado (R$)', 'Ticket Médio (R$)'],
+    datasets: [{ data: [totalFaturado, ticketMedio] }],
   }
 
   return (
-    <View style={{ marginVertical: 16 }}>
-      <BarChart
-        data={data}
-        width={screenWidth - 32}
-        height={220}
-        fromZero
-        formatYLabel={(value) => {
-          if (value === totalPedidos.toString()) return value
-          return `R$ ${parseFloat(value).toFixed(2)}`
-        }}
-        chartConfig={{
-          backgroundColor: '#fff',
-          backgroundGradientFrom: '#fff',
-          backgroundGradientTo: '#fff',
-          decimalPlaces: 2,
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          barPercentage: 0.6,
-        }}
-        style={{
-          borderRadius: 8,
-          marginLeft: 16,
-        }}
-      />
+    <View style={{ marginVertical: 8, marginLeft: 10 }}>
+      <View style={{ position: 'relative' }}>
+        <BarChart
+          data={data}
+          width={screenWidth - 32}
+          height={220}
+          fromZero
+          chartConfig={{
+            backgroundGradientFrom: '#ffe5e5',
+            backgroundGradientTo: '#256',
+            decimalPlaces: 2,
+            color: (opacity = 1) => `rgba(90, 80, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            barPercentage: 0.6,
+            propsForLabels: {
+              dx: 10,
+              fontSize: 12,
+              fontWeight: 'bold',
+            },
+          }}
+          verticalLabelRotation={5}
+          style={{
+            borderRadius: 8,
+            marginLeft: 10,
+          }}
+        />
+
+        {/* Texto manualmente posicionado acima da segunda barra */}
+        <Text
+          style={{
+            position: 'absolute',
+            top: 150,
+            left: (screenWidth - 32) * 0.65, // 0.65 para a 2ª barra
+            color: 'black',
+            fontWeight: 'bold',
+          }}>
+          R$ {ticketMedio.toFixed(2)}
+        </Text>
+      </View>
     </View>
   )
 }

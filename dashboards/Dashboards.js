@@ -6,19 +6,26 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Alert,
+  TextInput,
+  Modal,
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
+import { MaterialIcons } from '@expo/vector-icons'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import {
   getDashboardEstoque,
   getDashboardVendas,
 } from '../services/dashboardService'
 import DashboardEstoqueTopProdutos from './DashboardEstoqueTopProdutos'
 import DashboardVendasStatusPedidos from './DashboardVendasStatusPedidos'
+import { useEnviarEmail } from '../hooks/useEnviarEmail'
+import { useEnviarWhats } from '../hooks/useEnviarWhats'
 
 export default function Dashboard() {
   const [estoqueDados, setEstoqueDados] = useState(null)
   const [vendasDados, setVendasDados] = useState(null)
-
+  const [graficosBase64, setGraficosBase64] = useState({})
   const [dataIni, setDataIni] = useState(() => {
     const hoje = new Date()
     return new Date(hoje.getFullYear(), hoje.getMonth(), 1)
@@ -30,6 +37,14 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Modal controls
+  const [modalVisible, setModalVisible] = useState(false)
+  const [modalType, setModalType] = useState(null) // 'email' ou 'whats'
+  const [inputValue, setInputValue] = useState('')
+
+  const { enviarEmail, loading: loadingEmail } = useEnviarEmail()
+  const { enviarWhats, loading: loadingWhats } = useEnviarWhats()
 
   const formatDate = (date) => date.toISOString().slice(0, 10)
 
@@ -74,8 +89,49 @@ export default function Dashboard() {
     }
   }
 
+  const abrirModal = (tipo) => {
+    setModalType(tipo)
+    setInputValue('')
+    setModalVisible(true)
+  }
+
+  const fecharModal = () => {
+    setModalVisible(false)
+    setInputValue('')
+    setModalType(null)
+  }
+
+  const handleEnviar = async () => {
+    if (!inputValue.trim()) {
+      Alert.alert(
+        'Erro',
+        modalType === 'email' ? 'Email é obrigatório' : 'Número é obrigatório'
+      )
+      return
+    }
+
+    // Monta os dados que vai enviar, pode adaptar aqui o que mandar pra API
+    const dadosEnviar = {
+      estoque: estoqueDados,
+      vendas: vendasDados,
+      periodo: { inicio: formatDate(dataIni), fim: formatDate(dataFim) },
+    }
+
+    let sucesso = false
+    if (modalType === 'email') {
+      sucesso = await enviarEmail(inputValue.trim(), dadosEnviar)
+    } else if (modalType === 'whats') {
+      sucesso = await enviarWhats(inputValue.trim(), dadosEnviar)
+    }
+
+    if (sucesso) {
+      fecharModal()
+    }
+  }
+
   return (
     <ScrollView style={styles.container}>
+      {/* Data pickers */}
       <View style={styles.datePickerRow}>
         <View style={styles.datePickerWrapper}>
           <TouchableOpacity
@@ -123,6 +179,7 @@ export default function Dashboard() {
         </View>
       </View>
 
+      {/* Conteúdo do dashboard */}
       {loading ? (
         <ActivityIndicator
           size="large"
@@ -150,6 +207,75 @@ export default function Dashboard() {
           />
         </>
       )}
+
+      {/* Botões enviar email e WhatsApp */}
+      <View style={styles.botaoContainer}>
+        <TouchableOpacity
+          style={styles.botaoEnviar}
+          onPress={() => abrirModal('email')}
+          disabled={loadingEmail}>
+          <MaterialIcons name="email" size={24} color="#fff" />
+          <Text style={styles.botaoTexto}>Enviar Email</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.botaoEnviar}
+          onPress={() => abrirModal('whats')}
+          disabled={loadingWhats}>
+          <MaterialCommunityIcons name="whatsapp" size={24} color="#25D366" />
+          <Text style={[styles.botaoTexto, { color: '#25D366' }]}>
+            Enviar Whats
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Modal para entrada de email ou número */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={modalVisible}
+        onRequestClose={fecharModal}>
+        <View style={styles.modalFundo}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitulo}>
+              {modalType === 'email'
+                ? 'Enviar por Email'
+                : 'Enviar por WhatsApp'}
+            </Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder={
+                modalType === 'email' ? 'Digite o email' : 'Digite o número'
+              }
+              keyboardType={
+                modalType === 'email' ? 'email-address' : 'phone-pad'
+              }
+              value={inputValue}
+              onChangeText={setInputValue}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <View style={styles.modalBotoes}>
+              <TouchableOpacity
+                style={styles.modalBotaoCancelar}
+                onPress={fecharModal}>
+                <Text style={styles.modalBotaoTexto}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalBotaoEnviar}
+                onPress={handleEnviar}>
+                {loadingEmail || loadingWhats ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalBotaoTexto}>Enviar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   )
 }
@@ -177,37 +303,102 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     color: '#ddd',
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 14,
   },
   updateButtonWrapper: {
     justifyContent: 'center',
   },
   updateButton: {
-    backgroundColor: '#2979ff',
+    backgroundColor: '#333',
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 6,
   },
   updateButtonText: {
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   title: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
-    fontSize: 20,
-    textAlign: 'center',
-    color: '#ffffff',
-    marginVertical: 16,
   },
   errorText: {
     color: 'red',
+    marginTop: 20,
     textAlign: 'center',
-    marginTop: 30,
   },
   loadingText: {
-    color: '#ccc',
+    color: '#aaa',
+    marginTop: 20,
     textAlign: 'center',
-    marginTop: 30,
+  },
+  botaoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 40,
+    marginBottom: 30,
+  },
+  botaoEnviar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#444',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+  },
+  botaoTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  modalFundo: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#222',
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalTitulo: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  input: {
+    backgroundColor: '#333',
+    color: '#fff',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalBotoes: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalBotaoCancelar: {
+    backgroundColor: '#555',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 6,
+  },
+  modalBotaoEnviar: {
+    backgroundColor: '#25D366',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 6,
+  },
+  modalBotaoTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 })

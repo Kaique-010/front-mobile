@@ -17,6 +17,7 @@ import debounce from 'lodash.debounce'
 export default function Entidades({ navigation }) {
   const [entidades, setEntidades] = useState([])
   const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [offset, setOffset] = useState(0)
@@ -46,10 +47,10 @@ export default function Entidades({ navigation }) {
     }
   }, [searchValue, slug])
 
-  const debouncedSearch = useCallback(
-    debounce((value) => {
-      setSearchValue(value)
-    }, 500),
+  const debouncedSetSearchValue = useCallback(
+    debounce((val) => {
+      setSearchValue(val)
+    }, 600),
     []
   )
 
@@ -90,6 +91,7 @@ export default function Entidades({ navigation }) {
     } finally {
       setLoading(false)
       setIsFetchingMore(false)
+      setInitialLoading(false) // <- esse é o pulo do gato
     }
   }
 
@@ -137,7 +139,7 @@ export default function Entidades({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {!slug || loading ? (
+      {!slug || initialLoading ? (
         <ActivityIndicator
           size="large"
           color="#007bff"
@@ -159,7 +161,7 @@ export default function Entidades({ navigation }) {
               value={searchTerm}
               onChangeText={(text) => {
                 setSearchTerm(text)
-                debouncedSearch(text)
+                debouncedSetSearchValue(text)
               }}
               returnKeyType="search"
               onSubmitEditing={() => setSearchValue(searchTerm)}

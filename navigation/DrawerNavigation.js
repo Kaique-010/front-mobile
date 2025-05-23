@@ -6,6 +6,7 @@ import Dashboard from '../dashboards/Dashboards'
 import Home from '../screens/Home'
 import Produtos from '../screens/Produtos'
 import Pedidos from '../screens/Pedidos'
+import Orcamentos from '../screens/Orcamentos'
 import CustomDrawer from './CustomDrawer'
 import Icon from 'react-native-vector-icons/Feather'
 import Entidades from '../screens/Entidades'
@@ -82,6 +83,17 @@ export default function DrawerNavigator() {
           options={{
             drawerIcon: ({ color, size }) => (
               <MaterialCommunityIcons name="ring" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
+      {hasModulo('orcamentos') && (
+        <Drawer.Screen
+          name="Orcamentos"
+          component={Orcamentos}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="shopping-bag" color={color} size={size} />
             ),
           }}
         />

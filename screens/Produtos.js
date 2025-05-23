@@ -17,6 +17,7 @@ const ITEM_HEIGHT = 140
 
 export default function Produtos({ navigation }) {
   const [produtos, setProdutos] = useState([])
+  const [initialLoading, setInitialLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
@@ -38,15 +39,28 @@ export default function Produtos({ navigation }) {
   }, [])
 
   useEffect(() => {
-    if (slug) buscarProdutos()
-  }, [slug])
+    const delayDebounce = setTimeout(() => {
+      if (slug && searchTerm !== '') {
+        buscarProdutos(true)
+      }
+    }, 600)
+
+    return () => clearTimeout(delayDebounce)
+  }, [searchTerm, slug])
+
+  const handleSearchSubmit = () => {
+    buscarProdutos(true)
+  }
 
   const buscarProdutos = useCallback(
     async (reset = false) => {
       if (!slug || (isFetchingMore && !reset)) return
 
       if (reset) {
-        setLoading(true)
+        if (produtos.length === 0) {
+          setInitialLoading(true)
+        }
+        setIsSearching(true) // ativando o "carregando" da busca
         setOffset(0)
         setHasMore(true)
       } else {
@@ -76,17 +90,20 @@ export default function Produtos({ navigation }) {
       } catch (error) {
         console.log('❌ Erro ao buscar produtos:', error.message)
       } finally {
-        if (reset) setLoading(false)
+        if (reset) {
+          setInitialLoading(false)
+          setIsSearching(false) // desativa "carregando" da busca
+        }
         setIsFetchingMore(false)
       }
     },
     [slug, offset, searchTerm, isFetchingMore]
   )
-
-  // Reseta ao pesquisar
   useEffect(() => {
-    if (slug) buscarProdutos(true)
-  }, [slug, searchTerm])
+    if (slug && produtos.length === 0 && !searchTerm) {
+      buscarProdutos(true)
+    }
+  }, [slug])
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -142,7 +159,7 @@ export default function Produtos({ navigation }) {
     []
   )
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <ActivityIndicator
         size="large"
@@ -167,9 +184,12 @@ export default function Produtos({ navigation }) {
           style={styles.input}
           value={searchTerm}
           onChangeText={setSearchTerm}
-          onSubmitEditing={buscarProdutos}
+          onSubmitEditing={handleSearchSubmit}
         />
-        <TouchableOpacity style={styles.searchButton} onPress={buscarProdutos}>
+
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={() => buscarProdutos(true)}>
           <Text style={styles.searchButtonText}>
             {isSearching ? '🔍...' : 'Buscar'}
           </Text>
@@ -186,7 +206,7 @@ export default function Produtos({ navigation }) {
         windowSize={5}
         removeClippedSubviews={true}
         onEndReached={() => {
-          if (hasMore && !isFetchingMore && !loading) {
+          if (hasMore && !isFetchingMore && !initialLoading) {
             buscarProdutos()
           }
         }}

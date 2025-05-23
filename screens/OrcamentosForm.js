@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import PedidoHeader from '../componentsPedidos/PedidoHeader'
-import ItensList from '../componentsPedidos/ItensLista'
-import ItensModal from '../componentsPedidos/ItensModal'
-import ResumoPedido from '../componentsPedidos/ResumoPedido'
+import OrcamentoHeader from '../componentsOrcamentos/OrcamentoHeader'
+import ItensList from '../componentsOrcamentos/ItensLista'
+import ItensModal from '../componentsOrcamentos/ItensModal'
+import ResumoOrcamento from '../componentsOrcamentos/ResumoOrcamento'
 import { apiGetComContexto } from '../utils/api'
 
-const PEDIDO_CACHE_ID = 'pedido-edicao-cache'
+const ORCAMENTO_CACHE_ID = 'orcamento-edicao-cache'
 
-export default function TelaPedidoVenda({ route, navigation }) {
-  const pedidoParam = route.params?.pedido || null
+export default function TelaOrcamento({ route, navigation }) {
+  const orcamentoParam = route.params?.orcamento || null
 
-  const [pedido, setPedido] = useState({
+  const [orcamento, setOrcamento] = useState({
     pedi_empr: null,
     pedi_fili: null,
     pedi_forn: null,
     pedi_vend: null,
     pedi_data: new Date().toISOString().split('T')[0],
-    pedi_fina: '0',
-    status: 0,
-    pedi_obse: 'Pedido Enviado por Mobile',
+    pedi_obse: null,
     itens_input: [],
     itens_removidos: [],
     pedi_tota: 0,
@@ -47,25 +45,25 @@ export default function TelaPedidoVenda({ route, navigation }) {
     itens ? itens.reduce((acc, i) => acc + (Number(i.iped_tota) || 0), 0) : 0
 
   useEffect(() => {
-    const carregarPedido = async () => {
+    const carregarOrcamento = async () => {
       setCarregando(true)
       try {
         const { empresaId, filialId } = await carregarContexto()
 
-        if (pedidoParam && pedidoParam.pedi_nume) {
+        if (orcamentoParam && orcamentoParam.pedi_nume) {
           const data = await apiGetComContexto(
-            `pedidos/pedidos/${pedidoParam.pedi_nume}/`
+            `orcamentos/orcamentos/${orcamentoParam.pedi_nume}/`
           )
           const itens = data.itens || []
 
-          setPedido({
+          setOrcamento({
             ...data,
             itens_input: itens,
             pedi_tota: calcularTotal(itens),
           })
 
           await AsyncStorage.setItem(
-            PEDIDO_CACHE_ID,
+            ORCAMENTO_CACHE_ID,
             JSON.stringify({
               ...data,
               itens_input: itens,
@@ -73,46 +71,44 @@ export default function TelaPedidoVenda({ route, navigation }) {
             })
           )
         } else {
-          await AsyncStorage.removeItem(PEDIDO_CACHE_ID)
-          setPedido({
+          await AsyncStorage.removeItem(ORCAMENTO_CACHE_ID)
+          setOrcamento({
             pedi_empr: empresaId,
             pedi_fili: filialId,
             pedi_forn: null,
             pedi_vend: null,
             pedi_data: new Date().toISOString().split('T')[0],
-            pedi_fina: '0',
-            status: 0,
-            pedi_obse: 'Pedido Enviado por Mobile',
+            pedi_obse: 'orcamento Enviado por Mobile',
             itens_input: [],
             itens_removidos: [],
             pedi_tota: 0,
           })
         }
       } catch (error) {
-        console.error('Erro ao carregar pedido:', error)
+        console.error('Erro ao carregar Orçamento:', error)
       } finally {
         setCarregando(false)
       }
     }
 
-    carregarPedido()
-  }, [pedidoParam])
+    carregarOrcamento()
+  }, [orcamentoParam])
 
   const handleAdicionarOuEditarItem = (novoItem) => {
-    let novosItens = [...pedido.itens_input]
+    let novosItens = [...orcamento.itens_input]
     const index = novosItens.findIndex(
       (i) => i.iped_prod === novoItem.iped_prod
     )
 
     if (index !== -1) {
-      novosItens[index] = novoItem // edição
+      novosItens[index] = novoItem
     } else {
-      novosItens.push(novoItem) // novo
+      novosItens.push(novoItem)
     }
 
     const novoTotal = calcularTotal(novosItens)
 
-    setPedido((prev) => ({
+    setOrcamento((prev) => ({
       ...prev,
       itens_input: novosItens,
       pedi_tota: novoTotal,
@@ -123,17 +119,17 @@ export default function TelaPedidoVenda({ route, navigation }) {
   }
 
   const handleRemoverItem = (item) => {
-    const novosItens = pedido.itens_input.filter(
+    const novosItens = orcamento.itens_input.filter(
       (i) => i.iped_prod !== item.iped_prod
     )
 
     const novosRemovidos = item.idExistente
-      ? [...pedido.itens_removidos, item.iped_prod]
-      : pedido.itens_removidos
+      ? [...orcamento.itens_removidos, item.iped_prod]
+      : orcamento.itens_removidos
 
     const novoTotal = calcularTotal(novosItens)
 
-    setPedido((prev) => ({
+    setOrcamento((prev) => ({
       ...prev,
       itens_input: novosItens,
       itens_removidos: novosRemovidos,
@@ -143,7 +139,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <PedidoHeader pedido={pedido} setPedido={setPedido} />
+      <OrcamentoHeader orcamento={orcamento} setOrcamento={setOrcamento} />
 
       <TouchableOpacity
         style={styles.botaoadditens}
@@ -152,7 +148,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
       </TouchableOpacity>
 
       <ItensList
-        itens={pedido.itens_input}
+        itens={orcamento.itens_input}
         onEdit={(item) => {
           setItemEditando(item)
           setModalVisivel(true)
@@ -160,7 +156,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
         onRemove={handleRemoverItem}
       />
 
-      <ResumoPedido total={pedido.pedi_tota} pedido={pedido} />
+      <ResumoOrcamento total={orcamento.pedi_tota} orcamento={orcamento} />
 
       <ItensModal
         visivel={modalVisivel}

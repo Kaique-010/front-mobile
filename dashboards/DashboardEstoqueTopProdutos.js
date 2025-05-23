@@ -1,5 +1,5 @@
 // DashboardEstoqueTopProdutos.js
-import React from 'react'
+import ViewShot from 'react-native-view-shot'
 import { BarChart } from 'react-native-chart-kit'
 import { Dimensions } from 'react-native'
 
@@ -15,13 +15,25 @@ export default function DashboardEstoqueTopProdutos({ dados }) {
       width={screenWidth - 32}
       height={220}
       chartConfig={{
-        backgroundColor: '#fff',
-        backgroundGradientFrom: '#fff',
-        backgroundGradientTo: '#fff',
+        backgroundGradientFrom: '#ffe5e5',
+        backgroundGradientTo: '#256',
         decimalPlaces: 0,
-        color: (opacity = 1) => `rgba(0,0,0, ${opacity})`,
+        color: (opacity = 1) => `rgba(25,50,100, ${opacity})`,
+        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+        barPercentage: 0.7,
+        propsForLabels: {
+          dx: -6,
+          fontSize: 12,
+          fontWeight: 'bold',
+        },
+        propsForBackgroundLines: {
+          strokeWidth: 0,
+        },
+        style: {
+          paddingLeft: -10,
+        },
       }}
-      style={{ marginVertical: 8 }}
+      style={{ marginVertical: 10, marginLeft: 10 }}
     />
   )
 }

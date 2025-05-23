@@ -51,10 +51,10 @@ export default function Home() {
       </View>
     )
   }
-
+  //card de saldos dos produtos
   const chartConfig = {
     backgroundGradientFrom: '#121212',
-    backgroundGradientTo: '#121212',
+    backgroundGradientTo: '#171922',
     color: (opacity = 5) => `rgba(10, 150, 350, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     barPercentage: 1.6,
