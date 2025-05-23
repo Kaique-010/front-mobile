@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
+import debounce from 'lodash.debounce'
 import { apiDelete, apiGetComContexto } from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
@@ -16,9 +17,12 @@ import { getStoredData } from '../services/storageService'
 export default function Pedidos({ navigation }) {
   const [pedidos, setPedidos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
   const [slug, setSlug] = useState('')
+  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -34,31 +38,67 @@ export default function Pedidos({ navigation }) {
   }, [])
 
   useEffect(() => {
+    if (slug) buscarPedidos(false)
+  }, [slug])
+
+  useEffect(() => {
     if (slug) {
-      buscarPedidos()
+      setPedidos([])
+      setOffset(0)
+      setHasMore(true)
+      buscarPedidos(false)
     }
-  }, [slug, searchTerm])
-  console.log('Tela de Pedidos')
-  const buscarPedidos = async () => {
-    if (!slug) return
-    setIsSearching(true)
-    setLoading(true)
+  }, [searchValue])
+
+  const buscarPedidos = async (nextPage = false) => {
+    if (!slug || (isFetchingMore && nextPage)) return
+
+    if (!nextPage) {
+      setLoading(true)
+      setOffset(0)
+      setHasMore(true)
+    } else {
+      setIsFetchingMore(true)
+    }
+
     try {
+      const atualOffset = nextPage ? offset : 0
       const data = await apiGetComContexto(
         'pedidos/pedidos/',
-        { limit: 50, offset: 0, search: searchTerm },
+        { limit: 50, offset: atualOffset, search: searchValue },
         'pedi_'
       )
-      setPedidos(data.results || [])
+      const novosPedidos = data.results || []
+
+      if (nextPage) {
+        setPedidos((prev) => [...prev, ...novosPedidos])
+      } else {
+        setPedidos(novosPedidos)
+      }
+
+      if (!data.next) {
+        setHasMore(false)
+      } else {
+        setOffset(atualOffset + 50)
+      }
     } catch (error) {
-      console.error(error)
+      console.error('Erro ao buscar pedidos:', error.message)
     } finally {
-      setIsSearching(false)
-      setLoading(false)
+      if (nextPage) {
+        setIsFetchingMore(false)
+      } else {
+        setLoading(false)
+      }
     }
   }
 
-  // Função para excluir pedido com confirmação
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setSearchValue(value)
+    }, 600),
+    []
+  )
+
   const excluirPedido = (pedi_nume) => {
     Alert.alert('Confirmação', 'Tem certeza que deseja excluir este pedido?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -77,25 +117,25 @@ export default function Pedidos({ navigation }) {
             )
           } catch (error) {
             console.log(
-              '❌ Erro ao excluir lista:',
+              '❌ Erro ao excluir pedido:',
               error.response?.data?.detail || error.message
             )
             Alert.alert(
               'Erro',
-              error.response?.data?.detail || 'Erro ao excluir a lista'
+              error.response?.data?.detail || 'Erro ao excluir o pedido'
             )
           }
         },
       },
     ])
   }
+
   const statusPedidos = {
     0: 'Aberto',
     1: 'Faturado',
-    2: 'cancelado',
+    2: 'Cancelado',
   }
 
-  // Renderização de cada item da lista
   const renderPedidos = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.status}>
@@ -114,7 +154,6 @@ export default function Pedidos({ navigation }) {
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
 
-        {/* Botão de excluir com chamada da função de exclusão */}
         <TouchableOpacity
           style={styles.botao}
           onPress={() => excluirPedido(item.pedi_nume)}>
@@ -136,42 +175,55 @@ export default function Pedidos({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Botão de inclusão */}
       <TouchableOpacity
         style={styles.incluirButton}
         onPress={() => navigation.navigate('PedidosForm')}>
         <Text style={styles.incluirButtonText}>+ Incluir pedidos</Text>
       </TouchableOpacity>
 
-      {/* Campo de busca */}
       <View style={styles.searchContainer}>
         <TextInput
           placeholder="Buscar por pedido ou cliente"
           placeholderTextColor="#777"
           style={styles.input}
           value={searchTerm}
-          onChangeText={setSearchTerm}
-          onSubmitEditing={buscarPedidos}
+          onChangeText={(text) => {
+            setSearchTerm(text)
+            debouncedSearch(text)
+          }}
+          returnKeyType="search"
+          onSubmitEditing={() => setSearchValue(searchTerm)}
         />
-        <TouchableOpacity style={styles.searchButton} onPress={buscarPedidos}>
-          <Text style={styles.searchButtonText}>
-            {isSearching ? '🔍...' : 'Buscar'}
-          </Text>
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={() => setSearchValue(searchTerm)}>
+          <Text style={styles.searchButtonText}>🔍 Buscar</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Lista de pedidos */}
       <FlatList
         data={pedidos}
         renderItem={renderPedidos}
-        keyExtractor={(item, index) => {
-          const key = `${item.pedi_nume}-${item.pedi_empr}-${item.pedi_forn}-${index}`
-
-          return key
+        keyExtractor={(item, index) =>
+          `${item.pedi_nume}-${item.pedi_empr}-${item.pedi_forn}-${index}`
+        }
+        onEndReached={() => {
+          if (hasMore && !isFetchingMore) buscarPedidos(true)
         }}
+        onEndReachedThreshold={0.2}
+        ListFooterComponent={
+          isFetchingMore ? (
+            <ActivityIndicator
+              size="small"
+              color="#007bff"
+              style={{ marginVertical: 10 }}
+            />
+          ) : null
+        }
       />
       <Text style={styles.footerText}>
-        {pedidos.length} pedidos{pedidos.length !== 1 ? 's' : ''} encontrados
+        {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} encontrado
+        {pedidos.length !== 1 ? 's' : ''}
       </Text>
     </View>
   )

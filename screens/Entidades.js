@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -11,13 +11,18 @@ import Toast from 'react-native-toast-message'
 import { apiGetComContextoSemFili } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/produtosStyles'
+import { useFocusEffect } from '@react-navigation/native'
+import debounce from 'lodash.debounce'
 
 export default function Entidades({ navigation }) {
   const [entidades, setEntidades] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isSearching, setIsSearching] = useState(false)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [offset, setOffset] = useState(0)
   const [slug, setSlug] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchValue, setSearchValue] = useState('')
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -31,56 +36,74 @@ export default function Entidades({ navigation }) {
     }
     carregarSlug()
   }, [])
-  console.log('Slug:', slug)
 
-  // Buscar entidades da API
-  const buscarEntidades = async () => {
-    if (!slug) return
-    setIsSearching(true)
-    setLoading(true)
+  useEffect(() => {
+    if (slug) {
+      setEntidades([])
+      setOffset(0)
+      setHasMore(true)
+      buscarEntidades(false)
+    }
+  }, [searchValue, slug])
+
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setSearchValue(value)
+    }, 500),
+    []
+  )
+
+  const buscarEntidades = async (nextPage = false) => {
+    if (!slug || (isFetchingMore && nextPage)) return
+
+    if (!nextPage) {
+      setLoading(true)
+      setOffset(0)
+      setHasMore(true)
+    } else {
+      setIsFetchingMore(true)
+    }
+
     try {
+      const atualOffset = nextPage ? offset : 0
       const data = await apiGetComContextoSemFili(
         `entidades/entidades/`,
-        { limit: 50, offset: 0, search: searchTerm },
+        { limit: 50, offset: atualOffset, search: searchValue },
         'enti_'
       )
-      setEntidades(data.results || [])
+
+      const novos = data.results || []
+
+      if (nextPage) {
+        setEntidades((prev) => [...prev, ...novos])
+      } else {
+        setEntidades(novos)
+      }
+
+      if (!data.next) {
+        setHasMore(false)
+      } else {
+        setOffset(atualOffset + 50)
+      }
     } catch (error) {
       console.log('❌ Erro ao buscar Entidades:', error.message)
     } finally {
-      setIsSearching(false)
       setLoading(false)
+      setIsFetchingMore(false)
     }
   }
 
-  // Debounce na busca
-  useEffect(() => {
-    if (!slug) return
-    const delayDebounce = setTimeout(() => {
-      buscarEntidades()
-    }, 500)
-    return () => clearTimeout(delayDebounce)
-  }, [searchTerm, slug])
-
-  // Primeira busca
-  useEffect(() => {
-    if (slug) buscarEntidades()
-  }, [slug])
-
-  // Mensagem de sucesso
-  useEffect(() => {
-    const mensagem =
-      navigation?.getState()?.routes?.[navigation?.getState()?.index]?.params
-        ?.mensagemSucesso
-    if (mensagem) {
-      Toast.show({
-        type: 'success',
-        text1: 'Sucesso!',
-        text2: mensagem,
-      })
-      navigation.setParams({ mensagemSucesso: null })
-    }
-  }, [navigation])
+  useFocusEffect(
+    React.useCallback(() => {
+      const msg =
+        navigation?.getState()?.routes?.[navigation.getState().index]?.params
+          ?.mensagemSucesso
+      if (msg) {
+        Toast.show({ type: 'success', text1: 'Sucesso!', text2: msg })
+        navigation.setParams({ mensagemSucesso: null })
+      }
+    }, [navigation])
+  )
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
@@ -101,7 +124,11 @@ export default function Entidades({ navigation }) {
           }>
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.botao}>
+        <TouchableOpacity
+          style={styles.botao}
+          onPress={() => {
+            Toast.show({ type: 'info', text1: 'Ainda não implementado' })
+          }}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>
@@ -130,26 +157,43 @@ export default function Entidades({ navigation }) {
               placeholderTextColor="#777"
               style={styles.input}
               value={searchTerm}
-              onChangeText={setSearchTerm}
-              onSubmitEditing={buscarEntidades}
+              onChangeText={(text) => {
+                setSearchTerm(text)
+                debouncedSearch(text)
+              }}
+              returnKeyType="search"
+              onSubmitEditing={() => setSearchValue(searchTerm)}
             />
             <TouchableOpacity
               style={styles.searchButton}
-              onPress={buscarEntidades}>
-              <Text style={styles.searchButtonText}>
-                {isSearching ? '🔍...' : 'Buscar'}
-              </Text>
+              onPress={() => setSearchValue(searchTerm)}>
+              <Text style={styles.searchButtonText}>Buscar</Text>
             </TouchableOpacity>
           </View>
 
           <FlatList
             data={entidades}
             renderItem={renderItem}
-            keyExtractor={(item) => `${item.enti_clie}-${item.enti_empr}`}
+            keyExtractor={(item, index) =>
+              `${item.enti_clie}-${item.enti_empr}-${index}`
+            }
+            onEndReached={() => {
+              if (hasMore && !isFetchingMore) buscarEntidades(true)
+            }}
+            onEndReachedThreshold={0.2}
+            ListFooterComponent={
+              isFetchingMore ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#007bff"
+                  style={{ marginVertical: 10 }}
+                />
+              ) : null
+            }
           />
           <Text style={styles.footerText}>
-            {entidades.length} entidades{entidades.length !== 1 ? 's' : ''}{' '}
-            encontrados
+            {entidades.length} entidade{entidades.length !== 1 ? 's' : ''}{' '}
+            encontradas
           </Text>
         </>
       )}

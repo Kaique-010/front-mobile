@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { createDrawerNavigator } from '@react-navigation/drawer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-
+import Dashboard from '../dashboards/Dashboards'
 import Home from '../screens/Home'
 import Produtos from '../screens/Produtos'
 import Pedidos from '../screens/Pedidos'
@@ -118,6 +118,17 @@ export default function DrawerNavigator() {
           options={{
             drawerIcon: ({ color, size }) => (
               <Icon name="arrow-up-circle" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
+      {hasModulo('dashboards') && (
+        <Drawer.Screen
+          name="Dashboard"
+          component={Dashboard}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="bar-chart" color={color} size={size} />
             ),
           }}
         />

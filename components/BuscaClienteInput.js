@@ -11,17 +11,30 @@ import { apiGet } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
 
+// Hook de debounce
+function useDebounce(value, delay = 500) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 export default function BuscaClienteInput({
   onSelect,
   placeholder = 'Buscar...',
   tipo = null,
   value = '',
-  isEdit = false, // adiciona a prop isEdit
+  isEdit = false,
 }) {
   const [termo, setTermo] = useState(value)
   const [clientes, setClientes] = useState([])
   const [slug, setSlug] = useState('')
   const digitando = useRef(false)
+  const debouncedTermo = useDebounce(termo, 400)
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -38,16 +51,12 @@ export default function BuscaClienteInput({
 
   useEffect(() => {
     if (isEdit) {
-      // Se está em edição, só seta o texto e limpa sugestões, não busca
       setTermo(value)
       setClientes([])
       digitando.current = false
     } else {
-      // Se não está em edição, faz a busca normal
       if (!digitando.current && value) {
-        if (value && !value.includes(' - ')) {
-          buscar(value)
-        } else {
+        if (!value.includes(' - ')) {
           setTermo(value)
         }
       } else if (!value) {
@@ -57,9 +66,16 @@ export default function BuscaClienteInput({
     }
   }, [value, isEdit])
 
+  useEffect(() => {
+    if (!slug || isEdit || debouncedTermo.length < 3) {
+      setClientes([])
+      return
+    }
+    buscar(debouncedTermo)
+  }, [debouncedTermo, slug, isEdit])
+
   const buscar = async (texto) => {
     digitando.current = true
-    setTermo(texto)
 
     if (!texto) {
       setClientes([])
@@ -104,7 +120,7 @@ export default function BuscaClienteInput({
         style={styles.inputcliente}
         value={termo}
         onChangeText={(text) => {
-          if (!isEdit) buscar(text)
+          if (!isEdit) setTermo(text)
         }}
         placeholder={placeholder}
         placeholderTextColor="#aaa"

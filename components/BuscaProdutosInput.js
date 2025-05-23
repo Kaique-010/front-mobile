@@ -4,8 +4,21 @@ import { TextInput, Card, Snackbar } from 'react-native-paper'
 import { getStoredData } from '../services/storageService'
 import { apiGet } from '../utils/api'
 
+// Hook de debounce
+function useDebounce(value, delay = 500) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   const [searchTerm, setSearchTerm] = useState(initialValue)
+  const debouncedSearchTerm = useDebounce(searchTerm, 400)
   const [produtos, setProdutos] = useState([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -24,32 +37,41 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
     carregarSlug()
   }, [])
 
-  // Quando o initialValue mudar, atualiza o campo de busca
   useEffect(() => {
     if (initialValue) setSearchTerm(initialValue)
   }, [initialValue])
 
   useEffect(() => {
-    const delay = setTimeout(async () => {
-      if (searchTerm.trim() === '' || searchTerm === initialValue) {
-        setProdutos([])
-        return
-      }
+    if (
+      !slug ||
+      debouncedSearchTerm.trim().length < 2 ||
+      debouncedSearchTerm === initialValue
+    ) {
+      setProdutos([])
+      return
+    }
+
+    const buscar = async () => {
       setLoading(true)
       try {
         const data = await apiGet(`/api/${slug}/produtos/produtos/`, {
-          search: searchTerm,
+          search: debouncedSearchTerm,
         })
-        setProdutos(data.results)
+
+        const validos = data.results.filter(
+          (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
+        )
+
+        setProdutos(validos)
       } catch (err) {
-        console.log('❌ Erro ao buscar produtos:', err.message)
+        console.error('❌ Erro ao buscar produtos:', err.message)
       } finally {
         setLoading(false)
       }
-    }, 500)
+    }
 
-    return () => clearTimeout(delay)
-  }, [searchTerm])
+    buscar()
+  }, [debouncedSearchTerm, slug])
 
   const handleSelecionarProduto = (produto) => {
     if (!produto?.prod_codi || isNaN(Number(produto.prod_codi))) {
@@ -70,7 +92,6 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
           backgroundColor: '#232935',
           color: 'white',
           borderRadius: 10,
-          borderColor: 'white',
           marginBottom: 10,
         }}
         label="Buscar produto"
@@ -99,9 +120,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
         />
       ) : (
         <FlatList
-          data={produtos.filter(
-            (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
-          )}
+          data={produtos}
           keyExtractor={(item) => item.prod_codi.toString()}
           renderItem={({ item }) => (
             <Card
