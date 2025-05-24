@@ -1,0 +1,76 @@
+com.leokaique.SpsMobile.app-play-services-basement-18.1.0-0 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0587ab71ded67ef2d27bd70da8ef7ca9\transformed\play-services-basement-18.1.0\res
+com.leokaique.SpsMobile.app-expo.modules.filesystem-18.1.9-1 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\res
+com.leokaique.SpsMobile.app-drawerlayout-1.1.1-2 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\14f02cc759d7ed0a22c95e83bb5f494b\transformed\drawerlayout-1.1.1\res
+com.leokaique.SpsMobile.app-drawee-3.6.0-3 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\16c2316eb754c23baf8a7a4170ec5d43\transformed\drawee-3.6.0\res
+com.leokaique.SpsMobile.app-lifecycle-viewmodel-2.6.2-4 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\1ca7c8b9209ec1038107106867828440\transformed\lifecycle-viewmodel-2.6.2\res
+com.leokaique.SpsMobile.app-lifecycle-process-2.6.2-5 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\22cafa9b433f73a5aa18c141d0c684c1\transformed\lifecycle-process-2.6.2\res
+com.leokaique.SpsMobile.app-swiperefreshlayout-1.1.0-6 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\285a658a60c231a9e511a3a1cf1ca0b2\transformed\swiperefreshlayout-1.1.0\res
+com.leokaique.SpsMobile.app-activity-1.10.0-7 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\2dd53cdd747c18963363d1962f205f39\transformed\activity-1.10.0\res
+com.leokaique.SpsMobile.app-profileinstaller-1.4.0-8 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\res
+com.leokaique.SpsMobile.app-emoji2-1.3.0-9 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\res
+com.leokaique.SpsMobile.app-lifecycle-livedata-2.6.2-10 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\41bbbe83b7f61794ba9a2dd136d492e8\transformed\lifecycle-livedata-2.6.2\res
+com.leokaique.SpsMobile.app-savedstate-1.2.1-11 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\45100b2e397bd65cbed6a3aed60e55fd\transformed\savedstate-1.2.1\res
+com.leokaique.SpsMobile.app-customview-poolingcontainer-1.0.0-12 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\4a78724a5b5090b94976198e478372ab\transformed\customview-poolingcontainer-1.0.0\res
+com.leokaique.SpsMobile.app-tracing-1.2.0-13 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\4e543184d4ca4c98aafdf2bcf20cee9b\transformed\tracing-1.2.0\res
+com.leokaique.SpsMobile.app-annotation-experimental-1.4.1-14 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\52a04db35c3cab0c172d0b2003cca035\transformed\annotation-experimental-1.4.1\res
+com.leokaique.SpsMobile.app-coordinatorlayout-1.2.0-15 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\541718bc8a97815f82b23f5d8251ca5a\transformed\coordinatorlayout-1.2.0\res
+com.leokaique.SpsMobile.app-camera-camera2-1.4.1-16 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\res
+com.leokaique.SpsMobile.app-activity-ktx-1.10.0-17 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5bca652597d2a97efaa4af873a167560\transformed\activity-ktx-1.10.0\res
+com.leokaique.SpsMobile.app-core-ktx-1.13.1-18 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5fbc6e9f4a89e5345d16dfe6a7524d99\transformed\core-ktx-1.13.1\res
+com.leokaique.SpsMobile.app-camera-core-1.4.1-19 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\601661d99583edf3646f456b577821e0\transformed\camera-core-1.4.1\res
+com.leokaique.SpsMobile.app-tracing-ktx-1.2.0-20 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\6ae6f6a9858112ecc44d467c4a34f51f\transformed\tracing-ktx-1.2.0\res
+com.leokaique.SpsMobile.app-startup-runtime-1.1.1-21 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\70aee40f216aa58cab95da06ecbdbde6\transformed\startup-runtime-1.1.1\res
+com.leokaique.SpsMobile.app-lifecycle-viewmodel-ktx-2.6.2-22 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\72f8661a2a075f92f7c10a90ad6e25f7\transformed\lifecycle-viewmodel-ktx-2.6.2\res
+com.leokaique.SpsMobile.app-fragment-ktx-1.6.1-23 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\773cbbfd06a199b97a79870c811c4a68\transformed\fragment-ktx-1.6.1\res
+com.leokaique.SpsMobile.app-appcompat-resources-1.7.0-24 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\78d359884ba7b19c8d326fd3a2941b0c\transformed\appcompat-resources-1.7.0\res
+com.leokaique.SpsMobile.app-core-runtime-2.2.0-25 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\7cb1f73dbed6593ab7f0ce15ab7e166e\transformed\core-runtime-2.2.0\res
+com.leokaique.SpsMobile.app-appcompat-1.7.0-26 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\82c15c31295a99170cc8d4b1adf285f5\transformed\appcompat-1.7.0\res
+com.leokaique.SpsMobile.app-media-1.0.0-27 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8c4f48ca8e39c345681911bb9228e2bb\transformed\media-1.0.0\res
+com.leokaique.SpsMobile.app-glide-4.16.0-28 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8ca3656ecb0578a0cfc8f518f8dd8669\transformed\glide-4.16.0\res
+com.leokaique.SpsMobile.app-lifecycle-runtime-2.6.2-29 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fd81a9655efbdd5192c72531d336fd0\transformed\lifecycle-runtime-2.6.2\res
+com.leokaique.SpsMobile.app-play-services-base-18.1.0-30 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\90c2568eb2893b922a9672e5346f4be9\transformed\play-services-base-18.1.0\res
+com.leokaique.SpsMobile.app-lifecycle-viewmodel-savedstate-2.6.2-31 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\959c75615b4b1c610fe153b52b8bdb28\transformed\lifecycle-viewmodel-savedstate-2.6.2\res
+com.leokaique.SpsMobile.app-lifecycle-livedata-core-ktx-2.6.2-32 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\96bd0b428f78eb82c06975e28916d37b\transformed\lifecycle-livedata-core-ktx-2.6.2\res
+com.leokaique.SpsMobile.app-core-1.13.1-33 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9accef74292e9270cea6c5ae2c6f86ee\transformed\core-1.13.1\res
+com.leokaique.SpsMobile.app-fragment-1.6.1-34 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9f55111bbae58a3b04968ff051f56925\transformed\fragment-1.6.1\res
+com.leokaique.SpsMobile.app-savedstate-ktx-1.2.1-35 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\a0387d2b2a7ace3de089c33a62ebc64a\transformed\savedstate-ktx-1.2.1\res
+com.leokaique.SpsMobile.app-lifecycle-livedata-core-2.6.2-36 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\a432992ebd42f612546963bb537fb6eb\transformed\lifecycle-livedata-core-2.6.2\res
+com.leokaique.SpsMobile.app-lifecycle-runtime-ktx-2.6.2-37 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ab61c50ea1930a8aba2719f4562c1d8a\transformed\lifecycle-runtime-ktx-2.6.2\res
+com.leokaique.SpsMobile.app-camera-mlkit-vision-1.4.1-38 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\acaaf49c19feb917ae9d100b075615e0\transformed\camera-mlkit-vision-1.4.1\res
+com.leokaique.SpsMobile.app-camera-video-1.4.1-39 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ad03679e147fa7e5cfa1facfd63a88f6\transformed\camera-video-1.4.1\res
+com.leokaique.SpsMobile.app-camera-lifecycle-1.4.1-40 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\b43fe6394bf6816984e12524036462de\transformed\camera-lifecycle-1.4.1\res
+com.leokaique.SpsMobile.app-camera-view-1.4.1-41 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\b5ed1f9ab10e52cbefcb5e5313fa328e\transformed\camera-view-1.4.1\res
+com.leokaique.SpsMobile.app-viewpager2-1.1.0-42 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\c7165e499934d127076a84e3556c8cc0\transformed\viewpager2-1.1.0\res
+com.leokaique.SpsMobile.app-transition-1.5.0-43 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ce8a0712911da6dce821a5c5fb7a3875\transformed\transition-1.5.0\res
+com.leokaique.SpsMobile.app-expo.modules.imagepicker-16.1.4-44 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\res
+com.leokaique.SpsMobile.app-emoji2-views-helper-1.3.0-45 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\df08fbf32fc54973308e0097f374db3c\transformed\emoji2-views-helper-1.3.0\res
+com.leokaique.SpsMobile.app-android-image-cropper-4.6.0-46 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\res
+com.leokaique.SpsMobile.app-react-android-0.79.2-release-47 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e773e90c62e0319c710bc3cc91d54a0a\transformed\react-android-0.79.2-release\res
+com.leokaique.SpsMobile.app-constraintlayout-2.0.1-48 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e9039117f8f01f6a8042f7829bf3260b\transformed\constraintlayout-2.0.1\res
+com.leokaique.SpsMobile.app-recyclerview-1.3.1-49 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e974b85d13060a31d1ccf94c7270984c\transformed\recyclerview-1.3.1\res
+com.leokaique.SpsMobile.app-autofill-1.1.0-50 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ebbcf1899158a9df9e5b564c98708c81\transformed\autofill-1.1.0\res
+com.leokaique.SpsMobile.app-camera-extensions-1.4.1-51 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2a29cf7444088caf3c92c845013f1c5\transformed\camera-extensions-1.4.1\res
+com.leokaique.SpsMobile.app-cardview-1.0.0-52 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2f3e876039ee1c74905f2b8d9b3b732\transformed\cardview-1.0.0\res
+com.leokaique.SpsMobile.app-material-1.12.0-53 C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\fe5bd7a94743de1c615d0bab837b0d00\transformed\material-1.12.0\res
+com.leokaique.SpsMobile.app-res-54 C:\front-mobile\android\app\build\generated\res\createBundleReleaseJsAndAssets
+com.leokaique.SpsMobile.app-pngs-55 C:\front-mobile\android\app\build\generated\res\pngs\release
+com.leokaique.SpsMobile.app-resValues-56 C:\front-mobile\android\app\build\generated\res\resValues\release
+com.leokaique.SpsMobile.app-packageReleaseResources-57 C:\front-mobile\android\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+com.leokaique.SpsMobile.app-packageReleaseResources-58 C:\front-mobile\android\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+com.leokaique.SpsMobile.app-release-59 C:\front-mobile\android\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.leokaique.SpsMobile.app-main-60 C:\front-mobile\android\app\src\main\res
+com.leokaique.SpsMobile.app-release-61 C:\front-mobile\android\app\src\release\res
+com.leokaique.SpsMobile.app-release-62 C:\front-mobile\node_modules\@react-native-async-storage\async-storage\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-63 C:\front-mobile\node_modules\@react-native-community\datetimepicker\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-64 C:\front-mobile\node_modules\@react-native-picker\picker\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-65 C:\front-mobile\node_modules\expo-barcode-scanner\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-66 C:\front-mobile\node_modules\expo-constants\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-67 C:\front-mobile\node_modules\expo-image-loader\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-68 C:\front-mobile\node_modules\expo-modules-core\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-69 C:\front-mobile\node_modules\expo\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-70 C:\front-mobile\node_modules\react-native-gesture-handler\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-71 C:\front-mobile\node_modules\react-native-pager-view\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-72 C:\front-mobile\node_modules\react-native-reanimated\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-73 C:\front-mobile\node_modules\react-native-safe-area-context\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-74 C:\front-mobile\node_modules\react-native-screens\android\build\intermediates\packaged_res\release\packageReleaseResources
+com.leokaique.SpsMobile.app-release-75 C:\front-mobile\node_modules\react-native-vector-icons\android\build\intermediates\packaged_res\release\packageReleaseResources

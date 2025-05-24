@@ -1,0 +1,465 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.leokaique.SpsMobile"
+4    android:versionCode="2"
+5    android:versionName="1.0.1" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="35" />
+10
+11    <uses-permission android:name="android.permission.CAMERA" />
+11-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:2:3-62
+11-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:2:20-60
+12    <uses-permission android:name="android.permission.INTERNET" />
+12-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:3:3-64
+12-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:3:20-62
+13    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+13-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:4:3-77
+13-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:4:20-75
+14    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+14-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:5:3-68
+14-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:5:20-66
+15    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+15-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:6:3-75
+15-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:6:20-73
+16    <uses-permission android:name="android.permission.VIBRATE" />
+16-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:7:3-63
+16-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:7:20-61
+17    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+17-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:8:3-78
+17-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:8:20-76
+18
+19    <queries>
+19-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:9:3-15:13
+20        <intent>
+20-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:10:5-14:14
+21            <action android:name="android.intent.action.VIEW" />
+21-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:11:7-58
+21-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:11:15-56
+22
+23            <category android:name="android.intent.category.BROWSABLE" />
+23-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:12:7-67
+23-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:12:17-65
+24
+25            <data android:scheme="https" />
+25-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:13:7-37
+25-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:13:13-35
+26        </intent>
+27        <intent>
+27-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:15:9-19:18
+28
+29            <!-- Required for picking images from the camera roll if targeting API 30 -->
+30            <action android:name="android.media.action.IMAGE_CAPTURE" />
+30-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:18:13-73
+30-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:18:21-70
+31        </intent>
+32        <intent>
+32-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:20:9-24:18
+33
+34            <!-- Required for picking images from the camera if targeting API 30 -->
+35            <action android:name="android.media.action.ACTION_VIDEO_CAPTURE" />
+35-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:23:13-80
+35-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:23:21-77
+36        </intent>
+37        <intent>
+37-->[androidx.camera:camera-extensions:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2a29cf7444088caf3c92c845013f1c5\transformed\camera-extensions-1.4.1\AndroidManifest.xml:23:9-25:18
+38            <action android:name="androidx.camera.extensions.action.VENDOR_ACTION" />
+38-->[androidx.camera:camera-extensions:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2a29cf7444088caf3c92c845013f1c5\transformed\camera-extensions-1.4.1\AndroidManifest.xml:24:13-86
+38-->[androidx.camera:camera-extensions:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2a29cf7444088caf3c92c845013f1c5\transformed\camera-extensions-1.4.1\AndroidManifest.xml:24:21-83
+39        </intent>
+40        <intent>
+40-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:8:9-14:18
+41            <action android:name="android.intent.action.GET_CONTENT" />
+41-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:9:13-72
+41-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:9:21-69
+42
+43            <category android:name="android.intent.category.OPENABLE" />
+43-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:11:13-73
+43-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:11:23-70
+44
+45            <data android:mimeType="*/*" />
+45-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:13:7-37
+46        </intent> <!-- Query open documents -->
+47        <intent>
+47-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:15:9-17:18
+48            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
+48-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:16:13-79
+48-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:16:21-76
+49        </intent>
+50    </queries>
+51
+52    <permission
+52-->[androidx.core:core:1.13.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9accef74292e9270cea6c5ae2c6f86ee\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+53        android:name="com.leokaique.SpsMobile.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+53-->[androidx.core:core:1.13.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9accef74292e9270cea6c5ae2c6f86ee\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+54        android:protectionLevel="signature" />
+54-->[androidx.core:core:1.13.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9accef74292e9270cea6c5ae2c6f86ee\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+55
+56    <uses-permission android:name="com.leokaique.SpsMobile.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" /> <!-- Although the *SdkVersion is captured in gradle build files, this is required for non gradle builds -->
+56-->[androidx.core:core:1.13.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9accef74292e9270cea6c5ae2c6f86ee\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+56-->[androidx.core:core:1.13.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9accef74292e9270cea6c5ae2c6f86ee\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+57    <!-- <uses-sdk android:minSdkVersion="14"/> -->
+58    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+58-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:25:5-79
+58-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:25:22-76
+59
+60    <application
+60-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:3-26:17
+61        android:name="com.leokaique.SpsMobile.MainApplication"
+61-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:16-47
+62        android:allowBackup="true"
+62-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:162-188
+63        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+63-->[androidx.core:core:1.13.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9accef74292e9270cea6c5ae2c6f86ee\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+64        android:extractNativeLibs="false"
+65        android:icon="@mipmap/ic_launcher"
+65-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:81-115
+66        android:label="@string/app_name"
+66-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:48-80
+67        android:roundIcon="@mipmap/ic_launcher_round"
+67-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:116-161
+68        android:supportsRtl="true"
+68-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:221-247
+69        android:theme="@style/AppTheme" >
+69-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:16:189-220
+70        <meta-data
+70-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:17:5-83
+71            android:name="expo.modules.updates.ENABLED"
+71-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:17:16-59
+72            android:value="false" />
+72-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:17:60-81
+73        <meta-data
+73-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:18:5-105
+74            android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH"
+74-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:18:16-80
+75            android:value="ALWAYS" />
+75-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:18:81-103
+76        <meta-data
+76-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:19:5-99
+77            android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS"
+77-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:19:16-79
+78            android:value="0" />
+78-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:19:80-97
+79
+80        <activity
+80-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:5-25:16
+81            android:name="com.leokaique.SpsMobile.MainActivity"
+81-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:15-43
+82            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode"
+82-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:44-134
+83            android:exported="true"
+83-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:256-279
+84            android:launchMode="singleTask"
+84-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:135-166
+85            android:screenOrientation="portrait"
+85-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:280-316
+86            android:theme="@style/Theme.App.SplashScreen"
+86-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:210-255
+87            android:windowSoftInputMode="adjustResize" >
+87-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:20:167-209
+88            <intent-filter>
+88-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:21:7-24:23
+89                <action android:name="android.intent.action.MAIN" />
+89-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:22:9-60
+89-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:22:17-58
+90
+91                <category android:name="android.intent.category.LAUNCHER" />
+91-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:23:9-68
+91-->C:\front-mobile\android\app\src\main\AndroidManifest.xml:23:19-66
+92            </intent-filter>
+93        </activity>
+94
+95        <meta-data
+95-->[:expo-modules-core] C:\front-mobile\node_modules\expo-modules-core\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:9:9-11:89
+96            android:name="org.unimodules.core.AppLoader#react-native-headless"
+96-->[:expo-modules-core] C:\front-mobile\node_modules\expo-modules-core\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:10:13-79
+97            android:value="expo.modules.adapters.react.apploader.RNHeadlessAppLoader" />
+97-->[:expo-modules-core] C:\front-mobile\node_modules\expo-modules-core\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:11:13-86
+98        <meta-data
+98-->[:expo-modules-core] C:\front-mobile\node_modules\expo-modules-core\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:12:9-15:45
+99            android:name="com.facebook.soloader.enabled"
+99-->[:expo-modules-core] C:\front-mobile\node_modules\expo-modules-core\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:13:13-57
+100            android:value="true" />
+100-->[:expo-modules-core] C:\front-mobile\node_modules\expo-modules-core\android\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml:14:13-33
+101        <meta-data
+101-->[host.exp.exponent:expo.modules.camera:16.1.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\a527bebcde374554e0e91cbd00a09627\transformed\expo.modules.camera-16.1.6\AndroidManifest.xml:11:9-13:42
+102            android:name="com.google.mlkit.vision.DEPENDENCIES"
+102-->[host.exp.exponent:expo.modules.camera:16.1.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\a527bebcde374554e0e91cbd00a09627\transformed\expo.modules.camera-16.1.6\AndroidManifest.xml:12:13-64
+103            android:value="barcode_ui" />
+103-->[host.exp.exponent:expo.modules.camera:16.1.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\a527bebcde374554e0e91cbd00a09627\transformed\expo.modules.camera-16.1.6\AndroidManifest.xml:13:13-39
+104
+105        <service
+105-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:28:9-40:19
+106            android:name="com.google.android.gms.metadata.ModuleDependencies"
+106-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:29:13-78
+107            android:enabled="false"
+107-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:30:13-36
+108            android:exported="false" >
+108-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:31:13-37
+109            <intent-filter>
+109-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:33:13-35:29
+110                <action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES" />
+110-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:34:17-94
+110-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:34:25-91
+111            </intent-filter>
+112
+113            <meta-data
+113-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:37:13-39:36
+114                android:name="photopicker_activity:0:required"
+114-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:38:17-63
+115                android:value="" />
+115-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:39:17-33
+116        </service>
+117
+118        <activity
+118-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:42:9-44:59
+119            android:name="com.canhub.cropper.CropImageActivity"
+119-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:43:13-64
+120            android:exported="true"
+120-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:33:13-36
+121            android:theme="@style/Base.Theme.AppCompat" /> <!-- https://developer.android.com/guide/topics/manifest/provider-element.html -->
+121-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:44:13-56
+122        <provider
+122-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:46:9-54:20
+123            android:name="expo.modules.imagepicker.fileprovider.ImagePickerFileProvider"
+123-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:47:13-89
+124            android:authorities="com.leokaique.SpsMobile.ImagePickerFileProvider"
+124-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:48:13-75
+125            android:exported="false"
+125-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:49:13-37
+126            android:grantUriPermissions="true" >
+126-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:50:13-47
+127            <meta-data
+127-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:51:13-53:71
+128                android:name="android.support.FILE_PROVIDER_PATHS"
+128-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:52:17-67
+129                android:resource="@xml/image_picker_provider_paths" />
+129-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:53:17-68
+130        </provider>
+131
+132        <uses-library
+132-->[androidx.camera:camera-extensions:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2a29cf7444088caf3c92c845013f1c5\transformed\camera-extensions-1.4.1\AndroidManifest.xml:29:9-31:40
+133            android:name="androidx.camera.extensions.impl"
+133-->[androidx.camera:camera-extensions:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2a29cf7444088caf3c92c845013f1c5\transformed\camera-extensions-1.4.1\AndroidManifest.xml:30:13-59
+134            android:required="false" />
+134-->[androidx.camera:camera-extensions:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\f2a29cf7444088caf3c92c845013f1c5\transformed\camera-extensions-1.4.1\AndroidManifest.xml:31:13-37
+135
+136        <service
+136-->[androidx.camera:camera-camera2:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\AndroidManifest.xml:24:9-33:19
+137            android:name="androidx.camera.core.impl.MetadataHolderService"
+137-->[androidx.camera:camera-camera2:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\AndroidManifest.xml:25:13-75
+138            android:enabled="false"
+138-->[androidx.camera:camera-camera2:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\AndroidManifest.xml:26:13-36
+139            android:exported="false" >
+139-->[androidx.camera:camera-camera2:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\AndroidManifest.xml:27:13-37
+140            <meta-data
+140-->[androidx.camera:camera-camera2:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\AndroidManifest.xml:30:13-32:89
+141                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
+141-->[androidx.camera:camera-camera2:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\AndroidManifest.xml:31:17-103
+142                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
+142-->[androidx.camera:camera-camera2:1.4.1] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\5ae515c402020d86a8892f0f6c5ef05a\transformed\camera-camera2-1.4.1\AndroidManifest.xml:32:17-86
+143        </service>
+144
+145        <provider
+145-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:21:9-29:20
+146            android:name="com.canhub.cropper.CropFileProvider"
+146-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:22:13-63
+147            android:authorities="com.leokaique.SpsMobile.cropper.fileprovider"
+147-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:23:13-72
+148            android:exported="false"
+148-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:24:13-37
+149            android:grantUriPermissions="true" >
+149-->[com.vanniktech:android-image-cropper:4.6.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\e516cb86c179852ebf47249e789535d5\transformed\android-image-cropper-4.6.0\AndroidManifest.xml:25:13-47
+150            <meta-data
+150-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:51:13-53:71
+151                android:name="android.support.FILE_PROVIDER_PATHS"
+151-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:52:17-67
+152                android:resource="@xml/library_file_paths" />
+152-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:53:17-68
+153        </provider>
+154        <provider
+154-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:21:9-30:20
+155            android:name="expo.modules.filesystem.FileSystemFileProvider"
+155-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:22:13-74
+156            android:authorities="com.leokaique.SpsMobile.FileSystemFileProvider"
+156-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:23:13-74
+157            android:exported="false"
+157-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:24:13-37
+158            android:grantUriPermissions="true" >
+158-->[host.exp.exponent:expo.modules.filesystem:18.1.9] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0f2c61c2d28e1a95b1240cbb30cfed9f\transformed\expo.modules.filesystem-18.1.9\AndroidManifest.xml:25:13-47
+159            <meta-data
+159-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:51:13-53:71
+160                android:name="android.support.FILE_PROVIDER_PATHS"
+160-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:52:17-67
+161                android:resource="@xml/file_system_provider_paths" />
+161-->[host.exp.exponent:expo.modules.imagepicker:16.1.4] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\d55271030bd2d8cff7573be3740a2656\transformed\expo.modules.imagepicker-16.1.4\AndroidManifest.xml:53:17-68
+162        </provider>
+163        <!--
+164        This activity is an invisible delegate activity to start scanner activity
+165        and receive result, so it's unnecessary to support screen orientation and
+166        we can avoid any side effect from activity recreation in any case.
+167        -->
+168        <activity
+168-->[com.google.android.gms:play-services-code-scanner:16.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ed159f13f44d730ac200fdacb3aa05bf\transformed\play-services-code-scanner-16.1.0\AndroidManifest.xml:15:9-20:20
+169            android:name="com.google.mlkit.vision.codescanner.internal.GmsBarcodeScanningDelegateActivity"
+169-->[com.google.android.gms:play-services-code-scanner:16.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ed159f13f44d730ac200fdacb3aa05bf\transformed\play-services-code-scanner-16.1.0\AndroidManifest.xml:16:13-107
+170            android:exported="false"
+170-->[com.google.android.gms:play-services-code-scanner:16.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ed159f13f44d730ac200fdacb3aa05bf\transformed\play-services-code-scanner-16.1.0\AndroidManifest.xml:17:13-37
+171            android:screenOrientation="portrait" >
+171-->[com.google.android.gms:play-services-code-scanner:16.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\ed159f13f44d730ac200fdacb3aa05bf\transformed\play-services-code-scanner-16.1.0\AndroidManifest.xml:18:13-49
+172        </activity>
+173
+174        <service
+174-->[com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\55423b9c3d291962e8f0639e2f831196\transformed\play-services-mlkit-barcode-scanning-18.3.0\AndroidManifest.xml:9:9-15:19
+175            android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
+175-->[com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\55423b9c3d291962e8f0639e2f831196\transformed\play-services-mlkit-barcode-scanning-18.3.0\AndroidManifest.xml:10:13-91
+176            android:directBootAware="true"
+176-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:17:13-43
+177            android:exported="false" >
+177-->[com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\55423b9c3d291962e8f0639e2f831196\transformed\play-services-mlkit-barcode-scanning-18.3.0\AndroidManifest.xml:11:13-37
+178            <meta-data
+178-->[com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\55423b9c3d291962e8f0639e2f831196\transformed\play-services-mlkit-barcode-scanning-18.3.0\AndroidManifest.xml:12:13-14:85
+179                android:name="com.google.firebase.components:com.google.mlkit.vision.barcode.internal.BarcodeRegistrar"
+179-->[com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\55423b9c3d291962e8f0639e2f831196\transformed\play-services-mlkit-barcode-scanning-18.3.0\AndroidManifest.xml:13:17-120
+180                android:value="com.google.firebase.components.ComponentRegistrar" />
+180-->[com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\55423b9c3d291962e8f0639e2f831196\transformed\play-services-mlkit-barcode-scanning-18.3.0\AndroidManifest.xml:14:17-82
+181            <meta-data
+181-->[com.google.mlkit:vision-common:17.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\08ea184e0cada5aa1a092bf38f58e8fb\transformed\vision-common-17.3.0\AndroidManifest.xml:12:13-14:85
+182                android:name="com.google.firebase.components:com.google.mlkit.vision.common.internal.VisionCommonRegistrar"
+182-->[com.google.mlkit:vision-common:17.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\08ea184e0cada5aa1a092bf38f58e8fb\transformed\vision-common-17.3.0\AndroidManifest.xml:13:17-124
+183                android:value="com.google.firebase.components.ComponentRegistrar" />
+183-->[com.google.mlkit:vision-common:17.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\08ea184e0cada5aa1a092bf38f58e8fb\transformed\vision-common-17.3.0\AndroidManifest.xml:14:17-82
+184            <meta-data
+184-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:20:13-22:85
+185                android:name="com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar"
+185-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:21:17-120
+186                android:value="com.google.firebase.components.ComponentRegistrar" />
+186-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:22:17-82
+187        </service>
+188
+189        <provider
+189-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:9:9-13:38
+190            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+190-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:10:13-78
+191            android:authorities="com.leokaique.SpsMobile.mlkitinitprovider"
+191-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:11:13-69
+192            android:exported="false"
+192-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:12:13-37
+193            android:initOrder="99" />
+193-->[com.google.mlkit:common:18.9.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\8fe8e2bacc734a822fa916a07474c77c\transformed\common-18.9.0\AndroidManifest.xml:13:13-35
+194
+195        <activity
+195-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\90c2568eb2893b922a9672e5346f4be9\transformed\play-services-base-18.1.0\AndroidManifest.xml:20:9-22:45
+196            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+196-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\90c2568eb2893b922a9672e5346f4be9\transformed\play-services-base-18.1.0\AndroidManifest.xml:20:19-85
+197            android:exported="false"
+197-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\90c2568eb2893b922a9672e5346f4be9\transformed\play-services-base-18.1.0\AndroidManifest.xml:22:19-43
+198            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+198-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\90c2568eb2893b922a9672e5346f4be9\transformed\play-services-base-18.1.0\AndroidManifest.xml:21:19-78
+199
+200        <meta-data
+200-->[com.google.android.gms:play-services-basement:18.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0587ab71ded67ef2d27bd70da8ef7ca9\transformed\play-services-basement-18.1.0\AndroidManifest.xml:21:9-23:69
+201            android:name="com.google.android.gms.version"
+201-->[com.google.android.gms:play-services-basement:18.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0587ab71ded67ef2d27bd70da8ef7ca9\transformed\play-services-basement-18.1.0\AndroidManifest.xml:22:13-58
+202            android:value="@integer/google_play_services_version" />
+202-->[com.google.android.gms:play-services-basement:18.1.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\0587ab71ded67ef2d27bd70da8ef7ca9\transformed\play-services-basement-18.1.0\AndroidManifest.xml:23:13-66
+203
+204        <provider
+204-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+205            android:name="androidx.startup.InitializationProvider"
+205-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+206            android:authorities="com.leokaique.SpsMobile.androidx-startup"
+206-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+207            android:exported="false" >
+207-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+208            <meta-data
+208-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+209                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+209-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+210                android:value="androidx.startup" />
+210-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3cc134ac6690dc8280812399873268df\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+211            <meta-data
+211-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\22cafa9b433f73a5aa18c141d0c684c1\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+212                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+212-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\22cafa9b433f73a5aa18c141d0c684c1\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+213                android:value="androidx.startup" />
+213-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\22cafa9b433f73a5aa18c141d0c684c1\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+214            <meta-data
+214-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
+215                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+215-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
+216                android:value="androidx.startup" />
+216-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
+217        </provider>
+218
+219        <receiver
+219-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
+220            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+220-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
+221            android:directBootAware="false"
+221-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
+222            android:enabled="true"
+222-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
+223            android:exported="true"
+223-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
+224            android:permission="android.permission.DUMP" >
+224-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
+225            <intent-filter>
+225-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
+226                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+226-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
+226-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
+227            </intent-filter>
+228            <intent-filter>
+228-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
+229                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+229-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
+229-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
+230            </intent-filter>
+231            <intent-filter>
+231-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
+232                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+232-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
+232-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
+233            </intent-filter>
+234            <intent-filter>
+234-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
+235                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+235-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
+235-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\3a8e305d1c5819841c62ff546042e402\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
+236            </intent-filter>
+237        </receiver>
+238
+239        <service
+239-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:29:9-35:19
+240            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+240-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:30:13-103
+241            android:exported="false" >
+241-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:31:13-37
+242            <meta-data
+242-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:32:13-34:39
+243                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+243-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:33:17-94
+244                android:value="cct" />
+244-->[com.google.android.datatransport:transport-backend-cct:2.3.3] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\00edf8907897cbc8a82ed54896629fe0\transformed\transport-backend-cct-2.3.3\AndroidManifest.xml:34:17-36
+245        </service>
+246        <service
+246-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9b6bb0e2f9468ac62c198f06babbe33c\transformed\transport-runtime-2.2.6\AndroidManifest.xml:26:9-30:19
+247            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+247-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9b6bb0e2f9468ac62c198f06babbe33c\transformed\transport-runtime-2.2.6\AndroidManifest.xml:27:13-117
+248            android:exported="false"
+248-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9b6bb0e2f9468ac62c198f06babbe33c\transformed\transport-runtime-2.2.6\AndroidManifest.xml:28:13-37
+249            android:permission="android.permission.BIND_JOB_SERVICE" >
+249-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9b6bb0e2f9468ac62c198f06babbe33c\transformed\transport-runtime-2.2.6\AndroidManifest.xml:29:13-69
+250        </service>
+251
+252        <receiver
+252-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9b6bb0e2f9468ac62c198f06babbe33c\transformed\transport-runtime-2.2.6\AndroidManifest.xml:32:9-34:40
+253            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+253-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9b6bb0e2f9468ac62c198f06babbe33c\transformed\transport-runtime-2.2.6\AndroidManifest.xml:33:13-132
+254            android:exported="false" />
+254-->[com.google.android.datatransport:transport-runtime:2.2.6] C:\Users\Leonardo -Spartacus\.gradle\caches\8.13\transforms\9b6bb0e2f9468ac62c198f06babbe33c\transformed\transport-runtime-2.2.6\AndroidManifest.xml:34:13-37
+255    </application>
+256
+257</manifest>
