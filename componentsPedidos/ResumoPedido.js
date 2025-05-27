@@ -12,7 +12,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
 
-import { apiPostComContexto, apiGetComContexto } from '../utils/api'
+import {
+  apiPostComContexto,
+  apiGetComContexto,
+  apiPutComContexto,
+} from '../utils/api'
 import { getStoredData } from '../services/storageService'
 
 export default function ResumoPedido({ total, pedido }) {
@@ -91,7 +95,18 @@ export default function ResumoPedido({ total, pedido }) {
     }
 
     try {
-      const data = await apiPostComContexto(`pedidos/pedidos/`, pedido)
+      let data
+
+      if (pedido.pedi_nume) {
+        // Pedido já existe, usa PUT
+        data = await apiPutComContexto(
+          `pedidos/pedidos/${pedido.pedi_nume}/`,
+          pedido
+        )
+      } else {
+        // Novo pedido
+        data = await apiPostComContexto(`pedidos/pedidos/`, pedido)
+      }
 
       const pedi_nume = data.pedi_nume || 'desconhecido'
 

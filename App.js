@@ -16,6 +16,9 @@ import ListaCasamentoForm from './screens/ListaCasamentoForm'
 import ItensListaModal from './screens/ItensListaModal'
 import EntradasForm from './screens/EntradasForm'
 import SaidasForm from './screens/SaidasForm'
+import ImplantacaoForm from './screens/ImplantacaoForm'
+import ContasPagarList from './screens/ContasPagarList'
+import ContasReceberList from './screens/ContasReceberList'
 
 const Stack = createNativeStackNavigator()
 
@@ -104,6 +107,16 @@ export default function App() {
           }}
         />
         <Stack.Screen
+          name="ContasPagarList"
+          component={ContasPagarList}
+          options={{ title: 'Contas a Pagar' }}
+        />
+        <Stack.Screen
+          name="ContasReceberList"
+          component={ContasReceberList}
+          options={{ title: 'Contas a receber' }}
+        />
+        <Stack.Screen
           name="Entidades"
           component={Entidades}
           options={{ title: 'Entidades' }}
@@ -143,6 +156,16 @@ export default function App() {
           component={SaidasForm}
           options={{
             title: 'Saidas de Estoque',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="ImplantacaoForm"
+          component={ImplantacaoForm}
+          options={{
+            title: 'Roteiro de Implantação',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },

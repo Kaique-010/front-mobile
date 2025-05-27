@@ -94,11 +94,12 @@ export default function TelaOrcamento({ route, navigation }) {
     carregarOrcamento()
   }, [orcamentoParam])
 
-  const handleAdicionarOuEditarItem = (novoItem) => {
+  const handleAdicionarOuEditarItem = (novoItem, itemAnterior = null) => {
     let novosItens = [...orcamento.itens_input]
-    const index = novosItens.findIndex(
-      (i) => i.iped_prod === novoItem.iped_prod
-    )
+
+    const index = itemAnterior
+      ? novosItens.findIndex((i) => i.iped_prod === itemAnterior.iped_prod)
+      : novosItens.findIndex((i) => i.iped_prod === novoItem.iped_prod)
 
     if (index !== -1) {
       novosItens[index] = novoItem

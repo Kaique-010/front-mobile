@@ -98,16 +98,17 @@ export default function TelaPedidoVenda({ route, navigation }) {
     carregarPedido()
   }, [pedidoParam])
 
-  const handleAdicionarOuEditarItem = (novoItem) => {
+  const handleAdicionarOuEditarItem = (novoItem, itemAnterior = null) => {
     let novosItens = [...pedido.itens_input]
-    const index = novosItens.findIndex(
-      (i) => i.iped_prod === novoItem.iped_prod
-    )
+
+    const index = itemAnterior
+      ? novosItens.findIndex((i) => i.iped_prod === itemAnterior.iped_prod)
+      : novosItens.findIndex((i) => i.iped_prod === novoItem.iped_prod)
 
     if (index !== -1) {
-      novosItens[index] = novoItem // edição
+      novosItens[index] = novoItem
     } else {
-      novosItens.push(novoItem) // novo
+      novosItens.push(novoItem)
     }
 
     const novoTotal = calcularTotal(novosItens)

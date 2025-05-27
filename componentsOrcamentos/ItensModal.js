@@ -29,6 +29,7 @@ export default function ItensModal({
         produtoId: itemEditando.iped_prod?.toString() || '',
         quantidade: itemEditando.iped_quan?.toString() || '',
         preco: itemEditando.iped_unit?.toString() || '',
+        idExistente: !!itemEditando.id,
       })
     } else {
       setForm({
@@ -61,7 +62,7 @@ export default function ItensModal({
       iped_tota: total,
     }
 
-    onAdicionar(novoItem)
+    onAdicionar(novoItem, itemEditando)
 
     if (!itemEditando) {
       setForm({ produtoId: '', quantidade: '', preco: '' })
@@ -73,7 +74,7 @@ export default function ItensModal({
   return (
     <Modal visible={visivel} animationType="slide">
       <View style={styles.container}>
-        <Text style={styles.cabecalho}>ITENS DO PEDIDO</Text>
+        <Text style={styles.cabecalho}>ITENS DO Orçamento</Text>
 
         <Text style={styles.label}>Produto</Text>
         <BuscaProdutoInput
@@ -102,8 +103,7 @@ export default function ItensModal({
         <Text style={styles.total}>
           Total: R${' '}
           {(
-            (parseFloat(form.quantidade) || 0) *
-            (parseFloat(form.preco) || 0)
+            (parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0)
           ).toFixed(2)}
         </Text>
 

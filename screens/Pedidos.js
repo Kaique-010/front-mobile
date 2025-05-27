@@ -10,7 +10,11 @@ import {
   Alert,
 } from 'react-native'
 import debounce from 'lodash.debounce'
-import { apiDelete, apiGetComContexto } from '../utils/api'
+import {
+  apiDelete,
+  apiDeleteComContexto,
+  apiGetComContexto,
+} from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
 
@@ -49,14 +53,12 @@ export default function Pedidos({ navigation }) {
 
   useEffect(() => {
     if (slug) {
-      // Primeira carga apenas
       buscarPedidos(false, true)
     }
   }, [slug])
 
   useEffect(() => {
     if (slug) {
-      // Quando for busca, indicar que é busca e não resetar tudo
       buscarPedidos(false, false)
     }
   }, [searchValue])
@@ -107,9 +109,11 @@ export default function Pedidos({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiDelete(`pedidos/pedidos/${pedido.pedi_uuid}/`)
+              await apiDeleteComContexto(
+                `/pedidos/pedidos/${pedido.pedi_nume}/`
+              )
               setPedidos((prev) =>
-                prev.filter((p) => p.pedi_uuid !== pedido.pedi_uuid)
+                prev.filter((p) => p.pedi_nume !== pedido.pedi_nume)
               )
             } catch (error) {
               console.error('Erro ao excluir pedido:', error.message)
@@ -146,7 +150,7 @@ export default function Pedidos({ navigation }) {
 
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => deletarPedido(item.pedi_nume)}>
+          onPress={() => deletarPedido(item)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>

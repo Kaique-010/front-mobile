@@ -10,13 +10,13 @@ import {
 } from 'react-native'
 import { getStoredData } from '../services/storageService'
 import { apiDeleteComContexto, apiGetComContexto } from '../utils/api'
-import styles from '../styles/listaStyles'
+import styles from '../styles/listaContasStyles'
 
-export default function ImplantacoesList({ navigation }) {
-  const [implantacoes, setImplantacoes] = useState([])
+export default function ContasPagarList({ navigation }) {
+  const [contas, setContas] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchModulo, setSearchModulo] = useState('')
-  const [searchTela, setSearchTela] = useState('')
+  const [searchFornecedor, setSearchFornecedor] = useState('')
+  const [searchTitulo, setSearchtitulo] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [slug, setSlug] = useState('')
 
@@ -34,30 +34,28 @@ export default function ImplantacoesList({ navigation }) {
   }, [])
 
   useEffect(() => {
-    if (slug) {
-      buscarImplantacoes()
-    }
+    if (slug) buscarContas()
   }, [slug])
 
-  const buscarImplantacoes = async () => {
+  const buscarContas = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGetComContexto(`implantacao/implantacoes/`, {
-        modulo: searchModulo || undefined,
-        tela: searchTela || undefined,
+      const data = await apiGetComContexto(`contas_a_pagar/titulos-pagar/`, {
+        titu_forn: searchFornecedor || undefined,
+        titu_titu: searchTitulo || undefined,
       })
-      setImplantacoes(data.results || data)
+      setContas(data.results || data)
     } catch (error) {
-      console.log('❌ Erro ao buscar implantações:', error.message)
-      Alert.alert('Erro', 'Falha ao carregar implantações')
+      console.log('❌ Erro ao buscar contas:', error.message)
+      Alert.alert('Erro', 'Falha ao carregar contas a pagar')
     } finally {
       setIsSearching(false)
       setLoading(false)
     }
   }
 
-  const excluirImplantacao = (id) => {
-    Alert.alert('Confirmação', 'Excluir esta implantação?', [
+  const excluirConta = (id) => {
+    Alert.alert('Confirmação', 'Excluir esta conta a pagar?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
@@ -65,51 +63,57 @@ export default function ImplantacoesList({ navigation }) {
         onPress: async () => {
           try {
             await apiDeleteComContexto(
-              `implantacao/implantacoes/${id}/`,
+              `contas_a_pagar/titulos-pagar/${id}/`,
               {},
               'DELETE'
             )
-            setImplantacoes((prev) => prev.filter((item) => item.id !== id))
+            setContas((prev) => prev.filter((item) => item.id !== id))
           } catch (error) {
-            console.log(
-              '❌ Erro ao excluir implantação:',
-              error.response?.data?.detail || error.message
-            )
-            Alert.alert(
-              'Erro',
-              error.response?.data?.detail || 'Erro ao excluir a implantação'
-            )
+            console.log('❌ Erro ao excluir conta:', error.message)
+            Alert.alert('Erro', 'Erro ao excluir a conta')
           }
         },
       },
     ])
   }
 
+  const statusMap = {
+    '00': 'Duplicata',
+    '01': 'Cheque',
+    '02': 'Promissória',
+    '03': 'Recibo',
+    '50': 'cheque pré-datado',
+    '51': 'Cartão de crédito',
+    '52': 'Cartão de débito',
+    '53': 'Boleto bancário',
+    '54': 'Dinheiro',
+    '55': 'Deposito em conta',
+    '56': 'Venda à vista',
+    '60': 'PIX',
+  }
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.status}>Status: {item.status}</Text>
-      <Text style={styles.numero}>Cliente: {item.cliente}</Text>
-      <Text style={styles.datalist}>Módulos: {item.modulos}</Text>
-      <Text style={styles.cliente}>Telas: {item.telas}</Text>
+      <Text style={styles.status}>Titulo: {item.titu_titu}</Text>
+      <Text style={styles.numero}>Fornecedor: {item.titu_forn}</Text>
+      <Text style={styles.datalist}>Vencimento: {item.titu_venc}</Text>
+      <Text style={styles.cliente}>Valor: R$ {item.titu_valo}</Text>
       <Text style={styles.empresa}>
-        Implantador: {item.implantador || '---'}
+        Forma de Pagamento:{' '}
+        {statusMap[item.titu_form_reci] || item.titu_form_reci}
       </Text>
-      <Text style={styles.empresa}>
-        Treinado: {item.treinado ? 'Sim' : 'Não'}
-      </Text>
-      <Text style={styles.datalist}>Data: {item.data_implantacao}</Text>
 
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.botao}
           onPress={() =>
-            navigation.navigate('ImplantacaoForm', { implantacao: item })
+            navigation.navigate('ContaPagarForm', { conta: item })
           }>
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => excluirImplantacao(item.id)}>
+          onPress={() => excluirConta(item.id)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>
@@ -130,29 +134,27 @@ export default function ImplantacoesList({ navigation }) {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate('ImplantacaoForm')}>
-        <Text style={styles.incluirButtonText}>+ Nova Implantação</Text>
+        onPress={() => navigation.navigate('ContaPagarForm')}>
+        <Text style={styles.incluirButtonText}>+ Nova Conta</Text>
       </TouchableOpacity>
 
       <View style={styles.searchContainer}>
         <TextInput
-          placeholder="Filtrar por módulo"
+          placeholder="Filtrar por fornecedor"
           placeholderTextColor="#777"
           style={styles.input}
-          value={searchModulo}
-          onChangeText={setSearchModulo}
+          value={searchFornecedor}
+          onChangeText={setSearchFornecedor}
         />
         <TextInput
-          placeholder="Filtrar por tela"
+          placeholder="Filtrar por Titulo"
           placeholderTextColor="#777"
           style={styles.input}
-          value={searchTela}
-          onChangeText={setSearchTela}
-          onSubmitEditing={buscarImplantacoes}
+          value={searchTitulo}
+          onChangeText={setSearchtitulo}
+          onSubmitEditing={buscarContas}
         />
-        <TouchableOpacity
-          style={styles.searchButton}
-          onPress={buscarImplantacoes}>
+        <TouchableOpacity style={styles.searchButton} onPress={buscarContas}>
           <Text style={styles.searchButtonText}>
             {isSearching ? '🔍...' : 'Buscar'}
           </Text>
@@ -160,20 +162,21 @@ export default function ImplantacoesList({ navigation }) {
       </View>
 
       <FlatList
-        data={implantacoes}
+        data={contas}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) =>
+          `${item.titu_empr}_${item.titu_fili}_${item.titu_forn}_${item.titu_titu}_${item.titu_seri}_${item.titu_parc}`
+        }
         ListEmptyComponent={() => (
           <Text style={{ textAlign: 'center', marginTop: 20 }}>
-            Nenhuma implantação encontrada
+            Nenhuma conta encontrada
           </Text>
         )}
       />
 
       <Text style={styles.footerText}>
-        {implantacoes.length} implantação
-        {implantacoes.length !== 1 ? 's' : ''} encontrada
-        {implantacoes.length !== 1 ? 's' : ''}
+        {contas.length} conta{contas.length !== 1 ? 's' : ''} encontrada
+        {contas.length !== 1 ? 's' : ''}
       </Text>
     </View>
   )

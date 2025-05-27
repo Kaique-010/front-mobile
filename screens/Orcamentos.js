@@ -10,7 +10,11 @@ import {
   Alert,
 } from 'react-native'
 import debounce from 'lodash.debounce'
-import { apiDelete, apiGetComContexto } from '../utils/api'
+import {
+  apiDelete,
+  apiDeleteComContexto,
+  apiGetComContexto,
+} from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
 
@@ -93,10 +97,10 @@ export default function Orcamentos({ navigation }) {
     }
   }
 
-  const deletarOrcamento = (orcamento) => {
+  const deletarOrcamento = (orcamentos) => {
     Alert.alert(
       'Confirmar exclusão',
-      `Deseja realmente excluir o Orcçamento nº ${orcamento.pedi_nume}?`,
+      `Deseja realmente excluir o Orçamento nº ${orcamentos.pedi_nume}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -104,9 +108,11 @@ export default function Orcamentos({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiDelete(`orcamentos/orcamentos/${orcamento.pedi_nume}/`)
+              await apiDeleteComContexto(
+                `/orcamentos/orcamentos/${orcamentos.pedi_nume}/`
+              )
               setOrcamentos((prev) =>
-                prev.filter((p) => p.pedi_nume !== orcamento.pedi_nume)
+                prev.filter((o) => o.pedi_nume !== orcamentos.pedi_nume)
               )
             } catch (error) {
               console.error('Erro ao excluir orcamento:', error.message)
@@ -136,7 +142,7 @@ export default function Orcamentos({ navigation }) {
 
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => deletarOrcamento(item.pedi_nume)}>
+          onPress={() => deletarOrcamento(item)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>

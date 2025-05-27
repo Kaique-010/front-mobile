@@ -12,7 +12,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
 
-import { apiPostComContexto, apiGetComContexto } from '../utils/api'
+import {
+  apiPostComContexto,
+  apiGetComContexto,
+  apiPutComContexto,
+} from '../utils/api'
 import { getStoredData } from '../services/storageService'
 
 export default function ResumoOrcamento({ total, orcamento }) {
@@ -91,8 +95,16 @@ export default function ResumoOrcamento({ total, orcamento }) {
     }
 
     try {
-      const data = await apiPostComContexto(`orcamentos/orcamentos/`, orcamento)
+      let data
 
+      if (orcamento.pedi_nume) {
+        data = await apiPutComContexto(
+          `orcamentos/orcamentos/${orcamento.pedi_nume}/`,
+          orcamento
+        )
+      } else {
+        data = await apiPostComContexto(`orcamentos/orcamentos/`, orcamento)
+      }
       const pedi_nume = data.pedi_nume || 'desconhecido'
 
       Toast.show({
@@ -121,7 +133,7 @@ export default function ResumoOrcamento({ total, orcamento }) {
           ]}
           onPress={salvar}
           disabled={!orcamento.pedi_empr || !orcamento.pedi_fili}>
-          <Text style={styles.textobotao}>✔️Salvar orcamento</Text>
+          <Text style={styles.textobotao}>✔️ Salvar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.botao2} onPress={enviarZap}>

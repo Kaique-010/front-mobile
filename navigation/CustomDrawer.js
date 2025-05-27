@@ -13,9 +13,11 @@ import {
 } from '@react-navigation/drawer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as ImagePicker from 'expo-image-picker'
+import Icon from 'react-native-vector-icons/Feather'
 
 export default function CustomDrawer(props) {
   const [usuario, setUsuario] = useState(null)
+  const [financeiroExpanded, setFinanceiroExpanded] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -75,6 +77,37 @@ export default function CustomDrawer(props) {
 
       <DrawerItemList {...props} />
 
+      {/* Submenu Financeiro */}
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => setFinanceiroExpanded(!financeiroExpanded)}>
+        <View style={styles.menuItemRow}>
+          <Icon name="dollar-sign" size={18} color="#fff" />
+          <Text style={styles.menuItemText}>Financeiro</Text>
+          <Icon
+            name={financeiroExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color="#fff"
+            style={{ marginLeft: 'auto' }}
+          />
+        </View>
+      </TouchableOpacity>
+
+      {financeiroExpanded && (
+        <View style={styles.subMenu}>
+          <TouchableOpacity
+            style={styles.subMenuItem}
+            onPress={() => props.navigation.navigate('ContasPagarList')}>
+            <Text style={styles.subMenuText}>Contas a Pagar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.subMenuItem}
+            onPress={() => props.navigation.navigate('ContasReceberList')}>
+            <Text style={styles.subMenuText}>Contas a Receber</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <TouchableOpacity
         style={styles.logoutButton}
         onPress={async () => {
@@ -106,6 +139,31 @@ const styles = StyleSheet.create({
   usuarioName: {
     color: '#fff',
     fontSize: 18,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#333',
+  },
+  menuItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#fff',
+  },
+  subMenu: {
+    paddingLeft: 40,
+    backgroundColor: '#222',
+  },
+  subMenuItem: {
+    paddingVertical: 10,
+  },
+  subMenuText: {
+    color: '#ccc',
+    fontSize: 15,
   },
   logoutButton: {
     marginTop: 100,

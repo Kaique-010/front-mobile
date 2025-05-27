@@ -13,6 +13,10 @@ import Entidades from '../screens/Entidades'
 import ListaCasamento from '../screens/ListaCasamento'
 import EntradasEstoque from '../screens/EntradasEstoque'
 import SaidasEstoque from '../screens/SaidasEstoque'
+import ImplantacoesList from '../screens/ImplantacoesList'
+import ContasPagarList from '../screens/ContasPagarList'
+import ContasReceberList from '../screens//ContasReceberList'
+import Contratos from '../screens/Contratos'
 
 const Drawer = createDrawerNavigator()
 
@@ -48,6 +52,15 @@ export default function DrawerNavigator() {
         options={{
           drawerIcon: ({ color, size }) => (
             <Icon name="home" color={color} size={size} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Contratos"
+        component={Contratos}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <Icon name="file-text" color={color} size={size} />
           ),
         }}
       />
@@ -144,6 +157,43 @@ export default function DrawerNavigator() {
             ),
           }}
         />
+      )}
+      {hasModulo('implantacao') && (
+        <Drawer.Screen
+          name="Implantações"
+          component={ImplantacoesList}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="bar-chart" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
+      {hasModulo('financeiro') && (
+        <>
+          <Drawer.Screen
+            name="Contas a Pagar"
+            component={ContasPagarList}
+            options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+              drawerIcon: ({ color, size }) => (
+                <Icon name="bar-chart" color={color} size={size} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="Contas a Receber"
+            component={ContasReceberList}
+            options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+              drawerIcon: ({ color, size }) => (
+                <Icon name="bar-chart" color={color} size={size} />
+              ),
+            }}
+          />
+        </>
       )}
     </Drawer.Navigator>
   )
