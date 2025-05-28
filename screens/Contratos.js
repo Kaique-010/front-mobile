@@ -9,14 +9,18 @@ import {
   Alert,
 } from 'react-native'
 import { getStoredData } from '../services/storageService'
-import { apiDeleteComContexto, apiGetComContexto } from '../utils/api'
-import styles from '../styles/listaContasStyles'
+import {
+  apiDeleteComContexto,
+  apiGetComContexto,
+  apiDelete,
+} from '../utils/api'
+import styles from '../styles/listaContratosStyles'
 
 export default function ContratosList({ navigation }) {
   const [contratos, setContratos] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchCliente, setSearchCliente] = useState('')
-  const [searchProduto, setSearchProduto] = useState('')
+  const [searchcliente_nome, setSearchCliente_nome] = useState('')
+  const [searchContrato, setSearchCOntrato] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [slug, setSlug] = useState('')
 
@@ -41,8 +45,8 @@ export default function ContratosList({ navigation }) {
     setIsSearching(true)
     try {
       const data = await apiGetComContexto(`contratos/contratos-vendas/`, {
-        cont_clie: searchCliente || undefined,
-        cont_prod: searchProduto || undefined,
+        cliente_nome: searchcliente_nome || undefined,
+        cont_cont: searchContrato || undefined,
       })
       setContratos(data.results || data)
     } catch (error) {
@@ -54,7 +58,7 @@ export default function ContratosList({ navigation }) {
     }
   }
 
-  const excluirContrato = (id) => {
+  const excluirContrato = (cont_cont) => {
     Alert.alert('Confirmação', 'Excluir este contrato?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -62,15 +66,22 @@ export default function ContratosList({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiDeleteComContexto(
-              `contratos/contratos-vendas/${id}/`,
-              {},
-              'DELETE'
+            console.log('Excluindo contrato com cont_cont:', cont_cont)
+            await apiDelete(
+              `/api/${slug}/contratos/contratos-vendas/${cont_cont}/`
             )
-            setContratos((prev) => prev.filter((item) => item.id !== id))
+            setContratos((prev) =>
+              prev.filter((item) => item.cont_cont !== cont_cont)
+            )
           } catch (error) {
-            console.log('❌ Erro ao excluir contrato:', error.message)
-            Alert.alert('Erro', 'Erro ao excluir o contrato')
+            console.log(
+              '❌ Erro ao excluir contrato:',
+              error.response?.data?.detail || error.message
+            )
+            Alert.alert(
+              error.response?.data?.detail || 'Erro',
+              'Erro ao excluir o contrato'
+            )
           }
         },
       },
@@ -79,20 +90,24 @@ export default function ContratosList({ navigation }) {
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.status}>Contrato: {item.cont_cont}</Text>
-      <Text style={styles.numero}>Cliente: {item.cont_clie}</Text>
-      <Text style={styles.datalist}>Data: {item.cont_venc}</Text>
-      <Text style={styles.cliente}>Valor: R$ {item.titu_valo}</Text>
+      <Text style={styles.contrato}>Contrato: {item.cont_cont}</Text>
+      <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
+      <Text style={styles.datalist}>Data: {item.cont_data}</Text>
+      <Text style={styles.cliente}>Produto: {item.produto_nome}</Text>
+      <Text style={styles.cliente}>Valor: R$ {item.cont_tota}</Text>
+      <Text style={styles.cliente}>Empresa: {item.empresa_nome}</Text>
 
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => navigation.navigate('', { conta: item })}>
+          onPress={() =>
+            navigation.navigate('ContratosForm', { contratos: item })
+          }>
           <Text style={styles.botaoTexto}>✏️</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => excluirContrato(item.id)}>
+          onPress={() => excluirContrato(item.cont_cont)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>
@@ -113,7 +128,7 @@ export default function ContratosList({ navigation }) {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate('')}>
+        onPress={() => navigation.navigate('ContratosForm')}>
         <Text style={styles.incluirButtonText}>+ Novo Contrato</Text>
       </TouchableOpacity>
 
@@ -122,15 +137,15 @@ export default function ContratosList({ navigation }) {
           placeholder="Filtrar por Cliente"
           placeholderTextColor="#777"
           style={styles.input}
-          value={searchCliente}
-          onChangeText={setSearchCliente}
+          value={searchcliente_nome}
+          onChangeText={setSearchCliente_nome}
         />
         <TextInput
-          placeholder="Filtrar por produto"
+          placeholder="Filtrar por Contrato"
           placeholderTextColor="#777"
           style={styles.input}
-          value={searchProduto}
-          onChangeText={setSearchProduto}
+          value={searchContrato}
+          onChangeText={setSearchCOntrato}
           onSubmitEditing={buscarContratos}
         />
         <TouchableOpacity style={styles.searchButton} onPress={buscarContratos}>

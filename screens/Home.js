@@ -53,12 +53,14 @@ export default function Home() {
   }
   //card de saldos dos produtos
   const chartConfig = {
+    flex: 1,
     backgroundGradientFrom: '#121212',
     backgroundGradientTo: '#171922',
     color: (opacity = 5) => `rgba(10, 150, 350, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     barPercentage: 1.6,
     useShadowColorFromDataset: false,
+    margin: 15,
   }
 
   return (

@@ -22,6 +22,7 @@ export default function DashboardVendasStatusPedidos({
           height={220}
           fromZero
           chartConfig={{
+            flex: 1,
             backgroundGradientFrom: '#ffe5e5',
             backgroundGradientTo: '#256',
             decimalPlaces: 2,
@@ -37,16 +38,16 @@ export default function DashboardVendasStatusPedidos({
           verticalLabelRotation={5}
           style={{
             borderRadius: 8,
-            marginLeft: 10,
+            marginLeft: 8,
           }}
         />
 
-        {/* Texto manualmente posicionado acima da segunda barra */}
+        {/* Texto acima da segunda barra */}
         <Text
           style={{
             position: 'absolute',
             top: 150,
-            left: (screenWidth - 32) * 0.65, // 0.65 para a 2ª barra
+            left: (screenWidth - 32) * 0.65, 
             color: 'black',
             fontWeight: 'bold',
           }}>

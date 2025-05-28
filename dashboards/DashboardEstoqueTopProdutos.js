@@ -15,6 +15,7 @@ export default function DashboardEstoqueTopProdutos({ dados }) {
       width={screenWidth - 32}
       height={220}
       chartConfig={{
+        flex: 1,
         backgroundGradientFrom: '#ffe5e5',
         backgroundGradientTo: '#256',
         decimalPlaces: 0,

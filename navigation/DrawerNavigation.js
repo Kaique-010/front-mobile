@@ -55,15 +55,17 @@ export default function DrawerNavigator() {
           ),
         }}
       />
-      <Drawer.Screen
-        name="Contratos"
-        component={Contratos}
-        options={{
-          drawerIcon: ({ color, size }) => (
-            <Icon name="file-text" color={color} size={size} />
-          ),
-        }}
-      />
+      {hasModulo('contratos') && (
+        <Drawer.Screen
+          name="Contratos"
+          component={Contratos}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="file-text" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
 
       {hasModulo('entidades') && (
         <Drawer.Screen

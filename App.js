@@ -19,6 +19,8 @@ import SaidasForm from './screens/SaidasForm'
 import ImplantacaoForm from './screens/ImplantacaoForm'
 import ContasPagarList from './screens/ContasPagarList'
 import ContasReceberList from './screens/ContasReceberList'
+import ContratosForm from './screens/ContratosForm'
+import ContratosList from './screens/Contratos'
 
 const Stack = createNativeStackNavigator()
 
@@ -122,6 +124,16 @@ export default function App() {
           options={{ title: 'Entidades' }}
         />
         <Stack.Screen
+          name="Contratos"
+          component={ContratosList}
+          options={{
+            title: 'Lista de Contratos',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
           name="ListaCasamentoForm"
           component={ListaCasamentoForm}
           options={{
@@ -166,6 +178,16 @@ export default function App() {
           component={ImplantacaoForm}
           options={{
             title: 'Roteiro de Implantação',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="ContratosForm"
+          component={ContratosForm}
+          options={{
+            title: 'Contratos de Venda',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },
