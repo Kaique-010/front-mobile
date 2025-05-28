@@ -169,7 +169,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      {hasModulo('financeiro') && (
+      {hasModulo('Financeiro') && (
         <>
           <Drawer.Screen
             name="Contas a Pagar"

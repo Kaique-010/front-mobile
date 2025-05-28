@@ -1,5 +1,4 @@
-// ItensModal.js
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Modal,
   View,
@@ -7,9 +6,15 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  Vibration,
 } from 'react-native'
+import { LogBox } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import LeitorCodigoBarras from '../components/Leitor'
+import { Ionicons } from '@expo/vector-icons'
 import BuscaProdutoInput from '../components/BuscaProdutosInput'
+import { apiGetComContexto } from '../utils/api'
+import Toast from 'react-native-toast-message'
 
 export default function ItensModal({
   visivel,
@@ -19,9 +24,13 @@ export default function ItensModal({
 }) {
   const [form, setForm] = useState({
     produtoId: '',
+    produtoNome: '',
     quantidade: '',
     preco: '',
   })
+  const [isScanningModal, setIsScanningModal] = useState(false)
+  const [highlight, setHighlight] = useState(false)
+  const scrollRef = useRef()
 
   useEffect(() => {
     if (itemEditando) {
@@ -29,11 +38,13 @@ export default function ItensModal({
         produtoId: itemEditando.iped_prod?.toString() || '',
         quantidade: itemEditando.iped_quan?.toString() || '',
         preco: itemEditando.iped_unit?.toString() || '',
+        produtoNome: itemEditando.produto_nome || '',
         idExistente: !!itemEditando.id,
       })
     } else {
       setForm({
         produtoId: '',
+        produtoNome: '',
         quantidade: '',
         preco: '',
       })
@@ -44,12 +55,66 @@ export default function ItensModal({
     setForm((f) => ({ ...f, [field]: value }))
   }
 
+  const onProdutoLido = async (codigoBarras) => {
+    try {
+      const response = await apiGetComContexto(`produtos/produtos/busca/`, {
+        q: codigoBarras,
+      })
+
+      const produtos = response?.results || response || []
+      const produto = produtos[0]
+
+      if (!produto || !produto.prod_coba) {
+        Toast.show({
+          type: 'error',
+          text1: 'Produto não encontrado',
+        })
+        return
+      }
+
+      // Se o produto não vier completo, busca o detalhe
+      const produtoDetalhado = await apiGetComContexto(
+        `produtos/produtos/${produto.prod_codi}/`
+      )
+
+      Vibration.vibrate(100)
+      setHighlight(true)
+      setTimeout(() => setHighlight(false), 1000)
+
+      setForm((f) => ({
+        ...f,
+        produtoId: produtoDetalhado.prod_codi.toString(),
+        produtoNome: produtoDetalhado.prod_nome,
+        preco: produtoDetalhado.prod_preco_vista?.toString() || '',
+        quantidade: '1',
+      }))
+
+      Toast.show({
+        type: 'success',
+        text1: 'Produto encontrado',
+        text2: produtoDetalhado.prod_nome,
+      })
+
+      scrollRef.current?.scrollTo({ y: 0, animated: true })
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao buscar produto',
+      })
+    }
+
+    setIsScanningModal(false)
+  }
+
   const adicionar = () => {
     const quantidadeNum = parseFloat(form.quantidade)
     const precoNum = parseFloat(form.preco)
 
     if (!form.produtoId || quantidadeNum <= 0 || precoNum <= 0) {
-      Alert.alert('Erro', 'Produto, quantidade e preço devem ser válidos.')
+      Toast.show({
+        type: 'error',
+        text1: 'Preencha todos os campos corretamente',
+      })
       return
     }
 
@@ -65,57 +130,104 @@ export default function ItensModal({
     onAdicionar(novoItem, itemEditando)
 
     if (!itemEditando) {
-      setForm({ produtoId: '', quantidade: '', preco: '' })
+      setForm({ produtoId: '', produtoNome: '', quantidade: '', preco: '' })
     }
 
     onFechar()
   }
 
+  LogBox.ignoreLogs([
+    'VirtualizedLists should never be nested inside plain ScrollViews',
+  ])
   return (
     <Modal visible={visivel} animationType="slide">
-      <View style={styles.container}>
-        <Text style={styles.cabecalho}>ITENS DO PEDIDO</Text>
+      <KeyboardAwareScrollView
+        style={styles.container}
+        ref={(ref) => {
+          scrollRef.current = ref
+        }}
+        enableOnAndroid
+        extraScrollHeight={100}
+        keyboardShouldPersistTaps="handled">
+        {isScanningModal ? (
+          <LeitorCodigoBarras
+            onProdutoLido={onProdutoLido}
+            onCancelar={() => setIsScanningModal(false)}
+          />
+        ) : (
+          <>
+            <Text style={styles.cabecalho}>ITENS DO PEDIDO</Text>
 
-        <Text style={styles.label}>Produto</Text>
-        <BuscaProdutoInput
-          value={form.produtoId}
-          onSelect={(item) => {
-            setForm((f) => ({ ...f, produtoId: item.prod_codi.toString() }))
-          }}
-        />
+            <Text style={styles.label}>Produto:</Text>
+            <View style={styles.buscaComIcone}>
+              <View style={styles.produtoInput}>
+                <BuscaProdutoInput
+                  valorAtual={form.produtoNome}
+                  onSelect={(produto) => {
+                    setForm((f) => ({
+                      ...f,
+                      produtoId: produto.prod_codi.toString(),
+                      produtoNome: produto.prod_nome,
+                      preco: produto.prod_preco_vista?.toString() || '',
+                      quantidade: '1',
+                    }))
+                    Toast.show({
+                      type: 'success',
+                      text1: 'Produto selecionado',
+                      text2: produto.prod_nome,
+                    })
+                  }}
+                />
+              </View>
 
-        <Text style={styles.label}>Quantidade:</Text>
-        <TextInput
-          keyboardType="numeric"
-          value={form.quantidade}
-          onChangeText={(v) => onChange('quantidade', v)}
-          style={styles.input}
-        />
+              <TouchableOpacity
+                style={styles.iconeLeitorInline}
+                onPress={() => setIsScanningModal(true)}
+                activeOpacity={0.6} // 👈 Efeito de toque suave
+              >
+                <Ionicons name="barcode-outline" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
 
-        <Text style={styles.label}>Preço Unitário:</Text>
-        <TextInput
-          keyboardType="numeric"
-          value={form.preco}
-          onChangeText={(v) => onChange('preco', v)}
-          style={styles.input}
-        />
+            {form.produtoNome ? (
+              <Text style={styles.produtoNome}>{form.produtoNome}</Text>
+            ) : null}
 
-        <Text style={styles.total}>
-          Total: R${' '}
-          {(
-            (parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0)
-          ).toFixed(2)}
-        </Text>
+            <Text style={styles.label}>Quantidade:</Text>
+            <TextInput
+              keyboardType="numeric"
+              value={form.quantidade}
+              onChangeText={(v) => onChange('quantidade', v)}
+              style={styles.input}
+            />
 
-        <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>
-          <Text style={styles.textoBotao}>
-            {itemEditando ? 'Salvar Alterações' : 'Adicionar'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.botaoCancelar} onPress={onFechar}>
-          <Text style={styles.textoBotao}>Cancelar</Text>
-        </TouchableOpacity>
-      </View>
+            <Text style={styles.label}>Preço Unitário:</Text>
+            <TextInput
+              keyboardType="numeric"
+              value={form.preco}
+              onChangeText={(v) => onChange('preco', v)}
+              style={styles.input}
+            />
+
+            <Text style={styles.total}>
+              Total: R${' '}
+              {(
+                (parseFloat(form.quantidade) || 0) *
+                (parseFloat(form.preco) || 0)
+              ).toFixed(2)}
+            </Text>
+
+            <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>
+              <Text style={styles.textoBotao}>
+                {itemEditando ? 'Salvar Alterações' : 'Adicionar'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.botaoCancelar} onPress={onFechar}>
+              <Text style={styles.textoBotao}>Cancelar</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </KeyboardAwareScrollView>
     </Modal>
   )
 }
@@ -146,6 +258,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
+  highlight: {
+    borderColor: '#10a2a7',
+    borderWidth: 2,
+  },
   total: {
     color: 'white',
     marginTop: 40,
@@ -170,5 +286,31 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  buscaComIcone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 8, // espaçamento entre input e botão (React Native >= 0.71)
+  },
+
+  produtoInput: {
+    flex: 1,
+  },
+
+  iconeLeitorInline: {
+    padding: 10,
+    backgroundColor: '#10a2a7',
+    borderRadius: 8,
+  },
+
+  produtoInput: {
+    flex: 1,
+  },
+  produtoNome: {
+    color: '#ccc',
+    textAlign: 'center',
+    marginTop: 5,
+    fontSize: 14,
   },
 })

@@ -59,6 +59,22 @@ export default function CustomDrawer(props) {
     return `https://ui-avatars.com/api/?name=${username}&background=random&color=fff&size=120`
   }
 
+  const [modulos, setModulos] = useState(null)
+
+  useEffect(() => {
+    const fetchModulos = async () => {
+      const modulosStorage = await AsyncStorage.getItem('modulos')
+      if (modulosStorage) {
+        setModulos(JSON.parse(modulosStorage))
+      }
+    }
+    fetchModulos()
+  }, [])
+
+  if (!modulos) return null
+
+  const hasModulo = (mod) => modulos.includes(mod)
+
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.header}>
@@ -78,20 +94,22 @@ export default function CustomDrawer(props) {
       <DrawerItemList {...props} />
 
       {/* Submenu Financeiro */}
-      <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => setFinanceiroExpanded(!financeiroExpanded)}>
-        <View style={styles.menuItemRow}>
-          <Icon name="dollar-sign" size={18} color="#fff" />
-          <Text style={styles.menuItemText}>Financeiro</Text>
-          <Icon
-            name={financeiroExpanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color="#fff"
-            style={{ marginLeft: 'auto' }}
-          />
-        </View>
-      </TouchableOpacity>
+      {hasModulo('financeiro ') && (
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setFinanceiroExpanded(!financeiroExpanded)}>
+          <View style={styles.menuItemRow}>
+            <Icon name="dollar-sign" size={18} color="#fff" />
+            <Text style={styles.menuItemText}>Financeiro</Text>
+            <Icon
+              name={financeiroExpanded ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color="#fff"
+              style={{ marginLeft: 'auto' }}
+            />
+          </View>
+        </TouchableOpacity>
+      )}
 
       {financeiroExpanded && (
         <View style={styles.subMenu}>

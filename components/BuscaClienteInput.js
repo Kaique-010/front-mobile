@@ -11,7 +11,7 @@ import { apiGet } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
 
-// Hook de debounce
+
 function useDebounce(value, delay = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value)
 

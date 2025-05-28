@@ -41,8 +41,8 @@ export default function ContratosList({ navigation }) {
     setIsSearching(true)
     try {
       const data = await apiGetComContexto(`contratos/contratos-vendas/`, {
-        cliente: searchCliente || undefined,
-        produto: searchProduto || undefined,
+        cont_clie: searchCliente || undefined,
+        cont_prod: searchProduto || undefined,
       })
       setContratos(data.results || data)
     } catch (error) {
@@ -81,7 +81,7 @@ export default function ContratosList({ navigation }) {
     <View style={styles.card}>
       <Text style={styles.status}>Contrato: {item.cont_cont}</Text>
       <Text style={styles.numero}>Cliente: {item.cont_clie}</Text>
-      <Text style={styles.datalist}>Data: {item.titu_venc}</Text>
+      <Text style={styles.datalist}>Data: {item.cont_venc}</Text>
       <Text style={styles.cliente}>Valor: R$ {item.titu_valo}</Text>
 
       <View style={styles.actions}>

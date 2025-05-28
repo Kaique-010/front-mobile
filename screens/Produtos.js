@@ -125,6 +125,7 @@ export default function Produtos({ navigation }) {
             <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
             <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
             <Text style={styles.saldo}>Saldo: {item.saldo_estoque}</Text>
+            <Text style={styles.saldo}>Preço:{item.prod_preco_vista}</Text>
             <View style={styles.actions}>
               <TouchableOpacity
                 style={styles.botao}
