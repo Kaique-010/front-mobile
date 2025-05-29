@@ -72,10 +72,11 @@ export default function ItensModal({
         return
       }
 
-      // Se o produto não vier completo, busca o detalhe
+     
       const produtoDetalhado = await apiGetComContexto(
         `produtos/produtos/${produto.prod_codi}/`
       )
+   
 
       Vibration.vibrate(100)
       setHighlight(true)

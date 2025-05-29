@@ -12,21 +12,24 @@ export default function ListaItens({
       (r) =>
         r.item_empr === item.item_empr &&
         r.item_fili === item.item_fili &&
-        r.item_list === item.item_list &&                                                          
-        r.item_item === item.item_item                        
+        r.item_list === item.item_list &&
+        r.item_item === item.item_item
     )
 
   const idExibido = listaId ?? 'ID não disponível'
 
+  // filtramos o item_pedi que for diferente de 0
+  const itensFiltrados = itensSalvos.filter((item) => item.item_pedi === 0)
+
   return (
     <>
-      {itensSalvos.length > 0 && (
+      {itensFiltrados.length > 0 && (
         <Text style={styles.titulo}>
           Itens já adicionados à lista: {idExibido}
         </Text>
       )}
 
-      {itensSalvos.map((item) => {
+      {itensFiltrados.map((item) => {
         const removido = isRemovido(item)
 
         return (

@@ -166,6 +166,7 @@ const styles = StyleSheet.create({
   botoesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 35,
   },
   botao1: {
     flex: 1,
