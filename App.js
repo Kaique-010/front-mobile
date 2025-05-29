@@ -21,6 +21,8 @@ import ContasPagarList from './screens/ContasPagarList'
 import ContasReceberList from './screens/ContasReceberList'
 import ContratosForm from './screens/ContratosForm'
 import ContratosList from './screens/Contratos'
+import PainelAcompanhamento from './screens/PainelOs'
+import OrdemDetalhe from './screens/OrdemDetalhe'
 
 const Stack = createNativeStackNavigator()
 
@@ -162,6 +164,16 @@ export default function App() {
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },
           }}
+        />
+        <Stack.Screen
+          name="PainelAcompanhamento"
+          component={PainelAcompanhamento}
+          options={{ title: 'Painel OS' }}
+        />
+        <Stack.Screen
+          name="OrdemDetalhe"
+          component={OrdemDetalhe}
+          options={{ title: 'Detalhes da OS' }}
         />
         <Stack.Screen
           name="SaidasForm"

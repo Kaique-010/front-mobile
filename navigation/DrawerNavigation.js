@@ -17,6 +17,7 @@ import ImplantacoesList from '../screens/ImplantacoesList'
 import ContasPagarList from '../screens/ContasPagarList'
 import ContasReceberList from '../screens//ContasReceberList'
 import Contratos from '../screens/Contratos'
+import PainelAcompanhamento from '../screens/PainelOs'
 
 const Drawer = createDrawerNavigator()
 
@@ -113,6 +114,16 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+
+      <Drawer.Screen
+        name="Painel de Acompanhamento de O'S"
+        component={PainelAcompanhamento}
+        options={{
+          drawerIcon: ({ color, size }) => (
+            <Icon name="users" color={color} size={size} />
+          ),
+        }}
+      />
 
       {hasModulo('pedidos') && (
         <Drawer.Screen
