@@ -7,10 +7,10 @@ import {
   View,
   Keyboard,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { apiGet } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
-
 
 function useDebounce(value, delay = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -114,17 +114,37 @@ export default function BuscaClienteInput({
     Keyboard.dismiss()
   }
 
+  const limpar = () => {
+    setTermo('')
+    setClientes([])
+    digitando.current = false
+  }
+
+  const isSelecionado = termo.includes(' - ') && clientes.length === 0
+
   return (
     <View>
+      
       <TextInput
-        style={styles.inputcliente}
+        style={[
+          styles.inputcliente,
+          isSelecionado ? styles.inputSelecionado : null,
+        ]}
         value={termo}
+        editable={!isSelecionado}
         onChangeText={(text) => {
           if (!isEdit) setTermo(text)
         }}
         placeholder={placeholder}
         placeholderTextColor="#aaa"
       />
+
+      {isSelecionado && (
+        <TouchableOpacity onPress={limpar} style={{ marginVertical: 5 }}>
+          <Text style={{ color: 'red' }}>Limpar</Text>
+        </TouchableOpacity>
+      )}
+
       {clientes.length > 0 && (
         <FlatList
           data={clientes}

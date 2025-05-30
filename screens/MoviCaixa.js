@@ -1,90 +1,80 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, Button, Alert } from 'react-native'
+import { View, Button, StyleSheet, Dimensions } from 'react-native'
+import { TabView, SceneMap, TabBar } from 'react-native-tab-view'
 
-export default function MoviCaixaScreen({ banco }) {
+import AbaVenda from '../componentsCaixa/AbaVenda'
+import AbaProdutos from '../componentsCaixa/AbaProdutos'
+import AbaProcessamento from '../componentsCaixa/AbaProcessamento'
+
+export default function MoviCaixaScreen({ route, navigation }) {
+  const { caixa } = route.params
+
   const [mov, setMov] = useState({
-    movi_empr: '',
-    movi_fili: '',
-    movi_caix: '',
+    movi_empr: caixa.caix_empr || '',
+    movi_fili: caixa.caix_fili || '',
+    movi_caix: caixa.caix_caix || '',
     movi_data: new Date().toISOString().slice(0, 10),
-    movi_entr: 0,
-    movi_said: 0,
-    movi_obse: '',
+    movi_clie: '',
+    movi_vend: '',
   })
 
-  const registrarMovimento = async () => {
-    if (!mov.movi_empr || !mov.movi_fili || !mov.movi_caix) {
-      Alert.alert('Erro', 'Preencha Empresa, Filial e Caixa.')
-      return
-    }
+  const [produtos, setProdutos] = useState([])
 
+  const [pagamento, setPagamento] = useState({
+    forma_pagto: '',
+    valor_pago: '',
+  })
+
+  const [index, setIndex] = useState(0)
+  const [routes] = useState([
+    { key: 'venda', title: 'Venda' },
+    { key: 'produtos', title: 'Produtos' },
+    { key: 'processamento', title: 'Processamento' },
+  ])
+
+  const registrarMovimento = async () => {
     try {
-      const res = await fetch(`https://seu-backend/api/movicaixa/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Banco': banco,
-        },
-        body: JSON.stringify(mov),
-      })
-      if (res.ok) {
-        Alert.alert('Sucesso', 'Movimento registrado!')
-      } else {
-        const data = await res.json()
-        Alert.alert('Erro', JSON.stringify(data))
+      const body = {
+        ...mov,
+        produtos,
+        pagamento,
       }
+      // POST fetch, axios, api client aqui
+      alert('Salvar movimento - implementar envio ao backend')
     } catch (e) {
-      Alert.alert('Erro', 'Falha na comunicação')
+      alert('Erro ao salvar movimento')
     }
   }
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text>Empresa:</Text>
-      <TextInput
-        keyboardType="numeric"
-        onChangeText={(val) => setMov({ ...mov, movi_empr: Number(val) })}
-        value={String(mov.movi_empr)}
+    <View style={styles.container}>
+      <TabView
+        navigationState={{ index, routes }}
+        renderScene={SceneMap({
+          venda: () => <AbaVenda mov={mov} setMov={setMov} />,
+          produtos: () => (
+            <AbaProdutos produtos={produtos} setProdutos={setProdutos} />
+          ),
+          processamento: () => (
+            <AbaProcessamento
+              pagamento={pagamento}
+              setPagamento={setPagamento}
+            />
+          ),
+        })}
+        onIndexChange={setIndex}
+        initialLayout={{ width: Dimensions.get('window').width }}
+        renderTabBar={(props) => (
+          <TabBar {...props} style={{ backgroundColor: '#283541' }} />
+        )}
       />
-
-      <Text>Filial:</Text>
-      <TextInput
-        keyboardType="numeric"
-        onChangeText={(val) => setMov({ ...mov, movi_fili: Number(val) })}
-        value={String(mov.movi_fili)}
-      />
-
-      <Text>Caixa:</Text>
-      <TextInput
-        keyboardType="numeric"
-        onChangeText={(val) => setMov({ ...mov, movi_caix: Number(val) })}
-        value={String(mov.movi_caix)}
-      />
-
-      <Text>Data:</Text>
-      <Text>{mov.movi_data}</Text>
-
-      <Text>Entrada:</Text>
-      <TextInput
-        keyboardType="numeric"
-        onChangeText={(val) => setMov({ ...mov, movi_entr: Number(val) })}
-        value={String(mov.movi_entr)}
-      />
-
-      <Text>Saída:</Text>
-      <TextInput
-        keyboardType="numeric"
-        onChangeText={(val) => setMov({ ...mov, movi_said: Number(val) })}
-        value={String(mov.movi_said)}
-      />
-
-      <Text>Observação:</Text>
-      <TextInput
-        onChangeText={(val) => setMov({ ...mov, movi_obse: val })}
-        value={mov.movi_obse}
-      />
-
-      <Button title="Registrar Movimento" onPress={registrarMovimento} />
+      <View style={{ padding: 10 }}>
+        <Button title="Registrar Movimento" onPress={registrarMovimento} />
+      </View>
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#2a2a2a' },
+})

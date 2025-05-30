@@ -23,6 +23,7 @@ import ContratosForm from './screens/ContratosForm'
 import ContratosList from './screens/Contratos'
 import PainelAcompanhamento from './screens/PainelOs'
 import OrdemDetalhe from './screens/OrdemDetalhe'
+import MoviCaixaScreen from './screens/MoviCaixa'
 
 const Stack = createNativeStackNavigator()
 
@@ -75,6 +76,16 @@ export default function App() {
           component={ProdutoPrecos}
           options={{
             title: 'Preços dos Itens',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="MoviCaixa"
+          component={MoviCaixaScreen}
+          options={{
+            title: 'Movimentações de Caixa',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },

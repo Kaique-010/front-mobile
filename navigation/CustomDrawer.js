@@ -94,7 +94,7 @@ export default function CustomDrawer(props) {
       <DrawerItemList {...props} />
 
       {/* Submenu Financeiro */}
-      {hasModulo('financeiro ') && (
+      {hasModulo('entidades') && (
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => setFinanceiroExpanded(!financeiroExpanded)}>

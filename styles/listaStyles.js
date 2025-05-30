@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputcliente: {
-    color: '#fff',
+    color: '#faebd7',
   },
   scanButton: {
     backgroundColor: '#2196F3',
@@ -155,6 +155,11 @@ const styles = StyleSheet.create({
   footerText: {
     marginTop: 10,
     marginBottom: 25,
+  },
+  inputSelecionado: {
+    backgroundColor: '#283541',
+    borderColor: '#4CAF50',
+    fontWeight: 'bold',
   },
 })
 

@@ -204,7 +204,7 @@ export default function ItensListaModal({ route }) {
           onPress={() => enviarZapLista(itensSalvos, listaId)}
           style={{
             position: 'absolute',
-            bottom: 60,
+            bottom: 80,
             right: 20,
             backgroundColor: '#25D366',
             padding: 14,
