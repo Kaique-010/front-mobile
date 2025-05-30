@@ -18,6 +18,7 @@ import ContasPagarList from '../screens/ContasPagarList'
 import ContasReceberList from '../screens//ContasReceberList'
 import Contratos from '../screens/Contratos'
 import PainelAcompanhamento from '../screens/PainelOs'
+import CaixaGeralScreen from '../screens/CaixaGeral'
 
 const Drawer = createDrawerNavigator()
 
@@ -60,6 +61,17 @@ export default function DrawerNavigator() {
         <Drawer.Screen
           name="Contratos"
           component={Contratos}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="file-text" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
+      {hasModulo('contratos') && (
+        <Drawer.Screen
+          name="Caixa"
+          component={CaixaGeralScreen}
           options={{
             drawerIcon: ({ color, size }) => (
               <Icon name="file-text" color={color} size={size} />
