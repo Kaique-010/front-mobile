@@ -135,7 +135,6 @@ const PainelAcompanhamento = ({ navigation }) => {
         {renderIndicador('Concluídas', contadores.concluidas, '#d4edda')}
         {renderIndicador('Total', contadores.total, '#eee')}
       </View>
-
       <View style={styles.filtros}>
         <Picker
           selectedValue={filtroStatus}
@@ -154,7 +153,6 @@ const PainelAcompanhamento = ({ navigation }) => {
           ))}
         </Picker>
       </View>
-
       {loading ? (
         <ActivityIndicator size="large" />
       ) : (
@@ -172,6 +170,11 @@ const PainelAcompanhamento = ({ navigation }) => {
           columnWrapperStyle={{ justifyContent: 'space-between' }}
         />
       )}
+      <TouchableOpacity
+        style={styles.botaoCriar}
+        onPress={() => navigation.navigate('OsCriacao')}>
+        <Text style={styles.botaoCriarTexto}>+ Criar O.S.</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -219,6 +222,18 @@ const styles = StyleSheet.create({
   tipo: { fontSize: 14, marginBottom: 2 },
   problema: { fontSize: 14, fontStyle: 'italic', color: '#555' },
   data: { fontSize: 12, color: '#666' },
+  botaoCriar: {
+    backgroundColor: '#007bff',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignItems: 'center',
+  },
+  botaoCriarTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 })
 
 export default PainelAcompanhamento

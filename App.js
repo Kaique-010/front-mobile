@@ -24,6 +24,7 @@ import ContratosList from './screens/Contratos'
 import PainelAcompanhamento from './screens/PainelOs'
 import OrdemDetalhe from './screens/OrdemDetalhe'
 import MoviCaixaScreen from './screens/MoviCaixa'
+import OSCreateScreen from './componentsOs/OsCriacao'
 
 const Stack = createNativeStackNavigator()
 
@@ -185,6 +186,16 @@ export default function App() {
           name="OrdemDetalhe"
           component={OrdemDetalhe}
           options={{ title: 'Detalhes da OS' }}
+        />
+        <Stack.Screen
+          name="OsCriacao"
+          component={OSCreateScreen}
+          options={{
+            title: 'Abertura O.S',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
         />
         <Stack.Screen
           name="SaidasForm"

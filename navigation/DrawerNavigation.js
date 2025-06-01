@@ -68,7 +68,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      {hasModulo('contratos') && (
+      {hasModulo('financeiro') && (
         <Drawer.Screen
           name="Caixa"
           component={CaixaGeralScreen}
@@ -126,16 +126,17 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-
-      <Drawer.Screen
-        name="Painel de Acompanhamento de O'S"
-        component={PainelAcompanhamento}
-        options={{
-          drawerIcon: ({ color, size }) => (
-            <Icon name="users" color={color} size={size} />
-          ),
-        }}
-      />
+      {hasModulo('ordemdeservico') && (
+        <Drawer.Screen
+          name="Painel de Acompanhamento de O'S"
+          component={PainelAcompanhamento}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="users" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
 
       {hasModulo('pedidos') && (
         <Drawer.Screen
@@ -172,7 +173,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      {hasModulo('dashboards') && (
+      {hasModulo('dash') && (
         <Drawer.Screen
           name="Dashboard"
           component={Dashboard}

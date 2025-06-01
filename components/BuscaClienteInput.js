@@ -124,7 +124,6 @@ export default function BuscaClienteInput({
 
   return (
     <View>
-      
       <TextInput
         style={[
           styles.inputcliente,
