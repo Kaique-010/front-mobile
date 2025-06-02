@@ -7,9 +7,11 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native'
-import ItensModalOs from './ItensModalOs' // ajuste o caminho conforme seu projeto
+import Toast from 'react-native-toast-message'
+import ItensModalOs from './ItensModalOs'
+import { apiPostComContexto } from '../utils/api'
 
-export default function AbaProdutos({ onSalvarPecas }) {
+export default function AbaProdutos({ onSalvarPecas, ordemId }) {
   const [produtos, setProdutos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
   const [itemEditando, setItemEditando] = useState(null)
@@ -33,16 +35,27 @@ export default function AbaProdutos({ onSalvarPecas }) {
     setItemEditando(null)
     setModalVisivel(true)
   }
+  const salvarPecas = async (produtos) => {
+    try {
+      const payload = produtos.map((p) => ({
+        peca_prod: p.peca_prod,
+        peca_quan: p.peca_quan,
+        peca_unit: p.peca_unit,
+        peca_tota: p.peca_tota,
+        ordem_codigo: ordemId, // Certifique-se que ordemId existe!
+      }))
 
-  // Aqui ordena e salva as peças, manda pro callback externo
-  const salvarPecas = () => {
-    // a ordem da lista é a ordem natural do array
-    onSalvarPecas(produtos)
+      await apiPostComContexto('/ordemservicopecas/', payload)
+      Toast.show({ type: 'success', text1: 'Peças salvas com sucesso' })
+    } catch (err) {
+      Toast.show({ type: 'error', text1: 'Erro ao salvar peças' })
+      console.error(err)
+    }
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Produtos da venda:</Text>
+      <Text style={styles.titulo}>Produtos da O.S:</Text>
 
       {produtos.length === 0 && (
         <Text style={styles.vazio}>Nenhum produto adicionado.</Text>
@@ -76,7 +89,10 @@ export default function AbaProdutos({ onSalvarPecas }) {
       </TouchableOpacity>
 
       {produtos.length > 0 && (
-        <TouchableOpacity style={styles.botaoSalvar} onPress={salvarPecas}>
+        <TouchableOpacity
+          style={[styles.botaoSalvar, !produtos.length && { opacity: 0.5 }]}
+          onPress={() => salvarPecas(produtos)}
+          disabled={!produtos.length}>
           <Text style={styles.textoBotao}>Salvar Peças</Text>
         </TouchableOpacity>
       )}

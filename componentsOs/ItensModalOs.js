@@ -140,6 +140,8 @@ export default function ItensModalOs({
   LogBox.ignoreLogs([
     'VirtualizedLists should never be nested inside plain ScrollViews',
   ])
+
+  
   return (
     <Modal visible={visivel} animationType="slide">
       <KeyboardAwareScrollView
