@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://192.168.0.39:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'http://192.168.20.87:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -199,6 +199,35 @@ export const apiPostComContexto = async (
   const response = await apiFetch(fullEndpoint, 'post', paramsComContexto)
   return response.data
 }
+
+//Aceitar listas no Post
+export const apiPostComContextoList = async (
+  endpointSemApi,
+  lista = [],
+  prefixo = ''
+) => {
+  if (!Array.isArray(lista)) {
+    throw new Error('Payload deve ser uma lista')
+  }
+
+  const slug = await getSlug()
+  const fullEndpoint = `/api/${slug}/${endpointSemApi}`
+
+  const empresaId = await AsyncStorage.getItem('empresaId')
+  const filialId = await AsyncStorage.getItem('filialId')
+  const usuario_id = await AsyncStorage.getItem('usuario_id')
+
+  const payloadComContexto = lista.map((item) => ({
+    ...item,
+    ...(empresaId && { [`${prefixo}empr`]: empresaId }),
+    ...(filialId && { [`${prefixo}fili`]: filialId }),
+    ...(usuario_id && { [`${prefixo}usua`]: usuario_id }),
+  }))
+
+  const response = await apiFetch(fullEndpoint, 'post', payloadComContexto)
+  return response.data
+}
+
 
 export const apiPostComContextoSemFili = async (
   endpointSemApi,

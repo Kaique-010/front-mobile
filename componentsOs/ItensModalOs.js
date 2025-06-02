@@ -35,7 +35,7 @@ export default function ItensModalOs({
   useEffect(() => {
     if (itemEditando) {
       setForm({
-        produtoId: itemEditando.peca_prod?.toString() || '',
+        produtoId: itemEditando.peca_codi?.toString() || '',
         quantidade: itemEditando.peca_quan?.toString() || '',
         preco: itemEditando.peca_unit?.toString() || '',
         produtoNome: itemEditando.produto_nome || '',
@@ -120,8 +120,8 @@ export default function ItensModalOs({
     const total = quantidadeNum * precoNum
 
     const novoItem = {
-      id: itemEditando?.id || Date.now().toString(), 
-      peca_prod: parseInt(form.produtoId),
+      id: itemEditando?.id || Date.now().toString(),
+      peca_codi: parseInt(form.produtoId),
       peca_quan: quantidadeNum,
       peca_unit: precoNum,
       peca_tota: total,
@@ -141,7 +141,6 @@ export default function ItensModalOs({
     'VirtualizedLists should never be nested inside plain ScrollViews',
   ])
 
-  
   return (
     <Modal visible={visivel} animationType="slide">
       <KeyboardAwareScrollView

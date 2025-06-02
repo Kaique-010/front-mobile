@@ -163,13 +163,14 @@ export default function CriarOrdemServico() {
             setPecas={(pecasNovas) =>
               setOrdemServico((prev) => ({ ...prev, pecas: pecasNovas }))
             }
+            orde_nume={numeroOS}
           />
         )}
 
         {abaAtiva === 'servicos' && (
           <AbaServicos
-            ordemServico={ordemServico}
-            setOrdemServico={setOrdemServico}
+            servicos={ordemServico.servicos}
+            setServicos={setOrdemServico}
           />
         )}
 

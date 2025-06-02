@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import {
   View,
   Text,
-  Button,
   FlatList,
   StyleSheet,
   TouchableOpacity,
@@ -11,15 +10,18 @@ import Toast from 'react-native-toast-message'
 import ItensModalOs from './ItensModalOs'
 import { apiPostComContexto } from '../utils/api'
 
-export default function AbaProdutos({ onSalvarPecas, ordemId }) {
+export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
   const [produtos, setProdutos] = useState([])
+  const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
   const [itemEditando, setItemEditando] = useState(null)
 
   const adicionarOuEditarProduto = (novoItem, itemEditando) => {
-    if (itemEditando) {
+    if (itemEditando?.peca_id) {
       setProdutos((prev) =>
-        prev.map((p) => (p.id === itemEditando.id ? novoItem : p))
+        prev.map((p) =>
+          p.peca_id === itemEditando.peca_id ? { ...novoItem } : p
+        )
       )
     } else {
       setProdutos((prev) => [...prev, novoItem])
@@ -35,21 +37,55 @@ export default function AbaProdutos({ onSalvarPecas, ordemId }) {
     setItemEditando(null)
     setModalVisivel(true)
   }
-  const salvarPecas = async (produtos) => {
+
+  const removerProduto = (item) => {
+    setProdutos((prev) => prev.filter((p) => p.peca_id !== item.peca_id))
+    if (item.peca_id) setRemovidos((prev) => [...prev, item])
+  }
+
+  const salvarPecas = async () => {
     try {
-      const payload = produtos.map((p) => ({
-        peca_prod: p.peca_prod,
-        peca_quan: p.peca_quan,
-        peca_unit: p.peca_unit,
-        peca_tota: p.peca_tota,
-        ordem_codigo: ordemId, // Certifique-se que ordemId existe!
+      const adicionar = produtos
+        .filter((p) => !p.peca_id)
+        .map((p) => ({
+          peca_orde: orde_nume,
+          peca_codi: p.peca_codi,
+          peca_quan: p.peca_quan,
+          peca_unit: p.peca_unit,
+          peca_tota: p.peca_tota,
+          peca_empr: 1,
+          peca_fili: 1,
+        }))
+
+      const editar = produtos
+        .filter((p) => p.peca_id) 
+        .map((p) => ({
+          peca_id: p.peca_id,
+          peca_orde: orde_nume,
+          peca_codi: p.peca_codi,
+          peca_quan: p.peca_quan,
+          peca_unit: p.peca_unit,
+          peca_tota: p.peca_tota,
+          peca_empr: 1,
+          peca_fili: 1,
+        }))
+
+      const remover = removidos.map((r) => ({
+        peca_empr: 1,
+        peca_fili: 1,
+        peca_orde: orde_nume,
+        peca_id: r.peca_id,
       }))
 
-      await apiPostComContexto('/ordemservicopecas/', payload)
+      const payload = { adicionar, editar, remover }
+
+      await apiPostComContexto(`ordemdeservico/pecas/update-lista/`, payload)
+
       Toast.show({ type: 'success', text1: 'Peças salvas com sucesso' })
+      setRemovidos([])
     } catch (err) {
       Toast.show({ type: 'error', text1: 'Erro ao salvar peças' })
-      console.error(err)
+      console.error('❌ API ERROR:', err.response?.data || err.message)
     }
   }
 
@@ -63,20 +99,35 @@ export default function AbaProdutos({ onSalvarPecas, ordemId }) {
 
       <FlatList
         data={produtos}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) =>
+          item.peca_id ? `id-${item.peca_id}` : `novo-${index}`
+        }
         renderItem={({ item, index }) => (
           <View style={styles.produto}>
             <Text style={styles.prodNome}>
               {index + 1}. {item.produto_nome || 'Sem nome'}
             </Text>
-            <Text>Qtd: {item.peca_quan}</Text>
-            <Text>Preço Unit.: R$ {item.peca_unit.toFixed(2)}</Text>
-            <Text>Total: R$ {item.peca_tota.toFixed(2)}</Text>
+            <Text style={{ color: 'white' }}>Qtd: {item.peca_quan}</Text>
+            <Text style={{ color: 'white' }}>
+              Preço Unit.: R$ {item.peca_unit.toFixed(2)}
+            </Text>
+            <Text style={{ color: 'white' }}>
+              Total: R$ {item.peca_tota.toFixed(2)}
+            </Text>
 
             <TouchableOpacity
               style={styles.botaoEditar}
               onPress={() => abrirModalParaEditar(item)}>
               <Text style={styles.textoBotao}>Editar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.botaoEditar,
+                { backgroundColor: '#c0392b', marginTop: 5 },
+              ]}
+              onPress={() => removerProduto(item)}>
+              <Text style={styles.textoBotao}>Remover</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -89,10 +140,7 @@ export default function AbaProdutos({ onSalvarPecas, ordemId }) {
       </TouchableOpacity>
 
       {produtos.length > 0 && (
-        <TouchableOpacity
-          style={[styles.botaoSalvar, !produtos.length && { opacity: 0.5 }]}
-          onPress={() => salvarPecas(produtos)}
-          disabled={!produtos.length}>
+        <TouchableOpacity style={styles.botaoSalvar} onPress={salvarPecas}>
           <Text style={styles.textoBotao}>Salvar Peças</Text>
         </TouchableOpacity>
       )}
@@ -148,7 +196,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   botaoSalvar: {
-    backgroundColor: '#ffa500',
+    backgroundColor: '#17a054',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
