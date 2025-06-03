@@ -130,6 +130,11 @@ const PainelAcompanhamento = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.indicadores}>
+        <TouchableOpacity
+          style={styles.botaoCriar}
+          onPress={() => navigation.navigate('OsCriacao')}>
+          <Text style={styles.botaoCriarTexto}>+ Criar O.S.</Text>
+        </TouchableOpacity>
         {renderIndicador('Abertas', contadores.abertas, '#d1ecf1')}
         {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
         {renderIndicador('Concluídas', contadores.concluidas, '#d4edda')}
@@ -170,11 +175,6 @@ const PainelAcompanhamento = ({ navigation }) => {
           columnWrapperStyle={{ justifyContent: 'space-between' }}
         />
       )}
-      <TouchableOpacity
-        style={styles.botaoCriar}
-        onPress={() => navigation.navigate('OsCriacao')}>
-        <Text style={styles.botaoCriarTexto}>+ Criar O.S.</Text>
-      </TouchableOpacity>
     </View>
   )
 }
@@ -223,14 +223,14 @@ const styles = StyleSheet.create({
   problema: { fontSize: 14, fontStyle: 'italic', color: '#555' },
   data: { fontSize: 12, color: '#666' },
   botaoCriar: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#284665',
     padding: 12,
     borderRadius: 8,
     marginVertical: 10,
     alignItems: 'center',
   },
   botaoCriarTexto: {
-    color: '#fff',
+    color: '#f0f8ff',
     fontWeight: 'bold',
     fontSize: 16,
   },

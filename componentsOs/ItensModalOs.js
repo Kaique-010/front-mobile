@@ -95,12 +95,7 @@ export default function ItensModalOs({
       })
 
       scrollRef.current?.scrollTo({ y: 0, animated: true })
-    } catch (err) {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao buscar produto',
-      })
-    }
+    } catch (err) {}
 
     setIsScanningModal(false)
   }

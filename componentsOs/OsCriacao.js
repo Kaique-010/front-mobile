@@ -170,7 +170,9 @@ export default function CriarOrdemServico() {
         {abaAtiva === 'servicos' && (
           <AbaServicos
             servicos={ordemServico.servicos}
-            setServicos={setOrdemServico}
+            setServicos={(servicosNovos) =>
+              setOrdemServico((prev) => ({ ...prev, servicos: servicosNovos }))
+            }
           />
         )}
 

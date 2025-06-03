@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -10,22 +10,51 @@ import Toast from 'react-native-toast-message'
 import ItensModalOs from './ItensModalOs'
 import { apiPostComContexto } from '../utils/api'
 
-export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
-  const [produtos, setProdutos] = useState([])
+export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
   const [itemEditando, setItemEditando] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Estado local sincronizado com props
+  const [produtos, setProdutos] = useState(pecas)
+
+  useEffect(() => {
+    setProdutos(pecas)
+  }, [pecas])
+
+  const sincronizarComPai = (novos) => {
+    setProdutos(novos)
+    setPecas(novos)
+  }
 
   const adicionarOuEditarProduto = (novoItem, itemEditando) => {
+    let atualizados
     if (itemEditando?.peca_id) {
-      setProdutos((prev) =>
-        prev.map((p) =>
-          p.peca_id === itemEditando.peca_id ? { ...novoItem } : p
-        )
+      // Editando item salvo no back-end
+      atualizados = produtos.map((p) =>
+        p.peca_id === itemEditando.peca_id ? { ...novoItem } : p
+      )
+    } else if (itemEditando) {
+      // Editando item novo, sem ID ainda
+      atualizados = produtos.map((p) =>
+        !p.peca_id && p.peca_codi === itemEditando.peca_codi
+          ? { ...novoItem }
+          : p
       )
     } else {
-      setProdutos((prev) => [...prev, novoItem])
+      // Adicionando novo produto
+      const existe = produtos.some(
+        (p) => !p.peca_id && p.peca_codi === novoItem.peca_codi
+      )
+      if (existe) {
+        Toast.show({ type: 'error', text1: 'Produto já adicionado' })
+        return
+      }
+      atualizados = [...produtos, novoItem]
     }
+
+    sincronizarComPai(atualizados)
   }
 
   const abrirModalParaEditar = (item) => {
@@ -39,16 +68,15 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
   }
 
   const removerProduto = (item) => {
-    setProdutos((prev) => prev.filter((p) => p.peca_id !== item.peca_id))
-    if (item.peca_id) setRemovidos((prev) => [...prev, item])
+    const atualizados = produtos.filter((p) => p !== item)
+    sincronizarComPai(atualizados)
+    if (item.peca_id) {
+      setRemovidos((prev) => [...prev, item])
+    }
   }
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const salvarPecas = async () => {
-    // Bloqueia múltiplos envios
     if (isSubmitting) return
-
     setIsSubmitting(true)
 
     try {
@@ -65,7 +93,9 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
         }))
 
       const editar = produtos
-        .filter((p) => p.peca_id)
+        .filter(
+          (p) => p.peca_id && !removidos.find((r) => r.peca_id === p.peca_id)
+        )
         .map((p) => ({
           peca_id: p.peca_id,
           peca_orde: orde_nume,
@@ -77,19 +107,49 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
           peca_fili: 1,
         }))
 
-      const remover = removidos.map((r) => ({
-        peca_empr: 1,
-        peca_fili: 1,
-        peca_orde: orde_nume,
-        peca_id: r.peca_id,
-      }))
+      const remover = removidos
+        .filter((r) => r.peca_id)
+        .map((r) => ({
+          peca_empr: 1,
+          peca_fili: 1,
+          peca_orde: orde_nume,
+          peca_id: r.peca_id,
+        }))
 
       const payload = { adicionar, editar, remover }
 
-      await apiPostComContexto(`ordemdeservico/pecas/update-lista/`, payload)
+      const response = await apiPostComContexto(
+        `ordemdeservico/pecas/update-lista/`,
+        payload
+      )
+
+      // Mapeia os itens adicionados já com ID do banco
+      const novosComId =
+        response?.data?.adicionados?.map((item) => {
+          const original = produtos.find(
+            (p) => !p.peca_id && p.peca_codi === item.peca_codi
+          )
+          return {
+            ...item,
+            produto_nome:
+              original?.produto_nome ?? item?.produto_nome ?? 'Produto',
+            peca_quan: item.peca_quan ?? original?.peca_quan,
+            peca_unit: item.peca_unit ?? original?.peca_unit,
+            peca_tota: item.peca_tota ?? original?.peca_tota,
+          }
+        }) || []
+
+      // Mantém os itens já com ID e que não foram removidos
+      const mantidos = produtos.filter(
+        (p) => p.peca_id && !removidos.find((r) => r.peca_id === p.peca_id)
+      )
+
+      // Atualiza o estado local e do pai com a lista consolidada
+      const atualizados = [...mantidos, ...novosComId]
+      sincronizarComPai(atualizados)
+      setRemovidos([])
 
       Toast.show({ type: 'success', text1: 'Peças salvas com sucesso' })
-      setRemovidos([])
     } catch (err) {
       Toast.show({
         type: 'error',
@@ -98,10 +158,10 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
       })
       console.error('❌ API ERROR:', err.response?.data || err.message)
     } finally {
-      // Libera o botão após conclusão (sucesso ou erro)
       setIsSubmitting(false)
     }
   }
+
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Produtos da O.S:</Text>
@@ -113,7 +173,9 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
       <FlatList
         data={produtos}
         keyExtractor={(item, index) =>
-          item.peca_id ? `id-${item.peca_id}` : `novo-${index}`
+          item.peca_id
+            ? `id-${item.peca_id}`
+            : `novo-${item.peca_codi}-${index}`
         }
         renderItem={({ item, index }) => (
           <View style={styles.produto}>
@@ -156,9 +218,10 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
         <TouchableOpacity
           style={styles.botaoSalvar}
           onPress={salvarPecas}
-          disabled={isSubmitting}
-          title={isSubmitting ? 'Salvando...' : 'Salvar Peças'}>
-          <Text style={styles.textoBotao}>Salvar Peças</Text>
+          disabled={isSubmitting}>
+          <Text style={styles.textoBotao}>
+            {isSubmitting ? 'Salvando...' : 'Salvar Peças'}
+          </Text>
         </TouchableOpacity>
       )}
 
