@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://192.168.20.87:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'http://192.168.0.39:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -227,7 +227,6 @@ export const apiPostComContextoList = async (
   const response = await apiFetch(fullEndpoint, 'post', payloadComContexto)
   return response.data
 }
-
 
 export const apiPostComContextoSemFili = async (
   endpointSemApi,

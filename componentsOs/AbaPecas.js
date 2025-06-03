@@ -43,7 +43,14 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
     if (item.peca_id) setRemovidos((prev) => [...prev, item])
   }
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const salvarPecas = async () => {
+    // Bloqueia múltiplos envios
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
     try {
       const adicionar = produtos
         .filter((p) => !p.peca_id)
@@ -58,7 +65,7 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
         }))
 
       const editar = produtos
-        .filter((p) => p.peca_id) 
+        .filter((p) => p.peca_id)
         .map((p) => ({
           peca_id: p.peca_id,
           peca_orde: orde_nume,
@@ -84,11 +91,17 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
       Toast.show({ type: 'success', text1: 'Peças salvas com sucesso' })
       setRemovidos([])
     } catch (err) {
-      Toast.show({ type: 'error', text1: 'Erro ao salvar peças' })
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao salvar peças',
+        text2: err.response?.data?.message || 'Tente novamente mais tarde',
+      })
       console.error('❌ API ERROR:', err.response?.data || err.message)
+    } finally {
+      // Libera o botão após conclusão (sucesso ou erro)
+      setIsSubmitting(false)
     }
   }
-
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Produtos da O.S:</Text>
@@ -140,7 +153,11 @@ export default function AbaProdutos({ onSalvarPecas, orde_nume }) {
       </TouchableOpacity>
 
       {produtos.length > 0 && (
-        <TouchableOpacity style={styles.botaoSalvar} onPress={salvarPecas}>
+        <TouchableOpacity
+          style={styles.botaoSalvar}
+          onPress={salvarPecas}
+          disabled={isSubmitting}
+          title={isSubmitting ? 'Salvando...' : 'Salvar Peças'}>
           <Text style={styles.textoBotao}>Salvar Peças</Text>
         </TouchableOpacity>
       )}
