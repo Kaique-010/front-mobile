@@ -2,11 +2,11 @@
   "expo": {
     "name": "SpsMobile",
     "slug": "front-mobile-sps",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+   "newArchEnabled": false,  
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
