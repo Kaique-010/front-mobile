@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import { apiGetComContextoos } from '../utils/api'
+import { Ionicons } from '@expo/vector-icons'
 
 const STATUS_OPTIONS = [
   { label: 'Todas', value: null },
@@ -95,6 +96,11 @@ const PainelAcompanhamento = ({ navigation }) => {
     fetchOrdens()
   }, [filtroStatus, filtroPrioridade])
 
+  const getStatusText = (status) => {
+    const option = STATUS_OPTIONS.find(opt => opt.value === status)
+    return option ? option.label : '-'
+  }
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[
@@ -104,19 +110,37 @@ const PainelAcompanhamento = ({ navigation }) => {
           borderLeftColor: prioridadeColors[item.orde_prio] || '#aaa',
         },
       ]}
+      activeOpacity={0.7}
       onPress={() => navigation.navigate('OrdemDetalhe', { ordem: item })}>
       <View style={styles.cardHeader}>
-        <Text style={styles.numero}>OS #{item.orde_nume}</Text>
-        <Text style={styles.prioridade}>
-          {item.orde_prio?.toUpperCase?.() || '-'}
+        <View style={styles.numeroContainer}>
+          <Text style={styles.numeroLabel}>OS</Text>
+          <Text style={styles.numero}>#{item.orde_nume}</Text>
+        </View>
+        <View style={[styles.prioridadeContainer, { backgroundColor: prioridadeColors[item.orde_prio] }]}>
+          <Text style={styles.prioridade}>
+            {item.orde_prio === 1 ? 'Normal' : item.orde_prio === 2 ? 'Alerta' : item.orde_prio === 3 ? 'Urgente' : '-'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.clienteNome} numberOfLines={1}>
+          {item.orde_clie_nome || 'Cliente não informado'}
+        </Text>
+
+        <View style={styles.infoRow}>
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusLabel}>Status:</Text>
+            <Text style={styles.status}>{getStatusText(item.orde_stat_orde)}</Text>
+          </View>
+          <Text style={styles.data}>{item.orde_data_aber || '-'}</Text>
+        </View>
+
+        <Text style={styles.problema} numberOfLines={2}>
+          {item.orde_prob || 'Sem descrição do problema'}
         </Text>
       </View>
-      <Text style={styles.status}>Status: {item.orde_stat_orde || '-'}</Text>
-      <Text style={styles.tipo}>Tipo: {item.orde_tipo || '-'}</Text>
-      <Text style={styles.problema} numberOfLines={1}>
-        Problema: {item.orde_prob || '-'}
-      </Text>
-      <Text style={styles.data}>Abertura: {item.orde_data_aber || '-'}</Text>
     </TouchableOpacity>
   )
 
@@ -132,47 +156,63 @@ const PainelAcompanhamento = ({ navigation }) => {
       <View style={styles.indicadores}>
         <TouchableOpacity
           style={styles.botaoCriar}
+          activeOpacity={0.7}
           onPress={() => navigation.navigate('OsCriacao')}>
-          <Text style={styles.botaoCriarTexto}>+ Criar O.S.</Text>
+          <Ionicons name="add-circle" size={20} color="#fff" />
+          <Text style={styles.botaoCriarTexto}>Nova O.S.</Text>
         </TouchableOpacity>
         {renderIndicador('Abertas', contadores.abertas, '#d1ecf1')}
         {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
         {renderIndicador('Concluídas', contadores.concluidas, '#d4edda')}
         {renderIndicador('Total', contadores.total, '#eee')}
       </View>
+
       <View style={styles.filtros}>
-        <Picker
-          selectedValue={filtroStatus}
-          onValueChange={setFiltroStatus}
-          style={styles.picker}>
-          {STATUS_OPTIONS.map(({ label, value }) => (
-            <Picker.Item key={label} label={label} value={value} />
-          ))}
-        </Picker>
-        <Picker
-          selectedValue={filtroPrioridade}
-          onValueChange={setFiltroPrioridade}
-          style={styles.picker}>
-          {PRIORIDADE_OPTIONS.map(({ label, value }) => (
-            <Picker.Item key={label} label={label} value={value} />
-          ))}
-        </Picker>
+        <View style={styles.pickerContainer}>
+          <Text style={styles.pickerLabel}>Status</Text>
+          <Picker
+            selectedValue={filtroStatus}
+            onValueChange={setFiltroStatus}
+            style={styles.picker}>
+            {STATUS_OPTIONS.map(({ label, value }) => (
+              <Picker.Item key={label} label={label} value={value} />
+            ))}
+          </Picker>
+        </View>
+
+        <View style={styles.pickerContainer}>
+          <Text style={styles.pickerLabel}>Prioridade</Text>
+          <Picker
+            selectedValue={filtroPrioridade}
+            onValueChange={setFiltroPrioridade}
+            style={styles.picker}>
+            {PRIORIDADE_OPTIONS.map(({ label, value }) => (
+              <Picker.Item key={label} label={label} value={value} />
+            ))}
+          </Picker>
+        </View>
       </View>
+
       {loading ? (
-        <ActivityIndicator size="large" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#284665" />
+          <Text style={styles.loadingText}>Carregando ordens...</Text>
+        </View>
       ) : (
         <FlatList
           data={ordens}
           keyExtractor={(item) => item.orde_nume.toString()}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
-            <Text style={{ textAlign: 'center', marginTop: 20 }}>
-              Nenhuma OS encontrada
-            </Text>
+            <View style={styles.emptyContainer}>
+              <Ionicons name="document-text-outline" size={48} color="#666" />
+              <Text style={styles.emptyText}>Nenhuma OS encontrada</Text>
+              <Text style={styles.emptySubtext}>Ajuste os filtros ou crie uma nova O.S.</Text>
+            </View>
           }
           numColumns={2}
-          columnWrapperStyle={{ justifyContent: 'space-between' }}
+          columnWrapperStyle={styles.columnWrapper}
         />
       )}
     </View>
@@ -180,7 +220,11 @@ const PainelAcompanhamento = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12, backgroundColor: '#f7f7f7' },
+  container: { 
+    flex: 1, 
+    padding: 12, 
+    backgroundColor: '#f7f7f7' 
+  },
   indicadores: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -193,15 +237,39 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    elevation: 2,
   },
-  indicadorLabel: { fontWeight: 'bold', fontSize: 10, marginBottom: 4 },
-  indicadorValor: { fontSize: 20, fontWeight: 'bold' },
+  indicadorLabel: { 
+    fontWeight: 'bold', 
+    fontSize: 10, 
+    marginBottom: 4,
+    opacity: 0.7
+  },
+  indicadorValor: { 
+    fontSize: 20, 
+    fontWeight: 'bold' 
+  },
   filtros: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    elevation: 2,
   },
-  picker: { flex: 1, backgroundColor: '#fff', marginHorizontal: 5 },
+  pickerContainer: {
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  pickerLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  picker: { 
+    backgroundColor: '#fff',
+  },
   card: {
     flex: 1,
     margin: 5,
@@ -209,30 +277,117 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 6,
     elevation: 3,
-    maxWidth: '45%',
+    maxWidth: '48%',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  numero: { fontWeight: 'bold', fontSize: 16 },
-  prioridade: { fontWeight: 'bold', fontSize: 14, color: '#333' },
-  status: { fontSize: 14, marginBottom: 2 },
-  tipo: { fontSize: 14, marginBottom: 2 },
-  problema: { fontSize: 14, fontStyle: 'italic', color: '#555' },
-  data: { fontSize: 12, color: '#666' },
-  botaoCriar: {
-    backgroundColor: '#284665',
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 10,
+  numeroContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  botaoCriarTexto: {
-    color: '#f0f8ff',
+  numeroLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginRight: 4,
+  },
+  numero: { 
+    fontWeight: 'bold', 
+    fontSize: 16 
+  },
+  prioridadeContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  prioridade: { 
+    fontSize: 11,
+    color: '#fff',
     fontWeight: 'bold',
+  },
+  cardBody: {
+    gap: 8,
+  },
+  clienteNome: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  status: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  data: {
+    fontSize: 11,
+    color: '#666',
+  },
+  problema: {
+    fontSize: 12,
+    color: '#555',
+    fontStyle: 'italic',
+  },
+  botaoCriar: {
+    backgroundColor: '#284665',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 8,
+    gap: 6,
+    elevation: 2,
+  },
+  botaoCriarTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  listContainer: {
+    paddingBottom: 30,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
     fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 5,
   },
 })
 

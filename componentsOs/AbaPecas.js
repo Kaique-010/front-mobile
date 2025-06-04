@@ -5,30 +5,118 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import ItensModalOs from './ItensModalOs'
-import { apiPostComContexto } from '../utils/api'
+import { apiPostComContexto, apiGetComContexto } from '../utils/api'
+import { Ionicons } from '@expo/vector-icons'
 
 export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
   const [itemEditando, setItemEditando] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Estado local sincronizado com props
+  const [isLoading, setIsLoading] = useState(true)
   const [produtos, setProdutos] = useState(pecas)
 
+  // Carrega as peças existentes quando o componente monta ou quando o orde_nume muda
   useEffect(() => {
-    setProdutos(pecas)
-  }, [pecas])
+    if (orde_nume) {
+      carregarPecasExistentes()
+    }
+  }, [orde_nume])
+
+  const carregarPecasExistentes = async () => {
+    try {
+      setIsLoading(true)
+      console.log('Carregando peças para OS:', orde_nume)
+      
+      const response = await apiGetComContexto(
+        'ordemdeservico/pecas/',
+        {
+          peca_orde: orde_nume,
+          peca_empr: 1,
+          peca_fili: 1
+        }
+      )
+      
+      console.log('Resposta da API:', response)
+
+      // Verifica se a resposta tem a estrutura paginada
+      const pecasArray = response?.results || response || []
+
+      if (Array.isArray(pecasArray) && pecasArray.length > 0) {
+        const pecasFormatadas = pecasArray.map(peca => ({
+          peca_id: peca.peca_id,
+          peca_codi: peca.peca_codi,
+          peca_quan: parseFloat(peca.peca_quan),
+          peca_unit: parseFloat(peca.peca_unit),
+          peca_tota: parseFloat(peca.peca_tota),
+          produto_nome: peca.produto_nome || 'Produto',
+        }))
+        
+        console.log('Peças formatadas:', pecasFormatadas)
+        setProdutos(pecasFormatadas)
+        setPecas(pecasFormatadas)
+      } else {
+        console.log('Nenhuma peça encontrada')
+        setProdutos([])
+        setPecas([])
+      }
+    } catch (error) {
+      console.error('Erro detalhado ao carregar peças:', error.response?.data || error.message)
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao carregar peças',
+        text2: Array.isArray(error.response?.data) 
+          ? error.response.data[0] 
+          : 'Não foi possível carregar as peças existentes',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const sincronizarComPai = (novos) => {
     setProdutos(novos)
     setPecas(novos)
   }
 
+  const validarProduto = (novoItem) => {
+    if (!novoItem.peca_codi) {
+      Toast.show({
+        type: 'error',
+        text1: 'Produto inválido',
+        text2: 'Selecione um produto válido',
+      })
+      return false
+    }
+
+    if (!novoItem.peca_quan || novoItem.peca_quan <= 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Quantidade inválida',
+        text2: 'A quantidade deve ser maior que zero',
+      })
+      return false
+    }
+
+    if (!novoItem.peca_unit || novoItem.peca_unit <= 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Preço inválido',
+        text2: 'O preço unitário deve ser maior que zero',
+      })
+      return false
+    }
+
+    return true
+  }
+
   const adicionarOuEditarProduto = (novoItem, itemEditando) => {
+    if (!validarProduto(novoItem)) return
+
     let atualizados
     if (itemEditando?.peca_id) {
       // Editando item salvo no back-end
@@ -48,13 +136,22 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
         (p) => !p.peca_id && p.peca_codi === novoItem.peca_codi
       )
       if (existe) {
-        Toast.show({ type: 'error', text1: 'Produto já adicionado' })
+        Toast.show({
+          type: 'error',
+          text1: 'Produto já adicionado',
+          text2: 'Este produto já está na lista',
+        })
         return
       }
       atualizados = [...produtos, novoItem]
     }
 
     sincronizarComPai(atualizados)
+    Toast.show({
+      type: 'success',
+      text1: itemEditando ? 'Produto atualizado' : 'Produto adicionado',
+      text2: novoItem.produto_nome,
+    })
   }
 
   const abrirModalParaEditar = (item) => {
@@ -73,6 +170,11 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
     if (item.peca_id) {
       setRemovidos((prev) => [...prev, item])
     }
+    Toast.show({
+      type: 'success',
+      text1: 'Produto removido',
+      text2: item.produto_nome,
+    })
   }
 
   const salvarPecas = async () => {
@@ -87,7 +189,7 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
           peca_codi: p.peca_codi,
           peca_quan: p.peca_quan,
           peca_unit: p.peca_unit,
-          peca_tota: p.peca_tota,
+          peca_tota: p.peca_quan * p.peca_unit, // Calculando o total
           peca_empr: 1,
           peca_fili: 1,
         }))
@@ -102,7 +204,7 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
           peca_codi: p.peca_codi,
           peca_quan: p.peca_quan,
           peca_unit: p.peca_unit,
-          peca_tota: p.peca_tota,
+          peca_tota: p.peca_quan * p.peca_unit, // Calculando o total
           peca_empr: 1,
           peca_fili: 1,
         }))
@@ -118,110 +220,129 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
 
       const payload = { adicionar, editar, remover }
 
+      console.log('Enviando payload:', payload)
+
       const response = await apiPostComContexto(
-        `ordemdeservico/pecas/update-lista/`,
+        'ordemdeservico/pecas/update-lista/',
         payload
       )
 
-      // Mapeia os itens adicionados já com ID do banco
-      const novosComId =
-        response?.data?.adicionados?.map((item) => {
-          const original = produtos.find(
-            (p) => !p.peca_id && p.peca_codi === item.peca_codi
-          )
-          return {
-            ...item,
-            produto_nome:
-              original?.produto_nome ?? item?.produto_nome ?? 'Produto',
-            peca_quan: item.peca_quan ?? original?.peca_quan,
-            peca_unit: item.peca_unit ?? original?.peca_unit,
-            peca_tota: item.peca_tota ?? original?.peca_tota,
-          }
-        }) || []
+      console.log('Resposta do servidor após salvar:', response)
 
-      // Mantém os itens já com ID e que não foram removidos
-      const mantidos = produtos.filter(
-        (p) => p.peca_id && !removidos.find((r) => r.peca_id === p.peca_id)
-      )
-
-      // Atualiza o estado local e do pai com a lista consolidada
-      const atualizados = [...mantidos, ...novosComId]
-      sincronizarComPai(atualizados)
+      // Após salvar com sucesso, recarrega as peças
+      await carregarPecasExistentes()
+      
       setRemovidos([])
 
-      Toast.show({ type: 'success', text1: 'Peças salvas com sucesso' })
+      Toast.show({
+        type: 'success',
+        text1: 'Peças salvas com sucesso',
+        text2: `${adicionar.length} adicionadas, ${editar.length} editadas, ${remover.length} removidas`,
+      })
     } catch (err) {
+      console.error('Erro detalhado ao salvar:', err.response?.data || err.message)
       Toast.show({
         type: 'error',
         text1: 'Erro ao salvar peças',
-        text2: err.response?.data?.message || 'Tente novamente mais tarde',
+        text2: Array.isArray(err.response?.data) 
+          ? err.response.data[0] 
+          : 'Tente novamente mais tarde',
       })
-      console.error('❌ API ERROR:', err.response?.data || err.message)
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const renderItem = ({ item }) => (
+    <View style={styles.produto}>
+      <View style={styles.produtoHeader}>
+        <Text style={styles.prodNome}>
+          {item.produto_nome || 'Sem nome'}
+        </Text>
+        <View style={styles.botoesContainer}>
+          <TouchableOpacity
+            style={[styles.botaoAcao, styles.botaoEditar]}
+            onPress={() => abrirModalParaEditar(item)}>
+            <Ionicons name="pencil" size={18} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.botaoAcao, styles.botaoRemover]}
+            onPress={() => removerProduto(item)}>
+            <Ionicons name="trash" size={18} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.produtoInfo}>
+        <View style={styles.infoItem}>
+          <Text style={styles.infoLabel}>Quantidade:</Text>
+          <Text style={styles.infoValor}>{item.peca_quan.toFixed(4)}</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <Text style={styles.infoLabel}>Preço Unit.:</Text>
+          <Text style={styles.infoValor}>
+            R$ {item.peca_unit.toFixed(4)}
+          </Text>
+        </View>
+        <View style={styles.infoItem}>
+          <Text style={styles.infoLabel}>Total:</Text>
+          <Text style={styles.infoValor}>
+            R$ {item.peca_tota.toFixed(4)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  )
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#10a2a7" />
+        <Text style={styles.loadingText}>Carregando peças...</Text>
+      </View>
+    )
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Produtos da O.S:</Text>
-
-      {produtos.length === 0 && (
-        <Text style={styles.vazio}>Nenhum produto adicionado.</Text>
-      )}
-
-      <FlatList
-        data={produtos}
-        keyExtractor={(item, index) =>
-          item.peca_id
-            ? `id-${item.peca_id}`
-            : `novo-${item.peca_codi}-${index}`
-        }
-        renderItem={({ item, index }) => (
-          <View style={styles.produto}>
-            <Text style={styles.prodNome}>
-              {index + 1}. {item.produto_nome || 'Sem nome'}
-            </Text>
-            <Text style={{ color: 'white' }}>Qtd: {item.peca_quan}</Text>
-            <Text style={{ color: 'white' }}>
-              Preço Unit.: R$ {item.peca_unit.toFixed(2)}
-            </Text>
-            <Text style={{ color: 'white' }}>
-              Total: R$ {item.peca_tota.toFixed(2)}
-            </Text>
-
-            <TouchableOpacity
-              style={styles.botaoEditar}
-              onPress={() => abrirModalParaEditar(item)}>
-              <Text style={styles.textoBotao}>Editar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.botaoEditar,
-                { backgroundColor: '#c0392b', marginTop: 5 },
-              ]}
-              onPress={() => removerProduto(item)}>
-              <Text style={styles.textoBotao}>Remover</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
-
       <TouchableOpacity
         style={styles.botaoAdicionar}
         onPress={abrirModalParaAdicionar}>
+        <Ionicons name="add-circle" size={24} color="white" style={styles.icone} />
         <Text style={styles.textoBotao}>Adicionar Produto</Text>
       </TouchableOpacity>
 
-      {produtos.length > 0 && (
+      <FlatList
+        data={produtos}
+        keyExtractor={(item) => item.peca_id?.toString() || `temp-${item.peca_codi}-${Date.now()}`}
+        renderItem={renderItem}
+        contentContainerStyle={styles.lista}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="cube-outline" size={48} color="#666" />
+            <Text style={styles.emptyText}>
+              Nenhuma peça adicionada
+            </Text>
+            <Text style={styles.emptySubtext}>
+              Toque no botão acima para adicionar peças
+            </Text>
+          </View>
+        }
+      />
+
+      {produtos.length > 0 && !isLoading && (
         <TouchableOpacity
-          style={styles.botaoSalvar}
+          style={[styles.botaoSalvar, isSubmitting && styles.botaoDesabilitado]}
           onPress={salvarPecas}
           disabled={isSubmitting}>
-          <Text style={styles.textoBotao}>
-            {isSubmitting ? 'Salvando...' : 'Salvar Peças'}
-          </Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Ionicons name="save" size={24} color="white" style={styles.icone} />
+              <Text style={styles.textoBotao}>Salvar Peças</Text>
+            </>
+          )}
         </TouchableOpacity>
       )}
 
@@ -236,51 +357,126 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a2f3d', padding: 20 },
-  titulo: {
-    color: 'white',
-    fontSize: 18,
-    marginBottom: 10,
-    textAlign: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: '#1a2f3d',
+    padding: 20,
   },
-  vazio: {
-    color: 'gray',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 20,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: 'white',
+    marginTop: 10,
+    fontSize: 16,
+  },
+  lista: {
+    flexGrow: 1,
   },
   produto: {
     backgroundColor: '#232935',
-    borderRadius: 8,
     padding: 15,
+    borderRadius: 8,
     marginBottom: 15,
+  },
+  produtoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   prodNome: {
     color: '#10a2a7',
     fontWeight: 'bold',
     fontSize: 16,
-    marginBottom: 5,
+    flex: 1,
   },
-  botaoEditar: {
-    marginTop: 10,
-    backgroundColor: '#10a2a7',
+  botoesContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  botaoAcao: {
     padding: 8,
     borderRadius: 6,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botaoEditar: {
+    backgroundColor: '#10a2a7',
+  },
+  botaoRemover: {
+    backgroundColor: '#c0392b',
+  },
+  produtoInfo: {
+    backgroundColor: '#1a2f3d',
+    borderRadius: 6,
+    padding: 10,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  infoLabel: {
+    color: '#999',
+    fontSize: 14,
+  },
+  infoValor: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   botaoAdicionar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#10a2a7',
     padding: 15,
     borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
+    marginBottom: 20,
   },
   botaoSalvar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#17a054',
     padding: 15,
     borderRadius: 8,
-    alignItems: 'center',
     marginTop: 15,
   },
-  textoBotao: { color: 'white', fontWeight: 'bold' },
+  botaoDesabilitado: {
+    opacity: 0.7,
+  },
+  textoBotao: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  icone: {
+    marginRight: 8,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    marginTop: 40,
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 18,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    color: '#666',
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 })
