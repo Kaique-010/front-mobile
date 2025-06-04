@@ -9,7 +9,6 @@ export default function useItensListaCasamento({
   empresaId,
   filialId,
   listaId,
-  clienteId,
 }) {
   const [itensSalvos, setItensSalvos] = useState([])
   const [selecionados, setSelecionados] = useState([])
@@ -88,7 +87,7 @@ export default function useItensListaCasamento({
           item_empr: empresaId,
           item_fili: filialId,
           item_list: listaId,
-          item_clie: clienteId,
+          item_clie: 0,
           item_usua: usuarioId,
           item_pedi: 0,
           item_item: item.prod_codi,
