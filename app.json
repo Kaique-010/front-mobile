@@ -38,7 +38,7 @@
         {
           "cameraPermission": "Permitir acesso à câmera",
           "microphonePermission": "Permitir acesso ao microfone",
-          "recordAudioAndroid": true
+          "recordAudioAndroid": false
         }
       ]
     ],
