@@ -15,6 +15,7 @@ import { apiPostComContexto } from '../utils/api'
 import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
 import AbaFotos from '../componentsOs/AbaForos'
+import AbaTotais from '../componentsOs/AbaTotais'
 import Toast from 'react-native-toast-message'
 
 export default function CriarOrdemServico() {
@@ -25,7 +26,7 @@ export default function CriarOrdemServico() {
   const [numeroOS, setNumeroOS] = useState(null)
 
   const [ordemServico, setOrdemServico] = useState({
-    orde_clie: null,
+    orde_enti: null,
     orde_clie_nome: '',
     orde_data_abertura: new Date().toISOString(),
     pecas: [],
@@ -34,7 +35,7 @@ export default function CriarOrdemServico() {
   })
 
   const validarOrdemServico = () => {
-    if (!ordemServico.orde_clie) {
+    if (!ordemServico.orde_enti) {
       Toast.show({
         type: 'error',
         text1: 'Cliente não selecionado',
@@ -60,6 +61,7 @@ export default function CriarOrdemServico() {
 
     setIsSubmitting(true)
     try {
+      console.log('Estado atual do ordemServico:', ordemServico)
       const payload = {
         ...ordemServico,
         orde_empr: empresaId.toString(),
@@ -72,7 +74,10 @@ export default function CriarOrdemServico() {
       delete payload.usuarioId
       delete payload.orde_nume
 
+      console.log('Payload a ser enviado:', payload)
+
       const data = await apiPostComContexto('ordemdeservico/ordens/', payload)
+      console.log('Resposta da API após criar O.S.:', data)
 
       if (!data.orde_nume) {
         throw new Error('Número da O.S não retornado pelo servidor')
@@ -80,7 +85,7 @@ export default function CriarOrdemServico() {
 
       setNumeroOS(data.orde_nume)
       setAbaAtiva('pecas')
-      
+
       Toast.show({
         type: 'success',
         text1: 'O.S criada com sucesso!',
@@ -99,7 +104,13 @@ export default function CriarOrdemServico() {
 
   if (carregando) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#121212',
+        }}>
         <ActivityIndicator size="large" color="#10a2a7" />
         <Text style={{ color: '#fff', marginTop: 10 }}>Carregando...</Text>
       </View>
@@ -111,7 +122,7 @@ export default function CriarOrdemServico() {
       <View style={{ padding: 20 }}>
         {/* Abas */}
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          {['cliente', 'pecas', 'servicos', 'fotos'].map((aba) => (
+          {['cliente', 'pecas', 'servicos', 'fotos', 'totais'].map((aba) => (
             <TouchableOpacity
               key={aba}
               onPress={() => setAbaAtiva(aba)}
@@ -150,7 +161,9 @@ export default function CriarOrdemServico() {
                 onPress={() => setShowDatePicker(true)}
                 style={styles.datePickerButton}>
                 <Text style={{ color: '#fff' }}>
-                  {new Date(ordemServico.orde_data_abertura).toLocaleDateString()}
+                  {new Date(
+                    ordemServico.orde_data_abertura
+                  ).toLocaleDateString()}
                 </Text>
               </TouchableOpacity>
 
@@ -176,7 +189,7 @@ export default function CriarOrdemServico() {
                 onSelect={(item) => {
                   setOrdemServico((prev) => ({
                     ...prev,
-                    orde_clie: item.enti_clie,
+                    orde_enti: item.enti_clie,
                     orde_clie_nome: item.enti_nome,
                   }))
                 }}
@@ -210,7 +223,10 @@ export default function CriarOrdemServico() {
             <AbaServicos
               servicos={ordemServico.servicos}
               setServicos={(servicosNovos) =>
-                setOrdemServico((prev) => ({ ...prev, servicos: servicosNovos }))
+                setOrdemServico((prev) => ({
+                  ...prev,
+                  servicos: servicosNovos,
+                }))
               }
               orde_nume={numeroOS}
             />
@@ -222,6 +238,14 @@ export default function CriarOrdemServico() {
               setFotos={(fotosNovas) =>
                 setOrdemServico((prev) => ({ ...prev, fotos: fotosNovas }))
               }
+              orde_nume={numeroOS}
+            />
+          )}
+
+          {abaAtiva === 'totais' && numeroOS && (
+            <AbaTotais
+              pecas={ordemServico.pecas}
+              servicos={ordemServico.servicos}
               orde_nume={numeroOS}
             />
           )}

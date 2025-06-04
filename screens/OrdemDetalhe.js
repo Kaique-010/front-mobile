@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -9,16 +9,58 @@ import {
 import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
 import AbaFotos from '../componentsOs/AbaForos'
+import AbaTotais from '../componentsOs/AbaTotais'
+import { apiGetComContexto } from '../utils/api'
 
 const OrdemDetalhe = ({ route }) => {
   const { ordem } = route.params
   const [abaAtiva, setAbaAtiva] = useState('detalhes')
+  const [pecas, setPecas] = useState([])
+  const [servicos, setServicos] = useState([])
+
+  useEffect(() => {
+    carregarPecas()
+    carregarServicos()
+  }, [])
+
+  useEffect(() => {
+    if (abaAtiva === 'totais') {
+      carregarPecas()
+      carregarServicos()
+    }
+  }, [abaAtiva])
+
+  const carregarPecas = async () => {
+    try {
+      const response = await apiGetComContexto('ordemdeservico/pecas/', {
+        peca_orde: ordem.orde_nume,
+        peca_empr: ordem.orde_empr,
+        peca_fili: ordem.orde_fili,
+      })
+      setPecas(response?.results || [])
+    } catch (error) {
+      console.error('Erro ao carregar peças:', error)
+    }
+  }
+
+  const carregarServicos = async () => {
+    try {
+      const response = await apiGetComContexto('ordemdeservico/servicos/', {
+        serv_orde: ordem.orde_nume,
+        serv_empr: ordem.orde_empr,
+        serv_fili: ordem.orde_fili,
+      })
+      setServicos(response?.results || [])
+    } catch (error) {
+      console.error('Erro ao carregar serviços:', error)
+    }
+  }
 
   const renderDetalhes = () => (
     <ScrollView style={styles.detalhesContainer}>
       <View style={styles.infoCard}>
         <Text style={styles.cardTitle}>Informações Gerais</Text>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.label}>Tipo:</Text>
           <Text style={styles.value}>{ordem.orde_tipo || '-'}</Text>
@@ -33,11 +75,18 @@ const OrdemDetalhe = ({ route }) => {
           <Text style={styles.label}>Prioridade:</Text>
           <Text style={styles.value}>{ordem.orde_prio || '-'}</Text>
         </View>
+
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Total:</Text>
+          <Text style={[styles.value, styles.totalValue]}>
+            R$ {Number(ordem.orde_tota || 0).toFixed(2)}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.infoCard}>
         <Text style={styles.cardTitle}>Datas</Text>
-        
+
         <View style={styles.infoRow}>
           <Text style={styles.label}>Abertura:</Text>
           <Text style={styles.value}>{ordem.orde_data_aber || '-'}</Text>
@@ -51,7 +100,7 @@ const OrdemDetalhe = ({ route }) => {
 
       <View style={styles.infoCard}>
         <Text style={styles.cardTitle}>Descrições</Text>
-        
+
         <View style={styles.descriptionRow}>
           <Text style={styles.label}>Problema:</Text>
           <Text style={styles.value}>{ordem.orde_prob || '-'}</Text>
@@ -74,18 +123,15 @@ const OrdemDetalhe = ({ route }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>OS #{ordem.orde_nume}</Text>
-        <Text style={styles.subtitle}>{ordem.orde_clie_nome}</Text>
+        <Text style={styles.subtitle}>Cliente: {ordem.cliente_nome}</Text>
       </View>
 
       <View style={styles.tabs}>
-        {['detalhes', 'pecas', 'servicos', 'fotos'].map((aba) => (
+        {['detalhes', 'pecas', 'servicos', 'fotos', 'totais'].map((aba) => (
           <TouchableOpacity
             key={aba}
             onPress={() => setAbaAtiva(aba)}
-            style={[
-              styles.tab,
-              abaAtiva === aba && styles.tabActive,
-            ]}>
+            style={[styles.tab, abaAtiva === aba && styles.tabActive]}>
             <Text
               style={[
                 styles.tabText,
@@ -101,15 +147,15 @@ const OrdemDetalhe = ({ route }) => {
         {abaAtiva === 'detalhes' && renderDetalhes()}
         {abaAtiva === 'pecas' && (
           <AbaPecas
-            pecas={[]}
-            setPecas={() => {}}
+            pecas={pecas}
+            setPecas={setPecas}
             orde_nume={ordem.orde_nume}
           />
         )}
         {abaAtiva === 'servicos' && (
           <AbaServicos
-            servicos={[]}
-            setServicos={() => {}}
+            servicos={servicos}
+            setServicos={setServicos}
             orde_nume={ordem.orde_nume}
           />
         )}
@@ -118,6 +164,16 @@ const OrdemDetalhe = ({ route }) => {
             fotos={[]}
             setFotos={() => {}}
             orde_nume={ordem.orde_nume}
+          />
+        )}
+        {abaAtiva === 'totais' && (
+          <AbaTotais
+            pecas={pecas}
+            servicos={servicos}
+            orde_nume={ordem.orde_nume}
+            orde_clie={ordem.orde_enti}
+            orde_empr={ordem.orde_empr}
+            orde_fili={ordem.orde_fili}
           />
         )}
       </View>
@@ -141,8 +197,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#fff',
+    fontSize: 20,
+    color: '#faebd7',
     opacity: 0.8,
   },
   tabs: {
@@ -161,7 +217,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#10a2a7',
   },
   tabText: {
-    color: '#fff',
+    color: '#faebd7',
     opacity: 0.7,
   },
   tabTextActive: {
@@ -200,7 +256,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1a2f3d',
   },
   label: {
-    color: '#fff',
+    color: '#faebd7',
     opacity: 0.7,
     flex: 1,
   },
@@ -208,6 +264,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     flex: 2,
     textAlign: 'right',
+  },
+  totalValue: {
+    color: '#10a2a7',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 })
 

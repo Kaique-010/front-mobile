@@ -185,7 +185,12 @@ export default function App() {
         <Stack.Screen
           name="OrdemDetalhe"
           component={OrdemDetalhe}
-          options={{ title: 'Detalhes da OS' }}
+          options={{
+            title: 'Detalhes da OS',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
         />
         <Stack.Screen
           name="OsCriacao"

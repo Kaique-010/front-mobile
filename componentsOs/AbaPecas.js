@@ -31,23 +31,20 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
     try {
       setIsLoading(true)
       console.log('Carregando peças para OS:', orde_nume)
-      
-      const response = await apiGetComContexto(
-        'ordemdeservico/pecas/',
-        {
-          peca_orde: orde_nume,
-          peca_empr: 1,
-          peca_fili: 1
-        }
-      )
-      
+
+      const response = await apiGetComContexto('ordemdeservico/pecas/', {
+        peca_orde: orde_nume,
+        peca_empr: 1,
+        peca_fili: 1,
+      })
+
       console.log('Resposta da API:', response)
 
       // Verifica se a resposta tem a estrutura paginada
       const pecasArray = response?.results || response || []
 
       if (Array.isArray(pecasArray) && pecasArray.length > 0) {
-        const pecasFormatadas = pecasArray.map(peca => ({
+        const pecasFormatadas = pecasArray.map((peca) => ({
           peca_id: peca.peca_id,
           peca_codi: peca.peca_codi,
           peca_quan: parseFloat(peca.peca_quan),
@@ -55,7 +52,7 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
           peca_tota: parseFloat(peca.peca_tota),
           produto_nome: peca.produto_nome || 'Produto',
         }))
-        
+
         console.log('Peças formatadas:', pecasFormatadas)
         setProdutos(pecasFormatadas)
         setPecas(pecasFormatadas)
@@ -65,12 +62,15 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
         setPecas([])
       }
     } catch (error) {
-      console.error('Erro detalhado ao carregar peças:', error.response?.data || error.message)
+      console.error(
+        'Erro detalhado ao carregar peças:',
+        error.response?.data || error.message
+      )
       Toast.show({
         type: 'error',
         text1: 'Erro ao carregar peças',
-        text2: Array.isArray(error.response?.data) 
-          ? error.response.data[0] 
+        text2: Array.isArray(error.response?.data)
+          ? error.response.data[0]
           : 'Não foi possível carregar as peças existentes',
       })
     } finally {
@@ -231,7 +231,7 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
 
       // Após salvar com sucesso, recarrega as peças
       await carregarPecasExistentes()
-      
+
       setRemovidos([])
 
       Toast.show({
@@ -240,12 +240,15 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
         text2: `${adicionar.length} adicionadas, ${editar.length} editadas, ${remover.length} removidas`,
       })
     } catch (err) {
-      console.error('Erro detalhado ao salvar:', err.response?.data || err.message)
+      console.error(
+        'Erro detalhado ao salvar:',
+        err.response?.data || err.message
+      )
       Toast.show({
         type: 'error',
         text1: 'Erro ao salvar peças',
-        text2: Array.isArray(err.response?.data) 
-          ? err.response.data[0] 
+        text2: Array.isArray(err.response?.data)
+          ? err.response.data[0]
           : 'Tente novamente mais tarde',
       })
     } finally {
@@ -256,9 +259,7 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
   const renderItem = ({ item }) => (
     <View style={styles.produto}>
       <View style={styles.produtoHeader}>
-        <Text style={styles.prodNome}>
-          {item.produto_nome || 'Sem nome'}
-        </Text>
+        <Text style={styles.prodNome}>{item.produto_nome || 'Sem nome'}</Text>
         <View style={styles.botoesContainer}>
           <TouchableOpacity
             style={[styles.botaoAcao, styles.botaoEditar]}
@@ -280,15 +281,11 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
         </View>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Preço Unit.:</Text>
-          <Text style={styles.infoValor}>
-            R$ {item.peca_unit.toFixed(4)}
-          </Text>
+          <Text style={styles.infoValor}>R$ {item.peca_unit.toFixed(4)}</Text>
         </View>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Total:</Text>
-          <Text style={styles.infoValor}>
-            R$ {item.peca_tota.toFixed(4)}
-          </Text>
+          <Text style={styles.infoValor}>R$ {item.peca_tota.toFixed(4)}</Text>
         </View>
       </View>
     </View>
@@ -308,21 +305,26 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
       <TouchableOpacity
         style={styles.botaoAdicionar}
         onPress={abrirModalParaAdicionar}>
-        <Ionicons name="add-circle" size={24} color="white" style={styles.icone} />
+        <Ionicons
+          name="add-circle"
+          size={24}
+          color="white"
+          style={styles.icone}
+        />
         <Text style={styles.textoBotao}>Adicionar Produto</Text>
       </TouchableOpacity>
 
       <FlatList
         data={produtos}
-        keyExtractor={(item) => item.peca_id?.toString() || `temp-${item.peca_codi}-${Date.now()}`}
+        keyExtractor={(item) =>
+          item.peca_id?.toString() || `temp-${item.peca_codi}-${Date.now()}`
+        }
         renderItem={renderItem}
         contentContainerStyle={styles.lista}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={48} color="#666" />
-            <Text style={styles.emptyText}>
-              Nenhuma peça adicionada
-            </Text>
+            <Text style={styles.emptyText}>Nenhuma peça adicionada</Text>
             <Text style={styles.emptySubtext}>
               Toque no botão acima para adicionar peças
             </Text>
@@ -339,7 +341,12 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
             <ActivityIndicator color="white" />
           ) : (
             <>
-              <Ionicons name="save" size={24} color="white" style={styles.icone} />
+              <Ionicons
+                name="save"
+                size={24}
+                color="white"
+                style={styles.icone}
+              />
               <Text style={styles.textoBotao}>Salvar Peças</Text>
             </>
           )}
@@ -444,7 +451,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#17a054',
     padding: 15,
     borderRadius: 8,
-    marginTop: 15,
+    marginBottom: 40,
   },
   botaoDesabilitado: {
     opacity: 0.7,

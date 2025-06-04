@@ -97,7 +97,7 @@ const PainelAcompanhamento = ({ navigation }) => {
   }, [filtroStatus, filtroPrioridade])
 
   const getStatusText = (status) => {
-    const option = STATUS_OPTIONS.find(opt => opt.value === status)
+    const option = STATUS_OPTIONS.find((opt) => opt.value === status)
     return option ? option.label : '-'
   }
 
@@ -117,22 +117,34 @@ const PainelAcompanhamento = ({ navigation }) => {
           <Text style={styles.numeroLabel}>OS</Text>
           <Text style={styles.numero}>#{item.orde_nume}</Text>
         </View>
-        <View style={[styles.prioridadeContainer, { backgroundColor: prioridadeColors[item.orde_prio] }]}>
+        <View
+          style={[
+            styles.prioridadeContainer,
+            { backgroundColor: prioridadeColors[item.orde_prio] },
+          ]}>
           <Text style={styles.prioridade}>
-            {item.orde_prio === 1 ? 'Normal' : item.orde_prio === 2 ? 'Alerta' : item.orde_prio === 3 ? 'Urgente' : '-'}
+            {item.orde_prio === 1
+              ? 'Normal'
+              : item.orde_prio === 2
+              ? 'Alerta'
+              : item.orde_prio === 3
+              ? 'Urgente'
+              : '-'}
           </Text>
         </View>
       </View>
 
       <View style={styles.cardBody}>
         <Text style={styles.clienteNome} numberOfLines={1}>
-          {item.orde_clie_nome || 'Cliente não informado'}
+          {item.cliente_nome || 'Cliente não informado'}
         </Text>
 
         <View style={styles.infoRow}>
           <View style={styles.statusContainer}>
             <Text style={styles.statusLabel}>Status:</Text>
-            <Text style={styles.status}>{getStatusText(item.orde_stat_orde)}</Text>
+            <Text style={styles.status}>
+              {getStatusText(item.orde_stat_orde)}
+            </Text>
           </View>
           <Text style={styles.data}>{item.orde_data_aber || '-'}</Text>
         </View>
@@ -208,7 +220,9 @@ const PainelAcompanhamento = ({ navigation }) => {
             <View style={styles.emptyContainer}>
               <Ionicons name="document-text-outline" size={48} color="#666" />
               <Text style={styles.emptyText}>Nenhuma OS encontrada</Text>
-              <Text style={styles.emptySubtext}>Ajuste os filtros ou crie uma nova O.S.</Text>
+              <Text style={styles.emptySubtext}>
+                Ajuste os filtros ou crie uma nova O.S.
+              </Text>
             </View>
           }
           numColumns={2}
@@ -220,10 +234,10 @@ const PainelAcompanhamento = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 12, 
-    backgroundColor: '#f7f7f7' 
+  container: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: '#f7f7f7',
   },
   indicadores: {
     flexDirection: 'row',
@@ -239,15 +253,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 2,
   },
-  indicadorLabel: { 
-    fontWeight: 'bold', 
-    fontSize: 10, 
+  indicadorLabel: {
+    fontWeight: 'bold',
+    fontSize: 10,
     marginBottom: 4,
-    opacity: 0.7
+    opacity: 0.7,
   },
-  indicadorValor: { 
-    fontSize: 20, 
-    fontWeight: 'bold' 
+  indicadorValor: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   filtros: {
     flexDirection: 'row',
@@ -267,7 +281,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 4,
   },
-  picker: { 
+  picker: {
     backgroundColor: '#fff',
   },
   card: {
@@ -294,16 +308,16 @@ const styles = StyleSheet.create({
     color: '#666',
     marginRight: 4,
   },
-  numero: { 
-    fontWeight: 'bold', 
-    fontSize: 16 
+  numero: {
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   prioridadeContainer: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  prioridade: { 
+  prioridade: {
     fontSize: 11,
     color: '#fff',
     fontWeight: 'bold',

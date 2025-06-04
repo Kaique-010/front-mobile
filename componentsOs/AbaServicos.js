@@ -32,22 +32,19 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     try {
       setIsLoading(true)
       console.log('Carregando serviços para OS:', orde_nume)
-      
-      const response = await apiGetComContexto(
-        'ordemdeservico/servicos/',
-        {
-          serv_orde: orde_nume,
-          serv_empr: 1,
-          serv_fili: 1
-        }
-      )
-      
+
+      const response = await apiGetComContexto('ordemdeservico/servicos/', {
+        serv_orde: orde_nume,
+        serv_empr: 1,
+        serv_fili: 1,
+      })
+
       console.log('Resposta da API:', response)
 
       const servicosArray = response?.results || response || []
 
       if (Array.isArray(servicosArray)) {
-        const servicosFormatados = servicosArray.map(servico => ({
+        const servicosFormatados = servicosArray.map((servico) => ({
           serv_id: servico.serv_id,
           serv_codi: servico.serv_codi,
           serv_quan: parseFloat(servico.serv_quan),
@@ -56,7 +53,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_comp: servico.serv_comp,
           servico_nome: servico.servico_nome || 'Serviço',
         }))
-        
+
         console.log('Serviços formatados:', servicosFormatados)
         setServicosLista(servicosFormatados)
         setServicos(servicosFormatados)
@@ -66,11 +63,16 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         setServicos([])
       }
     } catch (error) {
-      console.error('Erro ao carregar serviços:', error.response?.data || error.message)
+      console.error(
+        'Erro ao carregar serviços:',
+        error.response?.data || error.message
+      )
       Toast.show({
         type: 'error',
         text1: 'Erro ao carregar serviços',
-        text2: error.response?.data?.error || 'Não foi possível carregar os serviços existentes',
+        text2:
+          error.response?.data?.error ||
+          'Não foi possível carregar os serviços existentes',
       })
       setServicosLista([])
       setServicos([])
@@ -156,7 +158,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_tota: s.serv_quan * s.serv_unit,
           serv_comp: s.serv_comp || '',
           serv_empr: '1',
-          serv_fili: '1'
+          serv_fili: '1',
         }))
 
       const editar = servicosLista
@@ -172,7 +174,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_tota: s.serv_quan * s.serv_unit,
           serv_comp: s.serv_comp || '',
           serv_empr: '1',
-          serv_fili: '1'
+          serv_fili: '1',
         }))
 
       const remover = removidos
@@ -181,15 +183,15 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_id: r.serv_id,
           serv_orde: orde_nume.toString(),
           serv_empr: '1',
-          serv_fili: '1'
+          serv_fili: '1',
         }))
 
-      const payload = { 
-        adicionar, 
-        editar, 
+      const payload = {
+        adicionar,
+        editar,
         remover,
         empr: '1',
-        fili: '1'
+        fili: '1',
       }
 
       console.log('Enviando payload:', payload)
@@ -214,7 +216,10 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       Toast.show({
         type: 'error',
         text1: 'Erro ao salvar serviços',
-        text2: err.response?.data?.error || err.message || 'Tente novamente mais tarde',
+        text2:
+          err.response?.data?.error ||
+          err.message ||
+          'Tente novamente mais tarde',
       })
     } finally {
       setIsSubmitting(false)
@@ -224,9 +229,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
   const renderItem = ({ item }) => (
     <View style={styles.servico}>
       <View style={styles.servicoHeader}>
-        <Text style={styles.servNome}>
-          {item.servico_nome || 'Sem nome'}
-        </Text>
+        <Text style={styles.servNome}>{item.servico_nome || 'Sem nome'}</Text>
         <View style={styles.botoesContainer}>
           <TouchableOpacity
             style={[styles.botaoAcao, styles.botaoEditar]}
@@ -248,15 +251,11 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         </View>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Preço Unit.:</Text>
-          <Text style={styles.infoValor}>
-            R$ {item.serv_unit.toFixed(4)}
-          </Text>
+          <Text style={styles.infoValor}>R$ {item.serv_unit.toFixed(4)}</Text>
         </View>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Total:</Text>
-          <Text style={styles.infoValor}>
-            R$ {item.serv_tota.toFixed(4)}
-          </Text>
+          <Text style={styles.infoValor}>R$ {item.serv_tota.toFixed(4)}</Text>
         </View>
         {item.serv_comp ? (
           <View style={styles.complemento}>
@@ -276,7 +275,12 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           setItemEditando(null)
           setModalVisivel(true)
         }}>
-        <Ionicons name="add-circle" size={24} color="white" style={styles.icone} />
+        <Ionicons
+          name="add-circle"
+          size={24}
+          color="white"
+          style={styles.icone}
+        />
         <Text style={styles.textoBotao}>Adicionar Serviço</Text>
       </TouchableOpacity>
 
@@ -288,15 +292,15 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       ) : (
         <FlatList
           data={servicosLista}
-          keyExtractor={(item) => item.serv_id?.toString() || `temp-${item.serv_codi}-${Date.now()}`}
+          keyExtractor={(item) =>
+            item.serv_id?.toString() || `temp-${item.serv_codi}-${Date.now()}`
+          }
           renderItem={renderItem}
           contentContainerStyle={styles.lista}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="construct-outline" size={48} color="#666" />
-              <Text style={styles.emptyText}>
-                Nenhum serviço adicionado
-              </Text>
+              <Text style={styles.emptyText}>Nenhum serviço adicionado</Text>
               <Text style={styles.emptySubtext}>
                 Toque no botão acima para adicionar serviços
               </Text>
@@ -314,7 +318,12 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
             <ActivityIndicator color="white" />
           ) : (
             <>
-              <Ionicons name="save" size={24} color="white" style={styles.icone} />
+              <Ionicons
+                name="save"
+                size={24}
+                color="white"
+                style={styles.icone}
+              />
               <Text style={styles.textoBotao}>Salvar Serviços</Text>
             </>
           )}
@@ -435,6 +444,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginTop: 15,
+    marginBottom: 40,
   },
   botaoDesabilitado: {
     opacity: 0.7,
