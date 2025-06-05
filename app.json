@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-   "newArchEnabled": false,  
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -26,22 +26,35 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "black"
       },
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Permitir acesso à câmera",
-          "microphonePermission": "Permitir acesso ao microfone",
-          "recordAudioAndroid": false
-        }
-      ]
-    ],
+  "expo-font",
+  [
+    "expo-camera",
+    {
+      "cameraPermission": "Permitir acesso à câmera",
+      "microphonePermission": "Permitir acesso ao microfone",
+      "recordAudioAndroid": false
+    }
+  ],
+  [
+    "expo-build-properties",
+    {
+      "android": {
+        "compileSdkVersion": 35,
+        "targetSdkVersion": 34,
+        "buildToolsVersion": "35.0.0"
+      }
+    }
+  ]
+],
+
     "extra": {
       "eas": {
         "projectId": "f67c96b2-c0c0-466a-b244-fe205b575bef"

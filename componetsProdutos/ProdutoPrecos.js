@@ -31,23 +31,47 @@ export default function ProdutoPrecos({ atualizarProduto }) {
       const cacheKey = `precos-produto-${produto.prod_codi}`
       let tabela
 
-      // tenta do AsyncStorage
-      const json = await AsyncStorage.getItem(cacheKey)
-      if (json) {
-        tabela = JSON.parse(json)
-      } else {
-        // tenta da prop
-        tabela = produto.precos?.[0] || null
+      try {
+        // tenta do AsyncStorage
+        const json = await AsyncStorage.getItem(cacheKey)
+        if (json) {
+          tabela = JSON.parse(json)
+        } else {
+          // tenta da prop
+          tabela = produto.precos?.[0] || null
+        }
+
+        if (!tabela) return
+
+        // Setar valores básicos
+        setPrecoCompra(String(tabela.tabe_prco || ''))
+        setPrecoCusto(String(tabela.tabe_cuge || ''))
+        setAVista(String(tabela.tabe_avis || ''))
+        setAPrazo(String(tabela.tabe_apra || ''))
+
+        // Se temos percentuais salvos, usar eles
+        if (tabela.percentual_avis !== undefined) {
+          setPercentualAVista(String(tabela.percentual_avis))
+        } else if (tabela.tabe_prco && tabela.tabe_avis) {
+          // Senão, calcular a partir dos preços
+          const percAVista = ((tabela.tabe_avis / tabela.tabe_prco - 1) * 100).toFixed(2)
+          setPercentualAVista(String(percAVista))
+        }
+
+        if (tabela.percentual_apra !== undefined) {
+          setPercentualAPrazo(String(tabela.percentual_apra))
+        } else if (tabela.tabe_prco && tabela.tabe_apra) {
+          const percAPrazo = ((tabela.tabe_apra / tabela.tabe_prco - 1) * 100).toFixed(2)
+          setPercentualAPrazo(String(percAPrazo))
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+        Toast.show({
+          type: 'error',
+          text1: 'Erro',
+          text2: 'Não foi possível carregar os dados dos preços',
+        })
       }
-
-      if (!tabela) return
-
-      setPrecoCompra(String(tabela.tabe_prco || ''))
-      setPrecoCusto(String(tabela.tabe_cuge || ''))
-      setAVista(String(tabela.tabe_avis || ''))
-      setAPrazo(String(tabela.tabe_apra || ''))
-      setPercentualAVista(String(tabela.percentual_avis || '10'))
-      setPercentualAPrazo(String(tabela.percentual_apra || '20'))
     }
 
     carregarOuIniciarCampos()
@@ -63,17 +87,48 @@ export default function ProdutoPrecos({ atualizarProduto }) {
     setAPrazo((preco * (1 + pPrazo / 100)).toFixed(2))
   }, [precoCompra, percentualAVista, percentualAPrazo])
 
+  const validarCampos = () => {
+    if (!precoCompra || parseFloat(precoCompra) <= 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'O preço de compra deve ser maior que zero',
+      })
+      return false
+    }
+
+    if (!percentualAVista || parseFloat(percentualAVista) < 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'O percentual à vista deve ser maior ou igual a zero',
+      })
+      return false
+    }
+
+    if (!percentualAPrazo || parseFloat(percentualAPrazo) < 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'O percentual a prazo deve ser maior ou igual a zero',
+      })
+      return false
+    }
+
+    return true
+  }
+
   const salvar = async () => {
+    if (!validarCampos()) return
+    
     setLoading(true)
 
     const payload = {
       tabe_empr: parseInt(slug?.empresa) || 1,
       tabe_fili: parseInt(slug?.filial) || 1,
-      tabe_prod: parseInt(produto.prod_codi),
+      tabe_prod: String(produto.prod_codi), // Garantir que seja string
       tabe_prco: parseFloat(precoCompra.replace(',', '.')) || 0,
       tabe_cuge: parseFloat(precoCusto.replace(',', '.')) || 0,
-      tabe_avis: parseFloat(aVista.replace(',', '.')) || 0,
-      tabe_apra: parseFloat(aPrazo.replace(',', '.')) || 0,
       percentual_avis: parseFloat(percentualAVista.replace(',', '.')) || 0,
       percentual_apra: parseFloat(percentualAPrazo.replace(',', '.')) || 0,
     }
@@ -81,30 +136,56 @@ export default function ProdutoPrecos({ atualizarProduto }) {
     const chave = `${payload.tabe_empr}-${payload.tabe_fili}-${payload.tabe_prod}`
 
     try {
+      let response
       // tenta PUT (atualizar)
-      await apiPutComContexto(`produtos/tabelapreco/${chave}/`, payload)
-    } catch (error) {
-      if (error?.response?.status === 404) {
-        // se não existe, cria com POST
-        await apiPostComContexto(`produtos/tabelapreco/`, payload)
-      } else {
-        throw error
+      try {
+        response = await apiPutComContexto(`produtos/tabelapreco/${chave}/`, payload)
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          // se não existe, cria com POST
+          response = await apiPostComContexto(`produtos/tabelapreco/`, payload)
+        } else {
+          throw error
+        }
       }
+
+      // Atualizar o cache com os dados retornados da API
+      const dadosAtualizados = response.data
+      await AsyncStorage.setItem(
+        `precos-produto-${produto.prod_codi}`,
+        JSON.stringify(dadosAtualizados)
+      )
+
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso!',
+        text2: 'Preços atualizados com sucesso',
+      })
+
+      // Atualizar o produto com os preços calculados pelo backend
+      atualizarProduto({ ...produto, precos: [dadosAtualizados] })
+      setTimeout(() => navigation.goBack(), 1000)
+    } catch (error) {
+      console.error('Erro ao salvar preços:', error)
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: error?.response?.data?.detail || 'Não foi possível salvar os preços',
+      })
+    } finally {
+      setLoading(false)
     }
+  }
 
-    Toast.show({
-      type: 'success',
-      text1: 'Sucesso!',
-      text2: 'Preços atualizados com sucesso',
-    })
-    await AsyncStorage.setItem(
-      `precos-produto-${produto.prod_codi}`,
-      JSON.stringify(payload)
-    )
-    atualizarProduto({ ...produto, precos: [payload] })
-    setTimeout(() => navigation.goBack(), 1000)
-
-    setLoading(false)
+  const formatarNumero = (valor) => {
+    // Remove caracteres não numéricos exceto vírgula
+    const numero = valor.replace(/[^\d,]/g, '')
+    // Garante apenas uma vírgula
+    const partes = numero.split(',')
+    if (partes.length > 2) {
+      return partes[0] + ',' + partes[1]
+    }
+    return numero
   }
 
   return (
@@ -112,20 +193,35 @@ export default function ProdutoPrecos({ atualizarProduto }) {
       <Campo
         label="Preço de Compra"
         value={precoCompra}
-        onChange={setPrecoCompra}
+        onChange={(valor) => setPrecoCompra(formatarNumero(valor))}
+        placeholder="0,00"
       />
       <Campo
         label="Percentual à Vista (%)"
         value={percentualAVista}
-        onChange={setPercentualAVista}
+        onChange={(valor) => setPercentualAVista(formatarNumero(valor))}
+        placeholder="0,00"
       />
       <Campo
         label="Percentual a Prazo (%)"
         value={percentualAPrazo}
-        onChange={setPercentualAPrazo}
+        onChange={(valor) => setPercentualAPrazo(formatarNumero(valor))}
+        placeholder="0,00"
       />
-      <Campo label="Preço à Vista" value={aVista} editable={false} dark />
-      <Campo label="Preço a Prazo" value={aPrazo} editable={false} dark />
+      <Campo 
+        label="Preço à Vista" 
+        value={aVista} 
+        editable={false} 
+        dark 
+        placeholder="0,00"
+      />
+      <Campo 
+        label="Preço a Prazo" 
+        value={aPrazo} 
+        editable={false} 
+        dark 
+        placeholder="0,00"
+      />
 
       <TouchableOpacity
         onPress={salvar}
@@ -141,7 +237,7 @@ export default function ProdutoPrecos({ atualizarProduto }) {
   )
 }
 
-function Campo({ label, value, onChange, editable = true, dark = false }) {
+function Campo({ label, value, onChange, editable = true, dark = false, placeholder }) {
   return (
     <>
       <Text style={styles.label}>{label}</Text>
@@ -150,6 +246,8 @@ function Campo({ label, value, onChange, editable = true, dark = false }) {
         onChangeText={onChange}
         editable={editable}
         keyboardType="decimal-pad"
+        placeholder={placeholder}
+        placeholderTextColor={dark ? '#666' : '#999'}
         style={[
           styles.input,
           !editable && {
