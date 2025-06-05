@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "black"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,7 +24,7 @@
       "package": "com.leokaique.SpsMobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "black"
+        "backgroundColor": "#000000"
       },
       "permissions": [
         "CAMERA"
@@ -34,27 +34,26 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-  "expo-font",
-  [
-    "expo-camera",
-    {
-      "cameraPermission": "Permitir acesso à câmera",
-      "microphonePermission": "Permitir acesso ao microfone",
-      "recordAudioAndroid": false
-    }
-  ],
-  [
-    "expo-build-properties",
-    {
-      "android": {
-        "compileSdkVersion": 35,
-        "targetSdkVersion": 34,
-        "buildToolsVersion": "35.0.0"
-      }
-    }
-  ]
-],
-
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir acesso à câmera",
+          "microphonePermission": "Permitir acesso ao microfone",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "f67c96b2-c0c0-466a-b244-fe205b575bef"
