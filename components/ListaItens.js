@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 
 export default function ListaItens({
@@ -13,13 +13,29 @@ export default function ListaItens({
         r.item_empr === item.item_empr &&
         r.item_fili === item.item_fili &&
         r.item_list === item.item_list &&
-        r.item_item === item.item_item
+        r.item_item === item.item_item &&
+        r.item_quan === item.item_quan
     )
 
   const idExibido = listaId ?? 'ID não disponível'
 
   // filtramos o item_pedi que for diferente de 0
-  const itensFiltrados = itensSalvos.filter((item) => item.item_pedi === 0)
+  const itensFiltrados = itensSalvos.filter((item) => {
+    const removidosMesmoItem = removidos.filter(
+      (r) =>
+        r.item_empr === item.item_empr &&
+        r.item_fili === item.item_fili &&
+        r.item_list === item.item_list &&
+        r.item_item === item.item_item
+    )
+
+    const totalRemovido = removidosMesmoItem.reduce(
+      (sum, r) => sum + Number(r.item_quan || 0),
+      0
+    )
+
+    return item.item_quan > totalRemovido
+  })
 
   return (
     <>
@@ -44,7 +60,8 @@ export default function ListaItens({
                 style={[styles.itemTexto, removido && styles.itemTextoRemovido]}
                 numberOfLines={1}
                 ellipsizeMode="tail">
-                • {item.produto_nome ?? 'Sem nome'} (ID: {item.item_prod})
+                • {(item.produto_nome ?? 'Sem nome').slice(0, 25)}... |{' '}
+                {item.item_quan}
               </Text>
             </View>
 
@@ -52,7 +69,7 @@ export default function ListaItens({
               <TouchableOpacity
                 onPress={() => marcarParaRemocao(item)}
                 style={styles.botaoRemover}>
-                <Text style={styles.textoBotao}>Remover</Text>
+                <Text style={styles.textoBotao}>x</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -67,7 +84,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 24,
     marginBottom: 8,
-    fontSize: 16,
+    fontSize: 14,
     color: 'white',
     textAlign: 'center',
   },

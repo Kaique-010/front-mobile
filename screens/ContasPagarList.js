@@ -12,6 +12,20 @@ import { getStoredData } from '../services/storageService'
 import { apiDeleteComContexto, apiGetComContexto } from '../utils/api'
 import styles from '../styles/listaContasStyles'
 
+const formatarData = (data) => {
+  if (!data) return '-'
+  const [ano, mes, dia] = data.split('-')
+  return `${dia}/${mes}/${ano}`
+}
+
+const formatarMoeda = (valor) => {
+  if (!valor) return 'R$ 0,00'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(valor)
+}
+
 export default function ContasPagarList({ navigation }) {
   const [contas, setContas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -82,39 +96,56 @@ export default function ContasPagarList({ navigation }) {
     '01': 'Cheque',
     '02': 'Promissória',
     '03': 'Recibo',
-    '50': 'cheque pré-datado',
-    '51': 'Cartão de crédito',
-    '52': 'Cartão de débito',
-    '53': 'Boleto bancário',
-    '54': 'Dinheiro',
-    '55': 'Deposito em conta',
-    '56': 'Venda à vista',
-    '60': 'PIX',
+    50: 'cheque pré-datado',
+    51: 'Cartão de crédito',
+    52: 'Cartão de débito',
+    53: 'Boleto bancário',
+    54: 'Dinheiro',
+    55: 'Deposito em conta',
+    56: 'Venda à vista',
+    60: 'PIX',
   }
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.status}>Titulo: {item.titu_titu}</Text>
-      <Text style={styles.numero}>Fornecedor: {item.titu_forn}</Text>
-      <Text style={styles.datalist}>Vencimento: {item.titu_venc}</Text>
-      <Text style={styles.cliente}>Valor: R$ {item.titu_valo}</Text>
-      <Text style={styles.empresa}>
-        Forma de Pagamento:{' '}
-        {statusMap[item.titu_form_reci] || item.titu_form_reci}
-      </Text>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{item.titu_titu}</Text>
+        <Text style={[styles.badge, { backgroundColor: '#007bff' }]}>
+          {statusMap[item.titu_form_reci] || item.titu_form_reci}
+        </Text>
+      </View>
+
+      <View style={styles.cardBody}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Fornecedor:</Text>
+          <Text style={styles.infoValue}>{item.titu_forn}</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Vencimento:</Text>
+          <Text style={styles.infoValue}>{formatarData(item.titu_venc)}</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Valor:</Text>
+          <Text style={[styles.infoValue, styles.valorDestaque]}>
+            {formatarMoeda(item.titu_valo)}
+          </Text>
+        </View>
+      </View>
 
       <View style={styles.actions}>
         <TouchableOpacity
-          style={styles.botao}
+          style={[styles.botao, styles.botaoEditar]}
           onPress={() =>
             navigation.navigate('ContaPagarForm', { conta: item })
           }>
-          <Text style={styles.botaoTexto}>✏️</Text>
+          <Text style={styles.botaoTexto}>✏️ Editar</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.botao}
+          style={[styles.botao, styles.botaoExcluir]}
           onPress={() => excluirConta(item.id)}>
-          <Text style={styles.botaoTexto}>🗑️</Text>
+          <Text style={styles.botaoTexto}>🗑️ Excluir</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -125,12 +125,22 @@ export default function App() {
         <Stack.Screen
           name="ContasPagarList"
           component={ContasPagarList}
-          options={{ title: 'Contas a Pagar' }}
+          options={{
+            title: 'Contas a Pagar',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
         />
         <Stack.Screen
           name="ContasReceberList"
           component={ContasReceberList}
-          options={{ title: 'Contas a receber' }}
+          options={{
+            title: 'Contas a receber',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
         />
         <Stack.Screen
           name="Entidades"

@@ -5,99 +5,136 @@ const styles = StyleSheet.create({
   // ====== Container Principal ======
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#1a1a2e',
     padding: 10,
   },
 
   // ====== Input de Busca ======
   searchContainer: {
-    flexDirection: 'row',
+    backgroundColor: '#162447',
+    padding: 10,
+    borderRadius: 8,
     marginBottom: 10,
+    elevation: 2,
   },
   input: {
-    flex: 1,
-    backgroundColor: '#222',
-    borderColor: '#007bff',
-    borderRadius: 8,
+    backgroundColor: '#1f4068',
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 8,
     borderWidth: 1,
+    borderColor: '#345686',
     color: '#fff',
-    height: 44,
-    marginRight: 8,
-    paddingHorizontal: 10,
   },
 
   // ====== Botão de Buscar ======
   searchButton: {
     backgroundColor: '#345686',
-    borderRadius: 8,
-    justifyContent: 'center',
-    padding: 10,
+    padding: 12,
+    borderRadius: 6,
+    marginTop: 4,
   },
   searchButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // ====== Botão de Incluir Lista ======
   incluirButton: {
     backgroundColor: '#345686',
+    padding: 12,
     borderRadius: 8,
     marginBottom: 10,
-    padding: 10,
+    elevation: 2,
   },
   incluirButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
     textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 
   // ====== Cartões de Lista ======
   card: {
-    backgroundColor: '#1a1a1a',
-    borderColor: '#007bff',
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 10,
+    backgroundColor: '#162447',
+    borderRadius: 10,
     padding: 15,
+    marginBottom: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#345686',
   },
-  numero: {
-    color: '#faebd7',
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#e2e8f0',
   },
-  data: {
-    color: '#aaa',
-    marginBottom: 30,
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  datalist: {
-    color: '#aaa',
-    marginBottom: 10,
+  cardBody: {
+    marginBottom: 12,
   },
-  cliente: {
-    color: '#aaa',
-    marginTop: 5,
-    marginBottom: 20,
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  empresa: {
-    color: '#faebd7',
+  infoLabel: {
+    color: '#a0aec0',
+    fontSize: 14,
+    flex: 1,
   },
-  status: {
-    color: '#faebd7',
-    marginLeft: 250,
+  infoValue: {
+    color: '#e2e8f0',
+    fontSize: 14,
+    flex: 2,
+    textAlign: 'right',
+  },
+  valorDestaque: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4cd137',
   },
   // ====== Ações (Editar / Excluir) ======
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#345686',
+    paddingTop: 12,
+    marginTop: 8,
   },
   botao: {
-    marginLeft: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  botaoEditar: {
+    backgroundColor: '#345686',
+  },
+  botaoExcluir: {
+    backgroundColor: '#e74c3c',
   },
   botaoTexto: {
-    color: '#007bff',
-    fontSize: 18,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   inner: {
     flex: 1,
@@ -153,8 +190,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   footerText: {
-    marginTop: 10,
-    marginBottom: 25,
+    textAlign: 'center',
+    color: '#a0aec0',
+    padding: 10,
+    fontSize: 14,
   },
 })
 

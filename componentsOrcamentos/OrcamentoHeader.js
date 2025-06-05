@@ -1,8 +1,48 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { View, TextInput, Text, StyleSheet } from 'react-native'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
+import { apiGetComContexto } from '../utils/api'
+
 export default function OrcamentoHeader({ orcamento = {}, setOrcamento }) {
+  const [carregandoCliente, setCarregandoCliente] = useState(false)
+
+  useEffect(() => {
+    const buscarDadosCliente = async () => {
+      // Se temos o código do cliente mas não o nome, busca os dados
+      if (orcamento?.pedi_forn && !orcamento?.pedi_forn_nome) {
+        setCarregandoCliente(true)
+        try {
+          const entidade = await apiGetComContexto(
+            `entidades/entidades/${orcamento.pedi_forn}/`
+          )
+          if (entidade) {
+            setOrcamento((prev) => ({
+              ...prev,
+              pedi_forn_nome: entidade.enti_nome,
+            }))
+          }
+        } catch (err) {
+          console.error('Erro ao buscar dados do cliente:', err)
+        } finally {
+          setCarregandoCliente(false)
+        }
+      }
+    }
+
+    buscarDadosCliente()
+  }, [orcamento?.pedi_forn])
+
+  const clienteFormatado =
+    orcamento?.pedi_forn && orcamento?.pedi_forn_nome
+      ? `${orcamento.pedi_forn} - ${orcamento.pedi_forn_nome}`
+      : ''
+
+  const vendedorFormatado =
+    orcamento?.pedi_vend && orcamento?.pedi_vend_nome
+      ? `${orcamento.pedi_vend} - ${orcamento.pedi_vend_nome}`
+      : ''
+
   return (
     <View style={styles.container}>
       <Text style={styles.labeldata}>Data do orcamento:</Text>
@@ -16,8 +56,16 @@ export default function OrcamentoHeader({ orcamento = {}, setOrcamento }) {
 
       <Text style={styles.label}>Cliente:</Text>
       <BuscaClienteInput
+        value={clienteFormatado}
         onSelect={(item) => {
-          console.log('Cliente selecionado:', item)
+          if (!item) {
+            setOrcamento((prev) => ({
+              ...prev,
+              pedi_forn: null,
+              pedi_forn_nome: null,
+            }))
+            return
+          }
           setOrcamento((prev) => ({
             ...prev,
             pedi_forn: item.enti_clie,
@@ -25,13 +73,19 @@ export default function OrcamentoHeader({ orcamento = {}, setOrcamento }) {
           }))
         }}
       />
+
       <Text style={styles.label}>Vendedor:</Text>
       <BuscaVendedorInput
-        styles={styles.inputcliente}
-        tipo="vendedor"
-        isEdit={true}
-        value={orcamento.pedi_vend}
+        value={vendedorFormatado}
         onSelect={(item) => {
+          if (!item) {
+            setOrcamento((prev) => ({
+              ...prev,
+              pedi_vend: null,
+              pedi_vend_nome: null,
+            }))
+            return
+          }
           setOrcamento((prev) => ({
             ...prev,
             pedi_vend: item.enti_clie,

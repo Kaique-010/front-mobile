@@ -10,7 +10,11 @@ import {
   Platform,
   TouchableWithoutFeedback,
 } from 'react-native'
-import { apiPostComContexto, apiPutComContexto } from '../utils/api'
+import {
+  apiPostComContexto,
+  apiPutComContexto,
+  apiGetComContexto,
+} from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaProdutosInput from '../components/BuscaProdutosInput'
@@ -67,7 +71,6 @@ export default function EntradasForm({ route, navigation }) {
     }
     carregarSlug()
   }, [])
-  console.log('Slug:', slug)
 
   useEffect(() => {
     const init = async () => {
@@ -76,47 +79,62 @@ export default function EntradasForm({ route, navigation }) {
         setForm((prev) => ({
           ...prev,
           entr_data: entrada.entr_data || prev.entr_data,
-          entr_prod: entrada.entr_prod || prev.entr_prod,
-          entr_enti: entrada.entr_enti || prev.entr_enti,
-          entr_quan: entrada.entr_quan || prev.entr_quan,
-          entr_tota: entrada.entr_tota || prev.entr_tota,
-          entr_obse: entrada.entr_obse || prev.entr_obse,
+          entr_prod: entrada.entr_prod || '',
+          entr_enti: entrada.entr_enti || '',
+          entr_quan: entrada.entr_quan?.toString() || '',
+          entr_tota: entrada.entr_tota?.toString() || '',
+          entr_obse: entrada.entr_obse || '',
         }))
       }
     }
     init()
-    console.log('✅ useEffect executado. Entrada:', entrada)
   }, [entrada])
-  console.log('Formulário de entrada:', form)
-  console.log('Entrada recebida:', entrada)
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const salvarEntrada = async () => {
-    console.log('🚀 Iniciando salvamento de entrada')
-    console.log('🔎 Estado atual do form:', form)
-    if (!form.entr_prod || !form.entr_quan || !form.entr_tota) {
-      Alert.alert('Erro', 'Preencha os campos obrigatórios.')
-      return
+  const validarEntrada = () => {
+    if (!form.entr_prod) {
+      Alert.alert('Erro', 'Selecione um produto.')
+      return false
     }
+    if (!form.entr_quan || parseFloat(form.entr_quan) <= 0) {
+      Alert.alert('Erro', 'A quantidade deve ser maior que zero.')
+      return false
+    }
+    if (!form.entr_tota || parseFloat(form.entr_tota) <= 0) {
+      Alert.alert('Erro', 'O total deve ser maior que zero.')
+      return false
+    }
+    if (!form.entr_data) {
+      Alert.alert('Erro', 'Informe a data da entrada.')
+      return false
+    }
+    return true
+  }
+
+  const salvarEntrada = async () => {
+    if (!validarEntrada()) return
 
     try {
-      const payload = { ...form }
-      console.log('Payload para salvar entrada:', payload)
+      const payload = {
+        ...form,
+        entr_quan: parseFloat(form.entr_quan),
+        entr_tota: parseFloat(form.entr_tota),
+      }
 
       if (entrada) {
         await apiPutComContexto(
-          `entradas_estoque/entradas-estoque/${entrada.entr_prod}/`,
+          `entradas_estoque/entradas-estoque/${entrada.entr_sequ}/`,
           payload,
           'entr_'
         )
         Alert.alert('Sucesso', 'Entrada atualizada com sucesso!')
         navigation.goBack()
       } else {
-        const novaEntrada = await apiPostComContexto(
-          `entradas_estoque/entradas-estoque/`,
+        await apiPostComContexto(
+          'entradas_estoque/entradas-estoque/',
           payload,
           'entr_'
         )
@@ -127,7 +145,11 @@ export default function EntradasForm({ route, navigation }) {
       console.error('❌ Erro ao salvar entrada:', error.message)
       console.log('🧨 Response:', error.response)
       console.log('🧨 Dados do erro:', error.response?.data)
-      Alert.alert('Erro', 'Falha ao salvar a entrada.')
+
+      Alert.alert(
+        'Erro',
+        'Falha ao salvar a entrada. Verifique os dados e tente novamente.'
+      )
     }
   }
 
@@ -137,8 +159,15 @@ export default function EntradasForm({ route, navigation }) {
       style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
-          <Text style={styles.label}>Produto:</Text>
+          <Text style={styles.label}>Data *</Text>
+          <TextInput
+            style={styles.forminput}
+            value={form.entr_data}
+            onChangeText={(text) => handleChange('entr_data', text)}
+            placeholder="YYYY-MM-DD"
+          />
 
+          <Text style={styles.label}>Produto *</Text>
           <BuscaProdutosInput
             onSelect={(item) => {
               console.log('Produto selecionado:', item)
@@ -149,8 +178,7 @@ export default function EntradasForm({ route, navigation }) {
             }}
           />
 
-          <Text style={styles.label}>Entidade(Responsável Entrada): </Text>
-
+          <Text style={styles.label}>Entidade(Responsável Entrada)</Text>
           <BuscaClienteInput
             onSelect={(item) => {
               console.log('Fornecedor selecionado:', item)
@@ -161,7 +189,7 @@ export default function EntradasForm({ route, navigation }) {
             }}
           />
 
-          <Text style={styles.label}>Quantidade</Text>
+          <Text style={styles.label}>Quantidade *</Text>
           <TextInput
             style={styles.forminput}
             value={form.entr_quan}
@@ -170,7 +198,7 @@ export default function EntradasForm({ route, navigation }) {
             placeholder="Quantidade"
           />
 
-          <Text style={styles.label}>Total</Text>
+          <Text style={styles.label}>Total *</Text>
           <TextInput
             style={styles.forminput}
             value={form.entr_tota}
@@ -185,14 +213,6 @@ export default function EntradasForm({ route, navigation }) {
             value={form.entr_obse}
             onChangeText={(text) => handleChange('entr_obse', text)}
             placeholder="Observações"
-          />
-
-          <Text style={styles.label}>Data</Text>
-          <TextInput
-            style={styles.forminput}
-            value={form.entr_data}
-            onChangeText={(text) => handleChange('entr_data', text)}
-            placeholder="YYYY-MM-DD"
           />
 
           <TouchableOpacity

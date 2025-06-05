@@ -90,7 +90,7 @@ export default function ListaEntradas({ navigation }) {
     }
   }
 
-  const excluirEntrada = (entr_prod) => {
+  const excluirEntrada = (entr_sequ) => {
     Alert.alert('Confirmação', 'Excluir esta entrada?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -98,9 +98,9 @@ export default function ListaEntradas({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(`/api/entradas-estoque/${entr_prod}/`, {}, 'DELETE')
+            await apiGet(`/api/entradas-estoque/${entr_sequ}/`, {}, 'DELETE')
             setEntradas((prev) =>
-              prev.filter((entrada) => entrada.entr_prod !== entr_prod)
+              prev.filter((entrada) => entrada.entr_sequ !== entr_sequ)
             )
           } catch (error) {
             console.log(
@@ -137,7 +137,7 @@ export default function ListaEntradas({ navigation }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => excluirEntrada(item.entr_prod)}>
+          onPress={() => excluirEntrada(item.entr_sequ)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>

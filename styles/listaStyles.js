@@ -26,6 +26,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
 
+  // ====== Container do Input Cliente ======
+  inputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   // ====== Botão de Buscar ======
   searchButton: {
     backgroundColor: '#345686',
@@ -143,7 +150,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   inputcliente: {
+    flex: 1,
+    backgroundColor: '#222',
+    borderColor: '#007bff',
+    borderRadius: 8,
+    borderWidth: 1,
     color: '#faebd7',
+    height: 44,
+    paddingHorizontal: 10,
+    paddingRight: 40,
   },
   scanButton: {
     backgroundColor: '#2196F3',
@@ -158,7 +173,7 @@ const styles = StyleSheet.create({
   },
   inputSelecionado: {
     backgroundColor: '#283541',
-    borderColor: '#4CAF50',
+    borderColor: '#007bff',
     fontWeight: 'bold',
   },
 })
