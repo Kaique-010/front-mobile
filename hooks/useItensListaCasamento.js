@@ -78,6 +78,15 @@ export default function useItensListaCasamento({
     }
   }
 
+  const alterarQuantidade = (prod_codi, novaQuantidade) => {
+    setSelecionados((prev) =>
+      prev.map((item) =>
+        item.prod_codi === prod_codi
+          ? { ...item, item_quan: novaQuantidade }
+          : item
+      )
+    )
+  }
   const salvarItens = async () => {
     setSalvando(true)
     try {
@@ -91,6 +100,7 @@ export default function useItensListaCasamento({
           item_usua: usuarioId,
           item_pedi: 0,
           item_item: item.prod_codi,
+          item_quan: item.item_quan,
           ...item,
         })),
       }
@@ -120,6 +130,7 @@ export default function useItensListaCasamento({
     removerProduto,
     marcarParaRemocao,
     salvarItens,
+    alterarQuantidade,
     carregando,
     salvando,
     remocoesPendentes,

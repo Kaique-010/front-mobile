@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   TextInput,
   FlatList,
@@ -6,21 +6,25 @@ import {
   Text,
   View,
   Keyboard,
+  ActivityIndicator,
 } from 'react-native'
 import { apiGet } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
+import debounce from 'lodash/debounce'
 
 export default function BuscaVendedorInput({
   onSelect,
   placeholder = 'Buscar vendedor...',
-  tipo = null,
+  tipo = 'vendedor',
   value = '',
   isEdit = false,
 }) {
   const [termo, setTermo] = useState(typeof value === 'string' ? value : '')
   const [vendedores, setVendedores] = useState([])
   const [slug, setSlug] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showResults, setShowResults] = useState(false)
   const digitando = useRef(false)
 
   useEffect(() => {
@@ -37,58 +41,53 @@ export default function BuscaVendedorInput({
   }, [])
 
   useEffect(() => {
-    if (isEdit) {
-      setTermo(value)
-
-      if (typeof value === 'string' && !value.includes(' - ')) {
-        buscar(value)
-      }
-
-      setVendedores([])
-      digitando.current = false
-    } else {
-      if (!digitando.current && value) {
-        if (!value.includes(' - ')) {
-          buscar(value)
-        } else {
-          setTermo(value)
-        }
-      } else if (!value) {
-        setTermo('')
-        setVendedores([])
-      }
-    }
-  }, [value, isEdit])
-
-  const buscar = async (texto) => {
-    digitando.current = true
-    setTermo(texto)
-
-    if (!texto) {
+    if (!value) {
+      setTermo('')
       setVendedores([])
       return
     }
 
-    try {
-      const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
-        search: texto,
-      })
-
-      let resultados = data.results
-
-      if (tipo === 'vendedor') {
-        resultados = resultados.filter((e) => e.enti_tipo_enti === 'VE')
-      }
-
-      setVendedores(resultados)
-
-      if (resultados.length === 1 && resultados[0].enti_clie === texto) {
-        selecionar(resultados[0])
-      }
-    } catch (err) {
-      console.error('Erro ao buscar entidades:', err.message)
+    setTermo(value)
+    if (typeof value === 'string' && !value.includes(' - ')) {
+      buscar(value)
     }
-  }
+  }, [value])
+
+  const buscar = useCallback(
+    debounce(async (texto) => {
+      if (!texto || texto.length < 2) {
+        setVendedores([])
+        setLoading(false)
+        return
+      }
+
+      digitando.current = true
+      setLoading(true)
+
+      try {
+        const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
+          search: texto,
+          tipo: 'VE', // Filtro direto na API
+        })
+
+        const resultados = data.results.filter(
+          (e) => e.enti_tipo_enti === 'VE' || e.enti_tipo_enti === 'Ve'
+        )
+
+        setVendedores(resultados)
+        setShowResults(true)
+
+        if (resultados.length === 1) {
+          selecionar(resultados[0])
+        }
+      } catch (err) {
+        console.error('Erro ao buscar vendedores:', err.message)
+      } finally {
+        setLoading(false)
+      }
+    }, 400),
+    [slug]
+  )
 
   const selecionar = (item) => {
     const texto = `${item.enti_clie} - ${item.enti_nome}`
@@ -96,21 +95,57 @@ export default function BuscaVendedorInput({
     digitando.current = false
     onSelect(item)
     setVendedores([])
+    setShowResults(false)
     Keyboard.dismiss()
   }
 
+  const limpar = () => {
+    setTermo('')
+    setVendedores([])
+    digitando.current = false
+    setShowResults(false)
+    onSelect(null)
+  }
+
+  const isSelecionado =
+    typeof termo === 'string' &&
+    termo.includes(' - ') &&
+    vendedores.length === 0
+
   return (
     <View>
-      <TextInput
-        style={styles.inputcliente}
-        value={termo}
-        onChangeText={(text) => {
-          buscar(text)
-        }}
-        placeholder={placeholder}
-        placeholderTextColor="#aaa"
-      />
-      {vendedores.length > 0 && (
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[
+            styles.inputcliente,
+            isSelecionado ? styles.inputSelecionado : null,
+          ]}
+          value={termo}
+          editable={!isSelecionado}
+          onChangeText={(text) => {
+            setTermo(text)
+            buscar(text)
+          }}
+          placeholder={placeholder}
+          placeholderTextColor="#aaa"
+          onFocus={() => setShowResults(true)}
+        />
+        {loading && (
+          <ActivityIndicator
+            size="small"
+            color="#10a2a7"
+            style={{ position: 'absolute', right: 10 }}
+          />
+        )}
+      </View>
+
+      {isSelecionado && (
+        <TouchableOpacity onPress={limpar} style={{ marginVertical: 5 }}>
+          <Text style={{ color: 'red' }}>Limpar</Text>
+        </TouchableOpacity>
+      )}
+
+      {showResults && vendedores.length > 0 && (
         <FlatList
           data={vendedores}
           keyExtractor={(item) =>
@@ -122,8 +157,7 @@ export default function BuscaVendedorInput({
               onPress={() => selecionar(item)}
               style={styles.sugestaoItem}>
               <Text style={styles.sugestaoTexto}>
-                {item.enti_clie} - {item.enti_nome} —{' '}
-                {item.enti_cpf || item.enti_cnpj}
+                {item.enti_clie} - {item.enti_nome}
               </Text>
             </TouchableOpacity>
           )}

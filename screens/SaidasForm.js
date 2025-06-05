@@ -109,14 +109,14 @@ export default function SaidasForm({ route, navigation }) {
 
       if (saida) {
         await apiPutComContexto(
-          `/api/${slug}/saidas_estoque/saidas-estoque/${saida.said_prod}/`,
+          `saidas_estoque/saidas-estoque/${saida.said_sequ}/`,
           payload
         )
         Alert.alert('Sucesso', 'Saída atualizada com sucesso!')
         navigation.goBack()
       } else {
         const novaSaida = await apiPostComContexto(
-          `/api/${slug}/saidas_estoque/saidas-estoque/`,
+          `saidas_estoque/saidas-estoque/`,
           payload
         )
         Alert.alert('Sucesso', 'Saída criada com sucesso!')

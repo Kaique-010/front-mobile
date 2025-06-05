@@ -88,7 +88,7 @@ export default function ListaSaidas({ navigation }) {
     }
   }
 
-  const excluirSaida = (said_prod) => {
+  const excluirSaida = (said_sequ) => {
     Alert.alert('Confirmação', 'Excluir esta saída?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -96,9 +96,9 @@ export default function ListaSaidas({ navigation }) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiGet(`/api/saidas-estoque/${said_prod}/`, {}, 'DELETE')
+            await apiGet(`/api/saidas-estoque/${said_sequ}/`, {}, 'DELETE')
             setSaidas((prev) =>
-              prev.filter((saida) => saida.said_prod !== said_prod)
+              prev.filter((saida) => saida.said_sequ !== said_sequ)
             )
           } catch (error) {
             console.log(
@@ -140,7 +140,7 @@ export default function ListaSaidas({ navigation }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() => excluirSaida(item.said_prod)}>
+          onPress={() => excluirSaida(item.said_sequ)}>
           <Text style={styles.botaoTexto}>🗑️</Text>
         </TouchableOpacity>
       </View>

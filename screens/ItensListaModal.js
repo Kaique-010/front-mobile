@@ -31,6 +31,7 @@ export default function ItensListaModal({ route }) {
     selecionados,
     adicionarProduto,
     removerProduto,
+    alterarQuantidade,
     remocoesPendentes,
     marcarParaRemocao,
     salvarItens,
@@ -82,7 +83,6 @@ export default function ItensListaModal({ route }) {
     }
   }
 
- 
   const enviarZapLista = async (itens, listaId) => {
     if (!itens || itens.length === 0) {
       Alert.alert('Sem itens', 'A lista está vazia.')
@@ -90,7 +90,6 @@ export default function ItensListaModal({ route }) {
     }
 
     try {
-     
       const entidade = await apiGet(
         `/api/${slug}/entidades/entidades/${clienteId}/`
       )
@@ -172,6 +171,7 @@ export default function ItensListaModal({ route }) {
             <ProdutosSelecionados
               produtos={selecionados}
               onRemover={removerProduto}
+              onAlterarQuantidade={alterarQuantidade}
             />
 
             <Button
