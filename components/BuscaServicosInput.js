@@ -81,7 +81,10 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
                   onPress={() => handleSelect(item)}>
                   <Text style={styles.nomeServico}>{item.prod_nome}</Text>
                   <Text style={styles.precoServico}>
-                    R$ {item.prod_preco_vista?.toFixed(2) || '0.00'}
+                    R${' '}
+                    {Number(item.prod_preco_vista) > 0
+                      ? Number(item.prod_preco_vista).toFixed(2)
+                      : '0.00'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -137,4 +140,4 @@ const styles = StyleSheet.create({
   loading: {
     padding: 20,
   },
-}) 
+})

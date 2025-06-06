@@ -29,12 +29,12 @@ export default function ListaItens({
         r.item_item === item.item_item
     )
 
-    const totalRemovido = removidosMesmoItem.reduce(
-      (sum, r) => sum + Number(r.item_quan || 0),
-      0
-    )
+    const totalRemovido = removidosMesmoItem.reduce((sum, r) => {
+      const quantidade = parseFloat(r.item_quan)
+      return sum + (isNaN(quantidade) ? 0 : quantidade)
+    }, 0)
 
-    return item.item_quan > totalRemovido
+    return parseFloat(item.item_quan || 0) > totalRemovido
   })
 
   return (
@@ -56,13 +56,17 @@ export default function ListaItens({
               removido && styles.itemRemovidoContainer,
             ]}>
             <View style={styles.itemInfo}>
-              <Text
-                style={[styles.itemTexto, removido && styles.itemTextoRemovido]}
-                numberOfLines={1}
-                ellipsizeMode="tail">
-                • {(item.produto_nome ?? 'Sem nome').slice(0, 25)}... |{' '}
-                {item.item_quan}
-              </Text>
+              <View style={styles.itemInfo}>
+                <Text
+                  style={[
+                    styles.itemTexto,
+                    removido && styles.itemTextoRemovido,
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
+                  • {item.produto_nome ?? 'Sem nome'} | {item.item_quan === '' ? '' : item.item_quan}
+                </Text>
+              </View>
             </View>
 
             {!removido && (
