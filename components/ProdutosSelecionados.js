@@ -39,9 +39,9 @@ export default function ProdutosSelecionados({
                   backgroundColor: '#fff',
                 }}
                 keyboardType="numeric"
-                value={item.item_quan?.toString() || '1'}
+                value={item.item_quan?.toString() || ''}
                 onChangeText={(value) =>
-                  onAlterarQuantidade(item.prod_codi, parseFloat(value))
+                  onAlterarQuantidade(item.prod_codi, value === '' ? '' : parseFloat(value))
                 }
               />
             </View>

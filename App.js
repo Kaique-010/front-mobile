@@ -25,6 +25,8 @@ import PainelAcompanhamento from './screens/PainelOs'
 import OrdemDetalhe from './screens/OrdemDetalhe'
 import MoviCaixaScreen from './screens/MoviCaixa'
 import OSCreateScreen from './componentsOs/OsCriacao'
+import OsDetalhe from './screens/OSDetalhe'
+import CriarOrdemServico from './componentsOrdemServico/OrdemCriacao'
 
 const Stack = createNativeStackNavigator()
 
@@ -203,8 +205,28 @@ export default function App() {
           }}
         />
         <Stack.Screen
+          name="OsDetalhe"
+          component={OsDetalhe}
+          options={{
+            title: 'Detalhes da O.S',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
           name="OsCriacao"
           component={OSCreateScreen}
+          options={{
+            title: 'Abertura O.S',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="OrdemCriacao"
+          component={CriarOrdemServico}
           options={{
             title: 'Abertura O.S',
             headerStyle: { backgroundColor: '#182c39' },

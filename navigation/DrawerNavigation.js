@@ -19,6 +19,7 @@ import ContasReceberList from '../screens//ContasReceberList'
 import Contratos from '../screens/Contratos'
 import PainelAcompanhamento from '../screens/PainelOs'
 import CaixaGeralScreen from '../screens/CaixaGeral'
+import PainelOrdens from '../screens/PainelOrdens'
 
 const Drawer = createDrawerNavigator()
 
@@ -133,6 +134,17 @@ export default function DrawerNavigator() {
           options={{
             drawerIcon: ({ color, size }) => (
               <Icon name="users" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
+      {hasModulo('os') && (
+        <Drawer.Screen
+          name="Ordens de Serviço"
+          component={PainelOrdens}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="tool" color={color} size={size} />
             ),
           }}
         />

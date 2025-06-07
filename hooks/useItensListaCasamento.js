@@ -87,6 +87,7 @@ export default function useItensListaCasamento({
       )
     )
   }
+
   const salvarItens = async () => {
     setSalvando(true)
     try {
@@ -99,9 +100,10 @@ export default function useItensListaCasamento({
           item_clie: 0,
           item_usua: usuarioId,
           item_pedi: 0,
-          item_item: item.prod_codi,
-          item_quan: item.item_quan,
-          ...item,
+          item_prod: item.prod_codi, // Alterado de item_item para item_prod
+          item_quan: Number.isFinite(Number(item.item_quan))
+            ? Number(item.item_quan)
+            : 0,
         })),
       }
 
@@ -116,7 +118,7 @@ export default function useItensListaCasamento({
       await carregarItens()
     } catch (err) {
       console.error('Erro ao salvar:', err)
-      Alert.alert('Erro', err.message || 'Erro ao salvar alterações')
+      Alert.alert('Erro', err.response?.data?.detail || 'Erro ao salvar alterações')
     } finally {
       setSalvando(false)
     }
