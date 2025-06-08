@@ -158,29 +158,34 @@ const OsDetalhe = ({ route, navigation }) => {
       </View>
 
       <View style={styles.content}>
-        {abaAtiva === 'detalhes' && renderDetalhes()}
-        {abaAtiva === 'pecas' && (
-          <AbaPecas pecas={pecas} setPecas={setPecas} os_os={os.os_os} />
-        )}
-        {abaAtiva === 'servicos' && (
-          <AbaServicos
-            servicos={servicos}
-            setServicos={setServicos}
-            os_os={os.os_os}
-            os_clie={os.os_enti}
-            os_empr={os.os_empr}
-            os_fili={os.os_fili}
-          />
-        )}
-        {abaAtiva === 'totais' && (
-          <AbaTotais
-            pecas={pecas}
-            servicos={servicos}
-            os_os={os.os_os}
-            os_clie={os.os_enti}
-            os_empr={os.os_empr}
-            os_fili={os.os_fili}
-          />
+        {abaAtiva === 'detalhes' ? (
+          renderDetalhes()
+        ) : (
+          <View style={{ flex: 1 }}>
+            {abaAtiva === 'pecas' && (
+              <AbaPecas pecas={pecas} setPecas={setPecas} os_os={os.os_os} />
+            )}
+            {abaAtiva === 'servicos' && (
+              <AbaServicos
+                servicos={servicos}
+                setServicos={setServicos}
+                orde_nume={os.os_os}
+                os_clie={os.os_enti}
+                os_empr={os.os_empr}
+                os_fili={os.os_fili}
+              />
+            )}
+            {abaAtiva === 'totais' && (
+              <AbaTotais
+                pecas={pecas}
+                servicos={servicos}
+                os_os={os.os_os}
+                os_clie={os.os_clie}
+                os_empr={os.os_empr}
+                os_fili={os.os_fili}
+              />
+            )}
+          </View>
         )}
       </View>
     </View>

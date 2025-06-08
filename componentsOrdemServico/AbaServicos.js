@@ -24,9 +24,9 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
 
   useEffect(() => {
     if (orde_nume !== undefined && orde_nume !== null) {
-        carregarServicosExistentes()
+      carregarServicosExistentes()
     } else {
-        setIsLoading(false)
+      setIsLoading(false)
     }
   }, [orde_nume])
 
@@ -35,24 +35,26 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       setIsLoading(true)
       const response = await apiGetComContexto('Os/servicos/', {
         params: {
-          serv_os: orde_nume,
-          serv_empr: empresaId,
-          serv_fili: filialId,
+          serv_os: String(orde_nume),
+          serv_empr: String(empresaId),
+          serv_fili: String(filialId),
         },
       })
 
       const servicosArray = response?.results || response || []
 
       if (Array.isArray(servicosArray)) {
-        const servicosFormatados = servicosArray.map((servico) => ({
-          serv_item: servico.serv_item,
-          serv_codi: servico.serv_codi,
-          serv_quan: parseFloat(servico.serv_quan),
-          serv_unit: parseFloat(servico.serv_unit),
-          serv_tota: parseFloat(servico.serv_tota),
-          serv_comp: servico.serv_comp,
-          servico_nome: servico.servico_nome || 'Serviço',
-        }))
+        const servicosFormatados = servicosArray
+          .filter((s) => s.serv_codi) // <-- previne lixo
+          .map((servico) => ({
+            serv_item: servico.serv_item,
+            serv_codi: servico.serv_codi,
+            serv_quan: parseFloat(servico.serv_quan || 0),
+            serv_unit: parseFloat(servico.serv_unit || 0),
+            serv_tota: parseFloat(servico.serv_tota || 0),
+            serv_comp: servico.serv_comp,
+            servico_nome: servico.servico_nome || 'Serviço',
+          }))
 
         console.log('Serviços formatados:', servicosFormatados)
         setServicosLista(servicosFormatados)
@@ -143,6 +145,22 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     if (isSubmitting) return
     setIsSubmitting(true)
     try {
+      const prepararServicos = (servicosArray) =>
+        servicosArray.map((s) => ({
+          ...s,
+          serv_os: orde_nume,
+          serv_empr: empresaId,
+          serv_fili: filialId,
+        }))
+
+      const adicionar = prepararServicos(
+        servicosLista.filter((s) => !s.serv_item)
+      )
+      const editar = prepararServicos(
+        servicosLista.filter((s) => s.serv_item && !removidos.includes(s))
+      )
+      const remover = removidos.map((s) => s.serv_item)
+
       const payload = {
         adicionar,
         editar,
@@ -248,9 +266,13 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       ) : (
         <FlatList
           data={servicosLista}
-          keyExtractor={(item) =>
-            item.serv_item?.toString() || `temp-${item.serv_codi}-${Date.now()}`
-          }
+          keyExtractor={(item, index) => {
+            if (item?.serv_item) return String(item.serv_item)
+            if (item?.serv_codi) return String(item.serv_codi)
+            if (item?.serv_empr) return String(item.serv_empr)
+            if (item?.serv_fili) return String(item.serv_fili)
+            return `index-${index}`
+          }}
           renderItem={renderItem}
           contentContainerStyle={styles.lista}
           ListEmptyComponent={

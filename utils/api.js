@@ -154,9 +154,10 @@ export const addContextoSemFili = async (obj = {}, prefixo = '') => {
 
 export const apiGetComContextoos = async (
   endpointSemApi,
-  { params = {} },
+  params = {},
   prefixo = ''
 ) => {
+  console.log('[apiGetComContextoos] Chamando', endpointSemApi, params)
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
   const paramsComContexto = await addContexto(params, prefixo)

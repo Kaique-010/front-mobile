@@ -6,13 +6,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import BuscaServicoInput from '../components/BuscaServicosInput'
 import Toast from 'react-native-toast-message'
+import BuscaServicoInput from '../components/BuscaServicosInput'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 export default function ServModalOs({
@@ -29,12 +25,12 @@ export default function ServModalOs({
   })
 
   useEffect(() => {
-    if (itemEditando) {
+    if (itemEditando && typeof itemEditando === 'object') {
       setForm({
-        servicoProd: itemEditando.serv_prod?.toString() || '',
-        quantidade: itemEditando.serv_quan?.toString() || '',
-        preco: itemEditando.serv_unit?.toString() || '',
-        servicoNome: itemEditando.servico_nome || '',
+        servicoProd: itemEditando?.serv_prod?.toString() || '',
+        quantidade: itemEditando?.serv_quan?.toString() || '',
+        preco: itemEditando?.serv_unit?.toString() || '',
+        servicoNome: itemEditando?.servico_nome || '',
       })
     } else {
       setForm({
@@ -54,11 +50,17 @@ export default function ServModalOs({
     const quantidadeNum = parseFloat(form.quantidade)
     const precoNum = parseFloat(form.preco)
 
-    if (!form.servicoProd || quantidadeNum <= 0 || precoNum <= 0) {
+    if (
+      !form.servicoProd ||
+      isNaN(quantidadeNum) ||
+      quantidadeNum <= 0 ||
+      isNaN(precoNum) ||
+      precoNum <= 0
+    ) {
       Toast.show({
         type: 'error',
         text1: 'Preencha todos os campos corretamente',
-        text2: 'Quantidade e preço devem ser maiores que zero',
+        text2: 'Quantidade e preço devem ser números maiores que zero',
       })
       return
     }
@@ -66,7 +68,7 @@ export default function ServModalOs({
     const total = quantidadeNum * precoNum
 
     const novoItem = {
-      serv_prod: form.servicoProd,
+      serv_prod: String(form.servicoProd),
       serv_quan: quantidadeNum,
       serv_unit: precoNum,
       serv_tota: total,
@@ -85,7 +87,7 @@ export default function ServModalOs({
       })
     }
 
-    onFechar()
+    onFechar() // se quiser manter o modal aberto no modo edição, remova isso quando itemEditando existir
   }
 
   return (
@@ -95,8 +97,7 @@ export default function ServModalOs({
         contentContainerStyle={styles.scrollContent}
         enableOnAndroid
         extraScrollHeight={100}
-        keyboardShouldPersistTaps="handled"
-      >
+        keyboardShouldPersistTaps="handled">
         <Text style={styles.cabecalho}>Serviços da O.S</Text>
         <Text style={styles.label}>Serviço:</Text>
         <View style={styles.servicoInput}>
@@ -105,7 +106,7 @@ export default function ServModalOs({
             onSelect={(servico) => {
               setForm((f) => ({
                 ...f,
-                servicoProd: servico.serv_prod.toString(),
+                servicoProd: servico?.serv_prod?.toString() || '',
                 servicoNome: servico.serv_nome,
                 preco: servico.serv_preco?.toString() || '',
                 quantidade: '1',
@@ -142,12 +143,12 @@ export default function ServModalOs({
           placeholder="Digite o preço unitário"
           placeholderTextColor="#666"
         />
+
         <Text style={styles.total}>
           Total: R${' '}
           {(
-            (parseFloat(form.quantidade) || 0) *
-            (parseFloat(form.preco) || 0)
-          ).toFixed(4)}
+            (parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0)
+          ).toFixed(2)}
         </Text>
 
         <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>
@@ -192,10 +193,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
-  },
-  complementoInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
   },
   servicoInput: {
     marginTop: 5,

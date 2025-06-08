@@ -9,7 +9,7 @@ import {
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import ItensModalOs from './ItensModalOs'
-import { apiPostComContexto, apiGetComContexto } from '../utils/api'
+import { apiPostComContexto, apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
 
@@ -23,17 +23,29 @@ export default function AbaPecas({ pecas = [], setPecas, os_os }) {
   const [produtos, setProdutos] = useState(pecas)
 
   useEffect(() => {
-    if (os_os !== undefined && os_os !== null) {
-        carregarPecasExistentes()
+    if (
+      os_os !== undefined &&
+      os_os !== null &&
+      empresaId !== undefined &&
+      empresaId !== null &&
+      filialId !== undefined &&
+      filialId !== null
+    ) {
+      carregarPecasExistentes()
     }
-  }, [os_os])
+  }, [os_os, empresaId, filialId])
 
   const carregarPecasExistentes = async () => {
+    if (!os_os || !empresaId || !filialId) {
+      console.warn('Parâmetros incompletos, ignorando chamada')
+      return
+    }
+
     try {
       setIsLoading(true)
       console.log('Carregando peças para OS:', os_os)
 
-      const response = await apiGetComContexto('Os/pecas/', {
+      const response = await apiGetComContextoos('Os/pecas/', {
         peca_os: os_os,
         peca_empr: empresaId,
         peca_fili: filialId,

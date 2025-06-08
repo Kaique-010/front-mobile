@@ -32,17 +32,18 @@ const FORMAS_RECEBIMENTO = [
 export default function AbaTotais({
   pecas = [],
   servicos = [],
-  orde_nume,
-  orde_clie: orde_enti,
-  orde_empr,
-  orde_fili,
+  os_os: orde_nume,
+  os_clie: os_clie,
+  os_empr,
+  os_fili,
 }) {
   useEffect(() => {
     console.log('AbaTotais props:', {
       orde_nume,
-      orde_enti,
-      orde_empr,
-      orde_fili,
+      os_clie,
+      os_empr,
+      os_fili,
+
       totalPecas: pecas.reduce(
         (acc, peca) => acc + (Number(peca.peca_tota) || 0),
         0
@@ -52,7 +53,7 @@ export default function AbaTotais({
         0
       ),
     })
-  }, [orde_nume, orde_enti, orde_empr, orde_fili, pecas, servicos])
+  }, [orde_nume, os_clie, os_empr, os_fili, pecas, servicos])
 
   const [loading, setLoading] = useState(false)
   const [titulos, setTitulos] = useState([])
@@ -105,7 +106,7 @@ export default function AbaTotais({
 
       try {
         await apiPostComContexto(`Os/ordens/${orde_nume}/atualizar_total/`, {
-          orde_tota: totalGeral,
+          os_tota: totalGeral,
         })
       } catch (error) {
         console.error('Erro ao atualizar total da ordem:', error)
@@ -151,7 +152,7 @@ export default function AbaTotais({
   }, [orde_nume])
 
   const gerarTitulos = async () => {
-    if (!orde_nume || !orde_enti || !totalGeral) {
+    if (!orde_nume || !os_clie || !totalGeral) {
       Toast.show({
         type: 'error',
         text1: 'Erro',
@@ -164,13 +165,13 @@ export default function AbaTotais({
       setLoading(true)
       const payload = {
         orde_nume,
-        orde_clie: orde_enti,
+        orde_clie: os_clie,
         orde_tota: totalGeral,
         forma_pagamento: formaPagamento,
         parcelas: parseInt(parcelas),
         data_base: dataBase,
-        empr: orde_empr,
-        fili: orde_fili,
+        empr: os_empr,
+        fili: os_fili,
       }
 
       console.log('Payload:', payload)
@@ -203,8 +204,8 @@ export default function AbaTotais({
       setLoading(true)
       await apiPostComContexto('Os/financeiro/remover-titulos/', {
         orde_nume,
-        empr: orde_empr,
-        fili: orde_fili,
+        empr: os_empr,
+        fili: os_fili,
       })
 
       Toast.show({
@@ -247,8 +248,8 @@ export default function AbaTotais({
         parcela: tituloEmEdicao.parcela,
         valor: parseFloat(tituloEmEdicao.valor),
         vencimento: tituloEmEdicao.vencimento,
-        empr: orde_empr,
-        fili: orde_fili,
+        empr: os_empr,
+        fili: os_fili,
       })
 
       Toast.show({
@@ -513,13 +514,11 @@ export default function AbaTotais({
               <TouchableOpacity
                 style={[
                   styles.button,
-                  (loading || !orde_nume || !orde_enti || totalGeral <= 0) &&
+                  (loading || !orde_nume || !os_clie || totalGeral <= 0) &&
                     styles.buttonDisabled,
                 ]}
                 onPress={gerarTitulos}
-                disabled={
-                  loading || !orde_nume || !orde_enti || totalGeral <= 0
-                }>
+                disabled={loading || !orde_nume || !os_clie || totalGeral <= 0}>
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
