@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
-import BuscaServicoInput from '../components/BuscaServicosInput'
+import BuscaServicoInput from '../components/BuscaServicoInput'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 export default function ServModalOs({
@@ -18,10 +18,11 @@ export default function ServModalOs({
   itemEditando,
 }) {
   const [form, setForm] = useState({
-    servicoProd: '',
+    servicoProd: '', // Mantém servicoProd pois corresponde a serv_prod no modelo
     servicoNome: '',
     quantidade: '',
     preco: '',
+    observacao: '', // Adicionado para corresponder a serv_obse
   })
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function ServModalOs({
         servicoProd: itemEditando?.serv_prod?.toString() || '',
         quantidade: itemEditando?.serv_quan?.toString() || '',
         preco: itemEditando?.serv_unit?.toString() || '',
+        observacao: itemEditando?.serv_obse || '',
         servicoNome: itemEditando?.servico_nome || '',
       })
     } else {
@@ -38,6 +40,7 @@ export default function ServModalOs({
         servicoNome: '',
         quantidade: '',
         preco: '',
+        observacao: '',
       })
     }
   }, [itemEditando, visivel])
@@ -68,10 +71,11 @@ export default function ServModalOs({
     const total = quantidadeNum * precoNum
 
     const novoItem = {
-      serv_prod: String(form.servicoProd),
+      serv_prod: String(form.servicoProd), // Mantém serv_prod
       serv_quan: quantidadeNum,
       serv_unit: precoNum,
       serv_tota: total,
+      serv_obse: form.observacao, // Adicionado campo de observação
       servico_nome: form.servicoNome,
     }
 
@@ -106,7 +110,7 @@ export default function ServModalOs({
             onSelect={(servico) => {
               setForm((f) => ({
                 ...f,
-                servicoProd: servico?.serv_prod?.toString() || '',
+                servicoProd: servico?.serv_prod?.toString() || '', // Mantém serv_prod
                 servicoNome: servico.serv_nome,
                 preco: servico.serv_preco?.toString() || '',
                 quantidade: '1',

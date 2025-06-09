@@ -106,7 +106,13 @@ export default function AbaTotais({
 
       try {
         await apiPostComContexto(`Os/ordens/${orde_nume}/atualizar_total/`, {
-          os_tota: totalGeral,
+          os_tota: Number(totalGeral),
+          os_empr: Number(os_empr),
+          os_fili: Number(os_fili),
+          orde_nume: Number(orde_nume), // Alterado de os_os para orde_nume
+          empr: String(os_empr),
+          fili: String(os_fili),
+          usua: "1"
         })
       } catch (error) {
         console.error('Erro ao atualizar total da ordem:', error)
@@ -164,9 +170,9 @@ export default function AbaTotais({
     try {
       setLoading(true)
       const payload = {
-        orde_nume,
-        orde_clie: os_clie,
-        orde_tota: totalGeral,
+        os_os: orde_nume, // Corrigido: usando orde_nume em vez de os_os
+        os_clie: os_clie,
+        os_tota: totalGeral,
         forma_pagamento: formaPagamento,
         parcelas: parseInt(parcelas),
         data_base: dataBase,
@@ -203,9 +209,10 @@ export default function AbaTotais({
     try {
       setLoading(true)
       await apiPostComContexto('Os/financeiro/remover-titulos/', {
-        orde_nume,
+        os_os: orde_nume,  // Adicionado campo obrigatório
         empr: os_empr,
         fili: os_fili,
+        usua: "1"
       })
 
       Toast.show({
@@ -225,8 +232,7 @@ export default function AbaTotais({
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2:
-          error.response?.data?.detail || 'Não foi possível remover os títulos',
+        text2: error.response?.data?.detail || 'Não foi possível remover os títulos',
       })
     } finally {
       setLoading(false)

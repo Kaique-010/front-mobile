@@ -38,8 +38,6 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
         peca_fili: 1,
       })
 
-      console.log('Resposta da API:', response)
-
       // Verifica se a resposta tem a estrutura paginada
       const pecasArray = response?.results || response || []
 

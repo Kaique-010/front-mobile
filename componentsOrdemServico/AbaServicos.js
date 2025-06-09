@@ -9,11 +9,11 @@ import {
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import ServModalOs from './ServModalOs'
-import { apiPostComContexto, apiGetComContexto } from '../utils/api'
+import { apiPostComContexto, apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
 
-export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
+export default function AbaServicos({ servicos = [], setServicos, os_os }) {
   const { empresaId, filialId } = useContextoApp()
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
@@ -23,36 +23,33 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
   const [servicosLista, setServicosLista] = useState(servicos)
 
   useEffect(() => {
-    if (orde_nume !== undefined && orde_nume !== null) {
+    if (os_os !== undefined && os_os !== null && empresaId && filialId) {
       carregarServicosExistentes()
     } else {
       setIsLoading(false)
     }
-  }, [orde_nume])
+  }, [os_os, empresaId, filialId])
 
   const carregarServicosExistentes = async () => {
     try {
       setIsLoading(true)
-      const response = await apiGetComContexto('Os/servicos/', {
-        params: {
-          serv_os: String(orde_nume),
-          serv_empr: String(empresaId),
-          serv_fili: String(filialId),
-        },
+      const response = await apiGetComContextoos('Os/servicos/', {
+        serv_os: String(os_os),
+        serv_empr: Number(empresaId),
+        serv_fili: Number(filialId),
       })
 
       const servicosArray = response?.results || response || []
 
       if (Array.isArray(servicosArray)) {
         const servicosFormatados = servicosArray
-          .filter((s) => s.serv_codi) // <-- previne lixo
+          .filter((s) => s.serv_prod) // <-- previne lixo
           .map((servico) => ({
             serv_item: servico.serv_item,
-            serv_codi: servico.serv_codi,
+            serv_prod: servico.serv_prod,
             serv_quan: parseFloat(servico.serv_quan || 0),
             serv_unit: parseFloat(servico.serv_unit || 0),
             serv_tota: parseFloat(servico.serv_tota || 0),
-            serv_comp: servico.serv_comp,
             servico_nome: servico.servico_nome || 'Serviço',
           }))
 
@@ -106,6 +103,11 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     })
   }
 
+  const fecharModal = () => {
+    setModalVisivel(false)
+    setItemEditando(null)
+  }
+
   const adicionarOuEditarServico = (novoItem, itemEditando) => {
     let atualizados
     if (itemEditando?.serv_item) {
@@ -114,13 +116,13 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       )
     } else if (itemEditando) {
       atualizados = servicosLista.map((s) =>
-        !s.serv_item && s.serv_codi === itemEditando.serv_codi
+        !s.serv_item && s.serv_prod === itemEditando.serv_prod
           ? { ...novoItem }
           : s
       )
     } else {
       const existe = servicosLista.some(
-        (s) => s.serv_codi === novoItem.serv_codi
+        (s) => !s.serv_item && s.serv_prod === novoItem.serv_prod
       )
       if (existe) {
         Toast.show({
@@ -133,6 +135,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       atualizados = [...servicosLista, novoItem]
     }
 
+    fecharModal()
     sincronizarComPai(atualizados)
     Toast.show({
       type: 'success',
@@ -148,9 +151,15 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       const prepararServicos = (servicosArray) =>
         servicosArray.map((s) => ({
           ...s,
-          serv_os: orde_nume,
-          serv_empr: empresaId,
-          serv_fili: filialId,
+          serv_os: os_os, // Campo correto do modelo
+          serv_empr: Number(empresaId),
+          serv_fili: Number(filialId),
+          serv_prod: s.serv_prod, // Mantém serv_prod
+          serv_quan: s.serv_quan,
+          serv_unit: s.serv_unit,
+          serv_tota: s.serv_tota,
+          serv_obse: s.serv_obse || '',
+          serv_stat: 0, // Adicionado campo obrigatório do modelo
         }))
 
       const adicionar = prepararServicos(
@@ -165,11 +174,10 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         adicionar,
         editar,
         remover,
-        empr: empresaId,
-        fili: filialId,
+        empr: Number(empresaId),
+        fili: Number(filialId),
       }
 
-      await apiPostComContexto('Os/servicos/update-lista/', payload)
       const response = await apiPostComContexto(
         'Os/servicos/update-lista/',
         payload
@@ -221,22 +229,22 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       <View style={styles.servicoInfo}>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Quantidade:</Text>
-          <Text style={styles.infoValor}>{item.serv_quan.toFixed(4)}</Text>
+          <Text style={styles.infoValor}>
+            {Number(item.serv_quan || 0).toFixed(4)}
+          </Text>
         </View>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Preço Unit.:</Text>
-          <Text style={styles.infoValor}>R$ {item.serv_unit.toFixed(4)}</Text>
+          <Text style={styles.infoValor}>
+            R$ {Number(item.serv_unit || 0).toFixed(4)}
+          </Text>
         </View>
         <View style={styles.infoItem}>
           <Text style={styles.infoLabel}>Total:</Text>
-          <Text style={styles.infoValor}>R$ {item.serv_tota.toFixed(4)}</Text>
+          <Text style={styles.infoValor}>
+            R$ {Number(item.serv_tota || 0).toFixed(4)}
+          </Text>
         </View>
-        {item.serv_comp ? (
-          <View style={styles.complemento}>
-            <Text style={styles.complementoLabel}>Complemento:</Text>
-            <Text style={styles.complementoTexto}>{item.serv_comp}</Text>
-          </View>
-        ) : null}
       </View>
     </View>
   )
@@ -268,7 +276,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           data={servicosLista}
           keyExtractor={(item, index) => {
             if (item?.serv_item) return String(item.serv_item)
-            if (item?.serv_codi) return String(item.serv_codi)
+            if (item?.serv_prod) return String(item.serv_prod)
             if (item?.serv_empr) return String(item.serv_empr)
             if (item?.serv_fili) return String(item.serv_fili)
             return `index-${index}`
@@ -310,7 +318,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
 
       <ServModalOs
         visivel={modalVisivel}
-        onFechar={() => setModalVisivel(false)}
+        onFechar={fecharModal}
         onAdicionar={adicionarOuEditarServico}
         itemEditando={itemEditando}
       />
