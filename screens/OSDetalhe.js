@@ -169,7 +169,7 @@ const OsDetalhe = ({ route, navigation }) => {
               <AbaServicos
                 servicos={servicos}
                 setServicos={setServicos}
-                orde_nume={os.os_os}
+                os_os={os.os_os}  // Corrigido de orde_nume para os_os
                 os_clie={os.os_enti}
                 os_empr={os.os_empr}
                 os_fili={os.os_fili}

@@ -146,20 +146,28 @@ export default function AbaServicos({ servicos = [], setServicos, os_os }) {
 
   const salvarServicos = async () => {
     if (isSubmitting) return
+    if (!os_os || os_os === 'undefined') {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao salvar serviços',
+        text2: 'Número da OS inválido',
+      })
+      return
+    }
     setIsSubmitting(true)
     try {
       const prepararServicos = (servicosArray) =>
         servicosArray.map((s) => ({
           ...s,
-          serv_os: os_os, // Campo correto do modelo
+          serv_os: String(os_os),
           serv_empr: Number(empresaId),
           serv_fili: Number(filialId),
-          serv_prod: s.serv_prod, // Mantém serv_prod
+          serv_prod: s.serv_prod,
           serv_quan: s.serv_quan,
           serv_unit: s.serv_unit,
           serv_tota: s.serv_tota,
           serv_obse: s.serv_obse || '',
-          serv_stat: 0, // Adicionado campo obrigatório do modelo
+          serv_stat: 0,
         }))
 
       const adicionar = prepararServicos(
@@ -266,24 +274,23 @@ export default function AbaServicos({ servicos = [], setServicos, os_os }) {
         <Text style={styles.textoBotao}>Adicionar Serviço</Text>
       </TouchableOpacity>
 
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#10a2a7" />
-          <Text style={styles.loadingText}>Carregando serviços...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={servicosLista}
-          keyExtractor={(item, index) => {
-            if (item?.serv_item) return String(item.serv_item)
-            if (item?.serv_prod) return String(item.serv_prod)
-            if (item?.serv_empr) return String(item.serv_empr)
-            if (item?.serv_fili) return String(item.serv_fili)
-            return `index-${index}`
-          }}
-          renderItem={renderItem}
-          contentContainerStyle={styles.lista}
-          ListEmptyComponent={
+      <FlatList
+        data={isLoading ? [] : servicosLista}
+        ListHeaderComponent={isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#10a2a7" />
+            <Text style={styles.loadingText}>Carregando serviços...</Text>
+          </View>
+        ) : null}
+        keyExtractor={(item, index) => {
+          if (item?.serv_item) return String(item.serv_item)
+          if (item?.serv_prod) return String(item.serv_prod)
+          return `index-${index}`
+        }}
+        renderItem={renderItem}
+        contentContainerStyle={styles.lista}
+        ListEmptyComponent={
+          !isLoading && (
             <View style={styles.emptyContainer}>
               <Ionicons name="construct-outline" size={48} color="#666" />
               <Text style={styles.emptyText}>Nenhum serviço adicionado</Text>
@@ -291,36 +298,38 @@ export default function AbaServicos({ servicos = [], setServicos, os_os }) {
                 Toque no botão acima para adicionar serviços
               </Text>
             </View>
-          }
-        />
-      )}
-
-      {servicosLista.length > 0 && !isLoading && (
-        <TouchableOpacity
-          style={[styles.botaoSalvar, isSubmitting && styles.botaoDesabilitado]}
-          onPress={salvarServicos}
-          disabled={isSubmitting}>
-          {isSubmitting ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <>
-              <Ionicons
-                name="save"
-                size={24}
-                color="white"
-                style={styles.icone}
-              />
-              <Text style={styles.textoBotao}>Salvar Serviços</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      )}
+          )
+        }
+        ListFooterComponent={
+          servicosLista.length > 0 && !isLoading ? (
+            <TouchableOpacity
+              style={[styles.botaoSalvar, isSubmitting && styles.botaoDesabilitado]}
+              onPress={salvarServicos}
+              disabled={isSubmitting}>
+              {isSubmitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Ionicons
+                    name="save"
+                    size={24}
+                    color="white"
+                    style={styles.icone}
+                  />
+                  <Text style={styles.textoBotao}>Salvar Serviços</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null
+        }
+      />
 
       <ServModalOs
         visivel={modalVisivel}
         onFechar={fecharModal}
         onAdicionar={adicionarOuEditarServico}
         itemEditando={itemEditando}
+        os_os={os_os}
       />
     </View>
   )
