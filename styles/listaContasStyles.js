@@ -11,14 +11,14 @@ const styles = StyleSheet.create({
 
   // ====== Input de Busca ======
   searchContainer: {
-    backgroundColor: '#162447',
+    backgroundColor: '#1a2f3d',
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
     elevation: 2,
   },
   input: {
-    backgroundColor: '#1f4068',
+    backgroundColor: '#1a2f3d',
     padding: 10,
     borderRadius: 6,
     marginBottom: 8,
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
 
   // ====== Cartões de Lista ======
   card: {
-    backgroundColor: '#162447',
+    backgroundColor: '#1a2f3d',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,

@@ -18,7 +18,7 @@ const OsDetalhe = ({ route, navigation }) => {
   const [pecas, setPecas] = useState([])
   const [servicos, setServicos] = useState([])
   const [dadosModificados, setDadosModificados] = useState(false)
-  const [financeiroGerado, setFinanceiroGerado] = useState(false) // Novo estado
+  const [financeiroGerado, setFinanceiroGerado] = useState(false) 
 
   useEffect(() => {
     carregarPecas()
@@ -168,7 +168,7 @@ const OsDetalhe = ({ route, navigation }) => {
                 pecas={pecas} 
                 setPecas={setPecas} 
                 os_os={os.os_os}
-                financeiroGerado={financeiroGerado} // Nova prop
+                financeiroGerado={financeiroGerado}
               />
             )}
             {abaAtiva === 'servicos' && (
@@ -179,7 +179,7 @@ const OsDetalhe = ({ route, navigation }) => {
                 os_clie={os.os_enti}
                 os_empr={os.os_empr}
                 os_fili={os.os_fili}
-                financeiroGerado={financeiroGerado} // Nova prop
+                financeiroGerado={financeiroGerado} 
               />
             )}
             {abaAtiva === 'totais' && (
@@ -190,7 +190,7 @@ const OsDetalhe = ({ route, navigation }) => {
                 os_clie={os.os_clie}
                 os_empr={os.os_empr}
                 os_fili={os.os_fili}
-                onFinanceiroGerado={setFinanceiroGerado} // Nova prop
+                onFinanceiroGerado={setFinanceiroGerado} 
               />
             )}
           </View>

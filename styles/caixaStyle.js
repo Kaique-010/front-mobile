@@ -3,14 +3,14 @@ import { StyleSheet } from 'react-native'
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#283541',
+    backgroundColor: '#1a2f3d',
     padding: 50,
   },
   titulo: {
     fontSize: 30,
     textAlign: 'center',
     margin: 10,
-    color: '#faebd7',
+    color: '#ffd700',
   },
   label: {
     color: 'white',

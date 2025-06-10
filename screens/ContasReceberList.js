@@ -30,6 +30,7 @@ export default function ContasPagarList({ navigation }) {
   const [contas, setContas] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchFornecedor, setSearchFornecedor] = useState('')
+  const [searchTitulo, setSearchtitulo] = useState('')
   const [searchStatus, setSearchStatus] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [slug, setSlug] = useState('')
@@ -54,17 +55,18 @@ export default function ContasPagarList({ navigation }) {
   const buscarContas = async () => {
     setIsSearching(true)
     try {
+      const filtros = {}
+      if (searchFornecedor) filtros.titu_clie = searchFornecedor
+      if (searchTitulo) filtros.titu_titu = searchTitulo
+
       const data = await apiGetComContexto(
         `contas_a_receber/titulos-receber/`,
-        {
-          fornecedor: searchFornecedor || undefined,
-          status: searchStatus || undefined,
-        }
+        filtros
       )
       setContas(data.results || data)
     } catch (error) {
       console.log('❌ Erro ao buscar contas:', error.message)
-      Alert.alert('Erro', 'Falha ao carregar contas a receber')
+      Alert.alert('Erro', 'Falha ao carregar contas a pagar')
     } finally {
       setIsSearching(false)
       setLoading(false)
@@ -121,6 +123,10 @@ export default function ContasPagarList({ navigation }) {
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Cliente:</Text>
           <Text style={styles.infoValue}>{item.titu_clie}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Nome Cliente:</Text>
+          <Text style={styles.infoValue}>{item.cliente_nome || '-'}</Text>
         </View>
 
         <View style={styles.infoRow}>

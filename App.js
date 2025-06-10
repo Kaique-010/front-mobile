@@ -19,6 +19,7 @@ import SaidasForm from './screens/SaidasForm'
 import ImplantacaoForm from './screens/ImplantacaoForm'
 import ContasPagarList from './screens/ContasPagarList'
 import ContasReceberList from './screens/ContasReceberList'
+import ContaPagarForm from './componentsContaPagar/ContaPagarForm'
 import ContratosForm from './screens/ContratosForm'
 import ContratosList from './screens/Contratos'
 import PainelAcompanhamento from './screens/PainelOs'
@@ -57,7 +58,7 @@ const toastConfig = {
       text1Style={{ color: '#fff' }}
       text2Style={{ color: '#ddd' }}
     />
-  )
+  ),
 }
 
 export default function App() {
@@ -159,6 +160,16 @@ export default function App() {
           component={ContasPagarList}
           options={{
             title: 'Contas a Pagar',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="ContaPagarForm"
+          component={ContaPagarForm}
+          options={{
+            title: 'Cadastro de Conta a Pagar',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },

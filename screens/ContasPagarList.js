@@ -54,10 +54,14 @@ export default function ContasPagarList({ navigation }) {
   const buscarContas = async () => {
     setIsSearching(true)
     try {
-      const data = await apiGetComContexto(`contas_a_pagar/titulos-pagar/`, {
-        titu_forn: searchFornecedor || undefined,
-        titu_titu: searchTitulo || undefined,
-      })
+      const filtros = {}
+      if (searchFornecedor) filtros.titu_forn = searchFornecedor
+      if (searchTitulo) filtros.titu_titu = searchTitulo
+
+      const data = await apiGetComContexto(
+        `contas_a_pagar/titulos-pagar/`,
+        filtros
+      )
       setContas(data.results || data)
     } catch (error) {
       console.log('❌ Erro ao buscar contas:', error.message)
@@ -67,7 +71,6 @@ export default function ContasPagarList({ navigation }) {
       setLoading(false)
     }
   }
-
   const excluirConta = (id) => {
     Alert.alert('Confirmação', 'Excluir esta conta a pagar?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -120,7 +123,10 @@ export default function ContasPagarList({ navigation }) {
           <Text style={styles.infoLabel}>Fornecedor:</Text>
           <Text style={styles.infoValue}>{item.titu_forn}</Text>
         </View>
-
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Nome Fornecedor:</Text>
+          <Text style={styles.infoValue}>{item.fornecedor_nome || '-'}</Text>
+        </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Vencimento:</Text>
           <Text style={styles.infoValue}>{formatarData(item.titu_venc)}</Text>

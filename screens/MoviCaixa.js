@@ -15,16 +15,14 @@ export default function MoviCaixaScreen({ route, navigation }) {
     movi_caix: caixa.caix_caix || '',
     movi_data: new Date().toISOString().slice(0, 10),
     movi_clie: '',
+    movi_clie_nome: '',
     movi_vend: '',
+    movi_vend_nome: '',
+    movi_nume_vend: null,
+    total: 0
   })
 
   const [produtos, setProdutos] = useState([])
-
-  const [pagamento, setPagamento] = useState({
-    forma_pagto: '',
-    valor_pago: '',
-  })
-
   const [index, setIndex] = useState(0)
   const [routes] = useState([
     { key: 'venda', title: 'Venda' },
@@ -32,18 +30,28 @@ export default function MoviCaixaScreen({ route, navigation }) {
     { key: 'processamento', title: 'Processamento' },
   ])
 
-  const registrarMovimento = async () => {
-    try {
-      const body = {
-        ...mov,
-        produtos,
-        pagamento,
-      }
-      // POST fetch, axios, api client aqui
-      alert('Salvar movimento - implementar envio ao backend')
-    } catch (e) {
-      alert('Erro ao salvar movimento')
+  const handleAvancarVenda = () => {
+    if (index < routes.length - 1) {
+      setIndex(index + 1)
     }
+  }
+
+  const handleFinalizarVenda = () => {
+    setMov({
+      movi_empr: caixa.caix_empr || '',
+      movi_fili: caixa.caix_fili || '',
+      movi_caix: caixa.caix_caix || '',
+      movi_data: new Date().toISOString().slice(0, 10),
+      movi_clie: '',
+      movi_clie_nome: '',
+      movi_vend: '',
+      movi_vend_nome: '',
+      movi_nume_vend: null,
+      total: 0
+    })
+    setProdutos([])
+    setIndex(0)
+    navigation.navigate('Home')
   }
 
   return (
@@ -51,30 +59,51 @@ export default function MoviCaixaScreen({ route, navigation }) {
       <TabView
         navigationState={{ index, routes }}
         renderScene={SceneMap({
-          venda: () => <AbaVenda mov={mov} setMov={setMov} />,
+          venda: () => (
+            <AbaVenda 
+              mov={mov} 
+              setMov={setMov} 
+              onAvancar={handleAvancarVenda} 
+            />
+          ),
           produtos: () => (
-            <AbaProdutos produtos={produtos} setProdutos={setProdutos} />
+            <AbaProdutos 
+              produtos={produtos} 
+              setProdutos={setProdutos}
+              mov={mov}
+              onAvancar={handleAvancarVenda}
+            />
           ),
           processamento: () => (
             <AbaProcessamento
-              pagamento={pagamento}
-              setPagamento={setPagamento}
+              venda={{
+                ...mov,
+                total: produtos.reduce((acc, p) => acc + p.iped_tota, 0)
+              }}
+              onFinalizarVenda={handleFinalizarVenda}
             />
           ),
         })}
         onIndexChange={setIndex}
         initialLayout={{ width: Dimensions.get('window').width }}
         renderTabBar={(props) => (
-          <TabBar {...props} style={{ backgroundColor: '#283541' }} />
+          <TabBar 
+            {...props} 
+            style={{ backgroundColor: '#283541' }}
+            indicatorStyle={{ backgroundColor: '#10a2a7' }}
+            activeColor="#10a2a7"
+            inactiveColor="#999"
+          />
         )}
+        swipeEnabled={false}
       />
-      <View style={{ padding: 10 }}>
-        <Button title="Registrar Movimento" onPress={registrarMovimento} />
-      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#2a2a2a' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#1a2f3d'
+  },
 })

@@ -1,8 +1,18 @@
-import React from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import React, { useState } from 'react'
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
 import { Ionicons } from '@expo/vector-icons'
+import Toast from 'react-native-toast-message'
+import { apiPostComContexto } from '../utils/api'
+
+import useContextApp from '../hooks/useContextoApp'
 
 function CampoResultado({ label, valor, onClear }) {
   if (!valor) return null
@@ -19,34 +29,67 @@ function CampoResultado({ label, valor, onClear }) {
 }
 
 export default function AbaVenda({ mov, setMov, onAvancar }) {
+  const { empresaId, filialId } = useContextApp()
+  const [loading, setLoading] = useState(false)
+
+  const vendedorFormatado =
+    mov?.movi_vend && mov?.movi_vend_nome
+      ? `${mov.movi_vend} - ${mov.movi_vend_nome}`
+      : ''
+
   const handleAvancar = async () => {
-    if (!mov.movi_clie || !mov.movi_vend || !mov.caix_caix) {
+    if (!mov.movi_clie || !mov.movi_vend || !mov.movi_caix) {
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: 'Cliente, vendedor e caixa são obrigatórios'
+        text2: 'Cliente, vendedor e caixa são obrigatórios',
       })
       return
     }
 
     try {
-      const response = await apiPostComContexto('caixa/movicaixa/iniciar_venda/', {
-        cliente: mov.movi_clie,
-        vendedor: mov.movi_vend,
-        caixa: mov.caix_caix
-      })
+      setLoading(true)
+      const response = await apiPostComContexto(
+        'caixadiario/movicaixa/iniciar_venda/',
+        {
+          cliente: mov.movi_clie,
+          vendedor: mov.movi_vend,
+          empresa: empresaId,
+          filial: filialId,
+          caixa: mov.movi_caix, // Adicionando o caixa na requisição
+          data: new Date().toISOString().slice(0, 10),
+        }
+      )
 
-      setMov(prev => ({
-        ...prev,
-        movi_nume_vend: response.numero_venda
-      }))
-      onAvancar()
+      if (response?.numero_venda) {
+        setMov((prev) => ({
+          ...prev,
+          movi_nume_vend: response.numero_venda,
+        }))
+        Toast.show({
+          type: 'success',
+          text1: 'Venda criada',
+          text2: `Número da venda: ${response.numero_venda}`,
+        })
+        onAvancar()
+      } else {
+        throw new Error('Número da venda não retornado')
+      }
     } catch (error) {
+      let mensagemErro = 'Erro ao comunicar com servidor'
+      if (error.response?.data?.detail?.includes('Licença')) {
+        mensagemErro = 'Erro de licença. Por favor, verifique suas credenciais.'
+      } else if (error.response?.data?.detail) {
+        mensagemErro = error.response.data.detail
+      }
+
       Toast.show({
         type: 'error',
-        text1: 'Erro',
-        text2: error.response?.data?.detail || 'Erro ao iniciar venda'
+        text1: 'Erro ao criar venda',
+        text2: mensagemErro,
       })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -59,13 +102,21 @@ export default function AbaVenda({ mov, setMov, onAvancar }) {
         </Text>
         <BuscaClienteInput
           inputStyle={styles.input}
-          onSelect={(item) =>
+          onSelect={(item) => {
+            if (!item) {
+              setMov((prev) => ({
+                ...prev,
+                movi_clie: null,
+                movi_clie_nome: null,
+              }))
+              return
+            }
             setMov((prev) => ({
               ...prev,
               movi_clie: item.enti_clie,
               movi_clie_nome: item.enti_nome,
             }))
-          }
+          }}
         />
         <CampoResultado
           label="Cliente"
@@ -86,17 +137,23 @@ export default function AbaVenda({ mov, setMov, onAvancar }) {
           Vendedor:
         </Text>
         <BuscaVendedorInput
-          tipo="vendedor"
-          isEdit={true}
-          value={mov.movi_vend_nume}
+          value={vendedorFormatado}
           inputStyle={styles.input}
-          onSelect={(item) =>
+          onSelect={(item) => {
+            if (!item) {
+              setMov((prev) => ({
+                ...prev,
+                movi_vend: null,
+                movi_vend_nome: null,
+              }))
+              return
+            }
             setMov((prev) => ({
               ...prev,
-              movi_vend_nume: item.enti_clie,
+              movi_vend: item.enti_clie,
               movi_vend_nome: item.enti_nome,
             }))
-          }
+          }}
         />
         <CampoResultado
           label="Vendedor"
@@ -110,8 +167,15 @@ export default function AbaVenda({ mov, setMov, onAvancar }) {
           }
         />
       </View>
-      <TouchableOpacity style={styles.botaoAvancar} onPress={handleAvancar}>
-        <Text style={styles.botaoTexto}>Avançar</Text>
+      <TouchableOpacity
+        style={[styles.botaoAvancar, loading && styles.botaoDesabilitado]}
+        onPress={handleAvancar}
+        disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.botaoTexto}>Avançar</Text>
+        )}
       </TouchableOpacity>
     </View>
   )
@@ -155,5 +219,22 @@ const styles = StyleSheet.create({
   resultado: {
     color: '#faebd7',
     fontSize: 16,
+  },
+  botaoAvancar: {
+    backgroundColor: '#10a2a7',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'flex-start',
+    marginTop: 20,
+    width: '30%',
+  },
+  botaoDesabilitado: {
+    opacity: 0.5,
+  },
+  botaoTexto: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'left',
   },
 })

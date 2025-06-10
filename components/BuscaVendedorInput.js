@@ -8,7 +8,7 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native'
-import { apiGet } from '../utils/api'
+import { apiGetComContexto } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
 import debounce from 'lodash/debounce'
@@ -20,7 +20,7 @@ export default function BuscaVendedorInput({
   value = '',
   isEdit = false,
 }) {
-  const [termo, setTermo] = useState(typeof value === 'string' ? value : '')
+  const [termo, setTermo] = useState(value)
   const [vendedores, setVendedores] = useState([])
   const [slug, setSlug] = useState('')
   const [loading, setLoading] = useState(false)
@@ -41,21 +41,25 @@ export default function BuscaVendedorInput({
   }, [])
 
   useEffect(() => {
-    if (!value) {
-      setTermo('')
+    if (isEdit) {
+      setTermo(value || '')
       setVendedores([])
-      return
+      digitando.current = false
+    } else {
+      if (!digitando.current && value) {
+        if (typeof value === 'string' && !value.includes(' - ')) {
+          setTermo(value)
+        }
+      } else if (!value) {
+        setTermo('')
+        setVendedores([])
+      }
     }
-
-    setTermo(value)
-    if (typeof value === 'string' && !value.includes(' - ')) {
-      buscar(value)
-    }
-  }, [value])
+  }, [value, isEdit])
 
   const buscar = useCallback(
     debounce(async (texto) => {
-      if (!texto || texto.length < 2) {
+      if (!slug || isEdit || texto.length < 3) {
         setVendedores([])
         setLoading(false)
         return
@@ -65,9 +69,9 @@ export default function BuscaVendedorInput({
       setLoading(true)
 
       try {
-        const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
+        const data = await apiGetComContexto('entidades/entidades/', {
           search: texto,
-          tipo: 'VE', // Filtro direto na API
+          tipo: 'VE',
         })
 
         const resultados = data.results.filter(
@@ -77,7 +81,7 @@ export default function BuscaVendedorInput({
         setVendedores(resultados)
         setShowResults(true)
 
-        if (resultados.length === 1) {
+        if (resultados.length === 1 && resultados[0].enti_clie === texto) {
           selecionar(resultados[0])
         }
       } catch (err) {
@@ -86,7 +90,7 @@ export default function BuscaVendedorInput({
         setLoading(false)
       }
     }, 400),
-    [slug]
+    [slug, isEdit]
   )
 
   const selecionar = (item) => {
@@ -108,9 +112,7 @@ export default function BuscaVendedorInput({
   }
 
   const isSelecionado =
-    typeof termo === 'string' &&
-    termo.includes(' - ') &&
-    vendedores.length === 0
+    typeof termo === 'string' && termo.includes(' - ') && vendedores.length === 0
 
   return (
     <View>
@@ -123,8 +125,10 @@ export default function BuscaVendedorInput({
           value={termo}
           editable={!isSelecionado}
           onChangeText={(text) => {
-            setTermo(text)
-            buscar(text)
+            if (!isEdit) {
+              setTermo(text)
+              buscar(text)
+            }
           }}
           placeholder={placeholder}
           placeholderTextColor="#aaa"

@@ -102,9 +102,9 @@ export default function CaixaGeralScreen({ route, navigation }) {
       <Text style={styles.titulo}>
         <Icon
           name="dollar-sign"
-          style={{ fontSize: 50, color: '#00cc66', marginVertical: 25 }}
+          style={{ fontSize: 55, color: '#00cc66', marginVertical: 25 }}
         />
-        Caixa Diário
+        CAIXA DIÁRIO
       </Text>
 
       <Text style={styles.label}>Caixa:</Text>

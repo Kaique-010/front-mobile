@@ -18,11 +18,11 @@ export default function ServModalOs({
   itemEditando,
 }) {
   const [form, setForm] = useState({
-    servicoProd: '', // Mantém servicoProd pois corresponde a serv_prod no modelo
+    servicoProd: '', 
     servicoNome: '',
     quantidade: '',
     preco: '',
-    observacao: '', // Adicionado para corresponder a serv_obse
+    observacao: '', 
   })
 
   useEffect(() => {
@@ -71,11 +71,11 @@ export default function ServModalOs({
     const total = quantidadeNum * precoNum
 
     const novoItem = {
-      serv_prod: String(form.servicoProd), // Mantém serv_prod
+      serv_prod: String(form.servicoProd),
       serv_quan: quantidadeNum,
       serv_unit: precoNum,
       serv_tota: total,
-      serv_obse: form.observacao, // Adicionado campo de observação
+      serv_obse: form.observacao, 
       servico_nome: form.servicoNome,
     }
 
@@ -91,7 +91,7 @@ export default function ServModalOs({
       })
     }
 
-    onFechar() // se quiser manter o modal aberto no modo edição, remova isso quando itemEditando existir
+    onFechar() 
   }
 
   return (
@@ -110,7 +110,7 @@ export default function ServModalOs({
             onSelect={(servico) => {
               setForm((f) => ({
                 ...f,
-                servicoProd: servico?.serv_prod?.toString() || '', // Mantém serv_prod
+                servicoProd: servico?.serv_prod?.toString() || '', 
                 servicoNome: servico.serv_nome,
                 preco: servico.serv_preco?.toString() || '',
                 quantidade: '1',

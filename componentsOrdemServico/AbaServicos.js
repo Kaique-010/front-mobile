@@ -267,7 +267,7 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
 
   const renderBotaoAdicionar = () => {
     if (financeiroGerado) {
-      return null; // Não renderiza o botão se o financeiro estiver gerado
+      return null; 
     }
     return (
       <TouchableOpacity
@@ -282,7 +282,8 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
   return (
     <View style={styles.container}>
       {renderBotaoAdicionar()}
-      <TouchableOpacity
+      {/* Remover este botão duplicado */}
+      {/* <TouchableOpacity
         style={styles.botaoAdicionar}
         onPress={() => {
           setItemEditando(null)
@@ -295,7 +296,7 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
           style={styles.icone}
         />
         <Text style={styles.textoBotao}>Adicionar Serviço</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       <FlatList
         data={isLoading ? [] : servicosLista}

@@ -5,11 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
+  Alert,
 } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import { TextInput } from 'react-native-paper'
 import Toast from 'react-native-toast-message'
 import { apiPostComContexto } from '../utils/api'
+
+import useContextApp from '../hooks/useContextoApp'
 
 const FORMAS_RECEBIMENTO = [
   { codigo: '51', descricao: 'CARTÃO DE CRÉDITO' },
@@ -20,44 +24,65 @@ const FORMAS_RECEBIMENTO = [
 
 export default function AbaProcessamento({ venda, onFinalizarVenda }) {
   const [loading, setLoading] = useState(false)
-  const [formaPagamento, setFormaPagamento] = useState('54') // Dinheiro como padrão
+  const [formaPagamento, setFormaPagamento] = useState('54')
   const [valorPago, setValorPago] = useState('')
   const [parcelas, setParcelas] = useState('1')
+  const [troco, setTroco] = useState('0.00')
+  const { empresaId, filialId } = useContextApp()
+
+  useEffect(() => {
+    const calcularTroco = () => {
+      const valorPagoFloat = parseFloat(valorPago)
+      const troco = valorPagoFloat - parseFloat(venda.total)
+      setTroco(troco.toFixed(2))
+    }
+
+    if (valorPago) {
+      calcularTroco()
+    }
+  })
 
   const processarPagamento = async () => {
     if (!valorPago || parseFloat(valorPago) < parseFloat(venda.total)) {
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: 'Valor pago deve ser maior ou igual ao total da venda'
+        text2: 'Valor pago deve ser maior ou igual ao total da venda',
       })
       return
     }
 
     try {
       setLoading(true)
-      await apiPostComContexto('caixa/movicaixa/finalizar_venda/', {
-        movi_nume_vend: venda.movi_nume_vend,
-        movi_empr: venda.movi_empr,
-        movi_fili: venda.movi_fili,
-        valor_total: venda.total,
+      await apiPostComContexto('caixadiario/movicaixa/processar_pagamento/', {
+        numero_venda: venda.movi_nume_vend,
+        movi_empr: empresaId,
+        movi_fili: filialId,
+        valor: venda.total,
         valor_pago: parseFloat(valorPago),
         forma_pagamento: formaPagamento,
-        parcelas: parseInt(parcelas)
+        parcelas: parseInt(parcelas),
       })
 
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
-        text2: 'Venda finalizada com sucesso'
+        text2: 'Venda finalizada com sucesso',
       })
 
       onFinalizarVenda()
     } catch (error) {
+      let mensagemErro = 'Erro ao finalizar venda'
+      if (error.response?.data?.detail?.includes('Licença')) {
+        mensagemErro = 'Erro de licença. Por favor, verifique suas credenciais.'
+      } else if (error.response?.data?.detail) {
+        mensagemErro = error.response.data.detail
+      }
+
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: error.response?.data?.detail || 'Erro ao finalizar venda'
+        text2: mensagemErro,
       })
     } finally {
       setLoading(false)
