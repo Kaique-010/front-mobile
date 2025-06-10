@@ -13,7 +13,7 @@ import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
 
-export default function AbaPecas({ pecas = [], setPecas, os_os }) {
+export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado }) {
   const { empresaId, filialId } = useContextoApp()
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
@@ -122,6 +122,14 @@ export default function AbaPecas({ pecas = [], setPecas, os_os }) {
   }
 
   const adicionarOuEditarProduto = (novoItem, itemEditando) => {
+    if (financeiroGerado) {
+      Toast.show({
+        type: 'error',
+        text1: 'Operação não permitida',
+        text2: 'Não é possível modificar peças após gerar o financeiro'
+      })
+      return
+    }
     if (!validarProduto(novoItem)) return
 
     let atualizados
@@ -308,20 +316,23 @@ export default function AbaPecas({ pecas = [], setPecas, os_os }) {
     )
   }
 
-  return (
-    <View style={styles.container}>
+  const renderBotaoAdicionar = () => {
+    if (financeiroGerado) {
+      return null; // Não renderiza o botão se o financeiro estiver gerado
+    }
+    return (
       <TouchableOpacity
         style={styles.botaoAdicionar}
         onPress={abrirModalParaAdicionar}>
-        <Ionicons
-          name="add-circle"
-          size={24}
-          color="white"
-          style={styles.icone}
-        />
-        <Text style={styles.textoBotao}>Adicionar Produto</Text>
+        <Ionicons name="add-circle" size={24} color="#10a2a7" />
+        <Text style={styles.botaoAdicionarTexto}>Adicionar Peça</Text>
       </TouchableOpacity>
+    );
+  };
 
+  return (
+    <View style={styles.container}>
+      {renderBotaoAdicionar()}
       <FlatList
         data={produtos}
         keyExtractor={(item) =>

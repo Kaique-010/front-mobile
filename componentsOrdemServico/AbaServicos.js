@@ -13,7 +13,7 @@ import { apiPostComContexto, apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
 
-export default function AbaServicos({ servicos = [], setServicos, os_os }) {
+export default function AbaServicos({ servicos = [], setServicos, os_os, financeiroGerado }) {
   const { empresaId, filialId } = useContextoApp()
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
@@ -109,6 +109,14 @@ export default function AbaServicos({ servicos = [], setServicos, os_os }) {
   }
 
   const adicionarOuEditarServico = (novoItem, itemEditando) => {
+    if (financeiroGerado) {
+      Toast.show({
+        type: 'error',
+        text1: 'Operação não permitida',
+        text2: 'Não é possível modificar serviços após gerar o financeiro',
+      })
+      return
+    }
     let atualizados
     if (itemEditando?.serv_item) {
       atualizados = servicosLista.map((s) =>
@@ -257,8 +265,23 @@ export default function AbaServicos({ servicos = [], setServicos, os_os }) {
     </View>
   )
 
+  const renderBotaoAdicionar = () => {
+    if (financeiroGerado) {
+      return null; // Não renderiza o botão se o financeiro estiver gerado
+    }
+    return (
+      <TouchableOpacity
+        style={styles.botaoAdicionar}
+        onPress={() => setModalVisivel(true)}>
+        <Ionicons name="add-circle" size={24} color="#10a2a7" />
+        <Text style={styles.botaoAdicionarTexto}>Adicionar Serviço</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
+      {renderBotaoAdicionar()}
       <TouchableOpacity
         style={styles.botaoAdicionar}
         onPress={() => {

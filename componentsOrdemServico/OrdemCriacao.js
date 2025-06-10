@@ -24,7 +24,8 @@ export default function CriarOrdemServico({ navigation }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState('cliente')
-  const [numeroOS, setNumeroOS] = useState(null)  
+  const [numeroOS, setNumeroOS] = useState(null)
+  const [financeiroGerado, setFinanceiroGerado] = useState(false)
 
   const [ordemServico, setOrdemServico] = useState({
     os_clie: null,
@@ -109,7 +110,7 @@ export default function CriarOrdemServico({ navigation }) {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#121212',
+          backgroundColor: '#1a2f3d', // Alterado de '#121212' para '#1a2f3d'
         }}>
         <ActivityIndicator size="large" color="#10a2a7" />
         <Text style={{ color: '#fff', marginTop: 10 }}>Carregando...</Text>
@@ -117,19 +118,31 @@ export default function CriarOrdemServico({ navigation }) {
     )
   }
 
+  const validarMudancaAba = (novaAba) => {
+    if (financeiroGerado && (novaAba === 'pecas' || novaAba === 'servicos')) {
+      Toast.show({
+        type: 'warning',
+        text1: 'Atenção',
+        text2:
+          'Não é possível modificar peças ou serviços após gerar o financeiro',
+      })
+      return false
+    }
+    return true
+  }
+
   return (
-    <KeyboardAwareScrollView
-      style={{ flex: 1, backgroundColor: '#121212' }}
-      enableOnAndroid
-      extraScrollHeight={100}
-      keyboardShouldPersistTaps="handled">
-      <View style={{ padding: 20 }}>
-        {/* Abas */}
+    <KeyboardAwareScrollView style={{ backgroundColor: '#1a2f3d' }}>
+      <View style={{ padding: 20, backgroundColor: '#1a2f3d' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           {['cliente', 'pecas', 'servicos', 'totais'].map((aba) => (
             <TouchableOpacity
               key={aba}
-              onPress={() => setAbaAtiva(aba)}
+              onPress={() => {
+                if (validarMudancaAba(aba)) {
+                  setAbaAtiva(aba)
+                }
+              }}
               style={{
                 flex: 1,
                 padding: 10,
@@ -208,34 +221,35 @@ export default function CriarOrdemServico({ navigation }) {
             </>
           )}
 
-          {abaAtiva === 'pecas' && numeroOS && (
+          {abaAtiva === 'pecas' && (
             <AbaPecas
               pecas={ordemServico.pecas}
-              setPecas={(pecasNovas) =>
-                setOrdemServico((prev) => ({ ...prev, pecas: pecasNovas }))
+              setPecas={(novasPecas) =>
+                setOrdemServico((prev) => ({ ...prev, pecas: novasPecas }))
               }
               os_os={numeroOS}
+              financeiroGerado={financeiroGerado}
             />
           )}
-
-          {abaAtiva === 'servicos' && numeroOS && (
+          {abaAtiva === 'servicos' && (
             <AbaServicos
               servicos={ordemServico.servicos}
-              setServicos={(servicosNovos) =>
-                setOrdemServico((prev) => ({
-                  ...prev,
-                  servicos: servicosNovos,
-                }))
+              setServicos={(novosServicos) =>
+                setOrdemServico((prev) => ({ ...prev, servicos: novosServicos }))
               }
               os_os={numeroOS}
+              financeiroGerado={financeiroGerado}
             />
           )}
-
-          {abaAtiva === 'totais' && numeroOS && (
+          {abaAtiva === 'totais' && (
             <AbaTotais
               pecas={ordemServico.pecas}
               servicos={ordemServico.servicos}
               os_os={numeroOS}
+              os_clie={ordemServico.os_clie}
+              os_empr={empresaId}
+              os_fili={filialId}
+              onFinanceiroGerado={setFinanceiroGerado}
             />
           )}
 

@@ -36,6 +36,7 @@ export default function AbaTotais({
   os_clie: os_clie,
   os_empr,
   os_fili,
+  onFinanceiroGerado, // Novo prop
 }) {
   useEffect(() => {
     console.log('AbaTotais props:', {
@@ -183,6 +184,7 @@ export default function AbaTotais({
       console.log('Payload:', payload)
 
       await apiPostComContexto('Os/financeiro/gerar-titulos/', payload)
+      onFinanceiroGerado && onFinanceiroGerado(true) // Notifica o componente pai
 
       Toast.show({
         type: 'success',
@@ -207,37 +209,39 @@ export default function AbaTotais({
 
   const removerTitulos = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       await apiPostComContexto('Os/financeiro/remover-titulos/', {
-        os_os: orde_nume,  // Adicionado campo obrigatório
+        os_os: orde_nume,
         empr: os_empr,
         fili: os_fili,
         usua: "1"
-      })
+      });
 
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
         text2: 'Títulos removidos com sucesso',
-      })
+      });
 
-      setTitulos([])
+      setTitulos([]);
+      onFinanceiroGerado && onFinanceiroGerado(false); // Atualiza o estado para permitir adicionar peças/serviços novamente
     } catch (error) {
       if (error.response?.status === 404) {
-        setTitulos([])
-        return
+        setTitulos([]);
+        onFinanceiroGerado && onFinanceiroGerado(false); // Também atualiza em caso de 404
+        return;
       }
 
-      console.error('Erro ao remover títulos:', error)
+      console.error('Erro ao remover títulos:', error);
       Toast.show({
         type: 'error',
         text1: 'Erro',
         text2: error.response?.data?.detail || 'Não foi possível remover os títulos',
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const editarTitulo = (titulo) => {
     setTituloEmEdicao(titulo)

@@ -18,6 +18,7 @@ const OsDetalhe = ({ route, navigation }) => {
   const [pecas, setPecas] = useState([])
   const [servicos, setServicos] = useState([])
   const [dadosModificados, setDadosModificados] = useState(false)
+  const [financeiroGerado, setFinanceiroGerado] = useState(false) // Novo estado
 
   useEffect(() => {
     carregarPecas()
@@ -163,16 +164,22 @@ const OsDetalhe = ({ route, navigation }) => {
         ) : (
           <View style={{ flex: 1 }}>
             {abaAtiva === 'pecas' && (
-              <AbaPecas pecas={pecas} setPecas={setPecas} os_os={os.os_os} />
+              <AbaPecas 
+                pecas={pecas} 
+                setPecas={setPecas} 
+                os_os={os.os_os}
+                financeiroGerado={financeiroGerado} // Nova prop
+              />
             )}
             {abaAtiva === 'servicos' && (
               <AbaServicos
                 servicos={servicos}
                 setServicos={setServicos}
-                os_os={os.os_os}  // Corrigido de orde_nume para os_os
+                os_os={os.os_os}
                 os_clie={os.os_enti}
                 os_empr={os.os_empr}
                 os_fili={os.os_fili}
+                financeiroGerado={financeiroGerado} // Nova prop
               />
             )}
             {abaAtiva === 'totais' && (
@@ -183,6 +190,7 @@ const OsDetalhe = ({ route, navigation }) => {
                 os_clie={os.os_clie}
                 os_empr={os.os_empr}
                 os_fili={os.os_fili}
+                onFinanceiroGerado={setFinanceiroGerado} // Nova prop
               />
             )}
           </View>
