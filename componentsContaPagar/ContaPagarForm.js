@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -12,28 +12,50 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import { Picker } from '@react-native-picker/picker'
 import useContextoApp from '../hooks/useContextoApp'
 import BuscaClienteInput from '../components/BuscaClienteInput'
-import { apiPutComContexto } from '../utils/api'
+import { apiPutComContexto, apiPostComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
 
-export default function ContaPagarForm() {
-  const { empresaId, FilialId } = useContextoApp()
+export default function ContaPagarForm({ route }) {
+  const { empresaId, filialId } = useContextoApp()
   const [showPicker, setShowPicker] = useState({ tipo: null })
   const [isLoading, setIsLoading] = useState(false)
+  const [modoEdicao, setModoEdicao] = useState(false)
 
   const [conta, setConta] = useState({
     titu_empr: empresaId,
-    titu_fili: FilialId,
+    titu_fili: filialId,
     titu_forn: '',
     titu_titu: '',
     titu_valo: 0,
     titu_parc: 0,
     titu_emis: new Date(),
     titu_venc: new Date(),
-    titu_paga: new Date(),
     titu_seri: 0,
     titu_hist: '',
     titu_form_paga: '54',
   })
+
+  useEffect(() => {
+    if (route?.params?.contaExistente) {
+      const contaEdit = route.params.contaExistente
+      setConta({
+        ...contaEdit,
+        titu_emis: contaEdit.titu_emis ? new Date(contaEdit.titu_emis) : new Date(),
+        titu_venc: contaEdit.titu_venc ? new Date(contaEdit.titu_venc) : new Date(),
+      })
+      setModoEdicao(true)
+    }
+  }, [route])
+
+  useEffect(() => {
+    if (empresaId && filialId) {
+      setConta((prev) => ({
+        ...prev,
+        titu_empr: empresaId,
+        titu_fili: filialId,
+      }))
+    }
+  }, [empresaId, filialId])
 
   const FORMAS_PAGAMENTO = [
     { codigo: '00', descricao: 'DUPLICATA' },
@@ -50,25 +72,53 @@ export default function ContaPagarForm() {
     { codigo: '60', descricao: 'PIX' },
   ]
 
+  const handleSelectFornecedor = (fornecedor) => {
+    setConta((prev) => ({
+      ...prev,
+      titu_forn: fornecedor.enti_clie,
+    }))
+  }
+
+  const formatarData = (data) => {
+    if (!data) return null
+    const ano = data.getFullYear()
+    const mes = String(data.getMonth() + 1).padStart(2, '0')
+    const dia = String(data.getDate()).padStart(2, '0')
+    return `${ano}-${mes}-${dia}`
+  }
+
   const salvarConta = async () => {
     setIsLoading(true)
     try {
-      if (conta.titu_titu) {
-        await apiPutComContexto(
-          `contas_a_pagar/titulos-pagar/${conta.titu_titu}/`,
-          conta,
-          'PUT'
+      if (!conta.titu_titu || conta.titu_titu.trim() === '') {
+        Toast.show({ type: 'error', text1: 'Informe o número do título!' })
+        return
+      }
+
+      const dadosFormatados = {
+        ...conta,
+        titu_empr: empresaId,
+        titu_fili: filialId,
+        titu_emis: formatarData(conta.titu_emis),
+        titu_venc: formatarData(conta.titu_venc),
+      }
+
+      if (modoEdicao) {
+        const url = `contas_a_pagar/titulos-pagar/${conta.titu_empr}/${conta.titu_fili}/${conta.titu_forn}/${conta.titu_titu}/${conta.titu_seri}/${conta.titu_parc}/`
+        await apiPutComContexto(url, dadosFormatados, empresaId, filialId)
+        Toast.show({ type: 'success', text1: 'Conta atualizada com sucesso!' })
+      } else {
+        await apiPostComContexto(
+          'contas_a_pagar/titulos-pagar/',
+          dadosFormatados,
+          empresaId,
+          filialId
         )
-        Toast.show({
-          type: 'success',
-          text1: 'Conta atualizada com sucesso!',
-        })
+        Toast.show({ type: 'success', text1: 'Conta criada com sucesso!' })
       }
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao salvar a conta!',
-      })
+      console.error(error)
+      Toast.show({ type: 'error', text1: 'Erro ao salvar conta!' })
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +126,6 @@ export default function ContaPagarForm() {
 
   const renderDatePicker = () => {
     if (!showPicker.tipo) return null
-
     return (
       <DateTimePicker
         value={conta[showPicker.tipo] || new Date()}
@@ -95,11 +144,31 @@ export default function ContaPagarForm() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#121212' }}>
       <View style={styles.container}>
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <Text style={styles.label}>Emissão:</Text>
+            <TouchableOpacity
+              onPress={() => setShowPicker({ tipo: 'titu_emis' })}>
+              <Text style={styles.input}>
+                {conta.titu_emis?.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.col}>
+            <Text style={styles.label}>Vencimento:</Text>
+            <TouchableOpacity
+              onPress={() => setShowPicker({ tipo: 'titu_venc' })}>
+              <Text style={styles.input}>
+                {conta.titu_venc?.toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <Text style={styles.label}>Fornecedor:</Text>
         <BuscaClienteInput
           placeholder="Buscar fornecedor"
           value={conta.titu_forn}
-          onChangeText={(text) => setConta({ ...conta, titu_forn: text })}
+          onSelect={handleSelectFornecedor}
         />
 
         <Text style={styles.label}>Título:</Text>
@@ -109,85 +178,73 @@ export default function ContaPagarForm() {
           onChangeText={(text) => setConta({ ...conta, titu_titu: text })}
         />
 
-        <Text style={styles.label}>Série:</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          value={conta.titu_seri.toString()}
-          onChangeText={(text) =>
-            setConta({ ...conta, titu_seri: parseInt(text) || 0 })
-          }
-        />
+        <View style={styles.row}>
+          <View style={styles.col}>
+            <Text style={styles.label}>Série:</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={conta.titu_seri.toString()}
+              onChangeText={(text) =>
+                setConta({ ...conta, titu_seri: parseInt(text) || 0 })
+              }
+            />
+          </View>
+          <View style={styles.col}>
+            <Text style={styles.label}>Parcela:</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={conta.titu_parc.toString()}
+              onChangeText={(text) =>
+                setConta({ ...conta, titu_parc: parseInt(text) || 0 })
+              }
+            />
+          </View>
+        </View>
 
-        <Text style={styles.label}>Valor:</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          value={conta.titu_valo.toString()}
-          onChangeText={(text) =>
-            setConta({ ...conta, titu_valo: parseFloat(text) || 0 })
-          }
-        />
-
-        <Text style={styles.label}>Emissão:</Text>
-        <TouchableOpacity onPress={() => setShowPicker({ tipo: 'titu_emis' })}>
-          <Text style={styles.input}>
-            {conta.titu_emis?.toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.label}>Vencimento:</Text>
-        <TouchableOpacity onPress={() => setShowPicker({ tipo: 'titu_venc' })}>
-          <Text style={styles.input}>
-            {conta.titu_venc?.toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.label}>Pagamento:</Text>
-        <TouchableOpacity onPress={() => setShowPicker({ tipo: 'titu_paga' })}>
-          <Text style={styles.input}>
-            {conta.titu_paga?.toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.label}>Parcela:</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          value={conta.titu_parc.toString()}
-          onChangeText={(text) =>
-            setConta({ ...conta, titu_parc: parseInt(text) || 0 })
-          }
-        />
+        <View style={styles.roww}>
+          <View style={styles.coll}>
+            <Text style={styles.label}>Valor:</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={conta.titu_valo.toString()}
+              onChangeText={(text) =>
+                setConta({ ...conta, titu_valo: parseFloat(text) || 0 })
+              }
+            />
+          </View>
+          <View style={styles.coll}>
+            <Text style={styles.label}>Forma a ser Pago:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={conta.titu_form_paga}
+                onValueChange={(value) =>
+                  setConta({ ...conta, titu_form_paga: value })
+                }
+                style={styles.picker}
+                dropdownIconColor="#000">
+                {FORMAS_PAGAMENTO.map((forma) => (
+                  <Picker.Item
+                    key={forma.codigo}
+                    label={forma.descricao}
+                    value={forma.codigo}
+                    style={styles.pickerItem}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </View>
 
         <Text style={styles.label}>Histórico:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { height: 80 }]}
           multiline
           value={conta.titu_hist}
           onChangeText={(text) => setConta({ ...conta, titu_hist: text })}
         />
-        <View style={styles.formContainer}>
-          <Text style={styles.pickerLabel}>Forma de Pagamento</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={conta.titu_form_paga}
-              onValueChange={(value) =>
-                setConta({ ...conta, titu_form_paga: value })
-              }
-              style={styles.picker}
-              dropdownIconColor="#fff">
-              {FORMAS_PAGAMENTO.map((forma) => (
-                <Picker.Item
-                  key={forma.codigo}
-                  label={forma.descricao}
-                  value={forma.codigo}
-                  style={styles.pickerItem}
-                />
-              ))}
-            </Picker>
-          </View>
-        </View>
 
         <TouchableOpacity onPress={salvarConta} style={styles.button}>
           {isLoading ? (
@@ -205,14 +262,18 @@ export default function ContaPagarForm() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 16,
     backgroundColor: '#1a2f3d',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 25,
+    marginTop: 25,
+  },
+  col: {
+    flex: 1,
+    marginRight: 8,
   },
   label: {
     fontSize: 16,
@@ -225,13 +286,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 8,
     marginBottom: 12,
+    backgroundColor: '#283541',
+    color: '#fff',
   },
   button: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#114b86',
     padding: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 16,
+    marginBottom: 35,
   },
   buttonText: {
     color: '#fff',
@@ -241,15 +305,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#283541',
   },
   picker: {
-    color: '#000',
-  },
-  pickerLabel: {
     color: '#fff',
-    fontSize: 16,
-    marginBottom: 4,
   },
 })

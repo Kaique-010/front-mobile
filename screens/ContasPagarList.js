@@ -71,7 +71,7 @@ export default function ContasPagarList({ navigation }) {
       setLoading(false)
     }
   }
-  const excluirConta = (id) => {
+  const excluirConta = (item) => {
     Alert.alert('Confirmação', 'Excluir esta conta a pagar?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -80,11 +80,21 @@ export default function ContasPagarList({ navigation }) {
         onPress: async () => {
           try {
             await apiDeleteComContexto(
-              `contas_a_pagar/titulos-pagar/${id}/`,
+              `/contas_a_pagar/titulos-pagar/${item.titu_empr}/${item.titu_fili}/${item.titu_forn}/${item.titu_titu}/${item.titu_seri}/${item.titu_parc}/`,
               {},
               'DELETE'
             )
-            setContas((prev) => prev.filter((item) => item.id !== id))
+            setContas((prev) =>
+              prev.filter(
+                (conta) =>
+                  conta.titu_empr !== item.titu_empr ||
+                  conta.titu_fili !== item.titu_fili ||
+                  conta.titu_forn !== item.titu_forn ||
+                  conta.titu_titu !== item.titu_titu ||
+                  conta.titu_seri !== item.titu_seri ||
+                  conta.titu_parc !== item.titu_parc
+              )
+            )
           } catch (error) {
             console.log('❌ Erro ao excluir conta:', error.message)
             Alert.alert('Erro', 'Erro ao excluir a conta')
@@ -144,13 +154,13 @@ export default function ContasPagarList({ navigation }) {
         <TouchableOpacity
           style={[styles.botao, styles.botaoEditar]}
           onPress={() =>
-            navigation.navigate('ContaPagarForm', { conta: item })
+            navigation.navigate('ContaPagarForm', { contaExistente: item })
           }>
           <Text style={styles.botaoTexto}>✏️ Editar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.botao, styles.botaoExcluir]}
-          onPress={() => excluirConta(item.id)}>
+          onPress={() => excluirConta(item)}>
           <Text style={styles.botaoTexto}>🗑️ Excluir</Text>
         </TouchableOpacity>
       </View>
