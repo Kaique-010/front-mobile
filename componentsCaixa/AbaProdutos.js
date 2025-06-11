@@ -86,17 +86,20 @@ export default function AbaProdutos({ produtos, setProdutos, mov, onAvancar }) {
       Toast.show({
         type: 'error',
         text1: 'Produto já adicionado',
-        text2: `${novoItem.prod_nome || 'Produto'} já está na lista`,
+        text2: `${novoItem.produto_nome || 'Produto'} já está na lista`,
       })
       return
     }
     setProdutos([
       ...produtos,
-      {
-        ...novoItem,
-        produto_nome: novoItem.prod_nome || novoItem.produto_nome,
-      },
+      novoItem
     ])
+  }
+
+  const handleRemoverProduto = (index) => {
+    const novosProdutos = [...produtos]
+    novosProdutos.splice(index, 1)
+    setProdutos(novosProdutos)
   }
 
   const handleAdicionarProduto = (produto) => {
@@ -109,12 +112,6 @@ export default function AbaProdutos({ produtos, setProdutos, mov, onAvancar }) {
       iped_prod: produto.prod_codi,
     }
     setProdutos([...produtos, novoProduto])
-  }
-
-  const handleRemoverProduto = (index) => {
-    const novosProdutos = [...produtos]
-    novosProdutos.splice(index, 1)
-    setProdutos(novosProdutos)
   }
 
   const handleAtualizarProduto = (index, novoItem) => {
@@ -222,7 +219,7 @@ export default function AbaProdutos({ produtos, setProdutos, mov, onAvancar }) {
         <FlatList
           data={produtos}
           keyExtractor={(_, index) => index.toString()}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <View style={styles.produto}>
               <Text style={styles.text}>
                 Produto: {item.produto_nome || 'Sem nome'}
@@ -230,6 +227,11 @@ export default function AbaProdutos({ produtos, setProdutos, mov, onAvancar }) {
               <Text style={styles.text}>Quantidade: {item.iped_quan}</Text>
               <Text style={styles.text}>Preço: R$ {item.iped_unit}</Text>
               <Text style={styles.text}>Total: R$ {item.iped_tota}</Text>
+              <TouchableOpacity
+                style={styles.botaoRemover}
+                onPress={() => handleRemoverProduto(index)}>
+                <Text style={styles.textoBotaoRemover}>Remover</Text>
+              </TouchableOpacity>
             </View>
           )}
         />
@@ -267,8 +269,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   empty: { color: 'gray', fontStyle: 'italic', textAlign: 'center' },
-  produto: { marginBottom: 20, textAlign: 'center' },
-  text: { color: 'white', textAlign: 'center' },
+  produto: { 
+    marginBottom: 20, 
+    textAlign: 'center',
+    backgroundColor: '#232935',
+    padding: 15,
+    borderRadius: 8,
+  },
+  text: { color: 'white', textAlign: 'center', marginBottom: 5 },
   total: {
     color: 'white',
     fontSize: 20,
@@ -294,5 +302,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: '100%',
     height: 40,
+  },
+  botaoRemover: {
+    backgroundColor: '#a80909',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+    width: '100%',
+  },
+  textoBotaoRemover: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 })

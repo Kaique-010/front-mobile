@@ -29,9 +29,15 @@ const formatarMoeda = (valor) => {
 export default function ContasPagarList({ navigation }) {
   const [contas, setContas] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchFornecedor, setSearchFornecedor] = useState('')
+  const [searchCliente, setSearchCliente] = useState('')
   const [searchTitulo, setSearchtitulo] = useState('')
   const [searchStatus, setSearchStatus] = useState('')
+
+  const statusMap = {
+    A: 'Aberto',
+    T: 'Pago Total',
+    P: 'Pago Parcialmente',
+  }
   const [isSearching, setIsSearching] = useState(false)
   const [slug, setSlug] = useState('')
 
@@ -56,8 +62,9 @@ export default function ContasPagarList({ navigation }) {
     setIsSearching(true)
     try {
       const filtros = {}
-      if (searchFornecedor) filtros.titu_clie = searchFornecedor
+      if (searchCliente) filtros.cliente_nome = searchCliente
       if (searchTitulo) filtros.titu_titu = searchTitulo
+      if (searchStatus) filtros.titu_aber = searchStatus
 
       const data = await apiGetComContexto(
         `contas_a_receber/titulos-receber/`,
@@ -73,7 +80,7 @@ export default function ContasPagarList({ navigation }) {
     }
   }
 
-  const excluirConta = (id) => {
+  const excluirConta = (item) => {
     Alert.alert('Confirmação', 'Excluir esta conta a receber?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -82,11 +89,21 @@ export default function ContasPagarList({ navigation }) {
         onPress: async () => {
           try {
             await apiDeleteComContexto(
-              `contas_a_receber/titulos-receber/${id}/`,
+              `contas_a_receber/titulos-receber/${item.titu_empr}/${item.titu_fili}/${item.titu_clie}/${item.titu_titu}/${item.titu_seri}/${item.titu_parc}/`,
               {},
               'DELETE'
             )
-            setContas((prev) => prev.filter((item) => item.id !== id))
+            setContas((prev) =>
+              prev.filter(
+                (conta) =>
+                  conta.titu_empr !== item.titu_empr ||
+                  conta.titu_fili !== item.titu_fili ||
+                  conta.titu_clie !== item.titu_clie ||
+                  conta.titu_titu !== item.titu_titu ||
+                  conta.titu_seri !== item.titu_seri ||
+                  conta.titu_parc !== item.titu_parc
+              )
+            )
           } catch (error) {
             console.log('❌ Erro ao excluir conta:', error.message)
             Alert.alert('Erro', 'Erro ao excluir a conta')
@@ -113,7 +130,7 @@ export default function ContasPagarList({ navigation }) {
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.titu_titu}</Text>
+        <Text style={styles.cardTitle}>Titulo: {item.titu_titu}</Text>
         <Text style={[styles.badge, { backgroundColor: '#28a745' }]}>
           {formMap[item.titu_form_reci] || item.titu_form_reci}
         </Text>
@@ -140,19 +157,30 @@ export default function ContasPagarList({ navigation }) {
             {formatarMoeda(item.titu_valo)}
           </Text>
         </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Status:</Text>
+          <Text style={[styles.infoValue, styles.valorDestaqueStatus]}>
+            {statusMap[item.titu_aber] || item.titu_aber}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.actions}>
         <TouchableOpacity
           style={[styles.botao, styles.botaoEditar]}
+          onPress={() => navigation.navigate('', { contaExistente: item })}>
+          <Text style={styles.botaoTexto}>💵 Receber</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.botao, styles.botaoEditar]}
           onPress={() =>
-            navigation.navigate('ContaReceberForm', { conta: item })
+            navigation.navigate('ContaReceberForm', { contaExistente: item })
           }>
           <Text style={styles.botaoTexto}>✏️ Editar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.botao, styles.botaoExcluir]}
-          onPress={() => excluirConta(item.id)}>
+          onPress={() => excluirConta(item)}>
           <Text style={styles.botaoTexto}>🗑️ Excluir</Text>
         </TouchableOpacity>
       </View>
@@ -173,27 +201,42 @@ export default function ContasPagarList({ navigation }) {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate('ContareceberrForm')}>
+        onPress={() => navigation.navigate('ContaReceberForm')}>
         <Text style={styles.incluirButtonText}>+ Nova Conta</Text>
       </TouchableOpacity>
 
       <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Filtrar por fornecedor"
-          placeholderTextColor="#777"
-          style={styles.input}
-          value={searchFornecedor}
-          onChangeText={setSearchFornecedor}
-        />
-        <TextInput
-          placeholder="Filtrar por status"
-          placeholderTextColor="#777"
-          style={styles.input}
-          value={searchStatus}
-          onChangeText={setSearchStatus}
-          onSubmitEditing={buscarContas}
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={buscarContas}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginBottom: 10,
+          }}>
+          <TextInput
+            placeholder="nome do cliente"
+            placeholderTextColor="#777"
+            style={[styles.input, { flex: 1, marginRight: 5 }]}
+            value={searchCliente}
+            onChangeText={setSearchCliente}
+          />
+          <TextInput
+            placeholder="por status"
+            placeholderTextColor="#777"
+            style={[styles.input, { flex: 1, marginRight: 5 }]}
+            value={searchStatus}
+            onChangeText={setSearchStatus}
+          />
+          <TextInput
+            placeholder="por título"
+            placeholderTextColor="#777"
+            style={[styles.input, { flex: 1 }]}
+            value={searchTitulo}
+            onChangeText={setSearchtitulo}
+          />
+        </View>
+        <TouchableOpacity
+          style={[styles.searchButton, { width: '100%' }]}
+          onPress={buscarContas}>
           <Text style={styles.searchButtonText}>
             {isSearching ? '🔍...' : 'Buscar'}
           </Text>

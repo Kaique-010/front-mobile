@@ -68,15 +68,25 @@ export default function ItensModal({
         Toast.show({
           type: 'error',
           text1: 'Produto não encontrado',
+          text2: 'Verifique o código e tente novamente',
         })
+        setIsScanningModal(false)
         return
       }
 
-     
       const produtoDetalhado = await apiGetComContexto(
         `produtos/produtos/${produto.prod_codi}/`
       )
-   
+
+      if (!produtoDetalhado) {
+        Toast.show({
+          type: 'error',
+          text1: 'Erro ao carregar produto',
+          text2: 'Tente novamente',
+        })
+        setIsScanningModal(false)
+        return
+      }
 
       Vibration.vibrate(100)
       setHighlight(true)
@@ -97,12 +107,7 @@ export default function ItensModal({
       })
 
       scrollRef.current?.scrollTo({ y: 0, animated: true })
-    } catch (err) {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao buscar produto',
-      })
-    }
+    } catch (err) {}
 
     setIsScanningModal(false)
   }
@@ -126,6 +131,7 @@ export default function ItensModal({
       iped_quan: quantidadeNum,
       iped_unit: precoNum,
       iped_tota: total,
+      produto_nome: form.produtoNome,
     }
 
     onAdicionar(novoItem, itemEditando)

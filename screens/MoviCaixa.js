@@ -19,7 +19,7 @@ export default function MoviCaixaScreen({ route, navigation }) {
     movi_vend: '',
     movi_vend_nome: '',
     movi_nume_vend: null,
-    total: 0
+    total: 0,
   })
 
   const [produtos, setProdutos] = useState([])
@@ -47,11 +47,11 @@ export default function MoviCaixaScreen({ route, navigation }) {
       movi_vend: '',
       movi_vend_nome: '',
       movi_nume_vend: null,
-      total: 0
+      total: 0,
     })
     setProdutos([])
     setIndex(0)
-    navigation.navigate('Home')
+    navigation.navigate('CaixaGeral')
   }
 
   return (
@@ -60,15 +60,15 @@ export default function MoviCaixaScreen({ route, navigation }) {
         navigationState={{ index, routes }}
         renderScene={SceneMap({
           venda: () => (
-            <AbaVenda 
-              mov={mov} 
-              setMov={setMov} 
-              onAvancar={handleAvancarVenda} 
+            <AbaVenda
+              mov={mov}
+              setMov={setMov}
+              onAvancar={handleAvancarVenda}
             />
           ),
           produtos: () => (
-            <AbaProdutos 
-              produtos={produtos} 
+            <AbaProdutos
+              produtos={produtos}
               setProdutos={setProdutos}
               mov={mov}
               onAvancar={handleAvancarVenda}
@@ -78,7 +78,7 @@ export default function MoviCaixaScreen({ route, navigation }) {
             <AbaProcessamento
               venda={{
                 ...mov,
-                total: produtos.reduce((acc, p) => acc + p.iped_tota, 0)
+                total: produtos.reduce((acc, p) => acc + p.iped_tota, 0),
               }}
               onFinalizarVenda={handleFinalizarVenda}
             />
@@ -87,8 +87,8 @@ export default function MoviCaixaScreen({ route, navigation }) {
         onIndexChange={setIndex}
         initialLayout={{ width: Dimensions.get('window').width }}
         renderTabBar={(props) => (
-          <TabBar 
-            {...props} 
+          <TabBar
+            {...props}
             style={{ backgroundColor: '#283541' }}
             indicatorStyle={{ backgroundColor: '#10a2a7' }}
             activeColor="#10a2a7"
@@ -102,8 +102,8 @@ export default function MoviCaixaScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#1a2f3d'
+  container: {
+    flex: 1,
+    backgroundColor: '#1a2f3d',
   },
 })

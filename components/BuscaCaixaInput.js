@@ -27,34 +27,8 @@ export default function BuscaCaixa({
   const [showResults, setShowResults] = useState(false)
   const digitando = useRef(false)
 
-  useEffect(() => {
-    getStoredData()
-      .then(({ slug }) => slug && setSlug(slug))
-      .catch((err) => console.error('Erro ao carregar slug:', err.message))
-  }, [])
-
-  useEffect(() => {
-    if (!slug) return
-
-    if (isEdit || (!digitando.current && value)) {
-      const deveBuscar =
-        typeof value === 'string' && value && !value.includes(' - ')
-      if (deveBuscar) buscar(value)
-      else if (typeof value === 'string') setTermo(value)
-    }
-
-    if (!value) {
-      setTermo('')
-      setCaixa([])
-      setShowResults(false)
-    }
-  }, [value, isEdit, slug])
-
   const buscar = useCallback(
     debounce(async (texto) => {
-      setTermo(texto)
-      digitando.current = true
-
       if (!slug || !texto || texto.length < 3) {
         setCaixa([])
         setLoading(false)
@@ -77,21 +51,43 @@ export default function BuscaCaixa({
 
         setCaixa(resultadosFiltrados)
         setShowResults(true)
-
-        if (
-          resultadosFiltrados.length === 1 &&
-          resultadosFiltrados[0].enti_clie === texto
-        ) {
-          selecionar(resultadosFiltrados[0])
-        }
       } catch (err) {
         console.error('Erro ao buscar entidades:', err.message)
       } finally {
         setLoading(false)
       }
-    }, 400),
+    }, 800),
     [slug, tipo]
   )
+
+  const handleSearch = () => {
+    if (termo.length >= 3) {
+      buscar(termo)
+    }
+  }
+
+  useEffect(() => {
+    getStoredData()
+      .then(({ slug }) => slug && setSlug(slug))
+      .catch((err) => console.error('Erro ao carregar slug:', err.message))
+  }, [])
+
+  useEffect(() => {
+    if (!slug) return
+
+    if (isEdit || (!digitando.current && value)) {
+      const deveBuscar =
+        typeof value === 'string' && value && !value.includes(' - ')
+      if (deveBuscar) buscar(value)
+      else if (typeof value === 'string') setTermo(value)
+    }
+
+    if (!value) {
+      setTermo('')
+      setCaixa([])
+      setShowResults(false)
+    }
+  }, [value, isEdit, slug])
 
   const selecionar = (item) => {
     const texto = `${item.enti_clie} - ${item.enti_nome}`
@@ -122,19 +118,25 @@ export default function BuscaCaixa({
           value={termo}
           editable={!isSelecionado}
           onChangeText={(text) => {
-            if (!isEdit) buscar(text)
+            setTermo(text)
+            digitando.current = true
           }}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
           placeholder={placeholder}
           placeholderTextColor="#aaa"
           onFocus={() => setShowResults(true)}
         />
-        {loading && (
-          <ActivityIndicator
-            size="small"
-            color="#10a2a7"
-            style={{ position: 'absolute', right: 10 }}
-          />
-        )}
+        <TouchableOpacity
+          onPress={handleSearch}
+          style={styles.searchButton}
+          disabled={loading || termo.length < 3}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.searchButtonText}>Buscar</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
       {showResults && caixa.length > 0 && (

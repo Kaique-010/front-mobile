@@ -31,7 +31,15 @@ export default function ContasPagarList({ navigation }) {
   const [loading, setLoading] = useState(true)
   const [searchFornecedor, setSearchFornecedor] = useState('')
   const [searchTitulo, setSearchtitulo] = useState('')
+
+  const [searchStatus, setSearchStatus] = useState('')
+  const statusMap = {
+    A: 'Aberto',
+    T: 'Pago Total',
+    P: 'Pago Parcialmente',
+  }
   const [isSearching, setIsSearching] = useState(false)
+
   const [slug, setSlug] = useState('')
 
   useEffect(() => {
@@ -55,8 +63,9 @@ export default function ContasPagarList({ navigation }) {
     setIsSearching(true)
     try {
       const filtros = {}
-      if (searchFornecedor) filtros.titu_forn = searchFornecedor
+      if (searchFornecedor) filtros.fornecedor_nome = searchFornecedor
       if (searchTitulo) filtros.titu_titu = searchTitulo
+      if (searchStatus) filtros.titu_aber = searchStatus
 
       const data = await apiGetComContexto(
         `contas_a_pagar/titulos-pagar/`,
@@ -80,7 +89,7 @@ export default function ContasPagarList({ navigation }) {
         onPress: async () => {
           try {
             await apiDeleteComContexto(
-              `/contas_a_pagar/titulos-pagar/${item.titu_empr}/${item.titu_fili}/${item.titu_forn}/${item.titu_titu}/${item.titu_seri}/${item.titu_parc}/`,
+              `contas_a_pagar/titulos-pagar/${item.titu_empr}/${item.titu_fili}/${item.titu_forn}/${item.titu_titu}/${item.titu_seri}/${item.titu_parc}/`,
               {},
               'DELETE'
             )
@@ -104,7 +113,7 @@ export default function ContasPagarList({ navigation }) {
     ])
   }
 
-  const statusMap = {
+  const formMap = {
     '00': 'Duplicata',
     '01': 'Cheque',
     '02': 'Promissória',
@@ -122,9 +131,9 @@ export default function ContasPagarList({ navigation }) {
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.titu_titu}</Text>
+        <Text style={styles.cardTitle}>Titulo: {item.titu_titu}</Text>
         <Text style={[styles.badge, { backgroundColor: '#007bff' }]}>
-          {statusMap[item.titu_form_reci] || item.titu_form_reci}
+          {formMap[item.titu_form_reci] || item.titu_form_reci}
         </Text>
       </View>
 
@@ -148,9 +157,22 @@ export default function ContasPagarList({ navigation }) {
             {formatarMoeda(item.titu_valo)}
           </Text>
         </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Status:</Text>
+          <Text style={[styles.infoValue, styles.valorDestaqueStatus]}>
+            {statusMap[item.titu_aber] || item.titu_aber}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.actions}>
+        <TouchableOpacity
+          style={[styles.botao, styles.botaoEditar]}
+          onPress={() =>
+            navigation.navigate('ContaPagarForm', { contaExistente: item })
+          }>
+          <Text style={styles.botaoTexto}>💵 Pagar</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.botao, styles.botaoEditar]}
           onPress={() =>
@@ -186,22 +208,37 @@ export default function ContasPagarList({ navigation }) {
       </TouchableOpacity>
 
       <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Filtrar por fornecedor"
-          placeholderTextColor="#777"
-          style={styles.input}
-          value={searchFornecedor}
-          onChangeText={setSearchFornecedor}
-        />
-        <TextInput
-          placeholder="Filtrar por Titulo"
-          placeholderTextColor="#777"
-          style={styles.input}
-          value={searchTitulo}
-          onChangeText={setSearchtitulo}
-          onSubmitEditing={buscarContas}
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={buscarContas}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginBottom: 10,
+          }}>
+          <TextInput
+            placeholder="nome fornecedor"
+            placeholderTextColor="#777"
+            style={[styles.input, { flex: 1, marginRight: 5 }]}
+            value={searchFornecedor}
+            onChangeText={setSearchFornecedor}
+          />
+          <TextInput
+            placeholder="por status"
+            placeholderTextColor="#777"
+            style={[styles.input, { flex: 1, marginRight: 5 }]}
+            value={searchStatus}
+            onChangeText={setSearchStatus}
+          />
+          <TextInput
+            placeholder="por título"
+            placeholderTextColor="#777"
+            style={[styles.input, { flex: 1 }]}
+            value={searchTitulo}
+            onChangeText={setSearchtitulo}
+          />
+        </View>
+        <TouchableOpacity
+          style={[styles.searchButton, { width: '100%' }]}
+          onPress={buscarContas}>
           <Text style={styles.searchButtonText}>
             {isSearching ? '🔍...' : 'Buscar'}
           </Text>

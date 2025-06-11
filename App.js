@@ -20,6 +20,8 @@ import ImplantacaoForm from './screens/ImplantacaoForm'
 import ContasPagarList from './screens/ContasPagarList'
 import ContasReceberList from './screens/ContasReceberList'
 import ContaPagarForm from './componentsContaPagar/ContaPagarForm'
+import ContaReceberForm from './componentsContaReceber/ContaReceberForm'
+
 import ContratosForm from './screens/ContratosForm'
 import ContratosList from './screens/Contratos'
 import PainelAcompanhamento from './screens/PainelOs'
@@ -28,6 +30,7 @@ import MoviCaixaScreen from './screens/MoviCaixa'
 import OSCreateScreen from './componentsOs/OsCriacao'
 import OsDetalhe from './screens/OSDetalhe'
 import CriarOrdemServico from './componentsOrdemServico/OrdemCriacao'
+import CaixaGeralScreen from './screens/CaixaGeral'
 
 const Stack = createNativeStackNavigator()
 
@@ -126,6 +129,16 @@ export default function App() {
           }}
         />
         <Stack.Screen
+          name="CaixaGeral"
+          component={CaixaGeralScreen}
+          options={{
+            title: 'Caixa Diário',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
           name="PedidosForm"
           component={PedidosForm}
           options={{
@@ -180,6 +193,16 @@ export default function App() {
           component={ContasReceberList}
           options={{
             title: 'Contas a receber',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="ContaReceberForm"
+          component={ContaReceberForm}
+          options={{
+            title: 'Cadastro de Conta a Receber',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },

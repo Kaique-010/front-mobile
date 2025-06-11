@@ -110,6 +110,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4cd137',
   },
+  valorDestaqueStatus: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#d6a333',
+  },
   // ====== Ações (Editar / Excluir) ======
   actions: {
     flexDirection: 'row',
