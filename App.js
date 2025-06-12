@@ -21,7 +21,6 @@ import ContasPagarList from './screens/ContasPagarList'
 import ContasReceberList from './screens/ContasReceberList'
 import ContaPagarForm from './componentsContaPagar/ContaPagarForm'
 import ContaReceberForm from './componentsContaReceber/ContaReceberForm'
-
 import ContratosForm from './screens/ContratosForm'
 import ContratosList from './screens/Contratos'
 import PainelAcompanhamento from './screens/PainelOs'
@@ -31,6 +30,7 @@ import OSCreateScreen from './componentsOs/OsCriacao'
 import OsDetalhe from './screens/OSDetalhe'
 import CriarOrdemServico from './componentsOrdemServico/OrdemCriacao'
 import CaixaGeralScreen from './screens/CaixaGeral'
+import AuditoriaScreen from './screens/AuditoriaScreen'
 
 const Stack = createNativeStackNavigator()
 
@@ -97,6 +97,16 @@ export default function App() {
           name="MainApp"
           component={DrawerNavigator}
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Auditoria"
+          component={AuditoriaScreen}
+          options={{
+            title: 'Logs do Sistema',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
         />
         <Stack.Screen
           name="ProdutoForm"

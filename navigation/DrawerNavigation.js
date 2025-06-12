@@ -20,6 +20,7 @@ import Contratos from '../screens/Contratos'
 import PainelAcompanhamento from '../screens/PainelOs'
 import CaixaGeralScreen from '../screens/CaixaGeral'
 import PainelOrdens from '../screens/PainelOrdens'
+import AuditoriaScreen from '../screens/AuditoriaScreen'
 
 const Drawer = createDrawerNavigator()
 
@@ -80,7 +81,6 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-
       {hasModulo('entidades') && (
         <Drawer.Screen
           name="Entidades"
@@ -92,7 +92,6 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-
       {hasModulo('entradasestoque') && (
         <Drawer.Screen
           name="Entradas de Estoque"
@@ -104,7 +103,6 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-
       {hasModulo('listacasamento') && (
         <Drawer.Screen
           name="Lista de Casamento"
@@ -149,7 +147,6 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-
       {hasModulo('pedidos') && (
         <Drawer.Screen
           name="Pedidos"
@@ -161,7 +158,6 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-
       {hasModulo('produtos') && (
         <Drawer.Screen
           name="Produtos"
@@ -173,7 +169,6 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-
       {hasModulo('saidasestoque') && (
         <Drawer.Screen
           name="Saidas de Estoque"
@@ -233,6 +228,17 @@ export default function DrawerNavigator() {
           />
         </>
       )}
+
+      <Drawer.Screen
+        name="Auditoria"
+        component={AuditoriaScreen}
+        options={{
+          drawerLabel: 'Logs do Sistema',
+          drawerIcon: ({ color }) => (
+            <Icon name="clock" size={24} color={color} />
+          ),
+        }}
+      />
     </Drawer.Navigator>
   )
 }
