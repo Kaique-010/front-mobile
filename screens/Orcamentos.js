@@ -18,8 +18,6 @@ import {
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
 
-// ...imports
-
 export default function Orcamentos({ navigation }) {
   const [orcamentos, setOrcamentos] = useState([])
   const [loading, setLoading] = useState(false)
@@ -27,6 +25,8 @@ export default function Orcamentos({ navigation }) {
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchValue, setSearchValue] = useState('')
+  const [searchCliente, setSearchCliente] = useState('')
+  const [searchNumero, setSearchNumero] = useState('')
   const [slug, setSlug] = useState('')
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
@@ -78,7 +78,13 @@ export default function Orcamentos({ navigation }) {
       const atualOffset = nextPage ? offset : 0
       const data = await apiGetComContexto(
         'orcamentos/orcamentos/',
-        { limit: 50, offset: atualOffset, search: searchValue },
+        {
+          limit: 50,
+          offset: atualOffset,
+          search: searchValue,
+          cliente_nome: searchCliente,
+          pedi_nume: searchNumero,
+        },
         'pedi_'
       )
 
@@ -169,20 +175,23 @@ export default function Orcamentos({ navigation }) {
 
       <View style={styles.searchContainer}>
         <TextInput
-          placeholder="Buscar por orcamento ou cliente"
+          placeholder="Buscar por nome do cliente"
           placeholderTextColor="#777"
           style={styles.input}
-          value={searchTerm}
-          onChangeText={(text) => {
-            setSearchTerm(text)
-            debouncedSearch(text)
-          }}
-          returnKeyType="search"
-          onSubmitEditing={() => setSearchValue(searchTerm)}
+          value={searchCliente}
+          onChangeText={(text) => setSearchCliente(text)}
+        />
+        <TextInput
+          placeholder="Buscar por nº orçamento"
+          placeholderTextColor="#777"
+          style={styles.input}
+          keyboardType="numeric"
+          value={searchNumero}
+          onChangeText={(text) => setSearchNumero(text)}
         />
         <TouchableOpacity
           style={styles.searchButton}
-          onPress={() => setSearchValue(searchTerm)}>
+          onPress={() => buscarOrcamentos(false, false)}>
           <Text style={styles.searchButtonText}>🔍 Buscar</Text>
         </TouchableOpacity>
       </View>

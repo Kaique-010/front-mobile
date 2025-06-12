@@ -68,7 +68,23 @@ export default function ItensModal({
         Toast.show({
           type: 'error',
           text1: 'Produto não encontrado',
+          text2: 'Verifique o código e tente novamente',
         })
+        setIsScanningModal(false)
+        return
+      }
+
+      const produtoDetalhado = await apiGetComContexto(
+        `produtos/produtos/${produto.prod_codi}/`
+      )
+
+      if (!produtoDetalhado) {
+        Toast.show({
+          type: 'error',
+          text1: 'Erro ao carregar produto',
+          text2: 'Tente novamente',
+        })
+        setIsScanningModal(false)
         return
       }
 
@@ -78,25 +94,20 @@ export default function ItensModal({
 
       setForm((f) => ({
         ...f,
-        produtoId: produto.prod_codi.toString(),
-        produtoNome: produto.prod_nome,
-        preco: produto.prod_preco_vista?.toString() || '',
+        produtoId: produtoDetalhado.prod_codi.toString(),
+        produtoNome: produtoDetalhado.prod_nome,
+        preco: produtoDetalhado.prod_preco_vista?.toString() || '',
         quantidade: '1',
       }))
 
       Toast.show({
         type: 'success',
         text1: 'Produto encontrado',
-        text2: produto.prod_nome,
+        text2: produtoDetalhado.prod_nome,
       })
 
       scrollRef.current?.scrollTo({ y: 0, animated: true })
-    } catch (err) {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao buscar produto',
-      })
-    }
+    } catch (err) {}
 
     setIsScanningModal(false)
   }
@@ -120,6 +131,7 @@ export default function ItensModal({
       iped_quan: quantidadeNum,
       iped_unit: precoNum,
       iped_tota: total,
+      produto_nome: form.produtoNome,
     }
 
     onAdicionar(novoItem, itemEditando)
@@ -151,7 +163,7 @@ export default function ItensModal({
           />
         ) : (
           <>
-            <Text style={styles.cabecalho}>ITENS DO ORÇAMENTO</Text>
+            <Text style={styles.cabecalho}>ITENS DO PEDIDO</Text>
 
             <Text style={styles.label}>Produto:</Text>
             <View style={styles.buscaComIcone}>

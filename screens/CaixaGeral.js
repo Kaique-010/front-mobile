@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import Icon from 'react-native-vector-icons/Feather'
-import { View, Text, TextInput, Button } from 'react-native'
-import styles from '../styles/caixaStyle'
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native'
 import Toast from 'react-native-toast-message'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import BuscaCaixa from '../components/BuscaCaixaInput'
+import styles from '../styles/caixaStyle'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 
 export default function CaixaGeralScreen({ route, navigation }) {
@@ -20,7 +26,10 @@ export default function CaixaGeralScreen({ route, navigation }) {
   })
 
   const [caixaAberto, setCaixaAberto] = useState(false)
-  const [contexto, setContexto] = useState(null)
+
+  useEffect(() => {
+    checarCaixaAberto()
+  }, [])
 
   const carregarContexto = async () => {
     try {
@@ -29,18 +38,12 @@ export default function CaixaGeralScreen({ route, navigation }) {
         AsyncStorage.getItem('empresaId'),
         AsyncStorage.getItem('filialId'),
       ])
-
       const usuarioObj = usuarioRaw ? JSON.parse(usuarioRaw) : null
-      const usuarioId = usuarioObj?.usuario_id ?? null
-
-      const novoContexto = {
-        caix_oper: Number(usuarioId),
+      return {
+        caix_oper: Number(usuarioObj?.usuario_id ?? 0),
         caix_empr: Number(empresaId),
         caix_fili: Number(filialId),
       }
-
-      setContexto(novoContexto)
-      return novoContexto
     } catch (error) {
       console.error('Erro ao carregar contexto:', error)
     }
@@ -49,14 +52,11 @@ export default function CaixaGeralScreen({ route, navigation }) {
   const checarCaixaAberto = async () => {
     const ctx = await carregarContexto()
     if (!ctx) return
-
     try {
       const response = await apiGetComContexto(
         `caixadiario/caixageral/?caix_empr=${ctx.caix_empr}&caix_fili=${ctx.caix_fili}&caix_oper=${ctx.caix_oper}&caix_aber=A`
       )
-      console.log('Resposta da API caixa aberto:', response)
-
-      if (response && response.results && response.results.length > 0) {
+      if (response?.results?.length > 0) {
         const caixaAbertoData = response.results[0]
         setCaixaAberto(true)
         setCaixa((prev) => ({ ...prev, ...caixaAbertoData }))
@@ -67,24 +67,16 @@ export default function CaixaGeralScreen({ route, navigation }) {
     }
   }
 
-  useEffect(() => {
-    checarCaixaAberto()
-  }, [])
-
   const abrirCaixa = async () => {
     try {
-      const payload = { ...caixa, ...contexto }
+      const ctx = await carregarContexto()
+      const payload = { ...caixa, ...ctx }
       await apiPostComContexto('caixadiario/caixageral/', payload)
-      Toast.show({
-        type: 'success',
-        text1: 'Sucesso',
-        text2: 'Caixa aberto!',
-      })
+      Toast.show({ type: 'success', text1: 'Sucesso', text2: 'Caixa aberto!' })
       setCaixaAberto(true)
       setCaixa(payload)
       navigation.navigate('MoviCaixa', { caixa: payload })
     } catch (e) {
-      console.error('Erro ao abrir caixa:', e)
       Toast.show({
         type: 'error',
         text1: 'Erro',
@@ -98,54 +90,64 @@ export default function CaixaGeralScreen({ route, navigation }) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.titulo}>
-        <Icon
-          name="dollar-sign"
-          style={{ fontSize: 55, color: '#00cc66', marginVertical: 25 }}
-        />
-        CAIXA DIÁRIO
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <Icon name="dollar-sign" size={36} color="#00cc66" />
+        <Text style={styles.title}>CAIXA DIÁRIO</Text>
+      </View>
+
+      <Text style={styles.label}>Caixa</Text>
+      <BuscaCaixa
+        onSelect={(item) =>
+          item?.id &&
+          setCaixa((prev) => ({ ...prev, caix_caix: Number(item.id) }))
+        }
+        value={String(caixa.caix_caix)}
+        style={styles.input}
+      />
+
+      <Text style={styles.label}>Origem</Text>
+      <BuscaCaixa
+        onSelect={(item) =>
+          item?.id &&
+          setCaixa((prev) => ({ ...prev, caix_orig: Number(item.id) }))
+        }
+        value={String(caixa.caix_orig)}
+        style={styles.input}
+      />
+
+      <Text style={styles.label}>Data de Abertura</Text>
+      <Text style={[styles.input, { backgroundColor: '#222' }]}>
+        {caixa.caix_data}
       </Text>
 
-      <Text style={styles.label}>Caixa:</Text>
-      <BuscaCaixa
-        onSelect={(item) => {
-          if (!item?.id) return
-          setCaixa((prev) => ({ ...prev, caix_caix: Number(item.id) }))
-        }}
-        value={String(caixa.caix_caix)}
-        style={styles.inputcaixa}
-      />
-
-      <Text style={styles.label}>Origem:</Text>
-      <BuscaCaixa
-        onSelect={(item) => {
-          if (!item?.id) return
-          setCaixa((prev) => ({ ...prev, caix_orig: Number(item.id) }))
-        }}
-        value={String(caixa.caix_orig)}
-        style={styles.inputcaixa}
-      />
-
-      <Text style={styles.label}>Data de Abertura:</Text>
-      <Text style={styles.input}>{caixa.caix_data}</Text>
-
-      <Text style={styles.label}>Valor Inicial:</Text>
+      <Text style={styles.label}>Valor Inicial</Text>
       <TextInput
         keyboardType="numeric"
         onChangeText={(val) =>
           setCaixa((prev) => ({ ...prev, caix_valo: Number(val) }))
         }
         value={String(caixa.caix_valo)}
-        style={styles.inputvalo}
+        style={styles.input}
         editable={!caixaAberto}
       />
 
-      <Button title="Abrir Caixa" onPress={abrirCaixa} disabled={caixaAberto} />
+      <View style={styles.buttonGroup}>
+        <TouchableOpacity
+          onPress={abrirCaixa}
+          style={[styles.button, caixaAberto && styles.buttonDisabled]}
+          disabled={caixaAberto}>
+          <Icon name="log-in" size={18} color="#fff" />
+          <Text style={styles.buttonText}>Abrir Caixa</Text>
+        </TouchableOpacity>
 
-      {caixaAberto && (
-        <Button title="Ir para Movimentação" onPress={irParaMovimentacao} />
-      )}
-    </View>
+        {caixaAberto && (
+          <TouchableOpacity onPress={irParaMovimentacao} style={styles.button}>
+            <Icon name="arrow-right-circle" size={18} color="#fff" />
+            <Text style={styles.buttonText}>Movimentações</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </ScrollView>
   )
 }

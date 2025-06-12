@@ -10,15 +10,41 @@ import {
   Alert,
 } from 'react-native'
 import debounce from 'lodash.debounce'
-import {
-  apiDelete,
-  apiDeleteComContexto,
-  apiGetComContexto,
-} from '../utils/api'
+import { apiDeleteComContexto, apiGetComContexto } from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
 
-// ...imports
+const statusPedidos = {
+  0: 'Aberto',
+  1: 'Faturado',
+  2: 'Cancelado',
+}
+
+// Item memoizado, evita rerender quando props não mudam
+const PedidoItem = React.memo(({ item, onEdit, onDelete }) => {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.status}>
+        Status: {statusPedidos[item.pedi_stat] ?? 'Desconhecido'}
+      </Text>
+      <Text style={styles.numero}>Nº Pedido: {item.pedi_nume}</Text>
+      <Text style={styles.data}>Data: {item.pedi_data}</Text>
+      <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
+      <Text style={styles.total}>Total Pedido: {item.pedi_tota}</Text>
+      <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
+
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.botao} onPress={() => onEdit(item)}>
+          <Text style={styles.botaoTexto}>✏️</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.botao} onPress={() => onDelete(item)}>
+          <Text style={styles.botaoTexto}>🗑️</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )
+})
 
 export default function Pedidos({ navigation }) {
   const [pedidos, setPedidos] = useState([])
@@ -26,7 +52,8 @@ export default function Pedidos({ navigation }) {
   const [initialLoading, setInitialLoading] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchValue, setSearchValue] = useState('')
+  const [searchCliente, setSearchCliente] = useState('')
+  const [searchNumero, setSearchNumero] = useState('')
   const [slug, setSlug] = useState('')
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
@@ -44,24 +71,23 @@ export default function Pedidos({ navigation }) {
     carregarSlug()
   }, [])
 
-  const debouncedSearch = useCallback(
-    debounce((value) => {
-      setSearchValue(value)
-    }, 600),
-    []
-  )
-
   useEffect(() => {
     if (slug) {
       buscarPedidos(false, true)
     }
   }, [slug])
-
   useEffect(() => {
-    if (slug) {
+    const handler = setTimeout(() => {
       buscarPedidos(false, false)
-    }
-  }, [searchValue])
+    }, 600)
+    return () => clearTimeout(handler)
+  }, [searchCliente, searchNumero])
+  const debouncedSearch = useCallback(
+    debounce((text) => {
+      setSearchCliente(text)
+    }, 600),
+    []
+  )
 
   const buscarPedidos = async (nextPage = false, primeiraCarga = false) => {
     if (!slug || (isFetchingMore && nextPage)) return
@@ -79,7 +105,12 @@ export default function Pedidos({ navigation }) {
       const atualOffset = nextPage ? offset : 0
       const data = await apiGetComContexto(
         'pedidos/pedidos/',
-        { limit: 50, offset: atualOffset, search: searchValue },
+        {
+          limit: 40,
+          offset: atualOffset,
+          cliente_nome: searchCliente,
+          pedi_nume: searchNumero,
+        },
         'pedi_'
       )
 
@@ -124,37 +155,23 @@ export default function Pedidos({ navigation }) {
     )
   }
 
-  const statusPedidos = {
-    0: 'Aberto',
-    1: 'Faturado',
-    2: 'Cancelado',
-  }
+  // Memoize funções para não criar referência nova e forçar rerender do item
+  const handleEdit = useCallback(
+    (item) => {
+      navigation.navigate('PedidosForm', { pedido: item })
+    },
+    [navigation]
+  )
 
-  const renderPedidos = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.status}>
-        Status: {statusPedidos[item.pedi_stat] ?? 'Desconhecido'}
-      </Text>
-      <Text style={styles.numero}>Nº Pedido: {item.pedi_nume}</Text>
-      <Text style={styles.data}>Data: {item.pedi_data}</Text>
-      <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
-      <Text style={styles.total}>Total Pedido: {item.pedi_tota}</Text>
-      <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
+  const handleDelete = useCallback((item) => {
+    deletarPedido(item)
+  }, [])
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.botao}
-          onPress={() => navigation.navigate('PedidosForm', { pedido: item })}>
-          <Text style={styles.botaoTexto}>✏️</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.botao}
-          onPress={() => deletarPedido(item)}>
-          <Text style={styles.botaoTexto}>🗑️</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+  const renderPedidos = useCallback(
+    ({ item }) => (
+      <PedidoItem item={item} onEdit={handleEdit} onDelete={handleDelete} />
+    ),
+    [handleEdit, handleDelete]
   )
 
   if (initialLoading) {
@@ -177,20 +194,26 @@ export default function Pedidos({ navigation }) {
 
       <View style={styles.searchContainer}>
         <TextInput
-          placeholder="Buscar por pedido ou cliente"
+          placeholder="Buscar por nome do cliente"
           placeholderTextColor="#777"
           style={styles.input}
-          value={searchTerm}
+          value={searchCliente}
           onChangeText={(text) => {
-            setSearchTerm(text)
+            setSearchCliente(text)
             debouncedSearch(text)
           }}
-          returnKeyType="search"
-          onSubmitEditing={() => setSearchValue(searchTerm)}
+        />
+        <TextInput
+          placeholder="Buscar por nº orçamento"
+          placeholderTextColor="#777"
+          style={styles.input}
+          keyboardType="numeric"
+          value={searchNumero}
+          onChangeText={(text) => setSearchNumero(text)}
         />
         <TouchableOpacity
           style={styles.searchButton}
-          onPress={() => setSearchValue(searchTerm)}>
+          onPress={() => buscarPedidos(false, false)}>
           <Text style={styles.searchButtonText}>🔍 Buscar</Text>
         </TouchableOpacity>
       </View>
@@ -205,6 +228,10 @@ export default function Pedidos({ navigation }) {
           if (hasMore && !isFetchingMore) buscarPedidos(true)
         }}
         onEndReachedThreshold={0.2}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         ListFooterComponent={
           isFetchingMore ? (
             <ActivityIndicator
