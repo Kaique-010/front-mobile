@@ -101,7 +101,8 @@ export default function ContasPagarList({ navigation }) {
                   conta.titu_forn !== item.titu_forn ||
                   conta.titu_titu !== item.titu_titu ||
                   conta.titu_seri !== item.titu_seri ||
-                  conta.titu_parc !== item.titu_parc
+                  conta.titu_parc !== item.titu_parc ||
+                  conta.titu_aber !== item.titu_aber
               )
             )
           } catch (error) {
@@ -158,6 +159,10 @@ export default function ContasPagarList({ navigation }) {
           </Text>
         </View>
         <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Parcela:</Text>
+          <Text style={styles.infoValue}>{item.titu_parc || '-'}</Text>
+        </View>
+        <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Status:</Text>
           <Text style={[styles.infoValue, styles.valorDestaqueStatus]}>
             {statusMap[item.titu_aber] || item.titu_aber}
@@ -169,14 +174,20 @@ export default function ContasPagarList({ navigation }) {
         <TouchableOpacity
           style={[styles.botao, styles.botaoEditar]}
           onPress={() =>
-            navigation.navigate('ContaPagarForm', { contaExistente: item })
+            navigation.navigate('BaixaTituloForm', {
+              titulo: item,  // Garantir que o item contém todos os campos necessários
+              tipo: 'pagar',
+            })
           }>
           <Text style={styles.botaoTexto}>💵 Pagar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.botao, styles.botaoEditar]}
           onPress={() =>
-            navigation.navigate('ContaPagarForm', { contaExistente: item })
+            navigation.navigate('ContaPagarForm', {
+              contaExistente: item,
+              titu_parc: item.titu_parc // Corrigir aqui - estava usando variável não definida
+            })
           }>
           <Text style={styles.botaoTexto}>✏️ Editar</Text>
         </TouchableOpacity>

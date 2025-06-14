@@ -21,30 +21,43 @@ const statusPedidos = {
 }
 
 // Item memoizado, evita rerender quando props não mudam
-const PedidoItem = React.memo(({ item, onEdit, onDelete }) => {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.status}>
-        Status: {statusPedidos[item.pedi_stat] ?? 'Desconhecido'}
-      </Text>
-      <Text style={styles.numero}>Nº Pedido: {item.pedi_nume}</Text>
-      <Text style={styles.data}>Data: {item.pedi_data}</Text>
-      <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
-      <Text style={styles.total}>Total Pedido: {item.pedi_tota}</Text>
-      <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
+const PedidoItem = React.memo(
+  ({ item, onEdit, onDelete }) => {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.status}>
+          Status: {statusPedidos[item.pedi_stat] ?? 'Desconhecido'}
+        </Text>
+        <Text style={styles.numero}>Nº Pedido: {item.pedi_nume}</Text>
+        <Text style={styles.data}>Data: {item.pedi_data}</Text>
+        <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
+        <Text style={styles.total}>Total Pedido: {item.pedi_tota}</Text>
+        <Text style={styles.empresa}>
+          Empresa: {item.empresa_nome || '---'}
+        </Text>
 
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.botao} onPress={() => onEdit(item)}>
-          <Text style={styles.botaoTexto}>✏️</Text>
-        </TouchableOpacity>
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.botao} onPress={() => onEdit(item)}>
+            <Text style={styles.botaoTexto}>✏️</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.botao} onPress={() => onDelete(item)}>
-          <Text style={styles.botaoTexto}>🗑️</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.botao} onPress={() => onDelete(item)}>
+            <Text style={styles.botaoTexto}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  )
-})
+    )
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.item.pedi_nume === nextProps.item.pedi_nume &&
+      prevProps.item.pedi_stat === nextProps.item.pedi_stat &&
+      prevProps.item.pedi_tota === nextProps.item.pedi_tota
+    )
+  }
+)
+
+// Item memoizado, evita rerender quando props não mudam
 
 export default function Pedidos({ navigation }) {
   const [pedidos, setPedidos] = useState([])
@@ -229,18 +242,22 @@ export default function Pedidos({ navigation }) {
         }}
         onEndReachedThreshold={0.2}
         initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
+        maxToRenderPerBatch={5}  // Reduzido para 5
+        windowSize={3}           // Reduzido para 3
+        updateCellsBatchingPeriod={50}  // Adicionar controle de batch
         removeClippedSubviews={true}
-        ListFooterComponent={
-          isFetchingMore ? (
-            <ActivityIndicator
-              size="small"
-              color="#007bff"
-              style={{ marginVertical: 10 }}
-            />
-          ) : null
-        }
+        getItemLayout={(data, index) => ({
+          length: 180, // Altura estimada do item
+          offset: 180 * index,
+          index,
+        })}
+        ListFooterComponent={isFetchingMore ? (
+          <ActivityIndicator
+            size="small"
+            color="#007bff"
+            style={{ marginVertical: 10 }}
+          />
+        ) : null}
       />
       <Text style={styles.footerText}>
         {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} encontrado

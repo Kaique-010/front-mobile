@@ -168,7 +168,12 @@ export default function ContasPagarList({ navigation }) {
       <View style={styles.actions}>
         <TouchableOpacity
           style={[styles.botao, styles.botaoEditar]}
-          onPress={() => navigation.navigate('', { contaExistente: item })}>
+          onPress={() =>
+            navigation.navigate('BaixaTituloForm', {
+              titulo: item,
+              tipo: 'receber',
+            })
+          }>
           <Text style={styles.botaoTexto}>💵 Receber</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -247,7 +252,7 @@ export default function ContasPagarList({ navigation }) {
         data={contas}
         renderItem={renderItem}
         keyExtractor={(item) =>
-          `${item.titu_empr}_${item.titu_fili}_${item.titu_forn}_${item.titu_titu}_${item.titu_seri}__${item.titu_parc_}_${item.titu_venc}_${item.titu_fomr_reci}_${item.titu_clie}`
+          `${item.titu_empr}_${item.titu_fili}_${item.titu_forn}_${item.titu_titu}_${item.titu_seri}_${item.titu_parc}_${item.titu_venc}_${item.titu_fomr_reci}_${item.titu_clie}`
         }
         ListEmptyComponent={() => (
           <Text style={{ textAlign: 'center', marginTop: 20 }}>

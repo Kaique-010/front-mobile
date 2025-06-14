@@ -31,6 +31,7 @@ import OsDetalhe from './screens/OSDetalhe'
 import CriarOrdemServico from './componentsOrdemServico/OrdemCriacao'
 import CaixaGeralScreen from './screens/CaixaGeral'
 import AuditoriaScreen from './screens/AuditoriaScreen'
+import BaixaTituloForm from './screens/BaixaTituloForm'
 
 const Stack = createNativeStackNavigator()
 
@@ -213,6 +214,16 @@ export default function App() {
           component={ContaReceberForm}
           options={{
             title: 'Cadastro de Conta a Receber',
+            headerStyle: { backgroundColor: '#182c39' },
+            headerTintColor: '#ff0000',
+            headerTitleStyle: { color: '#faebd7' },
+          }}
+        />
+        <Stack.Screen
+          name="BaixaTituloForm"
+          component={BaixaTituloForm}
+          options={{
+            title: 'Baixa de Título',
             headerStyle: { backgroundColor: '#182c39' },
             headerTintColor: '#ff0000',
             headerTitleStyle: { color: '#faebd7' },

@@ -1,0 +1,104 @@
+import { StyleSheet } from 'react-native'
+
+export default StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: '#007bff',
+    padding: 20,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: 'white',
+    opacity: 0.9,
+  },
+  form: {
+    padding: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    marginTop: 15,
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: 'white',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  calcButton: {
+    backgroundColor: '#28a745',
+    padding: 12,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  calcButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#e9ecef',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007bff',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 15,
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  button: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#6c757d',
+  },
+  confirmButton: {
+    backgroundColor: '#007bff',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+})
