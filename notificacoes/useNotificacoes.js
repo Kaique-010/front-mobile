@@ -30,12 +30,7 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
   const marcarComoLida = useCallback(async (id) => {
     try {
       await Service.marcarComoLida(id)
-
-      setNotificacoes((prev) =>
-        prev.map((notif) =>
-          notif.id === id ? { ...notif, lida: true } : notif
-        )
-      )
+      setNotificacoes((prev) => prev.filter((notif) => notif.id !== id))
 
       setContadorNaoLidas((prev) => Math.max(0, prev - 1))
     } catch (err) {
@@ -46,13 +41,15 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
   useEffect(() => {
     const initWebSocket = async () => {
       try {
-        // Conectar WebSocket se houver userId
+        // Verificar se há token e userId antes de conectar WebSocket
+        const token = await AsyncStorage.getItem('access')
         const userId = await AsyncStorage.getItem('userId')
-        if (userId) {
+
+        if (token && userId) {
           websocketService.connect(userId)
           websocketService.onNotificacao((novaNotificacao) => {
-            setNotificacoes(prev => [novaNotificacao, ...prev])
-            setContadorNaoLidas(prev => prev + 1)
+            setNotificacoes((prev) => [novaNotificacao, ...prev])
+            setContadorNaoLidas((prev) => prev + 1)
           })
         }
       } catch (error) {
@@ -61,17 +58,36 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
     }
 
     initWebSocket()
-    
+
     return () => {
       websocketService.disconnect()
     }
   }, [])
 
   useEffect(() => {
-    carregarNotificacoes()
+    const verificarTokenECarregar = async () => {
+      try {
+        const token = await AsyncStorage.getItem('access')
+        if (token) {
+          carregarNotificacoes()
+        } else {
+          setLoading(false)
+        }
+      } catch (error) {
+        console.error('Erro ao verificar token:', error)
+        setLoading(false)
+      }
+    }
+
+    verificarTokenECarregar()
 
     if (autoRefresh) {
-      const intervalId = setInterval(carregarNotificacoes, interval)
+      const intervalId = setInterval(async () => {
+        const token = await AsyncStorage.getItem('access')
+        if (token) {
+          carregarNotificacoes()
+        }
+      }, interval)
       return () => clearInterval(intervalId)
     }
   }, [carregarNotificacoes, autoRefresh, interval])

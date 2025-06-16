@@ -1,7 +1,8 @@
 // URLs base para as notificações
-const API_BASE = 'http://localhost:8000/api/notificacoes/'
+//const API_BASE = 'http://localhost:8000/api/notificacoes/'
 
-const endpoints = {
+{
+  /*const endpoints = {
   listar: `${API_BASE}listar/`,
   marcarLida: (id) => `${API_BASE}marcar-lida/${id}/`,
   // Endpoints para gerar notificações (normalmente automáticos)
@@ -15,4 +16,5 @@ const endpoints = {
 const BASE_URL = 'http://192.168.0.39:8000'; // Verify this IP is correct
 
 // Or try with your actual server IP/domain
-// const BASE_URL = 'https://your-domain.com';
+// const BASE_URL = 'https://your-domain.com';*/
+}

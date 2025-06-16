@@ -357,31 +357,32 @@ export default function App() {
             }}
           />
         </Stack.Navigator>
-        
+
         {/* Notificações flutuantes */}
-        <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 1000 }}>
-          <TouchableOpacity
-            onPress={() => setMostrarNotificacoes(!mostrarNotificacoes)}>
-            <NotificacaoBadge />
-          </TouchableOpacity>
+        <View
+          style={{ position: 'absolute', top: 50, right: 20, zIndex: 1000 }}>
+          <NotificacaoBadge
+            onPress={() => setMostrarNotificacoes(!mostrarNotificacoes)}
+          />
           {mostrarNotificacoes && (
-            <View style={{
-              position: 'absolute',
-              right: 0,
-              top: 50,
-              width: 300,
-              backgroundColor: 'white',
-              borderRadius: 8,
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 5,
-              zIndex: 1001
-            }}>
+            <View
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 50,
+                width: 300,
+                backgroundColor: 'white',
+                borderRadius: 8,
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+                elevation: 5,
+                zIndex: 1001,
+              }}>
               <NotificacaoComponent />
             </View>
           )}
         </View>
-        
+
         <Toast config={toastConfig} />
       </NavigationContainer>
     </NotificacaoProvider>

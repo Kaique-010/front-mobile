@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
+import { BASE_URL } from '../utils/api'
 
 export const getAccessToken = async () => {
   try {
@@ -13,23 +14,21 @@ export const getAccessToken = async () => {
 }
 
 class NotificacaoService {
-  constructor() {
-    this.baseURL = null
-    this.token = null
-    this.init()
-  }
+  async ensureInitialized() {
+    if (this.initialized) return
 
-  async init() {
     try {
       const { slug } = await getStoredData()
-      this.baseURL = `http://192.168.0.39:8000/api/${slug}/notificacoes/listar/`
-      this.token = await AsyncStorage.getItem('authToken')
+      this.baseURL = `${BASE_URL}/api/${slug}/notificacoes/`
+      this.token = await AsyncStorage.getItem('access')
+      this.initialized = true
     } catch (e) {
       console.error('Erro na init:', e)
     }
   }
 
   async getHeaders() {
+    await this.ensureInitialized()
     if (!this.token) this.token = await AsyncStorage.getItem('authToken')
     return {
       'Content-Type': 'application/json',
@@ -38,23 +37,36 @@ class NotificacaoService {
   }
 
   async listarNotificacoes() {
+    await this.ensureInitialized()
     try {
+      // Verificar se há token antes de fazer a requisição
+      if (!this.token) {
+        throw new Error('Token de acesso não encontrado')
+      }
+
       const headers = await this.getHeaders()
-      const response = await fetch(this.baseURL, {
+      const response = await fetch(`${this.baseURL}listar/`, {
         method: 'GET',
         headers,
       })
 
       if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
-
-      return await response.json()
+      const json = await response.json()
+      return json.notificacoes || []
     } catch (error) {
-      console.error('Erro listar:', error)
+      // Só logar erro se não for problema de autenticação
+      if (
+        !error.message.includes('Token de acesso') &&
+        !error.message.includes('401')
+      ) {
+        console.error('Erro listar:', error)
+      }
       throw error
     }
   }
 
   async marcarComoLida(id) {
+    await this.ensureInitialized()
     const headers = await this.getHeaders()
     const response = await fetch(`${this.baseURL}marcar-lida/${id}/`, {
       method: 'PATCH',
@@ -72,6 +84,102 @@ class NotificacaoService {
   async contarNaoLidas() {
     const naoLidas = await this.buscarNaoLidas()
     return naoLidas.length
+  }
+
+  // Gerar notificações de estoque baixo
+  async gerarNotificacoesEstoque() {
+    await this.ensureInitialized()
+    try {
+      const headers = await this.getHeaders()
+      const response = await fetch(`${this.baseURL}estoque/`, {
+        method: 'POST',
+        headers,
+      })
+
+      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      console.error('Erro ao gerar notificações de estoque:', error)
+      throw error
+    }
+  }
+
+  // Gerar notificações financeiras (contas a pagar/receber)
+  async gerarNotificacoesFinanceiro() {
+    await this.ensureInitialized()
+    try {
+      const headers = await this.getHeaders()
+      const response = await fetch(`${this.baseURL}financeiro/`, {
+        method: 'POST',
+        headers,
+      })
+
+      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      console.error('Erro ao gerar notificações financeiras:', error)
+      throw error
+    }
+  }
+
+  // Gerar notificações de vendas do dia
+  async gerarNotificacoesVendas() {
+    await this.ensureInitialized()
+    try {
+      const headers = await this.getHeaders()
+      const response = await fetch(`${this.baseURL}vendas/`, {
+        method: 'POST',
+        headers,
+      })
+
+      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      console.error('Erro ao gerar notificações de vendas:', error)
+      throw error
+    }
+  }
+
+  // Gerar notificações de resumo do dia
+  async gerarNotificacoesResumo() {
+    await this.ensureInitialized()
+    try {
+      const headers = await this.getHeaders()
+      const response = await fetch(`${this.baseURL}resumo/`, {
+        method: 'POST',
+        headers,
+      })
+
+      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      console.error('Erro ao gerar notificações de resumo:', error)
+      throw error
+    }
+  }
+
+  // Método para gerar todas as notificações de uma vez
+  async gerarTodasNotificacoes() {
+    try {
+      const resultados = await Promise.allSettled([
+        this.gerarNotificacoesEstoque(),
+        this.gerarNotificacoesFinanceiro(),
+        this.gerarNotificacoesVendas(),
+        this.gerarNotificacoesResumo(),
+      ])
+
+      const sucessos = resultados.filter((r) => r.status === 'fulfilled')
+      const erros = resultados.filter((r) => r.status === 'rejected')
+
+      return {
+        sucessos: sucessos.length,
+        erros: erros.length,
+        detalhes: resultados,
+      }
+    } catch (error) {
+      console.error('Erro ao gerar todas as notificações:', error)
+      throw error
+    }
   }
 }
 

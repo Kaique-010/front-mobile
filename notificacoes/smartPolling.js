@@ -1,11 +1,9 @@
-
 class SmartPolling {
-  constructor(service, intervals = { active: 30000, inactive: 120000 }) {
+  constructor(service, intervals = { active: 120000, inactive: 3600000 }) {
     this.service = service
     this.intervals = intervals
     this.currentInterval = null
     this.isActive = true
-
 
     document.addEventListener('visibilitychange', () => {
       this.isActive = !document.hidden

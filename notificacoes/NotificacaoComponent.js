@@ -1,60 +1,24 @@
-// NotificacaoComponent.jsx
-import React, { useState, useEffect } from 'react'
-import Service from '../notificacoes/Service'
+import React from 'react'
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native'
+import { useNotificacoes } from './NotificacaoContext'
 
 const NotificacaoComponent = () => {
-  const [notificacoes, setNotificacoes] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [contadorNaoLidas, setContadorNaoLidas] = useState(0)
+  const { notificacoes, loading, marcarComoLida, contadorNaoLidas } =
+    useNotificacoes()
 
-  useEffect(() => {
-    carregarNotificacoes()
-
-    const interval = setInterval(carregarNotificacoes, 30000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  const carregarNotificacoes = async () => {
-    try {
-      setLoading(true)
-      const dados = await Service.listarNotificacoes()
-      setNotificacoes(dados)
-
-      // Contar não lidas
-      const naoLidas = dados.filter((n) => !n.lida).length
-      setContadorNaoLidas(naoLidas)
-    } catch (error) {
-      console.error('Erro ao carregar notificações:', error)
-    } finally {
-      setLoading(false)
+  const getPrioridadeStyle = (prioridade) => {
+    const styles = {
+      alta: { borderLeftColor: '#ef4444', backgroundColor: '#fef2f2' },
+      media: { borderLeftColor: '#eab308', backgroundColor: '#fefce8' },
+      baixa: { borderLeftColor: '#3b82f6', backgroundColor: '#eff6ff' },
     }
-  }
-
-  const marcarComoLida = async (id) => {
-    try {
-      await Service.marcarComoLida(id)
-
-      // Atualizar estado local
-      setNotificacoes((prev) =>
-        prev.map((notif) =>
-          notif.id === id ? { ...notif, lida: true } : notif
-        )
-      )
-
-      setContadorNaoLidas((prev) => Math.max(0, prev - 1))
-    } catch (error) {
-      console.error('Erro ao marcar como lida:', error)
-    }
-  }
-
-  const getPrioridadeClass = (prioridade) => {
-    const classes = {
-      alta: 'border-red-500 bg-red-50',
-      media: 'border-yellow-500 bg-yellow-50',
-      baixa: 'border-blue-500 bg-blue-50',
-    }
-    return classes[prioridade] || classes.media
+    return styles[prioridade] || styles.media
   }
 
   const getTipoIcon = (tipo) => {
@@ -68,66 +32,125 @@ const NotificacaoComponent = () => {
   }
 
   if (loading) {
-    return <div className="p-4">Carregando notificações...</div>
+    return (
+      <View style={{ padding: 16 }}>
+        <ActivityIndicator size="small" color="#0000ff" />
+        <Text style={{ marginTop: 8, textAlign: 'center' }}>
+          Carregando notificações...
+        </Text>
+      </View>
+    )
   }
 
   return (
-    <div className="notificacoes-container">
-      {/* Header com contador */}
-      <div className="flex justify-between items-center p-4 border-b">
-        <h2 className="text-xl font-bold">Notificações</h2>
+    <View style={{ flex: 1 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: '#e5e7eb',
+        }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Notificações</Text>
         {contadorNaoLidas > 0 && (
-          <span className="bg-red-500 text-white px-2 py-1 rounded-full text-sm">
-            {contadorNaoLidas} nova(s)
-          </span>
+          <View
+            style={{
+              backgroundColor: '#ef4444',
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 12,
+            }}>
+            <Text style={{ color: 'white', fontSize: 12 }}>
+              {contadorNaoLidas} nova(s)
+            </Text>
+          </View>
         )}
-      </div>
+      </View>
 
       {/* Lista de notificações */}
-      <div className="max-h-96 overflow-y-auto">
+      <ScrollView
+        style={{ height: 300 }}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
+        scrollEnabled={true}
+        bounces={false}
+        contentContainerStyle={{ paddingBottom: 16 }}>
         {notificacoes.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            Nenhuma notificação encontrada
-          </div>
+          <View style={{ padding: 16, alignItems: 'center' }}>
+            <Text style={{ color: '#6b7280', textAlign: 'center' }}>
+              Nenhuma notificação encontrada
+            </Text>
+          </View>
         ) : (
           notificacoes.map((notif) => (
-            <div
+            <TouchableOpacity
               key={notif.id}
-              className={`p-4 border-l-4 mb-2 cursor-pointer transition-all ${getPrioridadeClass(
-                notif.prioridade
-              )} ${notif.lida ? 'opacity-60' : ''}`}
-              onClick={() => !notif.lida && marcarComoLida(notif.id)}>
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3">
-                  <span className="text-2xl">{getTipoIcon(notif.tipo)}</span>
-                  <div>
-                    <h3
-                      className={`font-semibold ${
-                        notif.lida ? 'text-gray-600' : 'text-gray-900'
-                      }`}>
+              style={{
+                padding: 16,
+                borderLeftWidth: 4,
+                marginBottom: 8,
+                ...getPrioridadeStyle(notif.prioridade),
+              }}
+              onPress={() => marcarComoLida(notif.id)}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    flex: 1,
+                  }}>
+                  <Text style={{ fontSize: 24, marginRight: 12 }}>
+                    {getTipoIcon(notif.tipo)}
+                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontWeight: 'bold',
+                        color: '#111827',
+                        marginBottom: 4,
+                      }}>
                       {notif.titulo}
-                    </h3>
-                    <p
-                      className={`text-sm mt-1 ${
-                        notif.lida ? 'text-gray-500' : 'text-gray-700'
-                      }`}>
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: '#374151',
+                        marginBottom: 8,
+                      }}>
                       {notif.mensagem}
-                    </p>
-                    <span className="text-xs text-gray-400 mt-2 block">
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: '#9ca3af',
+                      }}>
                       {new Date(notif.data_criacao).toLocaleString('pt-BR')}
-                    </span>
-                  </div>
-                </div>
+                    </Text>
+                  </View>
+                </View>
 
-                {!notif.lida && (
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                )}
-              </div>
-            </div>
+                <View
+                  style={{
+                    width: 12,
+                    height: 12,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 6,
+                    marginLeft: 8,
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
           ))
         )}
-      </div>
-    </div>
+      </ScrollView>
+    </View>
   )
 }
 
