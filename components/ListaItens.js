@@ -64,7 +64,8 @@ export default function ListaItens({
                   ]}
                   numberOfLines={1}
                   ellipsizeMode="tail">
-                  • {item.produto_nome ?? 'Sem nome'} | {item.item_quan === '' ? '' : item.item_quan}
+                  • {item.produto_nome.slice(0, 25) ?? 'Sem nome'} |{' '}
+                  {item.item_quan === '' ? '' : item.item_quan}
                 </Text>
               </View>
             </View>
