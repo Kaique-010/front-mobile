@@ -1,3 +1,5 @@
+import { AppState } from 'react-native'
+
 class SmartPolling {
   constructor(service, intervals = { active: 120000, inactive: 3600000 }) {
     this.service = service
@@ -5,8 +7,9 @@ class SmartPolling {
     this.currentInterval = null
     this.isActive = true
 
-    document.addEventListener('visibilitychange', () => {
-      this.isActive = !document.hidden
+    // Substituir document por AppState do React Native
+    this.appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
+      this.isActive = nextAppState === 'active'
       this.adjustPolling()
     })
   }
@@ -33,6 +36,10 @@ class SmartPolling {
   stop() {
     if (this.currentInterval) {
       clearInterval(this.currentInterval)
+    }
+    // Limpar subscription
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove()
     }
   }
 }

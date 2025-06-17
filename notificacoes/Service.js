@@ -29,7 +29,7 @@ class NotificacaoService {
 
   async getHeaders() {
     await this.ensureInitialized()
-    if (!this.token) this.token = await AsyncStorage.getItem('authToken')
+    if (!this.token) this.token = await AsyncStorage.getItem('access')
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${this.token}`,

@@ -41,9 +41,8 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
   useEffect(() => {
     const initWebSocket = async () => {
       try {
-        // Verificar se há token e userId antes de conectar WebSocket
-        const token = await AsyncStorage.getItem('access')
-        const userId = await AsyncStorage.getItem('userId')
+        const token = await AsyncStorage.getItem('accessToken')
+        const userId = await AsyncStorage.getItem('usuario_id')
 
         if (token && userId) {
           websocketService.connect(userId)
@@ -51,6 +50,8 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
             setNotificacoes((prev) => [novaNotificacao, ...prev])
             setContadorNaoLidas((prev) => prev + 1)
           })
+        } else {
+          console.warn('Token ou userId não encontrado para WebSocket')
         }
       } catch (error) {
         console.error('Erro ao inicializar WebSocket:', error)

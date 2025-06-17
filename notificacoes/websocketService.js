@@ -1,3 +1,5 @@
+import { BASE_URL } from '../utils/api'
+
 class WebSocketService {
   constructor() {
     this.ws = null
@@ -5,7 +7,8 @@ class WebSocketService {
   }
 
   connect(userId) {
-    this.ws = new WebSocket(`ws://localhost:8000/ws/notificacoes/${userId}/`)
+    const wsUrl = BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://')
+    this.ws = new WebSocket(`${wsUrl}/ws/notificacoes/${userId}/`)
 
     this.ws.onmessage = (event) => {
       const data = JSON.parse(event.data)
