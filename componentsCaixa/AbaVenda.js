@@ -49,16 +49,26 @@ export default function AbaVenda({ mov, setMov, onAvancar }) {
 
     try {
       setLoading(true)
+      
+      const dadosVenda = {
+        cliente: mov.movi_clie,
+        vendedor: mov.movi_vend,
+        empresa: empresaId,
+        filial: filialId,
+        caixa: mov.movi_caix,
+        data: new Date().toISOString().slice(0, 10),
+      }
+      
+      console.log('🔍 DEBUG AbaVenda - Dados sendo enviados:', {
+        mov: mov,
+        dadosVenda: dadosVenda,
+        cliente_nome: mov.movi_clie_nome,
+        vendedor_nome: mov.movi_vend_nome
+      })
+      
       const response = await apiPostComContexto(
         'caixadiario/movicaixa/iniciar_venda/',
-        {
-          cliente: mov.movi_clie,
-          vendedor: mov.movi_vend,
-          empresa: empresaId,
-          filial: filialId,
-          caixa: mov.movi_caix, // Adicionando o caixa na requisição
-          data: new Date().toISOString().slice(0, 10),
-        }
+        dadosVenda
       )
 
       if (response?.numero_venda) {
@@ -150,7 +160,7 @@ export default function AbaVenda({ mov, setMov, onAvancar }) {
             }
             setMov((prev) => ({
               ...prev,
-              movi_vend: item.enti_clie,
+              movi_vend: item.enti_vend || item.enti_clie,
               movi_vend_nome: item.enti_nome,
             }))
           }}

@@ -28,7 +28,26 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
   const [valorPago, setValorPago] = useState('')
   const [parcelas, setParcelas] = useState('1')
   const [troco, setTroco] = useState('0.00')
+  const [pagamentoProcessado, setPagamentoProcessado] = useState(false)
   const { empresaId, filialId } = useContextApp()
+
+  
+  useEffect(() => {
+    console.log('🔍 DEBUG AbaProcessamento:', {
+      venda: venda,
+      total: venda?.total,
+      typeof_total: typeof venda?.total,
+      valorPago,
+      formaPagamento
+    })
+    
+    // Reset pagamentoProcessado apenas quando o número da venda mudar (nova venda)
+    // Não resetar se for a mesma venda
+    if (venda?.movi_nume_vend !== undefined && pagamentoProcessado && venda?.total === 0) {
+      setPagamentoProcessado(false)
+      setValorPago('')
+    }
+  }, [venda?.total, valorPago, formaPagamento, venda?.movi_nume_vend, pagamentoProcessado])
 
   useEffect(() => {
     const calcularTroco = () => {
@@ -40,7 +59,7 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
     if (valorPago) {
       calcularTroco()
     }
-  })
+  }, [valorPago, venda?.total])
 
   const processarPagamento = async () => {
     if (!valorPago || parseFloat(valorPago) < parseFloat(venda.total)) {
@@ -54,7 +73,7 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
 
     try {
       setLoading(true)
-      await apiPostComContexto('caixadiario/movicaixa/processar_pagamento/', {
+      const response = await apiPostComContexto('caixadiario/movicaixa/processar_pagamento/', {
         numero_venda: venda.movi_nume_vend,
         movi_empr: empresaId,
         movi_fili: filialId,
@@ -64,14 +83,71 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
         parcelas: parseInt(parcelas),
       })
 
+      console.log('🎉 DEBUG Pagamento processado com sucesso:', response)
+
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso',
+        text2: 'Pagamento processado com sucesso',
+      })
+
+      // Marcar pagamento como processado
+      setPagamentoProcessado(true)
+      console.log('💰 Pagamento processado - aguardando finalização manual')
+    } catch (error) {
+      let mensagemErro = 'Erro ao finalizar venda'
+      if (error.response?.data?.detail?.includes('Licença')) {
+        mensagemErro = 'Erro de licença. Por favor, verifique suas credenciais.'
+      } else if (error.response?.data?.detail) {
+        mensagemErro = error.response.data.detail
+      }
+
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: mensagemErro,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const finalizarVenda = async () => {
+    console.log('🏁 Finalizando venda manualmente')
+    
+    const dadosVenda = {
+      empr: venda?.movi_empr,
+      fili: venda?.movi_fili,
+      usua: '1',
+      numero_venda: venda?.movi_nume_vend,
+      cliente: venda?.movi_clie,
+      vendedor: venda?.movi_vend,
+      valor_total: venda?.total,
+      valor_pago: parseFloat(valorPago),
+      forma_pagamento: formaPagamento,
+      parcelas: parseInt(parcelas),
+    }
+    
+    console.log('📋 Dados da venda para finalização:', dadosVenda)
+    
+    try {
+      setLoading(true)
+      const response = await apiPostComContexto('caixadiario/movicaixa/finalizar_venda/', dadosVenda)
+      
+      console.log('✅ Venda finalizada com sucesso:', response)
+      
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
         text2: 'Venda finalizada com sucesso',
       })
-
+      
+      // Agora sim limpar os dados
       onFinalizarVenda()
+      
     } catch (error) {
+      console.log('❌ Erro ao finalizar venda:', error)
+      
       let mensagemErro = 'Erro ao finalizar venda'
       if (error.response?.data?.detail?.includes('Licença')) {
         mensagemErro = 'Erro de licença. Por favor, verifique suas credenciais.'
@@ -141,16 +217,24 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
           </View>
         )}
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={processarPagamento}
-          disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
+        {!pagamentoProcessado ? (
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={processarPagamento}
+            disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Processar Pagamento</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.button, styles.buttonSuccess]}
+            onPress={finalizarVenda}>
             <Text style={styles.buttonText}>Finalizar Venda</Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   )
@@ -216,6 +300,9 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  buttonSuccess: {
+    backgroundColor: '#4CAF50',
   },
   buttonText: {
     color: '#fff',

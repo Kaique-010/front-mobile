@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { View, Button, StyleSheet, Dimensions } from 'react-native'
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view'
-
 import AbaVenda from '../componentsCaixa/AbaVenda'
 import AbaProdutos from '../componentsCaixa/AbaProdutos'
 import AbaProcessamento from '../componentsCaixa/AbaProcessamento'
@@ -30,13 +29,40 @@ export default function MoviCaixaScreen({ route, navigation }) {
     { key: 'processamento', title: 'Processamento' },
   ])
 
-  const handleAvancarVenda = () => {
+  const handleAvancarVenda = useCallback(() => {
     if (index < routes.length - 1) {
       setIndex(index + 1)
     }
-  }
+  }, [index, routes.length])
 
-  const handleFinalizarVenda = () => {
+  const handleTotalChange = useCallback((novoTotal) => {
+    console.log('🔍 DEBUG handleTotalChange:', {
+      novoTotal,
+      typeof: typeof novoTotal,
+    })
+    setMov((prev) => ({
+      ...prev,
+      total: novoTotal,
+    }))
+  }, [])
+
+  const limparItensCallbackRef = useRef(null)
+  
+  const setLimparItensCallback = useCallback((callback) => {
+    limparItensCallbackRef.current = callback
+  }, []) 
+
+  const handleFinalizarVenda = useCallback(() => {
+    console.log('🚨 DEBUG handleFinalizarVenda CHAMADA - Estado atual:', {
+      mov: mov,
+      index: index,
+      limparItensCallback: !!limparItensCallbackRef.current
+    })
+   
+    if (limparItensCallbackRef.current) {
+      limparItensCallbackRef.current()
+    }
+
     setMov({
       movi_empr: caixa.caix_empr || '',
       movi_fili: caixa.caix_fili || '',
@@ -52,7 +78,7 @@ export default function MoviCaixaScreen({ route, navigation }) {
     setProdutos([])
     setIndex(0)
     navigation.navigate('CaixaGeral')
-  }
+  }, [caixa.caix_empr, caixa.caix_fili, caixa.caix_caix, navigation])
 
   return (
     <View style={styles.container}>
@@ -68,18 +94,18 @@ export default function MoviCaixaScreen({ route, navigation }) {
           ),
           produtos: () => (
             <AbaProdutos
+              numeroVenda={mov.movi_nume_vend}
               produtos={produtos}
               setProdutos={setProdutos}
               mov={mov}
               onAvancar={handleAvancarVenda}
+              onTotalChange={handleTotalChange}
+              onSetLimparCallback={setLimparItensCallback}
             />
           ),
           processamento: () => (
             <AbaProcessamento
-              venda={{
-                ...mov,
-                total: produtos.reduce((acc, p) => acc + p.iped_tota, 0),
-              }}
+              venda={mov}
               onFinalizarVenda={handleFinalizarVenda}
             />
           ),
