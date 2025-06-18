@@ -2,16 +2,14 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://192.168.0.39:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'http://192.168.20.84:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 
 // Função para renovar o token
 const refreshToken = async () => {
   const refresh = await AsyncStorage.getItem('refresh')
   if (!refresh) throw new Error('Refresh token não encontrado')
 
-  // Obtenha o slug diretamente
   const { slug } = await getStoredData()
-  console.log('Slug:', slug)
 
   try {
     const response = await axios.post(
@@ -69,15 +67,7 @@ const apiFetch = async (
 
   try {
     const config = buildConfig(token)
-    console.log('🚀 API REQUEST:', {
-      url: config.url,
-      method: config.method,
-      headers: config.headers,
-      params: config.params,
-      data: config.data,
-    })
     const response = await axios(config)
-
     return response
   } catch (error) {
     if (error.response?.status === 401) {
@@ -85,18 +75,9 @@ const apiFetch = async (
       try {
         token = await refreshToken()
         const retryConfig = buildConfig(token)
-        console.log('🚀 RETRY REQUEST:', {
-          url: retryConfig.url,
-          method: retryConfig.method,
-          headers: retryConfig.headers,
-          params: retryConfig.params,
-          data: retryConfig.data,
-        })
         const retryResponse = await axios(retryConfig)
-        console.log('✅ RETRY RESPONSE:', retryResponse.data)
         return retryResponse
       } catch (refreshError) {
-        console.log('🚫 Não foi possível renovar o token.')
         throw refreshError
       }
     }

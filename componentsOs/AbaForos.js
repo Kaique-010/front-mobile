@@ -6,411 +6,294 @@ import {
   FlatList,
   Image,
   StyleSheet,
-  ActivityIndicator,
-  Dimensions,
-  Platform,
 } from 'react-native'
-import * as ImagePicker from 'expo-image-picker'
-import Toast from 'react-native-toast-message'
-import { Ionicons } from '@expo/vector-icons'
-import { apiPostComContexto, apiGetComContexto } from '../utils/api'
-import useContextoApp from '../hooks/useContextoApp'
+import { Modal, Linking } from 'react-native'
+import {
+  tirarFotoComGeo,
+  enviarFotoEtapa,
+  fetchFotos,
+} from '../services/fotosApi'
+import { BASE_URL } from '../utils/api'
 
-const { width } = Dimensions.get('window')
-const PHOTO_SIZE = (width - 60) / 2
-const API_BASE_URL = 'http://192.168.0.39:8000/api/casaa'
+const etapas = [
+  { key: 'antes', label: 'Antes' },
+  { key: 'durante', label: 'Durante' },
+  { key: 'depois', label: 'Depois' },
+]
 
-export default function AbaFotos({ fotos = [], setFotos, orde_nume }) {
-  const { token, documentoEmpresa } = useContextoApp()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [removidos, setRemovidos] = useState([])
-  const [fotosLista, setFotosLista] = useState(fotos)
+export default function AbaForos({ orde_nume, codTecnico }) {
+  const [subAba, setSubAba] = useState('antes')
+  const [fotos, setFotos] = useState([])
+  const [modalVisible, setModalVisible] = useState(false)
+  const [imagemSelecionada, setImagemSelecionada] = useState([])
+  const [isUploading, setIsUploading] = useState(false)
 
   useEffect(() => {
     if (orde_nume) {
-      carregarFotosExistentes()
+      loadFotos()
     }
-  }, [orde_nume])
+  }, [subAba, orde_nume])
 
-  const carregarFotosExistentes = async () => {
+  const loadFotos = async () => {
     try {
-      setIsLoading(true)
-      console.log('Carregando fotos para OS:', orde_nume)
-      
-      const response = await apiGetComContexto(
-        'ordemdeservico/fotos/',
-        {
-          foto_orde: orde_nume,
-          foto_empr: 1,
-          foto_fili: 1
-        }
-      )
-      
-      console.log('Resposta da API:', response)
-
-      // Combina todas as fotos dos diferentes momentos
-      const todasFotos = [
-        ...(response.antes || []),
-        ...(response.durante || []),
-        ...(response.depois || [])
-      ]
-
-      if (todasFotos.length > 0) {
-        const fotosFormatadas = todasFotos.map(foto => ({
-          foto_id: foto.foto_id,
-          foto_uri: foto.foto_uri,
-          foto_desc: foto.foto_desc,
-          foto_momento: foto.foto_momento || 'durante',
-          timestamp: foto.foto_data
-        }))
-        
-        console.log('Fotos formatadas:', fotosFormatadas)
-        setFotosLista(fotosFormatadas)
-        setFotos(fotosFormatadas)
-      } else {
-        console.log('Nenhuma foto encontrada')
-        setFotosLista([])
-        setFotos([])
+      const res = await fetchFotos(subAba, orde_nume)
+      if (res && res.length > 0) {
       }
+
+      setFotos(res)
     } catch (error) {
-      console.error('Erro ao carregar fotos:', error.response?.data || error.message)
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao carregar fotos',
-        text2: error.response?.data?.error || 'Não foi possível carregar as fotos existentes',
-      })
-      setFotosLista([])
+      console.error(`❌ Erro ao carregar fotos da etapa ${subAba}:`, error)
       setFotos([])
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  const sincronizarComPai = (novos) => {
-    setFotosLista(novos)
-    setFotos(novos)
-  }
-
-  const solicitarPermissao = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (status !== 'granted') {
-      Toast.show({
-        type: 'error',
-        text1: 'Permissão negada',
-        text2: 'Você precisa permitir o acesso às fotos para continuar.',
-      })
-      return false
-    }
-    return true
-  }
-
-  const adicionarFoto = async () => {
-    if (isLoading || isSubmitting) return
-    
+  const handleAdd = async () => {
+    setIsUploading(true)
     try {
-      setIsSubmitting(true)
-      
-      const temPermissao = await solicitarPermissao()
-      if (!temPermissao) return
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        quality: 0.7,
-        allowsEditing: true,
-        aspect: [4, 3],
+      const data = await tirarFotoComGeo()
+      const result = await enviarFotoEtapa({
+        etapa: subAba,
+        ordemId: orde_nume,
+        codTecnico,
+        observacao: '',
+        data,
       })
-
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        // Preparar o arquivo para upload
-        const localUri = result.assets[0].uri
-        const filename = localUri.split('/').pop()
-        const match = /\.(\w+)$/.exec(filename)
-        const type = match ? `image/${match[1]}` : 'image/jpeg'
-
-        // Criar o FormData
-        const formData = new FormData()
-        
-        // Adicionando a foto como arquivo
-        formData.append('foto', {
-          uri: Platform.OS === 'ios' ? localUri.replace('file://', '') : localUri,
-          name: filename,
-          type
-        })
-
-        // Adicionando os metadados como campos separados
-        formData.append('foto_orde', orde_nume.toString())
-        formData.append('foto_empr', '1')
-        formData.append('foto_fili', '1')
-        formData.append('foto_desc', 'Foto da O.S')
-        formData.append('foto_tipo', 'OS')
-        formData.append('foto_momento', 'durante')
-        formData.append('empr', '1')
-        formData.append('fili', '1')
-        formData.append('usua', '1')
-
-        console.log('FormData sendo enviado:', Object.fromEntries(formData._parts))
-
-        const response = await fetch(`${API_BASE_URL}/ordemdeservico/fotos/upload/`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`,
-            'X-Docu': documentoEmpresa,
-            'X-Empresa': '1',
-            'X-Filial': '1',
-            'X-Username': 'admin',
-            'X-Usuario-Id': '1'
-          },
-          body: formData
-        })
-
-        const responseData = await response.json()
-
-        if (!response.ok) {
-          throw new Error(responseData.error || 'Erro ao fazer upload da foto')
-        }
-
-        console.log('Resposta do upload:', responseData)
-
-        if (responseData.foto_id) {
-          const novaFoto = {
-            foto_id: responseData.foto_id,
-            foto_uri: responseData.foto_uri || localUri,
-            foto_desc: responseData.foto_desc || 'Foto da O.S',
-            foto_momento: responseData.foto_momento || 'durante',
-            timestamp: responseData.foto_data || new Date().toISOString()
-          }
-
-          sincronizarComPai([...fotosLista, novaFoto])
-          
-          Toast.show({
-            type: 'success',
-            text1: 'Foto adicionada com sucesso!',
-          })
-        } else {
-          throw new Error('Resposta inválida do servidor')
-        }
-      }
+      await loadFotos()
     } catch (error) {
-      console.error('Erro detalhado ao adicionar foto:', error.response?.data || error)
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao adicionar foto',
-        text2: error.response?.data?.error || error.message || 'Tente novamente mais tarde',
-      })
+      console.error('❌ Erro ao adicionar foto:', error)
+      alert(`Erro ao adicionar foto: ${error}`)
     } finally {
-      setIsSubmitting(false)
+      setIsUploading(false)
     }
   }
 
-  const removerFoto = async (foto) => {
-    try {
-      if (foto.foto_id) {
-        await apiPostComContexto(
-          'ordemdeservico/fotos/delete/',
-          {
-            foto_id: foto.foto_id,
-            foto_orde: orde_nume.toString(),
-            foto_empr: '1',
-            foto_fili: '1'
-          }
-        )
-      }
-
-      const atualizadas = fotosLista.filter((f) => f !== foto)
-      sincronizarComPai(atualizadas)
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Foto removida com sucesso',
-      })
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao remover foto',
-        text2: error.response?.data?.error || error.message || 'Tente novamente mais tarde',
-      })
+  const getImageId = (item) => {
+    let imageId
+    if (subAba === 'antes') {
+      imageId = item.iman_id || item.id
+    } else if (subAba === 'durante') {
+      imageId = item.imdu_id || item.id
+    } else if (subAba === 'depois') {
+      imageId = item.imde_id || item.id
+    } else {
+      imageId = item.id
     }
+    return imageId
   }
 
-  const renderItem = ({ item }) => (
-    <View style={styles.fotoContainer}>
-      <Image source={{ uri: item.foto_uri }} style={styles.foto} />
-      <TouchableOpacity
-        style={styles.btnRemover}
-        onPress={() => removerFoto(item)}>
-        <Ionicons name="close-circle" size={24} color="white" />
-      </TouchableOpacity>
-      <View style={styles.infoContainer}>
-        <Text style={styles.timestamp}>
-          {new Date(item.timestamp).toLocaleTimeString()}
-        </Text>
-        <Text style={styles.momento}>
-          {item.foto_momento}
-        </Text>
-      </View>
-    </View>
-  )
+  const openImage = (item) => {
+    const imageId = getImageId(item)
+    let uri
 
-  if (isLoading) {
+    if (item.imagem_base64) {
+      uri = `data:image/jpeg;base64,${item.imagem_base64}`
+    } else {
+      uri = `${BASE_URL}/api/ordemdeservico/imagens/${subAba}/${imageId}/bin/`
+    }
+
+    setImagemSelecionada([{ uri }, item])
+    setModalVisible(true)
+  }
+
+  const renderItem = ({ item }) => {
+    const imageId = getImageId(item)
+    let imageSource
+    if (item.imagem_base64) {
+      imageSource = { uri: `data:image/jpeg;base64,${item.imagem_base64}` }
+    } else {
+      const imageUri = `${BASE_URL}/api/ordemdeservico/imagens/${subAba}/${imageId}/bin/`
+      imageSource = { uri: imageUri }
+    }
+
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#10a2a7" />
-        <Text style={styles.loadingText}>Carregando fotos...</Text>
-      </View>
+      <TouchableOpacity onPress={() => openImage(item)}>
+        <Image
+          source={imageSource}
+          style={styles.thumb}
+          onError={(error) => {
+            console.error(`❌ Erro ao carregar imagem ${imageId}:`, error)
+            console.error(`❌ Source usado:`, imageSource)
+            console.error(`❌ Item completo:`, item)
+          }}
+          onLoad={() => {}}
+          onLoadStart={() => {}}
+        />
+        <Text style={styles.debugText}>ID: {imageId}</Text>
+      </TouchableOpacity>
     )
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={[styles.botaoAdicionar, (isLoading || isSubmitting) && styles.botaoDesabilitado]}
-        onPress={adicionarFoto}
-        disabled={isLoading || isSubmitting}>
-        {isSubmitting ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <>
-            <Ionicons name="camera" size={24} color="white" style={styles.icone} />
-            <Text style={styles.textoBotao}>Adicionar Foto</Text>
-          </>
-        )}
-      </TouchableOpacity>
-
-      <View style={styles.listContainer}>
-        <FlatList
-          data={fotosLista}
-          keyExtractor={(item) => item.foto_id?.toString() || item.foto_uri}
-          renderItem={renderItem}
-          numColumns={2}
-          contentContainerStyle={styles.listaContainer}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="images-outline" size={48} color="#666" />
-              <Text style={styles.emptyText}>
-                Nenhuma foto adicionada
-              </Text>
-              <Text style={styles.emptySubtext}>
-                Toque no botão acima para adicionar fotos
-              </Text>
-            </View>
-          }
-        />
+      {/* Sub-abas */}
+      <View style={styles.tabs}>
+        {etapas.map((e) => (
+          <TouchableOpacity
+            key={e.key}
+            style={[styles.tab, subAba === e.key && styles.activeTab]}
+            onPress={() => setSubAba(e.key)}>
+            <Text style={styles.tabText}>{e.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
+
+      {/* Lista de miniaturas */}
+      {fotos.length > 0 ? (
+        <FlatList
+          data={fotos}
+          keyExtractor={(item) => {
+            const imageId = getImageId(item)
+            return `${subAba}-${imageId}`
+          }}
+          renderItem={renderItem}
+          numColumns={3}
+          contentContainerStyle={{ padding: 8 }}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            Nenhuma foto encontrada para a etapa{' '}
+            {etapas.find((e) => e.key === subAba)?.label}
+          </Text>
+        </View>
+      )}
+      <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
+        <Text style={styles.addText}>
+          + Foto {etapas.find((e) => e.key === subAba).label}
+        </Text>
+      </TouchableOpacity>
+      <Modal visible={modalVisible} transparent={true} animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Image
+              source={imagemSelecionada[0]}
+              style={styles.modalImage}
+              resizeMode="contain"
+            />
+
+            <Text style={styles.obsText}>
+              📝 {imagemSelecionada[1]?.observacao || 'Sem observação'}
+            </Text>
+
+            <Text style={styles.coordText}>
+              📍 {imagemSelecionada[1]?.img_latitude || '---'} |{' '}
+              {imagemSelecionada[1]?.img_longitude || '---'}
+            </Text>
+
+            {imagemSelecionada[1]?.img_latitude &&
+              imagemSelecionada[1]?.img_longitude && (
+                <TouchableOpacity
+                  style={styles.mapButton}
+                  onPress={() =>
+                    Linking.openURL(
+                      `https://www.google.com/maps?q=${imagemSelecionada[1].img_latitude},${imagemSelecionada[1].img_longitude}`
+                    )
+                  }>
+                  <Text style={styles.mapText}>Ver no Mapa</Text>
+                </TouchableOpacity>
+              )}
+
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={{ color: '#aaa', marginTop: 12 }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1 },
+  tabs: { flexDirection: 'row', marginVertical: 8 },
+  tab: {
     flex: 1,
+    padding: 12,
     backgroundColor: '#1a2f3d',
-    padding: 20,
-  },
-  listContainer: {
-    flex: 1,
-  },
-  centerContent: {
-    justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 4,
+    marginHorizontal: 2,
   },
-  loadingText: {
-    color: 'white',
-    marginTop: 10,
-    fontSize: 16,
-  },
-  listaContainer: {
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
-  fotoContainer: {
-    margin: 10,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#232935',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  foto: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    borderRadius: 12,
-  },
-  btnRemover: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,0,0,0.7)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  timestamp: {
-    color: 'white',
-    fontSize: 12,
-  },
-  momento: {
-    color: 'white',
-    fontSize: 12,
+  activeTab: { backgroundColor: '#10a2a7' },
+  tabText: {
     fontWeight: 'bold',
-    textTransform: 'capitalize',
+    color: '#fff',
   },
-  botaoAdicionar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10a2a7',
-    padding: 15,
+  thumb: {
+    width: 100,
+    height: 100,
+    margin: 4,
     borderRadius: 8,
-    marginBottom: 10,
-  },
-  botaoDesabilitado: {
-    opacity: 0.7,
-  },
-  textoBotao: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  icone: {
-    marginRight: 8,
+    backgroundColor: '#1a2f3d',
   },
   emptyContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    marginTop: 40,
+    alignItems: 'center',
+    padding: 40,
   },
   emptyText: {
-    color: '#666',
-    fontSize: 18,
-    marginTop: 16,
+    color: '#fff',
+    fontSize: 16,
     textAlign: 'center',
+    opacity: 0.7,
   },
-  emptySubtext: {
-    color: '#666',
-    fontSize: 14,
-    marginTop: 8,
+  addButton: {
+    padding: 15,
+    backgroundColor: '#10a2a7',
+    alignItems: 'center',
+    margin: 16,
+    borderRadius: 8,
+    marginBottom: 50,
+  },
+  addText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  debugText: {
+    color: '#10a2a7',
+    fontSize: 10,
     textAlign: 'center',
+    marginTop: 2,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    maxWidth: '90%',
+    maxHeight: '90%',
+  },
+  modalImage: {
+    width: 250,
+    height: 250,
+    marginBottom: 12,
+    borderRadius: 8,
+  },
+  obsText: {
+    fontSize: 14,
+    marginBottom: 6,
+    color: '#222',
+  },
+  coordText: {
+    fontSize: 13,
+    color: '#444',
+    marginBottom: 10,
+  },
+  mapButton: {
+    padding: 10,
+    backgroundColor: '#10a2a7',
+    borderRadius: 6,
+  },
+  mapText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 })
-

@@ -11,9 +11,11 @@ import AbaServicos from '../componentsOs/AbaServicos'
 import AbaFotos from '../componentsOs/AbaForos'
 import AbaTotais from '../componentsOs/AbaTotais'
 import { apiGetComContexto } from '../utils/api'
+import useContextoApp from '../hooks/useContextoApp'
 
 const OrdemDetalhe = ({ route }) => {
   const { ordem } = route.params
+  const { usuarioId } = useContextoApp()
   const [abaAtiva, setAbaAtiva] = useState('detalhes')
   const [pecas, setPecas] = useState([])
   const [servicos, setServicos] = useState([])
@@ -164,6 +166,7 @@ const OrdemDetalhe = ({ route }) => {
             fotos={[]}
             setFotos={() => {}}
             orde_nume={ordem.orde_nume}
+            codTecnico={usuarioId}
           />
         )}
         {abaAtiva === 'totais' && (

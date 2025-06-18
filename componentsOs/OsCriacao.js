@@ -14,7 +14,7 @@ import BuscaClienteInput from '../components/BuscaClienteInput'
 import { apiPostComContexto } from '../utils/api'
 import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
-import AbaFotos from '../componentsOs/AbaForos'
+import AbaForos from '../componentsOs/AbaForos'
 import AbaTotais from '../componentsOs/AbaTotais'
 import Toast from 'react-native-toast-message'
 
@@ -233,12 +233,13 @@ export default function CriarOrdemServico() {
           )}
 
           {abaAtiva === 'fotos' && numeroOS && (
-            <AbaFotos
+            <AbaForos
               fotos={ordemServico.fotos}
               setFotos={(fotosNovas) =>
                 setOrdemServico((prev) => ({ ...prev, fotos: fotosNovas }))
               }
               orde_nume={numeroOS}
+              codTecnico={usuarioId}
             />
           )}
 

@@ -15,7 +15,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.leokaique.SpsMobile",
       "infoPlist": {
-        "NSCameraUsageDescription": "Este aplicativo precisa de permissão para usar a câmera para escanear códigos de barras.",
+        "NSCameraUsageDescription": "Este aplicativo precisa de permissão para usar a câmera para capturar fotos das ordens de serviço.",
+        "NSLocationWhenInUseUsageDescription": "Este aplicativo precisa de permissão para acessar sua localização para geolocalizar as fotos das ordens de serviço.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -26,7 +27,11 @@
         "backgroundColor": "#000000"
       },
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {
@@ -34,6 +39,7 @@
     },
     "plugins": [
       "expo-font",
+      "expo-location",
       [
         "expo-camera",
         {
