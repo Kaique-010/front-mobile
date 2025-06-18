@@ -19,6 +19,7 @@ export default function MoviCaixaScreen({ route, navigation }) {
     movi_vend_nome: '',
     movi_nume_vend: null,
     total: 0,
+    movi_oper: null,
   })
 
   const [produtos, setProdutos] = useState([])
@@ -47,18 +48,18 @@ export default function MoviCaixaScreen({ route, navigation }) {
   }, [])
 
   const limparItensCallbackRef = useRef(null)
-  
+
   const setLimparItensCallback = useCallback((callback) => {
     limparItensCallbackRef.current = callback
-  }, []) 
+  }, [])
 
   const handleFinalizarVenda = useCallback(() => {
     console.log('🚨 DEBUG handleFinalizarVenda CHAMADA - Estado atual:', {
       mov: mov,
       index: index,
-      limparItensCallback: !!limparItensCallbackRef.current
+      limparItensCallback: !!limparItensCallbackRef.current,
     })
-   
+
     if (limparItensCallbackRef.current) {
       limparItensCallbackRef.current()
     }
@@ -67,6 +68,7 @@ export default function MoviCaixaScreen({ route, navigation }) {
       movi_empr: caixa.caix_empr || '',
       movi_fili: caixa.caix_fili || '',
       movi_caix: caixa.caix_caix || '',
+      movi_oper: caixa.caix_oper || null,
       movi_data: new Date().toISOString().slice(0, 10),
       movi_clie: '',
       movi_clie_nome: '',

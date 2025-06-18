@@ -31,23 +31,30 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
   const [pagamentoProcessado, setPagamentoProcessado] = useState(false)
   const { empresaId, filialId } = useContextApp()
 
-  
   useEffect(() => {
     console.log('🔍 DEBUG AbaProcessamento:', {
       venda: venda,
       total: venda?.total,
       typeof_total: typeof venda?.total,
       valorPago,
-      formaPagamento
+      formaPagamento,
     })
-    
-    // Reset pagamentoProcessado apenas quando o número da venda mudar (nova venda)
-    // Não resetar se for a mesma venda
-    if (venda?.movi_nume_vend !== undefined && pagamentoProcessado && venda?.total === 0) {
+
+    if (
+      venda?.movi_nume_vend !== undefined &&
+      pagamentoProcessado &&
+      venda?.total === 0
+    ) {
       setPagamentoProcessado(false)
       setValorPago('')
     }
-  }, [venda?.total, valorPago, formaPagamento, venda?.movi_nume_vend, pagamentoProcessado])
+  }, [
+    venda?.total,
+    valorPago,
+    formaPagamento,
+    venda?.movi_nume_vend,
+    pagamentoProcessado,
+  ])
 
   useEffect(() => {
     const calcularTroco = () => {
@@ -73,15 +80,21 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
 
     try {
       setLoading(true)
-      const response = await apiPostComContexto('caixadiario/movicaixa/processar_pagamento/', {
-        numero_venda: venda.movi_nume_vend,
-        movi_empr: empresaId,
-        movi_fili: filialId,
-        valor: venda.total,
-        valor_pago: parseFloat(valorPago),
-        forma_pagamento: formaPagamento,
-        parcelas: parseInt(parcelas),
-      })
+      const response = await apiPostComContexto(
+        'caixadiario/movicaixa/processar_pagamento/',
+        {
+          numero_venda: venda.movi_nume_vend,
+          movi_empr: empresaId,
+          movi_fili: filialId,
+          valor: venda.total,
+          cliente: venda.movi_clie,
+          vendedor: venda.movi_vend,
+          valor_total: venda.total,
+          valor_pago: parseFloat(valorPago),
+          forma_pagamento: formaPagamento,
+          parcelas: parseInt(parcelas),
+        }
+      )
 
       console.log('🎉 DEBUG Pagamento processado com sucesso:', response)
 
@@ -114,7 +127,7 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
 
   const finalizarVenda = async () => {
     console.log('🏁 Finalizando venda manualmente')
-    
+
     const dadosVenda = {
       empr: venda?.movi_empr,
       fili: venda?.movi_fili,
@@ -127,27 +140,29 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
       forma_pagamento: formaPagamento,
       parcelas: parseInt(parcelas),
     }
-    
+
     console.log('📋 Dados da venda para finalização:', dadosVenda)
-    
+
     try {
       setLoading(true)
-      const response = await apiPostComContexto('caixadiario/movicaixa/finalizar_venda/', dadosVenda)
-      
+      const response = await apiPostComContexto(
+        'caixadiario/movicaixa/finalizar_venda/',
+        dadosVenda
+      )
+
       console.log('✅ Venda finalizada com sucesso:', response)
-      
+
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
         text2: 'Venda finalizada com sucesso',
       })
-      
+
       // Agora sim limpar os dados
       onFinalizarVenda()
-      
     } catch (error) {
       console.log('❌ Erro ao finalizar venda:', error)
-      
+
       let mensagemErro = 'Erro ao finalizar venda'
       if (error.response?.data?.detail?.includes('Licença')) {
         mensagemErro = 'Erro de licença. Por favor, verifique suas credenciais.'
