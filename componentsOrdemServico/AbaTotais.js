@@ -113,7 +113,7 @@ export default function AbaTotais({
           orde_nume: Number(orde_nume), // Alterado de os_os para orde_nume
           empr: String(os_empr),
           fili: String(os_fili),
-          usua: "1"
+          usua: '1',
         })
       } catch (error) {
         console.error('Erro ao atualizar total da ordem:', error)
@@ -209,39 +209,40 @@ export default function AbaTotais({
 
   const removerTitulos = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
       await apiPostComContexto('Os/financeiro/remover-titulos/', {
         os_os: orde_nume,
         empr: os_empr,
         fili: os_fili,
-        usua: "1"
-      });
+        usua: '1',
+      })
 
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
         text2: 'Títulos removidos com sucesso',
-      });
+      })
 
-      setTitulos([]);
-      onFinanceiroGerado && onFinanceiroGerado(false); // Atualiza o estado para permitir adicionar peças/serviços novamente
+      setTitulos([])
+      onFinanceiroGerado && onFinanceiroGerado(false) // Atualiza o estado para permitir adicionar peças/serviços novamente
     } catch (error) {
       if (error.response?.status === 404) {
-        setTitulos([]);
-        onFinanceiroGerado && onFinanceiroGerado(false); // Também atualiza em caso de 404
-        return;
+        setTitulos([])
+        onFinanceiroGerado && onFinanceiroGerado(false) // Também atualiza em caso de 404
+        return
       }
 
-      console.error('Erro ao remover títulos:', error);
+      console.error('Erro ao remover títulos:', error)
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: error.response?.data?.detail || 'Não foi possível remover os títulos',
-      });
+        text2:
+          error.response?.data?.detail || 'Não foi possível remover os títulos',
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const editarTitulo = (titulo) => {
     setTituloEmEdicao(titulo)
@@ -489,7 +490,13 @@ export default function AbaTotais({
                 keyboardType="numeric"
                 style={styles.input}
                 mode="outlined"
-                theme={{ colors: { primary: '#10a2a7' } }}
+                theme={{
+                  colors: {
+                    primary: '#10a2a7',
+                    text: '#fff', // texto digitado
+                    placeholder: '#999', // texto do placeholder
+                  },
+                }}
                 disabled={loading}
               />
 
@@ -499,7 +506,13 @@ export default function AbaTotais({
                 onChangeText={setDataBase}
                 style={styles.input}
                 mode="outlined"
-                theme={{ colors: { primary: '#10a2a7' } }}
+                theme={{
+                  colors: {
+                    primary: '#10a2a7',
+                    text: '#fff',
+                    placeholder: '#999',
+                  },
+                }}
                 disabled={loading}
               />
 
@@ -636,6 +649,7 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 10,
     backgroundColor: '#232935',
+    color: '#fff',
   },
   buttonContainer: {
     flexDirection: 'row',

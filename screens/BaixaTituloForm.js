@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { Platform } from 'react-native'
-import { apiPostComContexto } from '../utils/api'
+import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import styles from '../styles/formBaixaStyles'
 
 const formatarMoeda = (valor) => {
@@ -27,9 +27,10 @@ const formatarDataParaInput = (data = new Date()) => {
 
 export default function BaixaTituloForm({ route, navigation }) {
   const { titulo, tipo } = route.params
-  // Usar a parcela diretamente do título
   const titu_parc = titulo.titu_parc
-  
+  const [valorJaBaixado, setValorJaBaixado] = useState(0)
+  const [statusTitulo, setStatusTitulo] = useState(titulo.titu_aber || 'A')
+
   const [loading, setLoading] = useState(false)
 
   // Estados do formulário
@@ -73,8 +74,67 @@ export default function BaixaTituloForm({ route, navigation }) {
     }
   }
 
+  const buscarHistoricoBaixas = async () => {
+    if (statusTitulo === 'P') {
+      try {
+        const formatDate = (date) => {
+          if (!date) return ''
+          const d = new Date(date)
+          return d.toISOString().split('T')[0]
+        }
+
+        const endpoint =
+          tipo === 'pagar'
+            ? `contas_a_pagar/titulos-pagar/${titulo.titu_empr}/${
+                titulo.titu_fili
+              }/${titulo.titu_forn}/${titulo.titu_titu}/${titulo.titu_seri}/${
+                titulo.titu_parc
+              }/${formatDate(titulo.titu_emis)}/${formatDate(
+                titulo.titu_venc
+              )}/historico_baixas/`
+            : `contas_a_receber/titulos-receber/${titulo.titu_empr}/${
+                titulo.titu_fili
+              }/${titulo.titu_clie}/${titulo.titu_titu}/${titulo.titu_seri}/${
+                titulo.titu_parc
+              }/${formatDate(titulo.titu_emis)}/${formatDate(
+                titulo.titu_venc
+              )}/historico_baixas/`
+
+        const response = await apiGetComContexto(endpoint)
+        const dadosHistorico = Array.isArray(response)
+          ? response
+          : response.data || []
+
+        if (!Array.isArray(dadosHistorico) || dadosHistorico.length === 0) {
+          console.warn('Dados do histórico não encontrados ou formato inválido')
+          setValorJaBaixado(0)
+          return
+        }
+
+        const totalJaBaixado = dadosHistorico.reduce((total, baixa) => {
+          const valorBaixa = parseFloat(baixa.bare_pago || baixa.bapa_pago || 0)
+          return total + valorBaixa
+        }, 0)
+        setValorJaBaixado(totalJaBaixado)
+        const valorRestante = parseFloat(titulo.titu_valo) - totalJaBaixado
+        setValorPago(valorRestante > 0 ? valorRestante.toString() : '0')
+      } catch (error) {
+        console.error('Erro ao buscar histórico:', error)
+        console.error('Detalhes do erro:', error.message)
+        console.error('Stack trace:', error.stack)
+        setValorJaBaixado(0) // Definir valor padrão em caso de erro
+      }
+    } else {
+      console.log(
+        'Status do título não é P (Pendente), status atual:',
+        statusTitulo
+      )
+    }
+  }
+
   useEffect(() => {
     calcularJurosAutomatico()
+    buscarHistoricoBaixas()
   }, [])
 
   const handleBaixarTitulo = async () => {
@@ -82,8 +142,6 @@ export default function BaixaTituloForm({ route, navigation }) {
       Alert.alert('Erro', 'Preencha os campos obrigatórios')
       return
     }
-
-    // Adicionar verificação dos parâmetros necessários
     if (!titulo.titu_emis || !titulo.titu_venc || !titulo.titu_parc) {
       Alert.alert('Erro', 'Dados do título incompletos')
       return
@@ -99,8 +157,20 @@ export default function BaixaTituloForm({ route, navigation }) {
       }
       const endpoint =
         tipo === 'pagar'
-          ? `contas_a_pagar/titulos-pagar/${titulo.titu_empr}/${titulo.titu_fili}/${titulo.titu_forn}/${titulo.titu_titu}/${titulo.titu_seri}/${titulo.titu_parc}/${formatDate(titulo.titu_emis)}/${formatDate(titulo.titu_venc)}/baixar/`
-          : `contas_a_receber/titulos-receber/${titulo.titu_empr}/${titulo.titu_fili}/${titulo.titu_clie}/${titulo.titu_titu}/${titulo.titu_seri}/${titulo.titu_parc}/${formatDate(titulo.titu_emis)}/${formatDate(titulo.titu_venc)}/baixar/`
+          ? `contas_a_pagar/titulos-pagar/${titulo.titu_empr}/${
+              titulo.titu_fili
+            }/${titulo.titu_forn}/${titulo.titu_titu}/${titulo.titu_seri}/${
+              titulo.titu_parc
+            }/${formatDate(titulo.titu_emis)}/${formatDate(
+              titulo.titu_venc
+            )}/baixar/`
+          : `contas_a_receber/titulos-receber/${titulo.titu_empr}/${
+              titulo.titu_fili
+            }/${titulo.titu_clie}/${titulo.titu_titu}/${titulo.titu_seri}/${
+              titulo.titu_parc
+            }/${formatDate(titulo.titu_emis)}/${formatDate(
+              titulo.titu_venc
+            )}/baixar/`
 
       const payload = {
         [tipo === 'pagar' ? 'data_pagamento' : 'data_recebimento']:
@@ -133,6 +203,12 @@ export default function BaixaTituloForm({ route, navigation }) {
     }
   }
 
+  const valorRestante = () => {
+    const valorTitulo = parseFloat(titulo.titu_valo) || 0
+    const jaBaixado = parseFloat(valorJaBaixado) || 0
+    return valorTitulo - jaBaixado
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -143,8 +219,38 @@ export default function BaixaTituloForm({ route, navigation }) {
         <Text style={styles.subtitle}>
           Valor Original: {formatarMoeda(titulo.titu_valo)}
         </Text>
+
+        {/* Adicionar informações para títulos parciais */}
+        {statusTitulo === 'P' && (
+          <>
+            <Text style={[styles.subtitle, { color: '#ff6b35' }]}>
+              Já {tipo === 'pagar' ? 'Pago' : 'Recebido'}:{' '}
+              {formatarMoeda(valorJaBaixado)}
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                { color: '#28a745', fontWeight: 'bold' },
+              ]}>
+              Valor Restante: {formatarMoeda(valorRestante())}
+            </Text>
+          </>
+        )}
+
         <Text style={styles.subtitle}>
           Parcela: {titu_parc} de {titulo.titu_seri}
+        </Text>
+
+        {/* Indicador de status */}
+        <Text
+          style={[
+            styles.subtitle,
+            {
+              color: statusTitulo === 'A' ? '#007bff' : '#ff6b35',
+              fontWeight: 'bold',
+            },
+          ]}>
+          Status: {statusTitulo === 'A' ? 'Aberto' : 'Parcialmente Baixado'}
         </Text>
       </View>
 

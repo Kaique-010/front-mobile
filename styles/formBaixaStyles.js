@@ -3,10 +3,10 @@ import { StyleSheet } from 'react-native'
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#202a34',
   },
   header: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#203952',
     padding: 20,
     alignItems: 'center',
   },
@@ -29,7 +29,7 @@ export default StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
     marginTop: 15,
-    color: '#333',
+    color: '#f0f8ff',
   },
   input: {
     borderWidth: 1,
@@ -83,6 +83,9 @@ export default StyleSheet.create({
     gap: 15,
     marginTop: 30,
     marginBottom: 20,
+    textAlign: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   button: {
     flex: 1,
@@ -91,7 +94,7 @@ export default StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#6c757d',
+    backgroundColor: '#d63633',
   },
   confirmButton: {
     backgroundColor: '#007bff',
