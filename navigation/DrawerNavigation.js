@@ -21,6 +21,7 @@ import PainelAcompanhamento from '../screens/PainelOs'
 import CaixaGeralScreen from '../screens/CaixaGeral'
 import PainelOrdens from '../screens/PainelOrdens'
 import AuditoriaScreen from '../screens/AuditoriaScreen'
+import DashboardFinanceiro from '../dashboardFinanceiro/DashboardFinanceiro'
 
 const Drawer = createDrawerNavigator()
 
@@ -74,6 +75,17 @@ export default function DrawerNavigator() {
         <Drawer.Screen
           name="Caixa"
           component={CaixaGeralScreen}
+          options={{
+            drawerIcon: ({ color, size }) => (
+              <Icon name="file-text" color={color} size={size} />
+            ),
+          }}
+        />
+      )}
+      {hasModulo('financeiro') && (
+        <Drawer.Screen
+          name="Dashboard Financeiro"
+          component={DashboardFinanceiro}
           options={{
             drawerIcon: ({ color, size }) => (
               <Icon name="file-text" color={color} size={size} />

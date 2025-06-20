@@ -36,6 +36,7 @@ import CriarOrdemServico from './componentsOrdemServico/OrdemCriacao'
 import CaixaGeralScreen from './screens/CaixaGeral'
 import AuditoriaScreen from './screens/AuditoriaScreen'
 import BaixaTituloForm from './screens/BaixaTituloForm'
+import DashboardFinanceiroGrafico from './dashboardFinanceiro/DashboardFinanceiroGrafico'
 
 const Stack = createNativeStackNavigator()
 
@@ -235,6 +236,11 @@ export default function App() {
               headerTintColor: '#ff0000',
               headerTitleStyle: { color: '#faebd7' },
             }}
+          />
+
+          <Stack.Screen
+            name="DashboardFinanceiroGrafico"
+            component={DashboardFinanceiroGrafico}
           />
           <Stack.Screen
             name="Entidades"
