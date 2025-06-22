@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import {
   View,
   Text,
@@ -114,6 +115,12 @@ export default function ContasPagarList({ navigation }) {
     ])
   }
 
+  useFocusEffect(
+    useCallback(() => {
+      if (slug) buscarContas()
+    }, [slug, searchFornecedor, searchTitulo, searchStatus])
+  )
+
   const formMap = {
     '00': 'Duplicata',
     '01': 'Cheque',
@@ -175,7 +182,7 @@ export default function ContasPagarList({ navigation }) {
           style={[styles.botao, styles.botaoEditar]}
           onPress={() =>
             navigation.navigate('BaixaTituloForm', {
-              titulo: item,  // Garantir que o item contém todos os campos necessários
+              titulo: item, // Garantir que o item contém todos os campos necessários
               tipo: 'pagar',
             })
           }>
@@ -186,7 +193,7 @@ export default function ContasPagarList({ navigation }) {
           onPress={() =>
             navigation.navigate('ContaPagarForm', {
               contaExistente: item,
-              titu_parc: item.titu_parc // Corrigir aqui - estava usando variável não definida
+              titu_parc: item.titu_parc, // Corrigir aqui - estava usando variável não definida
             })
           }>
           <Text style={styles.botaoTexto}>✏️ Editar</Text>

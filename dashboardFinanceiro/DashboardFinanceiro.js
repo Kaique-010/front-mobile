@@ -102,6 +102,13 @@ export default function DashboardFinanceiro() {
     return totais
   }, [meses, recebimentos, pagamentos])
 
+  const formatarMoeda = (valor) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(Number(valor) || 0)
+  }
+
   if (!dados) return <Text style={styles.loading}>Carregando...</Text>
 
   return (
@@ -163,31 +170,36 @@ export default function DashboardFinanceiro() {
       {/* Totais */}
       <View style={styles.cardTotais}>
         <Text style={styles.titulo}>📊 Resumo Financeiro</Text>
+
         <View style={styles.linhaTotais}>
           <Text>💰 Saldo Inicial:</Text>
           <Text style={{ fontWeight: 'bold' }}>
-            R$ {Number(saldoInicial).toFixed(2)}
+            {formatarMoeda(saldoInicial)}
           </Text>
         </View>
+
         <View style={styles.linhaTotais}>
           <Text>📥 Recebido:</Text>
           <Text style={styles.recebido}>
-            R$ {Number(dados.totais.total_recebido).toFixed(2)}
+            {formatarMoeda(dados.totais.total_recebido)}
           </Text>
         </View>
+
         <View style={styles.linhaTotais}>
           <Text>📤 Pago:</Text>
           <Text style={styles.pago}>
-            R$ {Number(dados.totais.total_pago).toFixed(2)}
+            {formatarMoeda(dados.totais.total_pago)}
           </Text>
         </View>
+
         <View style={styles.linhaTotais}>
           <Text>📈 Saldo Final:</Text>
           <Text style={styles.saldoFinal}>
-            R$ {Number(dados.totais.saldo_final).toFixed(2)}
+            {formatarMoeda(dados.totais.saldo_final)}
           </Text>
         </View>
       </View>
+
       <TouchableOpacity
         style={[styles.botao, { marginTop: 8 }]}
         onPress={() =>

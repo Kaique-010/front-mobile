@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import {
   View,
   Text,
@@ -126,6 +127,12 @@ export default function ContasPagarList({ navigation }) {
     56: 'Venda à vista',
     60: 'PIX',
   }
+
+  useFocusEffect(
+    useCallback(() => {
+      if (slug) buscarContas()
+    }, [slug, searchCliente, searchTitulo, searchStatus])
+  )
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
