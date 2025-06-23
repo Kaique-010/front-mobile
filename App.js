@@ -37,6 +37,7 @@ import CaixaGeralScreen from './screens/CaixaGeral'
 import AuditoriaScreen from './screens/AuditoriaScreen'
 import BaixaTituloForm from './screens/BaixaTituloForm'
 import DashboardFinanceiroGrafico from './dashboardFinanceiro/DashboardFinanceiroGrafico'
+import DashRealizado from './dashboardFinanceiro/DashRealizado'
 
 const Stack = createNativeStackNavigator()
 
@@ -239,13 +240,23 @@ export default function App() {
           />
 
           <Stack.Screen
-            name="DashboardFinanceiroGrafico"
+            name="Dashboard Financeiro"
             component={DashboardFinanceiroGrafico}
           />
           <Stack.Screen
             name="Entidades"
             component={Entidades}
             options={{ title: 'Entidades' }}
+          />
+          <Stack.Screen
+            name="Dashboard Financeiro Realizado"
+            component={DashRealizado}
+            options={{
+              title: 'Realizado Dash',
+              headerStyle: { backgroundColor: '#182c39' },
+              headerTintColor: '#ff0000',
+              headerTitleStyle: { color: '#faebd7' },
+            }}
           />
           <Stack.Screen
             name="Contratos"

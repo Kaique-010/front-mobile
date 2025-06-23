@@ -1,27 +1,30 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createDrawerNavigator } from '@react-navigation/drawer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-import Dashboard from '../dashboards/Dashboards'
-import Home from '../screens/Home'
-import Produtos from '../screens/Produtos'
-import Pedidos from '../screens/Pedidos'
-import Orcamentos from '../screens/Orcamentos'
-import CustomDrawer from './CustomDrawer'
 import Icon from 'react-native-vector-icons/Feather'
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+
+import CustomDrawer from './CustomDrawer'
+
+import Home from '../screens/Home'
+import Contratos from '../screens/Contratos'
+import CaixaGeralScreen from '../screens/CaixaGeral'
+import DashboardFinanceiro from '../dashboardFinanceiro/DashboardFinanceiro'
+import Dashboard from '../dashboards/Dashboards'
+import DashRealizado from '../dashboardFinanceiro/DashRealizado'
 import Entidades from '../screens/Entidades'
-import ListaCasamento from '../screens/ListaCasamento'
 import EntradasEstoque from '../screens/EntradasEstoque'
+import ListaCasamento from '../screens/ListaCasamento'
+import Orcamentos from '../screens/Orcamentos'
+import PainelAcompanhamento from '../screens/PainelOs'
+import PainelOrdens from '../screens/PainelOrdens'
+import Pedidos from '../screens/Pedidos'
+import Produtos from '../screens/Produtos'
 import SaidasEstoque from '../screens/SaidasEstoque'
 import ImplantacoesList from '../screens/ImplantacoesList'
 import ContasPagarList from '../screens/ContasPagarList'
-import ContasReceberList from '../screens//ContasReceberList'
-import Contratos from '../screens/Contratos'
-import PainelAcompanhamento from '../screens/PainelOs'
-import CaixaGeralScreen from '../screens/CaixaGeral'
-import PainelOrdens from '../screens/PainelOrdens'
+import ContasReceberList from '../screens/ContasReceberList'
 import AuditoriaScreen from '../screens/AuditoriaScreen'
-import DashboardFinanceiro from '../dashboardFinanceiro/DashboardFinanceiro'
 
 const Drawer = createDrawerNavigator()
 
@@ -50,7 +53,10 @@ export default function DrawerNavigator() {
         headerTintColor: '#fff',
         drawerStyle: { backgroundColor: '#333' },
         drawerLabelStyle: { color: '#fff', fontSize: 15 },
+        drawerActiveTintColor: '#10a2a7',
+        drawerInactiveTintColor: '#ccc',
       }}>
+      
       <Drawer.Screen
         name="Home"
         component={Home}
@@ -60,6 +66,7 @@ export default function DrawerNavigator() {
           ),
         }}
       />
+      
       {hasModulo('contratos') && (
         <Drawer.Screen
           name="Contratos"
@@ -71,28 +78,43 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('financeiro') && (
         <Drawer.Screen
           name="Caixa"
           component={CaixaGeralScreen}
           options={{
             drawerIcon: ({ color, size }) => (
-              <Icon name="file-text" color={color} size={size} />
+              <Icon name="credit-card" color={color} size={size} />
             ),
           }}
         />
       )}
+      
+      {/* Dashboards - escondidos do menu principal, acessíveis via dropdown */}
       {hasModulo('financeiro') && (
+        <>
+          <Drawer.Screen
+            name="DashboardFinanceiro"
+            component={DashboardFinanceiro}
+            options={{ drawerLabel: () => null, drawerItemStyle: { height: 0 } }}
+          />
+          <Drawer.Screen
+            name="DashRealizado"
+            component={DashRealizado}
+            options={{ drawerLabel: () => null, drawerItemStyle: { height: 0 } }}
+          />
+        </>
+      )}
+      
+      {hasModulo('dash') && (
         <Drawer.Screen
-          name="Dashboard Financeiro"
-          component={DashboardFinanceiro}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="file-text" color={color} size={size} />
-            ),
-          }}
+          name="Dashboard"
+          component={Dashboard}
+          options={{ drawerLabel: () => null, drawerItemStyle: { height: 0 } }}
         />
       )}
+      
       {hasModulo('entidades') && (
         <Drawer.Screen
           name="Entidades"
@@ -104,6 +126,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('entradasestoque') && (
         <Drawer.Screen
           name="Entradas de Estoque"
@@ -115,6 +138,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('listacasamento') && (
         <Drawer.Screen
           name="Lista de Casamento"
@@ -126,6 +150,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('orcamentos') && (
         <Drawer.Screen
           name="Orcamentos"
@@ -137,17 +162,19 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('ordemdeservico') && (
         <Drawer.Screen
           name="Painel de Acompanhamento de O'S"
           component={PainelAcompanhamento}
           options={{
             drawerIcon: ({ color, size }) => (
-              <Icon name="users" color={color} size={size} />
+              <Icon name="clipboard" color={color} size={size} />
             ),
           }}
         />
       )}
+      
       {hasModulo('os') && (
         <Drawer.Screen
           name="Ordens de Serviço"
@@ -159,6 +186,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('pedidos') && (
         <Drawer.Screen
           name="Pedidos"
@@ -170,6 +198,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('produtos') && (
         <Drawer.Screen
           name="Produtos"
@@ -181,6 +210,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
+      
       {hasModulo('saidasestoque') && (
         <Drawer.Screen
           name="Saidas de Estoque"
@@ -192,28 +222,20 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      {hasModulo('dash') && (
-        <Drawer.Screen
-          name="Dashboard"
-          component={Dashboard}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="bar-chart" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
+      
       {hasModulo('implantacao') && (
         <Drawer.Screen
           name="Implantações"
           component={ImplantacoesList}
           options={{
             drawerIcon: ({ color, size }) => (
-              <Icon name="bar-chart" color={color} size={size} />
+              <Icon name="settings" color={color} size={size} />
             ),
           }}
         />
       )}
+      
+      {/* Contas financeiras - escondidas, acessíveis via submenu */}
       {hasModulo('Financeiro') && (
         <>
           <Drawer.Screen
@@ -222,9 +244,6 @@ export default function DrawerNavigator() {
             options={{
               drawerLabel: () => null,
               drawerItemStyle: { height: 0 },
-              drawerIcon: ({ color, size }) => (
-                <Icon name="bar-chart" color={color} size={size} />
-              ),
             }}
           />
           <Drawer.Screen
@@ -233,14 +252,11 @@ export default function DrawerNavigator() {
             options={{
               drawerLabel: () => null,
               drawerItemStyle: { height: 0 },
-              drawerIcon: ({ color, size }) => (
-                <Icon name="bar-chart" color={color} size={size} />
-              ),
             }}
           />
         </>
       )}
-
+      
       <Drawer.Screen
         name="Auditoria"
         component={AuditoriaScreen}
