@@ -37,35 +37,164 @@ export default function DashRealizado() {
     }
   }
 
-  // Função para buscar os dados da API
-  // Ajustar a função buscarDados para processar corretamente os dados do backend
-const buscarDados = async () => {
-  setLoading(true)
-  setErro(null)
-  try {
-    const res = await apiGetComContexto('dashboards/orcamento-realizado/', {
-      data_ini: '2025-01-01',
-      data_fim: '2025-12-31',
-    })
-    
-    // Processar os dados para o formato esperado pelo frontend
-    const dadosProcessados = {
-      resumo_mensal: res.resumo_mensal || {},
-      detalhamento: res.detalhamento || {}
-    }
-    
-    setDados(dadosProcessados)
-    console.log('API payload:', dadosProcessados)
+  const buscarDados = async () => {
+    setLoading(true)
+    setErro(null)
+    try {
+      // Tentar diferentes variações do endpoint com parâmetros para evitar paginação
+      const params = { page_size: 10000, limit: 10000 }; // Forçar retorno de todos os registros
+      let res;
+      try {
+        // Primeira tentativa: sem a barra final
+        res = await apiGetComContexto('dashboards/orcamento-analitico', params);
+      } catch (error1) {
+        console.log('Tentativa 1 falhou, tentando endpoint alternativo...');
+        try {
+          // Segunda tentativa: endpoint mais simples
+          res = await apiGetComContexto('orcamento-analitico/', params);
+        } catch (error2) {
+          console.log('Tentativa 2 falhou, tentando terceira opção...');
+          try {
+            // Terceira tentativa: sem dashboards/
+            res = await apiGetComContexto('orcamento-analitico', params);
+          } catch (error3) {
+            console.log('Todas as tentativas falharam:', error3);
+            throw error3;
+          }
+        }
+      }
 
-    const mesesAPI = Object.keys(dadosProcessados.resumo_mensal || {})
-    setMeses(mesesAPI)
-    if (mesesAPI.length > 0) setMesSelecionado(mesesAPI[0])
-  } catch (e) {
-    setErro('Erro ao buscar dados.')
-  } finally {
-    setLoading(false)
+      // Processar os dados da nova estrutura do backend
+      console.log('Resposta da API recebida:', res);
+      console.log('Tipo da resposta:', typeof res);
+      console.log('É array?', Array.isArray(res));
+      
+      const dadosProcessados = processarDadosBackend(res)
+
+      setDados(dadosProcessados)
+      console.log('Dados processados:', dadosProcessados)
+
+      const mesesAPI = Object.keys(dadosProcessados.resumo_mensal || {})
+      setMeses(mesesAPI)
+      if (mesesAPI.length > 0) setMesSelecionado(mesesAPI[0])
+    } catch (e) {
+      console.error('Erro detalhado:', e);
+      const errorMessage = e.response?.data?.detail || e.message || 'Erro desconhecido';
+      setErro(`Erro ao buscar dados: ${errorMessage}`);
+    } finally {
+      setLoading(false)
+    }
   }
-}
+
+  // Função para processar dados do backend para o formato do frontend
+  const processarDadosBackend = (dadosBackend) => {
+    const resumo_mensal = {}
+    const detalhamento = {}
+
+    // Verificar se dadosBackend tem a estrutura de paginação ou é um array direto
+    let dados = dadosBackend;
+    if (dadosBackend && dadosBackend.results && Array.isArray(dadosBackend.results)) {
+      dados = dadosBackend.results;
+    }
+
+    // Validar se dados é um array válido
+    if (!dados || !Array.isArray(dados)) {
+      console.log('Dados do backend inválidos ou vazios:', dadosBackend);
+      return { resumo_mensal, detalhamento };
+    }
+
+    // Agrupar dados por mês
+    console.log('Total de registros a processar:', dados.length);
+    
+    dados.forEach((item) => {
+      const mes = item.mes
+      // Mapear tipo do backend para o formato esperado pelo frontend
+      let tipo = item.tipo
+      if (tipo === 'RECEITA') {
+        tipo = 'Receitas'
+      } else if (tipo === 'DESPESA') {
+        tipo = 'Despesas'
+      }
+
+      // Inicializar estruturas se não existirem
+      if (!resumo_mensal[mes]) {
+        resumo_mensal[mes] = {
+          Receitas: { previsto: 0, realizado: 0 },
+          Despesas: { previsto: 0, realizado: 0 },
+          saldo_previsto: 0,
+          saldo_realizado: 0,
+        }
+      }
+      
+      // Garantir que as estruturas de tipo existam
+      if (!resumo_mensal[mes][tipo]) {
+        resumo_mensal[mes][tipo] = { previsto: 0, realizado: 0 };
+      }
+
+      if (!detalhamento[mes]) {
+        detalhamento[mes] = {
+          Receitas: [],
+          Despesas: [],
+        }
+      }
+      
+      // Garantir que o array do tipo específico existe
+      if (!detalhamento[mes][tipo]) {
+        detalhamento[mes][tipo] = [];
+      }
+
+      // Calcular valor realizado baseado no tipo
+      let valorRealizado = 0
+      if (tipo === 'Receitas') {
+        valorRealizado = parseFloat(item.valor_recebido) || 0
+      } else if (tipo === 'Despesas') {
+        valorRealizado = parseFloat(item.valor_pago) || 0
+      }
+      
+      // Adicionar ao resumo mensal
+      const valorOrcado = parseFloat(item.valor_orcado) || 0
+      
+      // Verificar se os valores são números válidos
+      if (isNaN(valorOrcado) || isNaN(valorRealizado)) {
+        console.warn(`Valores inválidos encontrados para ${tipo} no mês ${mes} - Orçado: ${item.valor_orcado}, Realizado: ${valorRealizado}`);
+        return;
+      }
+      
+
+      
+      resumo_mensal[mes][tipo].previsto += valorOrcado
+      resumo_mensal[mes][tipo].realizado += valorRealizado
+
+      // Adicionar ao detalhamento
+      detalhamento[mes][tipo].push({
+        conta: item.plan_redu,
+        nome: item.plan_nome,
+        valor_previsto: item.valor_orcado || 0,
+        valor_realizado: valorRealizado,
+      })
+    })
+
+    // Calcular saldos
+    Object.keys(resumo_mensal).forEach((mes) => {
+      const receitas = resumo_mensal[mes].Receitas || { previsto: 0, realizado: 0 }
+      const despesas = resumo_mensal[mes].Despesas || { previsto: 0, realizado: 0 }
+      
+      // Garantir que os valores são números válidos
+      const receitasPrevisto = parseFloat(receitas.previsto) || 0
+      const receitasRealizado = parseFloat(receitas.realizado) || 0
+      const despesasPrevisto = parseFloat(despesas.previsto) || 0
+      const despesasRealizado = parseFloat(despesas.realizado) || 0
+
+      resumo_mensal[mes].saldo_previsto = receitasPrevisto - despesasPrevisto
+      resumo_mensal[mes].saldo_realizado = receitasRealizado - despesasRealizado
+      
+
+     })
+
+
+
+     return { resumo_mensal, detalhamento }
+  }
 
   useEffect(() => {
     obterContexto()
@@ -109,7 +238,7 @@ const buscarDados = async () => {
     const contasPositivas = contas.filter((c) => {
       return c.valor_previsto > 0 || c.valor_realizado > 0
     })
-    
+
     if (filtro === 'TODOS') return contasPositivas
     return contasPositivas.filter((c) => {
       if (c.valor_previsto === 0) return false
@@ -135,12 +264,12 @@ const buscarDados = async () => {
   }
 
   // Ajustar o ResumoGeralCard para usar a nova estrutura
-const ResumoGeralCard = () => {
-  const resumoAtual = resumoMes || {}
-  const saldoPrevisto = resumoAtual.saldo_previsto || 0
-  const saldoRealizado = resumoAtual.saldo_realizado || 0
-  
-  const { valor: percentualTexto, numerico: percentualNumerico } =
+  const ResumoGeralCard = () => {
+    const resumoAtual = resumoMes || {}
+    const saldoPrevisto = resumoAtual.saldo_previsto || 0
+    const saldoRealizado = resumoAtual.saldo_realizado || 0
+
+    const { valor: percentualTexto, numerico: percentualNumerico } =
       calcPercentual(saldoPrevisto, saldoRealizado)
 
     const corSaldo = saldoRealizado >= 0 ? '#27ae60' : '#e74c3c'
@@ -198,24 +327,24 @@ const ResumoGeralCard = () => {
 
   // Componente de Card para Resumo por Grupo
   // Ajustar o ResumoCard para usar os dados corretos do backend
-const ResumoCard = ({ grupo, dados }) => {
-  // Se dados for um objeto com previsto/realizado (do resumo_mensal)
-  let totalPrevisto, totalRealizado
-  
-  if (Array.isArray(dados)) {
-    // Caso seja array de contas (detalhamento)
-    totalPrevisto = dados.reduce((acc, cur) => acc + cur.valor_previsto, 0)
-    totalRealizado = dados.reduce((acc, cur) => acc + cur.valor_realizado, 0)
-  } else {
-    // Caso seja objeto do resumo_mensal
-    totalPrevisto = dados.previsto || 0
-    totalRealizado = dados.realizado || 0
-  }
-  
-  const { valor: percentualTexto, numerico: percentualNumerico } =
-    calcPercentual(totalPrevisto, totalRealizado)
-  const cor = obterCor(percentualNumerico)
-  const icone = obterIcone(percentualNumerico)
+  const ResumoCard = ({ grupo, dados }) => {
+    // Se dados for um objeto com previsto/realizado (do resumo_mensal)
+    let totalPrevisto, totalRealizado
+
+    if (Array.isArray(dados)) {
+      // Caso seja array de contas (detalhamento)
+      totalPrevisto = dados.reduce((acc, cur) => acc + cur.valor_previsto, 0)
+      totalRealizado = dados.reduce((acc, cur) => acc + cur.valor_realizado, 0)
+    } else {
+      // Caso seja objeto do resumo_mensal
+      totalPrevisto = dados.previsto || 0
+      totalRealizado = dados.realizado || 0
+    }
+
+    const { valor: percentualTexto, numerico: percentualNumerico } =
+      calcPercentual(totalPrevisto, totalRealizado)
+    const cor = obterCor(percentualNumerico)
+    const icone = obterIcone(percentualNumerico)
 
     return (
       <View style={[styles.resumoCard, { borderLeftColor: cor }]}>
@@ -257,77 +386,79 @@ const ResumoCard = ({ grupo, dados }) => {
   }
 
   // Ajustar o dadosParaLista para trabalhar com a nova estrutura
-const dadosParaLista = useMemo(() => {
-  const items = []
+  const dadosParaLista = useMemo(() => {
+    const items = []
 
-  // Adiciona card de resumo geral primeiro
-  if (Object.keys(resumoMes).length > 0) {
-    items.push({
-      type: 'resumo_geral',
-      id: 'resumo_geral',
-    })
-  }
-
-  // Adiciona cards de resumo por grupo usando dados do resumo_mensal
-  if (resumoMes.Receitas || resumoMes.Despesas) {
-    const gruposComDados = []
-    
-    if (resumoMes.Receitas) {
-      gruposComDados.push({
-        nome: 'Receitas',
-        dados: resumoMes.Receitas
-      })
-    }
-    
-    if (resumoMes.Despesas) {
-      gruposComDados.push({
-        nome: 'Despesas', 
-        dados: resumoMes.Despesas
-      })
-    }
-
-    if (gruposComDados.length > 0) {
+    // Adiciona card de resumo geral primeiro
+    if (Object.keys(resumoMes).length > 0) {
       items.push({
-        type: 'resumo_cards',
-        id: 'resumo_cards',
-        grupos: gruposComDados,
+        type: 'resumo_geral',
+        id: 'resumo_geral',
       })
     }
-  }
 
-  // Adiciona detalhamento se disponível
-  if (dadosMes && Object.keys(dadosMes).length > 0) {
-    ['Receitas', 'Despesas'].forEach((grupo) => {
-      const grupoContas = Array.isArray(dadosMes[grupo]) ? dadosMes[grupo] : []
+    // Adiciona cards de resumo por grupo usando dados do resumo_mensal
+    if (resumoMes.Receitas || resumoMes.Despesas) {
+      const gruposComDados = []
 
-      if (grupoContas.length > 0) {
-        const contasFiltradas = filtrarContas(grupoContas)
-
-        if (contasFiltradas.length > 0) {
-          // Adiciona header do grupo
-          items.push({
-            type: 'grupo_header',
-            id: `header_${grupo}`,
-            grupo,
-          })
-
-          // Adiciona cada conta
-          contasFiltradas.forEach((conta, index) => {
-            items.push({
-              type: 'conta',
-              id: `${empresaId}-${filialId}-${grupo}-${conta.conta}-${index}`,
-              grupo,
-              conta,
-              index,
-            })
-          })
-        }
+      if (resumoMes.Receitas) {
+        gruposComDados.push({
+          nome: 'Receitas',
+          dados: resumoMes.Receitas,
+        })
       }
-    })
-  }
 
-  return items
-}, [dadosMes, resumoMes, filtro, empresaId, filialId, mesSelecionado])
+      if (resumoMes.Despesas) {
+        gruposComDados.push({
+          nome: 'Despesas',
+          dados: resumoMes.Despesas,
+        })
+      }
+
+      if (gruposComDados.length > 0) {
+        items.push({
+          type: 'resumo_cards',
+          id: 'resumo_cards',
+          grupos: gruposComDados,
+        })
+      }
+    }
+
+    // Adiciona detalhamento se disponível
+    if (dadosMes && Object.keys(dadosMes).length > 0) {
+      ;['Receitas', 'Despesas'].forEach((grupo) => {
+        const grupoContas = Array.isArray(dadosMes[grupo])
+          ? dadosMes[grupo]
+          : []
+
+        if (grupoContas.length > 0) {
+          const contasFiltradas = filtrarContas(grupoContas)
+
+          if (contasFiltradas.length > 0) {
+            // Adiciona header do grupo
+            items.push({
+              type: 'grupo_header',
+              id: `header_${grupo}`,
+              grupo,
+            })
+
+            // Adiciona cada conta
+            contasFiltradas.forEach((conta, index) => {
+              items.push({
+                type: 'conta',
+                id: `${empresaId}-${filialId}-${grupo}-${conta.conta}-${index}`,
+                grupo,
+                conta,
+                index,
+              })
+            })
+          }
+        }
+      })
+    }
+
+    return items
+  }, [dadosMes, resumoMes, filtro, empresaId, filialId, mesSelecionado])
 
   // Renderiza cada item da lista principal
   const renderItem = ({ item }) => {
