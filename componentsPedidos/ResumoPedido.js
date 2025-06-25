@@ -18,9 +18,11 @@ import {
   apiPutComContexto,
 } from '../utils/api'
 import { getStoredData } from '../services/storageService'
+import RecebimentoModal from './RecebimentoModal'
 
 export default function ResumoPedido({ total, pedido }) {
   const [slug, setSlug] = useState('')
+  const [modalRecebimentoVisivel, setModalRecebimentoVisivel] = useState(false)
   const navigation = useNavigation()
 
   useEffect(() => {
@@ -146,6 +148,26 @@ export default function ResumoPedido({ total, pedido }) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity 
+        style={[
+          styles.botaoRecebimento,
+          !pedido.pedi_nume && { opacity: 0.5 }
+        ]}
+        onPress={() => setModalRecebimentoVisivel(true)}
+        disabled={!pedido.pedi_nume}
+      >
+        <Text style={styles.textobotao}>
+          💳 Processar Recebimento
+        </Text>
+      </TouchableOpacity>
+
+      <RecebimentoModal
+        visivel={modalRecebimentoVisivel}
+        onFechar={() => setModalRecebimentoVisivel(false)}
+        pedido={pedido}
+        totalPedido={totalFormatado}
+      />
     </View>
   )
 }
@@ -188,5 +210,12 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '700',
     fontSize: 16,
+  },
+  botaoRecebimento: {
+    backgroundColor: '#6A4C93',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
   },
 })

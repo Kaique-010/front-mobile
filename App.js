@@ -380,8 +380,6 @@ export default function App() {
             }}
           />
         </Stack.Navigator>
-
-        {/* Notificações flutuantes */}
         <View
           style={{ position: 'absolute', top: 50, right: 20, zIndex: 1000 }}>
           <NotificacaoBadge
