@@ -89,7 +89,7 @@ export default function ProdutoDados({
         )
         Alert.alert('Sucesso', 'Produto atualizado com sucesso!')
         atualizarProduto({ ...payload, prod_codi: produto.prod_codi })
-        navigation.navigate('ProdutoPrecos', { produto, slug })
+        navigation.navigate('ProdutoPrecos', { produto, slug, atualizarProduto })
       } else {
         const { prod_codi } = await apiPostComContextoSemFili(
           `produtos/produtos/`,
@@ -99,7 +99,7 @@ export default function ProdutoDados({
         Alert.alert('Criado', `Produto criado com código: ${prod_codi}`)
         const novoProduto = { ...payload, prod_codi }
         atualizarProduto(novoProduto)
-        navigation.replace('ProdutoPrecos', { produto: novoProduto, slug })
+        navigation.replace('ProdutoPrecos', { produto: novoProduto, slug, atualizarProduto })
       }
     } catch (err) {
       console.error('Erro ao salvar produto:', err)

@@ -12,10 +12,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 import { apiPutComContexto, apiPostComContexto } from '../utils/api'
 
-export default function ProdutoPrecos({ atualizarProduto }) {
+export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }) {
   const navigation = useNavigation()
   const { params } = useRoute()
-  const { produto = {}, slug = {} } = params || {}
+  const { produto = {}, slug = {}, atualizarProduto: paramAtualizarProduto } = params || {}
+  
+  // Use the function from params if available, otherwise use the prop
+  const atualizarProduto = paramAtualizarProduto || propAtualizarProduto
+  
   const [precoCompra, setPrecoCompra] = useState('')
   const [percentualAVista, setPercentualAVista] = useState('10')
   const [percentualAPrazo, setPercentualAPrazo] = useState('20')
@@ -122,7 +126,7 @@ export default function ProdutoPrecos({ atualizarProduto }) {
     if (!validarCampos()) return
     
     setLoading(true)
-
+  
     const payload = {
       tabe_empr: parseInt(slug?.empresa) || 1,
       tabe_fili: parseInt(slug?.filial) || 1,
@@ -132,9 +136,9 @@ export default function ProdutoPrecos({ atualizarProduto }) {
       percentual_avis: parseFloat(percentualAVista.replace(',', '.')) || 0,
       percentual_apra: parseFloat(percentualAPrazo.replace(',', '.')) || 0,
     }
-
+  
     const chave = `${payload.tabe_empr}-${payload.tabe_fili}-${payload.tabe_prod}`
-
+  
     try {
       let response
       // tenta PUT (atualizar)
@@ -148,20 +152,24 @@ export default function ProdutoPrecos({ atualizarProduto }) {
           throw error
         }
       }
-
+  
       // Atualizar o cache com os dados retornados da API
-      const dadosAtualizados = response.data
-      await AsyncStorage.setItem(
-        `precos-produto-${produto.prod_codi}`,
-        JSON.stringify(dadosAtualizados)
-      )
-
+      const dadosAtualizados = response?.data || response || payload
+      
+      // Verificar se dadosAtualizados não é undefined antes de armazenar
+      if (dadosAtualizados) {
+        await AsyncStorage.setItem(
+          `precos-produto-${produto.prod_codi}`,
+          JSON.stringify(dadosAtualizados)
+        )
+      }
+  
       Toast.show({
         type: 'success',
         text1: 'Sucesso!',
         text2: 'Preços atualizados com sucesso',
       })
-
+  
       // Atualizar o produto com os preços calculados pelo backend
       atualizarProduto({ ...produto, precos: [dadosAtualizados] })
       setTimeout(() => navigation.goBack(), 1000)
