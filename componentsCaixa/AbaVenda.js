@@ -29,7 +29,7 @@ function CampoResultado({ label, valor, onClear }) {
 }
 
 export default function AbaVenda({ mov, setMov, onAvancar }) {
-  const { empresaId, filialId } = useContextApp()
+  const { empresaId, filialId, usuario_id } = useContextApp()
   const [loading, setLoading] = useState(false)
 
   const vendedorFormatado =
@@ -49,23 +49,25 @@ export default function AbaVenda({ mov, setMov, onAvancar }) {
 
     try {
       setLoading(true)
-      
+
       const dadosVenda = {
         cliente: mov.movi_clie,
         vendedor: mov.movi_vend,
         empresa: empresaId,
         filial: filialId,
+        operador: usuario_id,
         caixa: mov.movi_caix,
         data: new Date().toISOString().slice(0, 10),
       }
-      
+
       console.log('🔍 DEBUG AbaVenda - Dados sendo enviados:', {
         mov: mov,
         dadosVenda: dadosVenda,
         cliente_nome: mov.movi_clie_nome,
-        vendedor_nome: mov.movi_vend_nome
+        vendedor_nome: mov.movi_vend_nome,
+        operador: usuario_id,
       })
-      
+
       const response = await apiPostComContexto(
         'caixadiario/movicaixa/iniciar_venda/',
         dadosVenda

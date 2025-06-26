@@ -12,6 +12,7 @@ import CaixaGeralScreen from '../screens/CaixaGeral'
 import DashboardFinanceiro from '../dashboardFinanceiro/DashboardFinanceiro'
 import Dashboard from '../dashboards/Dashboards'
 import DashRealizado from '../dashboardFinanceiro/DashRealizado'
+import DashExtratoCaixa from '../dashsVendas/DashExtratoCaixa'
 import Entidades from '../screens/Entidades'
 import EntradasEstoque from '../screens/EntradasEstoque'
 import ListaCasamento from '../screens/ListaCasamento'
@@ -56,7 +57,6 @@ export default function DrawerNavigator() {
         drawerActiveTintColor: '#10a2a7',
         drawerInactiveTintColor: '#ccc',
       }}>
-      
       <Drawer.Screen
         name="Home"
         component={Home}
@@ -66,7 +66,7 @@ export default function DrawerNavigator() {
           ),
         }}
       />
-      
+
       {hasModulo('contratos') && (
         <Drawer.Screen
           name="Contratos"
@@ -78,7 +78,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('financeiro') && (
         <Drawer.Screen
           name="Caixa"
@@ -90,23 +90,29 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {/* Dashboards - escondidos do menu principal, acessíveis via dropdown */}
       {hasModulo('financeiro') && (
         <>
           <Drawer.Screen
             name="DashboardFinanceiro"
             component={DashboardFinanceiro}
-            options={{ drawerLabel: () => null, drawerItemStyle: { height: 0 } }}
+            options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
           />
           <Drawer.Screen
             name="DashRealizado"
             component={DashRealizado}
-            options={{ drawerLabel: () => null, drawerItemStyle: { height: 0 } }}
+            options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
           />
         </>
       )}
-      
+
       {hasModulo('dash') && (
         <Drawer.Screen
           name="Dashboard"
@@ -114,7 +120,18 @@ export default function DrawerNavigator() {
           options={{ drawerLabel: () => null, drawerItemStyle: { height: 0 } }}
         />
       )}
-      
+
+      <Drawer.Screen
+        name="Extrato de Caixa"
+        component={DashExtratoCaixa}
+        options={{
+          title: 'Extrato de Caixa',
+          headerStyle: { backgroundColor: '#182c39' },
+          headerTintColor: '#ff0000',
+          headerTitleStyle: { color: '#faebd7' },
+        }}
+      />
+
       {hasModulo('entidades') && (
         <Drawer.Screen
           name="Entidades"
@@ -126,7 +143,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('entradasestoque') && (
         <Drawer.Screen
           name="Entradas de Estoque"
@@ -138,7 +155,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('listacasamento') && (
         <Drawer.Screen
           name="Lista de Casamento"
@@ -150,7 +167,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('orcamentos') && (
         <Drawer.Screen
           name="Orcamentos"
@@ -162,7 +179,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('ordemdeservico') && (
         <Drawer.Screen
           name="Painel de Acompanhamento de O'S"
@@ -174,7 +191,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('os') && (
         <Drawer.Screen
           name="Ordens de Serviço"
@@ -186,7 +203,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('pedidos') && (
         <Drawer.Screen
           name="Pedidos"
@@ -198,7 +215,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('produtos') && (
         <Drawer.Screen
           name="Produtos"
@@ -210,7 +227,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('saidasestoque') && (
         <Drawer.Screen
           name="Saidas de Estoque"
@@ -222,7 +239,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {hasModulo('implantacao') && (
         <Drawer.Screen
           name="Implantações"
@@ -234,7 +251,7 @@ export default function DrawerNavigator() {
           }}
         />
       )}
-      
+
       {/* Contas financeiras - escondidas, acessíveis via submenu */}
       {hasModulo('Financeiro') && (
         <>
@@ -256,7 +273,7 @@ export default function DrawerNavigator() {
           />
         </>
       )}
-      
+
       <Drawer.Screen
         name="Auditoria"
         component={AuditoriaScreen}

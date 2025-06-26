@@ -22,14 +22,24 @@ const FORMAS_RECEBIMENTO = [
   { codigo: '60', descricao: 'PIX' },
 ]
 
+const TIPO_MOVIMENTO = {
+  1: 'DINHEIRO',
+  2: 'CHEQUE',
+  3: 'CARTÃO DE CRÉDITO',
+  4: 'CARTÃO DE DÉBITO',
+  5: 'CREDIÁRIO',
+  6: 'PIX',
+}
+
 export default function AbaProcessamento({ venda, onFinalizarVenda }) {
   const [loading, setLoading] = useState(false)
   const [formaPagamento, setFormaPagamento] = useState('54')
+  const [movi_tipo, setmovi_tipo] = useState('1')
   const [valorPago, setValorPago] = useState('')
   const [parcelas, setParcelas] = useState('1')
   const [troco, setTroco] = useState('0.00')
   const [pagamentoProcessado, setPagamentoProcessado] = useState(false)
-  const { empresaId, filialId } = useContextApp()
+  const { empresaId, filialId, usuarioId } = useContextApp()
 
   useEffect(() => {
     console.log('🔍 DEBUG AbaProcessamento:', {
@@ -38,6 +48,9 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
       typeof_total: typeof venda?.total,
       valorPago,
       formaPagamento,
+      movi_tipo,
+      movi_tipo_descricao: TIPO_MOVIMENTO[movi_tipo],
+      operador: usuarioId,
     })
 
     if (
@@ -68,6 +81,19 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
     }
   }, [valorPago, venda?.total])
 
+  // Adicionar useEffect para sincronizar forma de pagamento com tipo de movimento
+  useEffect(() => {
+    // Mapear forma de pagamento para tipo de movimento (igual ao backend)
+    const mapearFormaPagamento = {
+      51: '3', // CARTÃO DE CRÉDITO
+      52: '4', // CARTÃO DE DÉBITO
+      54: '1', // DINHEIRO
+      60: '6', // PIX
+    }
+
+    setmovi_tipo(mapearFormaPagamento[formaPagamento] || '1')
+  }, [formaPagamento])
+
   const processarPagamento = async () => {
     if (!valorPago || parseFloat(valorPago) < parseFloat(venda.total)) {
       Toast.show({
@@ -86,13 +112,16 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
           numero_venda: venda.movi_nume_vend,
           movi_empr: empresaId,
           movi_fili: filialId,
+          movi_oper: usuarioId || venda?.movi_oper || '1', // Usar usuarioId
           valor: venda.total,
           cliente: venda.movi_clie,
           vendedor: venda.movi_vend,
           valor_total: venda.total,
           valor_pago: parseFloat(valorPago),
-          forma_pagamento: formaPagamento,
+          forma_pagamento: formaPagamento, // Códigos 51,52,54,60
           parcelas: parseInt(parcelas),
+          movi_tipo: movi_tipo, // Códigos 1-6 (string)
+          operador: usuarioId,
         }
       )
 
@@ -104,7 +133,6 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
         text2: 'Pagamento processado com sucesso',
       })
 
-      // Marcar pagamento como processado
       setPagamentoProcessado(true)
       console.log('💰 Pagamento processado - aguardando finalização manual')
     } catch (error) {
@@ -131,7 +159,7 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
     const dadosVenda = {
       empr: venda?.movi_empr,
       fili: venda?.movi_fili,
-      usua: '1',
+      usua: usuarioId || venda?.movi_oper || '1', // Usar usuarioId
       numero_venda: venda?.movi_nume_vend,
       cliente: venda?.movi_clie,
       vendedor: venda?.movi_vend,
@@ -139,6 +167,8 @@ export default function AbaProcessamento({ venda, onFinalizarVenda }) {
       valor_pago: parseFloat(valorPago),
       forma_pagamento: formaPagamento,
       parcelas: parseInt(parcelas),
+      movi_tipo: movi_tipo,
+      operador: usuarioId,
     }
 
     console.log('📋 Dados da venda para finalização:', dadosVenda)

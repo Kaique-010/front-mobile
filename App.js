@@ -38,6 +38,7 @@ import AuditoriaScreen from './screens/AuditoriaScreen'
 import BaixaTituloForm from './screens/BaixaTituloForm'
 import DashboardFinanceiroGrafico from './dashboardFinanceiro/DashboardFinanceiroGrafico'
 import DashRealizado from './dashboardFinanceiro/DashRealizado'
+import DashExtratoCaixa from './dashsVendas/DashExtratoCaixa'
 
 const Stack = createNativeStackNavigator()
 
@@ -259,6 +260,16 @@ export default function App() {
             component={DashRealizado}
             options={{
               title: 'Realizado Dash',
+              headerStyle: { backgroundColor: '#182c39' },
+              headerTintColor: '#ff0000',
+              headerTitleStyle: { color: '#faebd7' },
+            }}
+          />
+          <Stack.Screen
+            name="Extrato de Caixa"
+            component={DashExtratoCaixa}
+            options={{
+              title: 'Extrato de Caixa',
               headerStyle: { backgroundColor: '#182c39' },
               headerTintColor: '#ff0000',
               headerTitleStyle: { color: '#faebd7' },
