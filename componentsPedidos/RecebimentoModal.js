@@ -12,6 +12,26 @@ import { Picker } from '@react-native-picker/picker'
 import { apiPostComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
 
+const iniciarPagamentoNaMaquininha = async ({ valor, tipo, parcelas }) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const sucesso = Math.random() > 0.2 // 80% de chance de sucesso
+      if (sucesso) {
+        resolve({
+          status: 'aprovado',
+          mensagem: 'Pagamento aprovado!',
+          autorizacao: 'XYZ123456', // código fake
+        })
+      } else {
+        resolve({
+          status: 'recusado',
+          mensagem: 'Cartão recusado pela operadora.',
+        })
+      }
+    }, 2000) // simula tempo de resposta da maquininha
+  })
+}
+
 export default function RecebimentoModal({
   visivel,
   onFechar,
@@ -56,6 +76,20 @@ export default function RecebimentoModal({
     setProcessando(true)
 
     try {
+      if (form.tipo === 'credito' || form.tipo === 'debito') {
+        const resultado = await iniciarPagamentoNaMaquininha({
+          valor: form.valor,
+          tipo: form.tipo,
+          parcelas: form.parcelas,
+        })
+
+        if (resultado.status !== 'aprovado') {
+          Alert.alert('Erro', resultado.mensagem || 'Transação não aprovada')
+          setProcessando(false)
+          return
+        }
+      }
+
       const dadosRecebimento = {
         sdk_empr: pedido.pedi_empr,
         sdk_fili: pedido.pedi_fili,
