@@ -9,10 +9,13 @@ import {
   ScrollView,
   Dimensions,
   TextInput,
+  Platform,
 } from 'react-native'
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { apiGetComContexto } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import styles from '../stylesDash/ExtratoStyles'
 
 const { width } = Dimensions.get('window')
 const filtroOptions = ['TODOS', 'DINHEIRO', 'CARTAO', 'PIX']
@@ -26,8 +29,10 @@ export default function DashExtratoCaixa() {
   const [filialId, setFilialId] = useState('')
   const [filtroForma, setFiltroForma] = useState('TODOS')
   const [buscaCliente, setBuscaCliente] = useState('')
-  const [dataInicio, setDataInicio] = useState('')
-  const [dataFim, setDataFim] = useState('')
+  const [dataInicio, setDataInicio] = useState(new Date())
+  const [dataFim, setDataFim] = useState(new Date())
+  const [showDatePickerInicio, setShowDatePickerInicio] = useState(false)
+  const [showDatePickerFim, setShowDatePickerFim] = useState(false)
   const [resumo, setResumo] = useState({
     totalGeral: 0,
     totalPorForma: {},
@@ -45,48 +50,70 @@ export default function DashExtratoCaixa() {
     }
   }
 
-  const buscarDados = async () => {
-    setLoading(true)
-    setErro(null)
-    try {
-      const params = {
-        page_size: 10000,
-        limit: 10000,
-        empresa: empresaId,
-        filial: filialId,
-      }
+  const formatarData = (data) => {
+    return data.toLocaleDateString('pt-BR')
+  }
 
-      if (dataInicio) params.data__gte = dataInicio
-      if (dataFim) params.data__lte = dataFim
-      if (buscaCliente) params.search = buscaCliente
+  const formatarDataAPI = (data) => {
+    // Garantir que a data seja no timezone local
+    const ano = data.getFullYear()
+    const mes = String(data.getMonth() + 1).padStart(2, '0')
+    const dia = String(data.getDate()).padStart(2, '0')
+    const dataFormatada = `${ano}-${mes}-${dia}`
+    console.log('Data original:', data, 'Data formatada:', dataFormatada)
+    return dataFormatada
+  }
 
-      const res = await apiGetComContexto('dashboards/extrato-caixa/', params)
+  const formatarDataInicioAPI = (data) => {
+    const dataInicio = new Date(data)
+    dataInicio.setHours(0, 0, 0, 0)
+    const dataFormatada = dataInicio.toISOString().split('T')[0] + 'T00:00:00'
+    console.log('Data início formatada:', dataFormatada)
+    return dataFormatada
+  }
 
-      let dadosProcessados = res.results || res
-      if (!Array.isArray(dadosProcessados)) {
-        dadosProcessados = []
-      }
+  const formatarDataFimAPI = (data) => {
+    const dataFim = new Date(data)
+    dataFim.setHours(23, 59, 59, 999)
+    const dataFormatada = dataFim.toISOString().split('T')[0] + 'T23:59:59'
+    console.log('Data fim formatada:', dataFormatada)
+    return dataFormatada
+  }
 
-      setDados(dadosProcessados)
-      calcularResumo(dadosProcessados)
-    } catch (e) {
-      console.error('Erro detalhado:', e)
-      const errorMessage =
-        e.response?.data?.detail || e.message || 'Erro desconhecido'
-      setErro(`Erro ao buscar dados: ${errorMessage}`)
-    } finally {
-      setLoading(false)
+  const onChangeDataInicio = (event, selectedDate) => {
+    const currentDate = selectedDate || dataInicio
+    setShowDatePickerInicio(Platform.OS === 'ios')
+    setDataInicio(currentDate)
+
+    if (empresaId && filialId) {
+      setTimeout(() => {
+        console.log('Buscando dados com nova data início:', currentDate)
+        buscarDados()
+      }, 300)
     }
   }
 
-  const calcularResumo = (dados) => {
-    const totalGeral = dados.reduce(
+  const onChangeDataFim = (event, selectedDate) => {
+    const currentDate = selectedDate || dataFim
+    setShowDatePickerFim(Platform.OS === 'ios')
+    setDataFim(currentDate)
+    // Força a busca após mudança de data com delay maior
+    if (empresaId && filialId) {
+      setTimeout(() => {
+        console.log('Buscando dados com nova data fim:', currentDate)
+        buscarDados()
+      }, 300)
+    }
+  }
+
+  const calcularResumo = (dadosParaCalculo) => {
+    const totalGeral = dadosParaCalculo.reduce(
       (acc, item) => acc + parseFloat(item.valor_total || 0),
       0
     )
     const totalPorForma = {}
 
-    dados.forEach((item) => {
+    dadosParaCalculo.forEach((item) => {
       const forma = item.forma_de_recebimento || 'Não informado'
       if (!totalPorForma[forma]) {
         totalPorForma[forma] = 0
@@ -97,13 +124,33 @@ export default function DashExtratoCaixa() {
     setResumo({
       totalGeral,
       totalPorForma,
-      quantidadeTransacoes: dados.length,
+      quantidadeTransacoes: dadosParaCalculo.length,
     })
   }
 
   const filtrarDados = useMemo(() => {
     let dadosFiltrados = dados
 
+    // Filtro de data no frontend (fallback caso a API não funcione)
+    if (dataInicio && dataFim) {
+      const inicioStr = formatarDataAPI(dataInicio)
+      const fimStr = formatarDataAPI(dataFim)
+      
+      console.log('Aplicando filtro de data no frontend:', inicioStr, 'até', fimStr)
+      
+      dadosFiltrados = dadosFiltrados.filter((item) => {
+        const dataItem = item.data
+        const dentroDoRange = dataItem >= inicioStr && dataItem <= fimStr
+        if (!dentroDoRange) {
+          console.log(`Removendo registro fora do range: ${dataItem} (${item.nome_cliente})`)
+        }
+        return dentroDoRange
+      })
+      
+      console.log(`Filtro de data aplicado: ${dados.length} -> ${dadosFiltrados.length} registros`)
+    }
+
+    // Filtro por forma de pagamento
     if (filtroForma !== 'TODOS') {
       dadosFiltrados = dadosFiltrados.filter((item) => {
         const forma = item.forma_de_recebimento?.toUpperCase() || ''
@@ -111,6 +158,7 @@ export default function DashExtratoCaixa() {
       })
     }
 
+    // Filtro por cliente/produto
     if (buscaCliente) {
       dadosFiltrados = dadosFiltrados.filter(
         (item) =>
@@ -122,7 +170,14 @@ export default function DashExtratoCaixa() {
     }
 
     return dadosFiltrados
-  }, [dados, filtroForma, buscaCliente])
+  }, [dados, filtroForma, buscaCliente, dataInicio, dataFim]) // Adicionado dataInicio e dataFim
+
+  // useEffect para recalcular resumo quando dados filtrados mudarem
+  useEffect(() => {
+    if (filtrarDados.length > 0 || dados.length > 0) {
+      calcularResumo(filtrarDados)
+    }
+  }, [filtrarDados])
 
   useEffect(() => {
     obterContexto()
@@ -130,9 +185,103 @@ export default function DashExtratoCaixa() {
 
   useEffect(() => {
     if (empresaId && filialId) {
+      console.log('useEffect disparado - buscando dados...')
       buscarDados()
     }
-  }, [empresaId, filialId, dataInicio, dataFim])
+  }, [empresaId, filialId, dataInicio, dataFim]) // Adicionado dataInicio e dataFim de volta
+
+  const buscarDados = async () => {
+    setLoading(true)
+    setErro(null)
+    try {
+      const params = {
+        page_size: 10000,
+        limit: 10000,
+        empresa: empresaId,
+        filial: filialId,
+      }
+  
+      // Tentar diferentes formatos de filtro de data
+      if (dataInicio && dataFim) {
+        const inicio = new Date(dataInicio)
+        const fim = new Date(dataFim)
+        
+        console.log('Data Início:', inicio)
+        console.log('Data Fim:', fim)
+        
+        if (inicio <= fim) {
+          // Tentar diferentes nomes de parâmetros
+          params.data__gte = formatarDataAPI(inicio)
+          params.data__lte = formatarDataAPI(fim)
+          
+          // Alternativas caso a API use outros nomes
+          params.data_inicio = formatarDataAPI(inicio)
+          params.data_fim = formatarDataAPI(fim)
+          params.data_gte = formatarDataAPI(inicio)
+          params.data_lte = formatarDataAPI(fim)
+          params.date__gte = formatarDataAPI(inicio)
+          params.date__lte = formatarDataAPI(fim)
+        } else {
+          params.data__gte = formatarDataAPI(fim)
+          params.data__lte = formatarDataAPI(inicio)
+          params.data_inicio = formatarDataAPI(fim)
+          params.data_fim = formatarDataAPI(inicio)
+          params.data_gte = formatarDataAPI(fim)
+          params.data_lte = formatarDataAPI(inicio)
+          params.date__gte = formatarDataAPI(fim)
+          params.date__lte = formatarDataAPI(inicio)
+        }
+        
+        console.log('Todos os parâmetros de data enviados:', {
+          data__gte: params.data__gte,
+          data__lte: params.data__lte,
+          data_inicio: params.data_inicio,
+          data_fim: params.data_fim,
+          data_gte: params.data_gte,
+          data_lte: params.data_lte,
+          date__gte: params.date__gte,
+          date__lte: params.date__lte
+        })
+      }
+  
+      if (buscaCliente) params.search = buscaCliente
+      
+      console.log('URL completa que será chamada:')
+      console.log('dashboards/extrato-caixa/', params)
+  
+      const res = await apiGetComContexto('dashboards/extrato-caixa/', params)
+      
+      console.log('Resposta da API (primeiros 100 chars):', JSON.stringify(res).substring(0, 100))
+  
+      let dadosProcessados = res.results || res
+      if (!Array.isArray(dadosProcessados)) {
+        dadosProcessados = []
+      }
+  
+      // Log detalhado das datas retornadas
+      if (dadosProcessados.length > 0) {
+        console.log('TODAS as datas dos registros retornados:')
+        const datasUnicas = [...new Set(dadosProcessados.map(item => item.data))]
+        console.log('Datas únicas encontradas:', datasUnicas)
+        
+        dadosProcessados.forEach((item, index) => {
+          if (index < 10) { // Mostrar apenas os primeiros 10
+            console.log(`Registro ${index + 1}: Data=${item.data}, Cliente=${item.nome_cliente}, Valor=${item.valor_total}`)
+          }
+        })
+      }
+  
+      setDados(dadosProcessados)
+      console.log('Dados processados:', dadosProcessados.length, 'registros')
+    } catch (e) {
+      console.error('Erro detalhado:', e)
+      const errorMessage =
+        e.response?.data?.detail || e.message || 'Erro desconhecido'
+      setErro(`Erro ao buscar dados: ${errorMessage}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const ResumoCard = ({ titulo, valor, icone, cor }) => (
     <View style={[styles.resumoCard, { borderLeftColor: cor }]}>
@@ -222,7 +371,7 @@ export default function DashExtratoCaixa() {
         <Text style={styles.headerSubtitle}>Movimentações Financeiras</Text>
       </View>
 
-      {/* Filtros de busca */}
+      {/* Filtros de busca e data */}
       <View style={styles.filtrosContainer}>
         <TextInput
           style={styles.inputBusca}
@@ -230,7 +379,53 @@ export default function DashExtratoCaixa() {
           value={buscaCliente}
           onChangeText={setBuscaCliente}
         />
+
+        {/* Filtros de Data */}
+        <View style={styles.filtrosData}>
+          <View style={styles.inputDataContainer}>
+            <Text style={styles.labelData}>Data Início:</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowDatePickerInicio(true)}>
+              <Text style={styles.datePickerText}>
+                {formatarData(dataInicio)}
+              </Text>
+              <MaterialIcons name="date-range" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.inputDataContainer}>
+            <Text style={styles.labelData}>Data Fim:</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowDatePickerFim(true)}>
+              <Text style={styles.datePickerText}>{formatarData(dataFim)}</Text>
+              <MaterialIcons name="date-range" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
+
+      {/* DatePickers */}
+      {showDatePickerInicio && (
+        <DateTimePicker
+          testID="dateTimePickerInicio"
+          value={dataInicio}
+          mode="date"
+          is24Hour={true}
+          display="default"
+          onChange={onChangeDataInicio}
+        />
+      )}
+      {showDatePickerFim && (
+        <DateTimePicker
+          testID="dateTimePickerFim"
+          value={dataFim}
+          mode="date"
+          is24Hour={true}
+          display="default"
+          onChange={onChangeDataFim}
+        />
+      )}
 
       {/* Filtros de forma de pagamento */}
       <View style={styles.filtros}>
@@ -294,7 +489,7 @@ export default function DashExtratoCaixa() {
         contentContainerStyle={styles.listaContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialIcons name="inbox" size={48} color="#bdc3c7" />
+            <MaterialIcons name="inbox" size={10} color="#bdc3c7" />
             <Text style={styles.emptyText}>Nenhuma transação encontrada</Text>
           </View>
         }
@@ -302,250 +497,3 @@ export default function DashExtratoCaixa() {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    backgroundColor: '#667eea',
-    paddingTop: 30,
-    paddingBottom: 10,
-    paddingHorizontal: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#fff',
-    textAlign: 'center',
-    opacity: 0.9,
-    marginTop: 4,
-  },
-  filtrosContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  inputBusca: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    fontSize: 14,
-  },
-  filtros: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  filtroButton: {
-    flex: 1,
-    marginHorizontal: 4,
-    paddingVertical: 12,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  filtroSelecionado: {
-    backgroundColor: '#28a745',
-    shadowColor: '#28a745',
-    shadowOpacity: 0.3,
-  },
-  filtroTexto: {
-    color: '#333',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  filtroTextoSelecionado: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  resumoContainer: {
-    paddingHorizontal: 10,
-  },
-  resumoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12, // Reduzido de 16 para 12
-    marginRight: 12,
-    minWidth: 80,
-    maxHeight: 80, // Reduzido de 100 para 80
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  resumoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6, // Reduzido de 8 para 6
-  },
-  resumoTitulo: {
-    fontSize: 11, // Reduzido de 12 para 11
-    color: '#666',
-    fontWeight: '600',
-  },
-  resumoValor: {
-    fontSize: 14, // Reduzido de 16 para 14
-    fontWeight: 'bold',
-  },
-  lista: {
-    flex: 1,
-  },
-  listaContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  itemCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemPedido: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '600',
-  },
-  itemCliente: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: 'bold',
-    marginTop: 2,
-  },
-  itemData: {
-    fontSize: 12,
-    color: '#666',
-  },
-  itemDetalhes: {
-    marginBottom: 12,
-  },
-  itemProduto: {
-    fontSize: 13,
-    color: '#333',
-    fontWeight: '600',
-  },
-  itemDescricao: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  itemQuantidade: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemQuantidadeLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  itemQuantidadeValor: {
-    fontSize: 12,
-    color: '#333',
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  itemForma: {
-    backgroundColor: '#e3f2fd',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  itemFormaTexto: {
-    fontSize: 10,
-    color: '#1976d2',
-    fontWeight: '600',
-  },
-  itemValor: {
-    fontSize: 14,
-    color: '#27ae60',
-    fontWeight: 'bold',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  erroContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 32,
-  },
-  erroTexto: {
-    fontSize: 16,
-    color: '#e74c3c',
-    textAlign: 'center',
-    marginVertical: 16,
-  },
-  botaoTentarNovamente: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#007bff',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  botaoTentarNovamenteTexto: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#bdc3c7',
-    marginTop: 16,
-  },
-})

@@ -13,6 +13,8 @@ import DashboardFinanceiro from '../dashboardFinanceiro/DashboardFinanceiro'
 import Dashboard from '../dashboards/Dashboards'
 import DashRealizado from '../dashboardFinanceiro/DashRealizado'
 import DashExtratoCaixa from '../dashsVendas/DashExtratoCaixa'
+import DashContratos from '../dashsVendas/DashContratos'
+import PainelCooperado from '../screens/PainelCooperado'
 import Entidades from '../screens/Entidades'
 import EntradasEstoque from '../screens/EntradasEstoque'
 import ListaCasamento from '../screens/ListaCasamento'
@@ -42,6 +44,8 @@ export default function DrawerNavigator() {
     fetchModulos()
   }, [])
 
+  const isDemoMode = false // Frisia Menu
+
   if (!modulos) return null
 
   const hasModulo = (mod) => modulos.includes(mod)
@@ -57,233 +61,294 @@ export default function DrawerNavigator() {
         drawerActiveTintColor: '#10a2a7',
         drawerInactiveTintColor: '#ccc',
       }}>
-      <Drawer.Screen
-        name="Home"
-        component={Home}
-        options={{
-          drawerIcon: ({ color, size }) => (
-            <Icon name="home" color={color} size={size} />
-          ),
-        }}
-      />
-
-      {hasModulo('contratos') && (
-        <Drawer.Screen
-          name="Contratos"
-          component={Contratos}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="file-text" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('financeiro') && (
-        <Drawer.Screen
-          name="Caixa"
-          component={CaixaGeralScreen}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="credit-card" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {/* Dashboards - escondidos do menu principal, acessíveis via dropdown */}
-      {hasModulo('financeiro') && (
+      {/* Modo demonstração - apenas as  telas  da Frisia*/}
+      {isDemoMode ? (
         <>
           <Drawer.Screen
-            name="DashboardFinanceiro"
-            component={DashboardFinanceiro}
+            name="Home"
+            component={Home}
+            options={{
+              drawerIcon: ({ color, size }) => (
+                <Icon name="home" color={color} size={size} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="Dashboard de Contratos"
+            component={DashContratos}
+            options={{
+              drawerIcon: ({ color, size }) => (
+                <Icon name="bar-chart-2" color={color} size={size} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="Painel do Cooperado"
+            component={PainelCooperado}
+            options={{
+              drawerIcon: ({ color, size }) => (
+                <Icon name="user" color={color} size={size} />
+              ),
+            }}
+          />
+        </>
+      ) : (
+        <>
+          {/* Menu normal - todas as telas existentes */}
+          <Drawer.Screen
+            name="Home"
+            component={Home}
+            options={{
+              drawerIcon: ({ color, size }) => (
+                <Icon name="home" color={color} size={size} />
+              ),
+            }}
+          />
+
+          {hasModulo('contratos') && (
+            <Drawer.Screen
+              name="Contratos"
+              component={Contratos}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="file-text" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('financeiro') && (
+            <Drawer.Screen
+              name="Caixa"
+              component={CaixaGeralScreen}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="credit-card" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {/* Dashboards - escondidos do menu principal, acessíveis via dropdown */}
+          {hasModulo('financeiro') && (
+            <>
+              <Drawer.Screen
+                name="DashboardFinanceiro"
+                component={DashboardFinanceiro}
+                options={{
+                  drawerLabel: () => null,
+                  drawerItemStyle: { height: 0 },
+                }}
+              />
+              <Drawer.Screen
+                name="DashRealizado"
+                component={DashRealizado}
+                options={{
+                  drawerLabel: () => null,
+                  drawerItemStyle: { height: 0 },
+                }}
+              />
+            </>
+          )}
+
+          {hasModulo('dash') && (
+            <Drawer.Screen
+              name="Dashboard"
+              component={Dashboard}
+              options={{
+                drawerLabel: () => null,
+                drawerItemStyle: { height: 0 },
+              }}
+            />
+          )}
+
+          <Drawer.Screen
+            name="Extrato de Caixa"
+            component={DashExtratoCaixa}
+            options={{
+              title: 'Extrato de Caixa',
+              headerStyle: { backgroundColor: '#182c39' },
+              headerTintColor: '#ff0000',
+              headerTitleStyle: { color: '#faebd7' },
+            }}
+          />
+
+          {hasModulo('entidades') && (
+            <Drawer.Screen
+              name="Entidades"
+              component={Entidades}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="users" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('entradasestoque') && (
+            <Drawer.Screen
+              name="Entradas de Estoque"
+              component={EntradasEstoque}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="arrow-down-circle" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('listacasamento') && (
+            <Drawer.Screen
+              name="Lista de Casamento"
+              component={ListaCasamento}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <MaterialCommunityIcons
+                    name="ring"
+                    color={color}
+                    size={size}
+                  />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('orcamentos') && (
+            <Drawer.Screen
+              name="Orcamentos"
+              component={Orcamentos}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="shopping-bag" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('ordemdeservico') && (
+            <Drawer.Screen
+              name="Painel de Acompanhamento de O'S"
+              component={PainelAcompanhamento}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="clipboard" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('os') && (
+            <Drawer.Screen
+              name="Ordens de Serviço"
+              component={PainelOrdens}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="tool" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('pedidos') && (
+            <Drawer.Screen
+              name="Pedidos"
+              component={Pedidos}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="shopping-cart" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('produtos') && (
+            <Drawer.Screen
+              name="Produtos"
+              component={Produtos}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="box" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('saidasestoque') && (
+            <Drawer.Screen
+              name="Saidas de Estoque"
+              component={SaidasEstoque}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="arrow-up-circle" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {hasModulo('implantacao') && (
+            <Drawer.Screen
+              name="Implantações"
+              component={ImplantacoesList}
+              options={{
+                drawerIcon: ({ color, size }) => (
+                  <Icon name="settings" color={color} size={size} />
+                ),
+              }}
+            />
+          )}
+
+          {/* Contas financeiras - escondidas, acessíveis via submenu */}
+          {hasModulo('Financeiro') && (
+            <>
+              <Drawer.Screen
+                name="Contas a Pagar"
+                component={ContasPagarList}
+                options={{
+                  drawerLabel: () => null,
+                  drawerItemStyle: { height: 0 },
+                }}
+              />
+              <Drawer.Screen
+                name="Contas a Receber"
+                component={ContasReceberList}
+                options={{
+                  drawerLabel: () => null,
+                  drawerItemStyle: { height: 0 },
+                }}
+              />
+            </>
+          )}
+
+          {/* Novas telas de contratos */}
+          <Drawer.Screen
+            name="Dashboard de Contratos"
+            component={DashContratos}
             options={{
               drawerLabel: () => null,
               drawerItemStyle: { height: 0 },
             }}
           />
           <Drawer.Screen
-            name="DashRealizado"
-            component={DashRealizado}
+            name="Painel do Cooperado"
+            component={PainelCooperado}
             options={{
               drawerLabel: () => null,
               drawerItemStyle: { height: 0 },
+            }}
+          />
+
+          <Drawer.Screen
+            name="Auditoria"
+            component={AuditoriaScreen}
+            options={{
+              drawerLabel: 'Logs do Sistema',
+              drawerIcon: ({ color }) => (
+                <Icon name="clock" size={24} color={color} />
+              ),
             }}
           />
         </>
       )}
-
-      {hasModulo('dash') && (
-        <Drawer.Screen
-          name="Dashboard"
-          component={Dashboard}
-          options={{ drawerLabel: () => null, drawerItemStyle: { height: 0 } }}
-        />
-      )}
-
-      <Drawer.Screen
-        name="Extrato de Caixa"
-        component={DashExtratoCaixa}
-        options={{
-          title: 'Extrato de Caixa',
-          headerStyle: { backgroundColor: '#182c39' },
-          headerTintColor: '#ff0000',
-          headerTitleStyle: { color: '#faebd7' },
-        }}
-      />
-
-      {hasModulo('entidades') && (
-        <Drawer.Screen
-          name="Entidades"
-          component={Entidades}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="users" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('entradasestoque') && (
-        <Drawer.Screen
-          name="Entradas de Estoque"
-          component={EntradasEstoque}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="arrow-down-circle" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('listacasamento') && (
-        <Drawer.Screen
-          name="Lista de Casamento"
-          component={ListaCasamento}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="ring" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('orcamentos') && (
-        <Drawer.Screen
-          name="Orcamentos"
-          component={Orcamentos}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="shopping-bag" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('ordemdeservico') && (
-        <Drawer.Screen
-          name="Painel de Acompanhamento de O'S"
-          component={PainelAcompanhamento}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="clipboard" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('os') && (
-        <Drawer.Screen
-          name="Ordens de Serviço"
-          component={PainelOrdens}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="tool" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('pedidos') && (
-        <Drawer.Screen
-          name="Pedidos"
-          component={Pedidos}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="shopping-cart" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('produtos') && (
-        <Drawer.Screen
-          name="Produtos"
-          component={Produtos}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="box" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('saidasestoque') && (
-        <Drawer.Screen
-          name="Saidas de Estoque"
-          component={SaidasEstoque}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="arrow-up-circle" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {hasModulo('implantacao') && (
-        <Drawer.Screen
-          name="Implantações"
-          component={ImplantacoesList}
-          options={{
-            drawerIcon: ({ color, size }) => (
-              <Icon name="settings" color={color} size={size} />
-            ),
-          }}
-        />
-      )}
-
-      {/* Contas financeiras - escondidas, acessíveis via submenu */}
-      {hasModulo('Financeiro') && (
-        <>
-          <Drawer.Screen
-            name="Contas a Pagar"
-            component={ContasPagarList}
-            options={{
-              drawerLabel: () => null,
-              drawerItemStyle: { height: 0 },
-            }}
-          />
-          <Drawer.Screen
-            name="Contas a Receber"
-            component={ContasReceberList}
-            options={{
-              drawerLabel: () => null,
-              drawerItemStyle: { height: 0 },
-            }}
-          />
-        </>
-      )}
-
-      <Drawer.Screen
-        name="Auditoria"
-        component={AuditoriaScreen}
-        options={{
-          drawerLabel: 'Logs do Sistema',
-          drawerIcon: ({ color }) => (
-            <Icon name="clock" size={24} color={color} />
-          ),
-        }}
-      />
     </Drawer.Navigator>
   )
 }
