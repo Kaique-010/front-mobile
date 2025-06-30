@@ -135,19 +135,28 @@ export default function DashExtratoCaixa() {
     if (dataInicio && dataFim) {
       const inicioStr = formatarDataAPI(dataInicio)
       const fimStr = formatarDataAPI(dataFim)
-      
-      console.log('Aplicando filtro de data no frontend:', inicioStr, 'até', fimStr)
-      
+
+      console.log(
+        'Aplicando filtro de data no frontend:',
+        inicioStr,
+        'até',
+        fimStr
+      )
+
       dadosFiltrados = dadosFiltrados.filter((item) => {
         const dataItem = item.data
         const dentroDoRange = dataItem >= inicioStr && dataItem <= fimStr
         if (!dentroDoRange) {
-          console.log(`Removendo registro fora do range: ${dataItem} (${item.nome_cliente})`)
+          console.log(
+            `Removendo registro fora do range: ${dataItem} (${item.nome_cliente})`
+          )
         }
         return dentroDoRange
       })
-      
-      console.log(`Filtro de data aplicado: ${dados.length} -> ${dadosFiltrados.length} registros`)
+
+      console.log(
+        `Filtro de data aplicado: ${dados.length} -> ${dadosFiltrados.length} registros`
+      )
     }
 
     // Filtro por forma de pagamento
@@ -200,20 +209,20 @@ export default function DashExtratoCaixa() {
         empresa: empresaId,
         filial: filialId,
       }
-  
+
       // Tentar diferentes formatos de filtro de data
       if (dataInicio && dataFim) {
         const inicio = new Date(dataInicio)
         const fim = new Date(dataFim)
-        
+
         console.log('Data Início:', inicio)
         console.log('Data Fim:', fim)
-        
+
         if (inicio <= fim) {
           // Tentar diferentes nomes de parâmetros
           params.data__gte = formatarDataAPI(inicio)
           params.data__lte = formatarDataAPI(fim)
-          
+
           // Alternativas caso a API use outros nomes
           params.data_inicio = formatarDataAPI(inicio)
           params.data_fim = formatarDataAPI(fim)
@@ -231,7 +240,7 @@ export default function DashExtratoCaixa() {
           params.date__gte = formatarDataAPI(fim)
           params.date__lte = formatarDataAPI(inicio)
         }
-        
+
         console.log('Todos os parâmetros de data enviados:', {
           data__gte: params.data__gte,
           data__lte: params.data__lte,
@@ -240,37 +249,47 @@ export default function DashExtratoCaixa() {
           data_gte: params.data_gte,
           data_lte: params.data_lte,
           date__gte: params.date__gte,
-          date__lte: params.date__lte
+          date__lte: params.date__lte,
         })
       }
-  
+
       if (buscaCliente) params.search = buscaCliente
-      
+
       console.log('URL completa que será chamada:')
       console.log('dashboards/extrato-caixa/', params)
-  
+
       const res = await apiGetComContexto('dashboards/extrato-caixa/', params)
-      
-      console.log('Resposta da API (primeiros 100 chars):', JSON.stringify(res).substring(0, 100))
-  
+
+      console.log(
+        'Resposta da API (primeiros 100 chars):',
+        JSON.stringify(res).substring(0, 100)
+      )
+
       let dadosProcessados = res.results || res
       if (!Array.isArray(dadosProcessados)) {
         dadosProcessados = []
       }
-  
+
       // Log detalhado das datas retornadas
       if (dadosProcessados.length > 0) {
         console.log('TODAS as datas dos registros retornados:')
-        const datasUnicas = [...new Set(dadosProcessados.map(item => item.data))]
+        const datasUnicas = [
+          ...new Set(dadosProcessados.map((item) => item.data)),
+        ]
         console.log('Datas únicas encontradas:', datasUnicas)
-        
+
         dadosProcessados.forEach((item, index) => {
-          if (index < 10) { // Mostrar apenas os primeiros 10
-            console.log(`Registro ${index + 1}: Data=${item.data}, Cliente=${item.nome_cliente}, Valor=${item.valor_total}`)
+          if (index < 10) {
+            // Mostrar apenas os primeiros 10
+            console.log(
+              `Registro ${index + 1}: Data=${item.data}, Cliente=${
+                item.nome_cliente
+              }, Valor=${item.valor_total}`
+            )
           }
         })
       }
-  
+
       setDados(dadosProcessados)
       console.log('Dados processados:', dadosProcessados.length, 'registros')
     } catch (e) {
@@ -290,12 +309,12 @@ export default function DashExtratoCaixa() {
         <MaterialIcons name={icone} size={24} color={cor} />
       </View>
       <Text style={[styles.resumoValor, { color: cor }]}>
-        {typeof valor === 'number'
-          ? valor.toLocaleString('pt-BR', {
+        {titulo === 'Transações'
+          ? valor.toLocaleString('pt-BR')
+          : valor.toLocaleString('pt-BR', {
               style: 'currency',
               currency: 'BRL',
-            })
-          : valor}
+            })}
       </Text>
     </View>
   )

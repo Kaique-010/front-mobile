@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -9,16 +9,18 @@ import {
 } from 'react-native'
 import {
   DrawerContentScrollView,
-  DrawerItemList,
 } from '@react-navigation/drawer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as ImagePicker from 'expo-image-picker'
 import Icon from 'react-native-vector-icons/Feather'
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+import MenuCategory from './MenuCategory'
+import MenuItem from './MenuItem'
+import { getMenuConfig, getIndividualMenuItems } from './menuConfig'
 
 export default function CustomDrawer(props) {
   const [usuario, setUsuario] = useState(null)
-  const [financeiroExpanded, setFinanceiroExpanded] = useState(false)
-  const [dashboardsExpanded, setDashboardsExpanded] = useState(false)
+  const [expandedCategories, setExpandedCategories] = useState({})
   const [modulos, setModulos] = useState(null)
 
   useEffect(() => {
@@ -75,26 +77,17 @@ export default function CustomDrawer(props) {
 
   const hasModulo = (mod) => modulos.includes(mod)
 
-  const dashboards = [
-    {
-      name: 'Dashboard Financeiro',
-      route: 'DashboardFinanceiro',
-      icon: 'dollar-sign',
-      condition: hasModulo('financeiro')
-    },
-    { 
-      name: 'Dashboard Geral', 
-      route: 'Dashboard', 
-      icon: 'bar-chart-2',
-      condition: hasModulo('dash')
-    },
-    {
-      name: 'Dashboard Realizado',
-      route: 'DashRealizado',
-      icon: 'trending-up',
-      condition: hasModulo('financeiro')
-    },
-  ].filter(d => d.condition)
+  const toggleCategory = (categoryKey) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryKey]: !prev[categoryKey]
+    }));
+  };
+
+  const menuConfig = getMenuConfig(hasModulo);
+  const individualItems = getIndividualMenuItems(hasModulo);
+
+
 
   return (
     <DrawerContentScrollView {...props} style={styles.container}>
@@ -113,95 +106,35 @@ export default function CustomDrawer(props) {
         </Text>
       </View>
 
-      {/* Menu items padrão do drawer */}
-      <View style={styles.menuSection}>
-        <DrawerItemList {...props} />
-      </View>
+      {/* Itens individuais */}
+      {individualItems.map((item, index) => (
+        <MenuItem
+          key={index}
+          name={item.name}
+          route={item.route}
+          icon={item.icon}
+          navigation={props.navigation}
+          styles={styles}
+        />
+      ))}
 
-      {/* Submenu Dashboards */}
-      {dashboards.length > 0 && (
-        <View style={styles.menuSection}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setDashboardsExpanded(!dashboardsExpanded)}>
-            <View style={styles.menuItemRow}>
-              <Icon name="bar-chart" size={18} color="#fff" />
-              <Text style={styles.menuItemText}>Dashboards</Text>
-              <Icon
-                name={dashboardsExpanded ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color="#fff"
-                style={{ marginLeft: 'auto' }}
-              />
-            </View>
-          </TouchableOpacity>
-
-          {dashboardsExpanded && (
-            <View style={styles.subMenu}>
-              {dashboards.map((dashboard) => (
-                <TouchableOpacity
-                  key={dashboard.route}
-                  style={styles.subMenuItem}
-                  onPress={() => {
-                    props.navigation.navigate(dashboard.route)
-                    setDashboardsExpanded(false)
-                  }}>
-                  <View style={styles.subMenuItemRow}>
-                    <Icon
-                      name={dashboard.icon}
-                      size={16}
-                      color="#ccc"
-                      style={{ marginRight: 8 }}
-                    />
-                    <Text style={styles.subMenuText}>{dashboard.name}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Submenu Financeiro */}
-      {hasModulo('financeiro') && (
-        <View style={styles.menuSection}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setFinanceiroExpanded(!financeiroExpanded)}>
-            <View style={styles.menuItemRow}>
-              <Icon name="dollar-sign" size={18} color="#fff" />
-              <Text style={styles.menuItemText}>Financeiro</Text>
-              <Icon
-                name={financeiroExpanded ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color="#fff"
-                style={{ marginLeft: 'auto' }}
-              />
-            </View>
-          </TouchableOpacity>
-
-          {financeiroExpanded && (
-            <View style={styles.subMenu}>
-              <TouchableOpacity
-                style={styles.subMenuItem}
-                onPress={() => props.navigation.navigate('ContasPagarList')}>
-                <View style={styles.subMenuItemRow}>
-                  <Icon name="credit-card" size={16} color="#ccc" style={{ marginRight: 8 }} />
-                  <Text style={styles.subMenuText}>Contas a Pagar</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.subMenuItem}
-                onPress={() => props.navigation.navigate('ContasReceberList')}>
-                <View style={styles.subMenuItemRow}>
-                  <Icon name="dollar-sign" size={16} color="#ccc" style={{ marginRight: 8 }} />
-                  <Text style={styles.subMenuText}>Contas a Receber</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
+      {/* Categorias */}
+      {Object.entries(menuConfig).map(([key, categoria]) => {
+        if (categoria.items.length === 0) return null;
+        
+        return (
+          <MenuCategory
+            key={key}
+            categoria={{
+              ...categoria,
+              expanded: expandedCategories[key] || false,
+              setExpanded: () => toggleCategory(key)
+            }}
+            navigation={props.navigation}
+            styles={styles}
+          />
+        );
+      })}
 
       {/* Botão de logout */}
       <View style={styles.logoutSection}>

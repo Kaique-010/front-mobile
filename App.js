@@ -13,7 +13,7 @@ import ProdutoForm from './screens/ProdutoForm'
 import ProdutoPrecos from './componetsProdutos/ProdutoPrecos'
 import EntidadeForm from './screens/EntidadeForm'
 import Entidades from './screens/Entidades'
-import DrawerNavigator from './navigation/DrawerNavigation'
+import AppNavigator from './navigation/AppNavigator'
 import PedidosForm from './screens/PedidosForm'
 import OrcamentosForm from './screens/OrcamentosForm'
 import ListaCasamentoForm from './screens/ListaCasamentoForm'
@@ -41,6 +41,7 @@ import DashRealizado from './dashboardFinanceiro/DashRealizado'
 import DashExtratoCaixa from './dashsVendas/DashExtratoCaixa'
 import DashContratos from './dashsVendas/DashContratos'
 import PainelCooperado from './screens/PainelCooperado'
+import Dashvendas from './screens/Dashvendas'
 
 const Stack = createNativeStackNavigator()
 
@@ -108,7 +109,7 @@ export default function App() {
           />
           <Stack.Screen
             name="MainApp"
-            component={DrawerNavigator}
+            component={AppNavigator}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -407,6 +408,16 @@ export default function App() {
             component={PainelCooperado}
             options={{
               title: 'Painel do Cooperado',
+              headerStyle: { backgroundColor: '#182c39' },
+              headerTintColor: '#ff0000',
+              headerTitleStyle: { color: '#faebd7' },
+            }}
+          />
+          <Stack.Screen
+            name="Dashvendas"
+            component={Dashvendas}
+            options={{
+              title: 'Dashboard de Vendas',
               headerStyle: { backgroundColor: '#182c39' },
               headerTintColor: '#ff0000',
               headerTitleStyle: { color: '#faebd7' },
