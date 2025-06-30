@@ -42,6 +42,7 @@ import DashExtratoCaixa from './dashsVendas/DashExtratoCaixa'
 import DashContratos from './dashsVendas/DashContratos'
 import PainelCooperado from './screens/PainelCooperado'
 import Dashvendas from './screens/Dashvendas'
+import DashBalanceteCC from './dashboardFinanceiro/DashBalanceteCC'
 
 const Stack = createNativeStackNavigator()
 
@@ -279,10 +280,10 @@ export default function App() {
             }}
           />
           <Stack.Screen
-            name="Contratos"
-            component={ContratosList}
+            name="DashBalanceteCC"
+            component={DashBalanceteCC}
             options={{
-              title: 'Lista de Contratos',
+              title: 'Balancete por Centro de Custos',
               headerStyle: { backgroundColor: '#182c39' },
               headerTintColor: '#ff0000',
               headerTitleStyle: { color: '#faebd7' },
