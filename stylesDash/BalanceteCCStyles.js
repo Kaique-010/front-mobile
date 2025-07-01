@@ -6,7 +6,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   header: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#203952',
     paddingTop: 30,
     paddingBottom: 10,
     paddingHorizontal: 10,
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
 
   mesSelecionado: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#203952',
   },
 
   mesTexto: {
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
   },
   filtroTipoSelecionado: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#203952',
     shadowColor: '#007bff',
     shadowOpacity: 0.3,
   },

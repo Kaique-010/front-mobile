@@ -6,7 +6,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   header: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#203952',
     paddingTop: 30,
     paddingBottom: 10,
     paddingHorizontal: 10,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   },
   itemFormaTexto: {
     fontSize: 10,
-    color: '#1976d2',
+    color: '#203952',
     fontWeight: '600',
   },
   itemValor: {
