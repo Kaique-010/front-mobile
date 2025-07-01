@@ -135,6 +135,23 @@ export const screenConfigs = [
     options: createHeaderOptions('Contratos de Venda'),
   },
 
+  // Telas de comissão
+  {
+    name: 'ComissaoForm',
+    component: Screens.ComissaoForm,
+    options: createHeaderOptions('Comissão'),
+  },
+  {
+    name: 'ComissaoList',
+    component: Screens.ComissaoList,
+    options: createHeaderOptions('Lista de Comissões'),
+  },
+  {
+    name: 'DashComissao',
+    component: Screens.DashComissao,
+    options: createHeaderOptions('Dashboard de Comissões'),
+  },
+
   // Telas de ordem de serviço
   {
     name: 'PainelAcompanhamento',
@@ -160,6 +177,17 @@ export const screenConfigs = [
     name: 'OrdemCriacao',
     component: Screens.CriarOrdemServico,
     options: createHeaderOptions('Abertura O.S'),
+  },
+
+  {
+    name: 'Ordem de Serviço Geral',
+    component: Screens.OrdemServicoGeral,
+    options: createHeaderOptions('Relação de O.S'),
+  },
+  {
+    name: 'DashOsGrafico',
+    component: Screens.DashOsGrafico,
+    options: createHeaderOptions('Gráficos de OS'),
   },
 
   // Telas de implantação
@@ -196,6 +224,16 @@ export const screenConfigs = [
     name: 'DashContratos',
     component: Screens.DashContratos,
     options: createHeaderOptions('Dashboard de Contratos'),
+  },
+  {
+    name: 'DashPedidosVenda',
+    component: Screens.DashPedidosVenda,
+    options: createHeaderOptions('Pedidos de Venda'),
+  },
+  {
+    name: 'DashPedidosVendaGrafico',
+    component: Screens.DashPedidosVendaGrafico,
+    options: createHeaderOptions('Gráficos de Vendas'),
   },
   {
     name: 'Dashvendas',

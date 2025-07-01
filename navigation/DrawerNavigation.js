@@ -29,6 +29,10 @@ import ContasPagarList from '../screens/ContasPagarList'
 import ContasReceberList from '../screens/ContasReceberList'
 import AuditoriaScreen from '../screens/AuditoriaScreen'
 
+// Importar componentes de comissão
+import ComissaoList from '../componentsComissao/ComissaoList'
+import DashComissao from '../componentsComissao/DashComissao'
+
 const Drawer = createDrawerNavigator()
 
 export default function DrawerNavigator() {
@@ -330,6 +334,28 @@ export default function DrawerNavigator() {
           <Drawer.Screen
             name="Auditoria"
             component={AuditoriaScreen}
+            options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+        </>
+      )}
+
+      {/* Comissões */}
+      {hasModulo('comissoes') && (
+        <>
+          <Drawer.Screen
+            name="ComissaoList"
+            component={ComissaoList}
+            options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+          <Drawer.Screen
+            name="DashComissao"
+            component={DashComissao}
             options={{
               drawerLabel: () => null,
               drawerItemStyle: { height: 0 },

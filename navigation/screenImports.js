@@ -39,12 +39,20 @@ export { default as CaixaGeralScreen } from '../screens/CaixaGeral'
 export { default as ContratosForm } from '../screens/ContratosForm'
 export { default as ContratosList } from '../screens/Contratos'
 
+// Telas de comissão
+export { default as ComissaoForm } from '../componentsComissao/ComissaoForm'
+export { default as ComissaoList } from '../componentsComissao/ComissaoList'
+export { default as DashComissao } from '../componentsComissao/DashComissao'
+
 // Telas de ordem de serviço
 export { default as PainelAcompanhamento } from '../screens/PainelOs'
 export { default as OrdemDetalhe } from '../screens/OrdemDetalhe'
 export { default as OSCreateScreen } from '../componentsOs/OsCriacao'
 export { default as OsDetalhe } from '../screens/OSDetalhe'
 export { default as CriarOrdemServico } from '../componentsOrdemServico/OrdemCriacao'
+export { default as OrdemServicoGeral } from '../dashboards/DashOs'
+export { default as DashOsGrafico } from '../dashboards/DasOsGrafico'
+export { default as DashOs } from '../dashboards/DashOs'
 
 // Telas de implantação
 export { default as ImplantacaoForm } from '../screens/ImplantacaoForm'
@@ -57,6 +65,8 @@ export { default as DashBalanceteCC } from '../dashboardFinanceiro/DashBalancete
 // Dashboards de vendas
 export { default as DashExtratoCaixa } from '../dashsVendas/DashExtratoCaixa'
 export { default as DashContratos } from '../dashsVendas/DashContratos'
+export { default as DashPedidosVenda } from '../dashsVendas/DashPedidosVenda'
+export { default as DashPedidosVendaGrafico } from '../dashsVendas/DashPedidosVendaGrafico'
 export { default as Dashvendas } from '../screens/Dashvendas'
 
 // Painéis

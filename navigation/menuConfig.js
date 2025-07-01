@@ -77,6 +77,12 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('financeiro'),
         },
         {
+          name: 'Comissões',
+          route: 'ComissaoList',
+          icon: 'percent',
+          condition: hasModulo('comissoes'),
+        },
+        {
           name: 'Contas a Pagar',
           route: 'Contas a Pagar',
           icon: 'credit-card',
@@ -114,6 +120,12 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'clipboard',
           condition: hasModulo('ordemdeservico'),
         },
+        {
+          name: 'Relação de O.S',
+          route: 'Ordem de Serviço Geral',
+          icon: 'tool',
+          condition: hasModulo('os'),
+        },
       ]
         .filter((item) => item.condition)
         .sort((a, b) => a.name.localeCompare(b.name)),
@@ -143,6 +155,12 @@ export const getMenuConfig = (hasModulo) => {
       icon: 'bar-chart',
       items: [
         {
+          name: 'Dashboard de Comissões',
+          route: 'DashComissao',
+          icon: 'percent',
+          condition: hasModulo('comissoes'),
+        },
+        {
           name: 'Dashboard de Contratos',
           route: 'Dashboard de Contratos',
           icon: 'file-text',
@@ -171,6 +189,12 @@ export const getMenuConfig = (hasModulo) => {
           route: 'DashBalanceteCC',
           icon: 'trending-up',
           condition: hasModulo('financeiro'),
+        },
+        {
+          name: 'Pedidos de Venda',
+          route: 'DashPedidosVenda',
+          icon: 'shopping-cart',
+          condition: hasModulo('dash'),
         },
       ]
         .filter((item) => item.condition)
