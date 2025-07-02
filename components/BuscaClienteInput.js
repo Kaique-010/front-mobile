@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   TextInput,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   Text,
   View,
@@ -26,14 +26,16 @@ export default function BuscaClienteInput({
   const [slug, setSlug] = useState('')
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
-  const digitando = useRef(false)
 
   useEffect(() => {
     const carregarSlug = async () => {
       try {
-        const { slug } = await getStoredData()
-        if (slug) setSlug(slug)
-        else console.warn('Slug não encontrado')
+        const data = await getStoredData()
+        if (data && data.slug) {
+          setSlug(data.slug)
+        } else {
+          console.warn('Slug não encontrado')
+        }
       } catch (err) {
         console.error('Erro ao carregar slug:', err.message)
       }
@@ -42,65 +44,56 @@ export default function BuscaClienteInput({
   }, [])
 
   useEffect(() => {
-    if (isEdit) {
-      setTermo(value || '')
+    setTermo(value || '')
+    if (!value || value === '') {
       setClientes([])
-      digitando.current = false
-    } else {
-      if (!digitando.current && value) {
-        if (typeof value === 'string' && !value.includes(' - ')) {
-          setTermo(value)
-        }
-      } else if (!value) {
-        setTermo('')
-        setClientes([])
-      }
+      setShowResults(false)
     }
-  }, [value, isEdit])
+  }, [value])
 
   const buscar = useCallback(
     debounce(async (texto) => {
-      if (!slug || isEdit || texto.length < 3) {
+      if (!slug || !texto || texto.length < 3) {
         setClientes([])
         setLoading(false)
+        setShowResults(false)
         return
       }
 
-      digitando.current = true
       setLoading(true)
+      setShowResults(false)
 
       try {
         const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
           search: texto,
         })
 
-        let resultados = data.results
+        let resultados = data.results || []
 
         if (tipo === 'cliente') {
-          resultados = resultados.filter((e) => e.enti_tipo_enti === 'Cl')
+          resultados = resultados.filter((e) => e.enti_tipo_enti === 'FO')
         } else if (tipo === 'vendedor') {
-          resultados = resultados.filter((e) => e.enti_tipo_enti === 'Ve')
+          resultados = resultados.filter((e) => e.enti_tipo_enti === 'VE')
         }
 
         setClientes(resultados)
-        setShowResults(true)
-
-        if (resultados.length === 1 && resultados[0].enti_clie === texto) {
-          selecionar(resultados[0])
+        if (resultados.length > 0) {
+          setShowResults(true)
         }
       } catch (err) {
         console.error('Erro ao buscar entidades:', err.message)
+        setClientes([])
+        setShowResults(false)
       } finally {
         setLoading(false)
       }
-    }, 400),
-    [slug, isEdit, tipo]
+    }, 500),
+    [slug, tipo]
   )
 
   const selecionar = (item) => {
     const texto = `${item.enti_clie} - ${item.enti_nome}`
     setTermo(texto)
-    digitando.current = false
     onSelect(item)
     setClientes([])
     setShowResults(false)
@@ -110,8 +103,8 @@ export default function BuscaClienteInput({
   const limpar = () => {
     setTermo('')
     setClientes([])
-    digitando.current = false
     setShowResults(false)
+    onSelect(null) // Notifica o componente pai que a seleção foi limpa
   }
 
   const isSelecionado =
@@ -126,41 +119,49 @@ export default function BuscaClienteInput({
             isSelecionado ? styles.inputSelecionado : null,
           ]}
           value={termo}
-          editable={!isSelecionado}
           onChangeText={(text) => {
-            if (!isEdit) {
-              setTermo(text)
+            setTermo(text)
+            setClientes([])
+            setShowResults(false)
+            if (text && text.length >= 3) {
               buscar(text)
             }
           }}
           placeholder={placeholder}
           placeholderTextColor="#aaa"
-          onFocus={() => setShowResults(true)}
+          onFocus={() => {
+            if (clientes.length > 0) {
+              setShowResults(true)
+            } else if (termo && termo.length >= 3 && !termo.includes(' - ')) {
+              buscar(termo)
+            }
+          }}
         />
-        {loading && (
+        {loading ? (
           <ActivityIndicator
             size="small"
             color="#10a2a7"
             style={{ position: 'absolute', right: 10 }}
           />
-        )}
+        ) : isSelecionado ? (
+          <TouchableOpacity
+            onPress={limpar}
+            style={{ position: 'absolute', right: 10, padding: 5 }}>
+            <Ionicons name="close-circle" size={20} color="#999" />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
-      {isSelecionado && (
-        <TouchableOpacity onPress={limpar} style={{ marginVertical: 5 }}>
-          <Text style={{ color: 'red' }}>Limpar</Text>
-        </TouchableOpacity>
-      )}
+
 
       {showResults && clientes.length > 0 && (
-        <FlatList
-          data={clientes}
-          keyExtractor={(item) =>
-            `${item.enti_clie}-${item.enti_fili}-${item.enti_empr}`
-          }
+        <ScrollView
+          style={[styles.sugestaoLista, { maxHeight: 200 }]}
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
+          nestedScrollEnabled={true}>
+          {clientes.map((item) => (
             <TouchableOpacity
+              key={`${item.enti_clie}-${item.enti_fili}-${item.enti_empr}`}
               onPress={() => selecionar(item)}
               style={styles.sugestaoItem}>
               <Text style={styles.sugestaoTexto}>
@@ -168,9 +169,8 @@ export default function BuscaClienteInput({
                 {item.enti_cpf || item.enti_cnpj}
               </Text>
             </TouchableOpacity>
-          )}
-          style={styles.sugestaoLista}
-        />
+          ))}
+        </ScrollView>
       )}
     </View>
   )

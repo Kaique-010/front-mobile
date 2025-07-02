@@ -32,7 +32,7 @@ export default function ComissaoForm({ navigation, route }) {
 
   // Campos do formulário
   const [funcionario, setFuncionario] = useState(null)
-  const [cliente, setCliente] = useState(null) // Novo campo
+  const [cliente, setCliente] = useState(null) 
   const [categoria, setCategoria] = useState('1')
   const [valorTotal, setValorTotal] = useState('')
   const [impostos, setImpostos] = useState('')
@@ -147,7 +147,7 @@ export default function ComissaoForm({ navigation, route }) {
         comi_empr: parseInt(empresaId),
         comi_fili: parseInt(filialId),
         comi_func: funcionario.enti_clie,
-        comi_clie: cliente.enti_clie, // Novo campo
+        comi_clie: cliente.enti_clie,
         comi_cate: categoria,
         comi_valo_tota: parseFloat(valorTotal),
         comi_impo: parseFloat(impostos),

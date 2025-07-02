@@ -5,9 +5,9 @@ const { width } = Dimensions.get('window')
 export default StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#15293c',
   },
-  
+
   // Loading e Erro
   loadingContainer: {
     flex: 1,
@@ -18,13 +18,13 @@ export default StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#666',
+    color: '#faebd7',
   },
   erroContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#faebd7',
     padding: 20,
   },
   erroTexto: {
@@ -50,9 +50,7 @@ export default StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#0c1c2c',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -69,23 +67,23 @@ export default StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: '#faebd7',
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: '#f5f5f5',
     marginTop: 2,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#28a745',
+    backgroundColor: '#f0f8ff',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 4,
@@ -108,9 +106,17 @@ export default StyleSheet.create({
   // Filtros
   filtrosContainer: {
     backgroundColor: '#fff',
-    padding: 16,
+    padding: 25,
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
+    borderRadius: 12,
+    marginTop: 12,
+    borderLeftWidth: 4,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   filtrosData: {
     flexDirection: 'row',
@@ -282,23 +288,23 @@ export default StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#2c3e50',
+    color: '#faebd7',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0c1c2c',
     borderWidth: 1,
     borderColor: '#dee2e6',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#495057',
+    color: 'white',
   },
   readonlyInput: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#0c1c2c',
     borderWidth: 1,
     borderColor: '#dee2e6',
     borderRadius: 8,
@@ -309,7 +315,7 @@ export default StyleSheet.create({
     fontWeight: '600',
   },
   pickerContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#0c1c2c',
     borderWidth: 1,
     borderColor: '#dee2e6',
     borderRadius: 8,
@@ -317,6 +323,7 @@ export default StyleSheet.create({
   },
   picker: {
     height: 50,
+    color: 'white',
   },
   dateButton: {
     flexDirection: 'row',

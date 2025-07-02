@@ -116,9 +116,7 @@ export default function ComissaoList({ navigation }) {
     return dados.filter((item) => {
       const matchFuncionario =
         !buscaFuncionario ||
-        item.nome_funcionario
-          ?.toLowerCase()
-          .includes(buscaFuncionario.toLowerCase())
+        item.comi_func?.toLowerCase().includes(buscaFuncionario.toLowerCase())
       const matchCategoria = !categoria || item.comi_cate === categoria
 
       return matchFuncionario && matchCategoria
@@ -134,7 +132,9 @@ export default function ComissaoList({ navigation }) {
     <View style={styles.itemCard}>
       <View style={styles.itemHeader}>
         <View style={styles.itemInfo}>
-          <Text style={styles.itemFuncionario}>{item.nome_funcionario}</Text>
+          <Text style={styles.itemFuncionario}>
+            Funcionário: {item.comi_func}
+          </Text>
           <Text style={styles.itemCategoria}>
             {getCategoriaLabel(item.comi_cate)}
           </Text>
@@ -204,6 +204,12 @@ export default function ComissaoList({ navigation }) {
           <Text style={styles.itemLabel}>Data Entrega:</Text>
           <Text style={styles.itemValue}>
             {new Date(item.comi_data_entr).toLocaleDateString('pt-BR')}
+          </Text>
+        </View>
+        <View style={styles.itemRow}>
+          <Text style={styles.itemLabel}>Cliente:</Text>
+          <Text style={styles.itemValue}>
+            {item.comi_clie || 'Cliente não informado'}
           </Text>
         </View>
       </View>
