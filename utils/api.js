@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://192.168.0.39:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'http://192.168.20.84:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -81,7 +81,6 @@ const apiFetch = async (
         throw refreshError
       }
     }
-    console.error('❌ API ERROR:', error.response?.data || error.message)
     throw error
   }
 }
@@ -267,10 +266,9 @@ export const apiPostSemContexto = async (endpoint, data = {}) => {
 export async function fetchSlugMap() {
   try {
     const response = await axios.get(`${BASE_URL}/api/licencas/mapa/`)
-    console.log('[DEBUG] Mapa recebido:', response.data)
+
     return response.data
   } catch (error) {
-    console.error('[ERROR] ao buscar mapa de licenças:', error)
     throw error
   }
 }
@@ -287,7 +285,6 @@ export const request = async ({ method, endpoint, data = {}, params = {} }) => {
     const fullEndpoint = `/api/${slug}/${endpoint}`
     return await apiFetch(fullEndpoint, method, data, params)
   } catch (error) {
-    console.error('Erro na request:', error.response?.data || error.message)
     throw error.response?.data || { message: 'Erro inesperado' }
   }
 }

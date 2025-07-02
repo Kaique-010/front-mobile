@@ -77,8 +77,14 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('financeiro'),
         },
         {
+          name: 'Cobranças',
+          route: 'Lista de Cobranças a vencer',
+          icon: 'receipt',
+          condition: hasModulo('financeiro'),
+        },
+        {
           name: 'Comissões',
-          route: 'ComissaoList',
+          route: 'Lista de Comissões',
           icon: 'percent',
           condition: hasModulo('comissoes'),
         },

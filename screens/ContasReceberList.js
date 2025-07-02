@@ -134,6 +134,98 @@ export default function ContasPagarList({ navigation }) {
     }, [slug, searchCliente, searchTitulo, searchStatus])
   )
 
+  const buscarHistoricoBaixas = async (item) => {
+    try {
+      const endpoint = `contas_a_receber/titulos-receber/${item.titu_empr}/${item.titu_fili}/${item.titu_clie}/${item.titu_titu}/${item.titu_seri}/${item.titu_parc}/${item.titu_emis}/${item.titu_venc}/historico_baixas/`
+
+      const historico = await apiGetComContexto(endpoint)
+
+      if (historico && historico.length > 0) {
+        // Se há apenas uma baixa, excluir diretamente
+        if (historico.length === 1) {
+          excluirBaixa(item, historico[0].bare_sequ)
+        } else {
+          // Se há múltiplas baixas, mostrar opções
+          const opcoes = historico.map((baixa, index) => ({
+            text: `Baixa ${baixa.bare_sequ} - ${formatarMoeda(
+              baixa.bare_pago
+            )} (${new Date(baixa.bare_dpag).toLocaleDateString('pt-BR')})`,
+            onPress: () => excluirBaixa(item, baixa.bare_sequ),
+          }))
+
+          opcoes.push({
+            text: 'Cancelar',
+            style: 'cancel',
+          })
+
+          Alert.alert(
+            'Selecionar Baixa',
+            'Escolha qual baixa deseja excluir:',
+            opcoes
+          )
+        }
+      } else {
+        Alert.alert('Aviso', 'Nenhuma baixa encontrada para este título')
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar histórico:', error)
+      Alert.alert('Erro', 'Erro ao buscar histórico de baixas')
+    }
+  }
+
+  const excluirBaixa = async (item, baixaId) => {
+    try {
+      Alert.alert(
+        'Confirmar Exclusão',
+        `Tem certeza que deseja excluir a baixa ${baixaId}?\n\nEsta ação não pode ser desfeita e o título será reaberto.`,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const endpoint = `contas_a_receber/titulos-receber/${item.titu_empr}/${item.titu_fili}/${item.titu_clie}/${item.titu_titu}/${item.titu_seri}/${item.titu_parc}/${item.titu_emis}/${item.titu_venc}/excluir_baixa/?baixa_id=${baixaId}`
+
+                // Enviar dados no body
+                const dadosExclusao = {
+                  confirmar_exclusao: true,
+                  motivo_exclusao: 'Exclusão solicitada pelo usuário',
+                }
+
+                const response = await apiDeleteComContexto(
+                  endpoint,
+                  dadosExclusao
+                )
+
+                Alert.alert(
+                  'Sucesso',
+                  'Baixa excluída com sucesso! O título foi reaberto.',
+                  [{ text: 'OK', onPress: () => buscarContas() }]
+                )
+              } catch (error) {
+                console.error('❌ Erro ao excluir baixa:', error)
+                console.error('❌ Response data:', error.response?.data)
+                Alert.alert(
+                  'Erro',
+                  error.response?.data?.error ||
+                    error.response?.data?.confirmar_exclusao?.[0] ||
+                    'Erro ao excluir baixa'
+                )
+              }
+            },
+          },
+        ]
+      )
+    } catch (error) {
+      console.error('❌ Erro:', error)
+      Alert.alert('Erro', 'Erro inesperado')
+    }
+  }
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -173,16 +265,29 @@ export default function ContasPagarList({ navigation }) {
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.botao, styles.botaoEditar]}
-          onPress={() =>
-            navigation.navigate('BaixaTituloForm', {
-              titulo: item,
-              tipo: 'receber',
-            })
-          }>
-          <Text style={styles.botaoTexto}>💵 Receber</Text>
-        </TouchableOpacity>
+        {/* Botão Receber - só aparece se status for 'A' (Aberto) */}
+        {item.titu_aber === 'A' && (
+          <TouchableOpacity
+            style={[styles.botao, styles.botaoEditar]}
+            onPress={() =>
+              navigation.navigate('BaixaTituloForm', {
+                titulo: item,
+                tipo: 'receber',
+              })
+            }>
+            <Text style={styles.botaoTexto}>💵 Receber</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Botão Excluir Baixa - só aparece se status for 'T' ou 'P' */}
+        {(item.titu_aber === 'T' || item.titu_aber === 'P') && (
+          <TouchableOpacity
+            style={[styles.botao, { backgroundColor: '#ff6b35' }]}
+            onPress={() => buscarHistoricoBaixas(item)}>
+            <Text style={styles.botaoTexto}>🔄 Excluir Baixa</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={[styles.botao, styles.botaoEditar]}
           onPress={() =>

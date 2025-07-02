@@ -420,4 +420,165 @@ export default StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 20,
   },
+  rowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  halfWidth: {
+    width: '48%',
+  },
+  // ... existing code ...
+  itemValue: {
+    fontSize: 14,
+    color: '#2c3e50',
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  comissaoValue: {
+    color: '#27ae60',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Formulário
+  form: {
+    padding: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#faebd7',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#0c1c2c',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: 'white',
+  },
+  readonlyInput: {
+    backgroundColor: '#0c1c2c',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#495057',
+    fontWeight: '600',
+  },
+  pickerContainer: {
+    backgroundColor: '#0c1c2c',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+    color: 'white',
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  dateButtonText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#495057',
+  },
+  calculatedFields: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  calculatedTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  calculatedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  calculatedLabel: {
+    fontSize: 12,
+    color: '#7f8c8d',
+  },
+  calculatedValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#27ae60',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+  },
+  cancelButton: {
+    flex: 0.48,
+    backgroundColor: '#6c757d',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButton: {
+    flex: 0.48,
+    backgroundColor: '#28a745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  // Empty state
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#7f8c8d',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
 })

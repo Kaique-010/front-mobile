@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from './ComissaoStyles'
+import Toast from 'react-native-toast-message'
 
 export default function ComissaoList({ navigation }) {
   const [dados, setDados] = useState([])
@@ -104,7 +105,13 @@ export default function ComissaoList({ navigation }) {
               buscarComissoes()
               Alert.alert('Sucesso', 'Comissão excluída com sucesso!')
             } catch (error) {
-              Alert.alert('Erro', 'Erro ao excluir comissão')
+              Toast.show({
+                type: 'error',
+                text1: 'Erro ao excluir comissão',
+                text2:
+                  error.response?.data?.erro ||
+                  'Erro desconhecido ao excluir comissão.',
+              })
             }
           },
         },

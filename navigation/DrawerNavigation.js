@@ -33,6 +33,8 @@ import AuditoriaScreen from '../screens/AuditoriaScreen'
 import ComissaoList from '../componentsComissao/ComissaoList'
 import DashComissao from '../componentsComissao/DashComissao'
 
+import CobrancasList from '../screens/CobrancasList'
+
 const Drawer = createDrawerNavigator()
 
 export default function DrawerNavigator() {
@@ -310,6 +312,14 @@ export default function DrawerNavigator() {
                   drawerItemStyle: { height: 0 },
                 }}
               />
+              <Drawer.Screen
+                name="Lista de Cobranças a vencer"
+                component={CobrancasList}
+                options={{
+                  drawerLabel: () => null,
+                  drawerItemStyle: { height: 0 },
+                }}
+              />
             </>
           )}
 
@@ -349,7 +359,10 @@ export default function DrawerNavigator() {
             name="ComissaoList"
             component={ComissaoList}
             options={{
-              drawerLabel: () => null,
+              drawerLabel: 'Lista de comissões',
+              drawerIcon: ({ color, size }) => (
+                <Icon name="list" color={color} size={size} />
+              ),
               drawerItemStyle: { height: 0 },
             }}
           />

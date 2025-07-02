@@ -215,28 +215,42 @@ export default function ComissaoForm({ navigation, route }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.form}>
-          {/* Funcionário */}
+          {/* Data de Entrega - Primeiro campo */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Funcionário *</Text>
-            <BuscaClienteInput
-              placeholder="Selecione o funcionário"
-              onSelect={setFuncionario}
-              value={funcionario ? `${funcionario.enti_clie} - ${funcionario.enti_nome}` : ''}
-            />
+            <Text style={styles.label}>Data de Entrega *</Text>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDatePicker(true)}>
+              <Text style={styles.dateButtonText}>
+                {dataEntrega.toLocaleDateString('pt-BR')}
+              </Text>
+              <MaterialIcons name="date-range" size={20} color="#666" />
+            </TouchableOpacity>
           </View>
 
-          {/* Cliente */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Cliente *</Text>
-            <BuscaClienteInput
-              placeholder="Selecione o cliente"
-              onSelect={setCliente}
-              value={cliente ? `${cliente.enti_clie} - ${cliente.enti_nome}` : ''}
-              tipo="cliente"
-            />
+          {/* Funcionário e Cliente na mesma linha */}
+          <View style={styles.rowContainer}>
+            <View style={[styles.inputGroup, styles.halfWidth]}>
+              <Text style={styles.label}>Funcionário *</Text>
+              <BuscaClienteInput
+                placeholder="Selecione o funcionário"
+                onSelect={setFuncionario}
+                value={funcionario ? `${funcionario.enti_clie} - ${funcionario.enti_nome}` : ''}
+              />
+            </View>
+
+            <View style={[styles.inputGroup, styles.halfWidth]}>
+              <Text style={styles.label}>Cliente *</Text>
+              <BuscaClienteInput
+                placeholder="Selecione o cliente"
+                onSelect={setCliente}
+                value={cliente ? `${cliente.enti_clie} - ${cliente.enti_nome}` : ''}
+                tipo="cliente"
+              />
+            </View>
           </View>
 
-          {/* Categoria */}
+          {/* Categoria - linha inteira */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Categoria *</Text>
             <View style={styles.pickerContainer}>
@@ -255,28 +269,29 @@ export default function ComissaoForm({ navigation, route }) {
             </View>
           </View>
 
-          {/* Valor Total */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Valor Total *</Text>
-            <TextInput
-              style={styles.input}
-              value={valorTotal}
-              onChangeText={setValorTotal}
-              placeholder="0,00"
-              keyboardType="numeric"
-            />
-          </View>
+          {/* Valor Total e Impostos na mesma linha */}
+          <View style={styles.rowContainer}>
+            <View style={[styles.inputGroup, styles.halfWidth]}>
+              <Text style={styles.label}>Valor Total *</Text>
+              <TextInput
+                style={styles.input}
+                value={valorTotal}
+                onChangeText={setValorTotal}
+                placeholder="0,00"
+                keyboardType="numeric"
+              />
+            </View>
 
-          {/* Impostos */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Impostos *</Text>
-            <TextInput
-              style={styles.input}
-              value={impostos}
-              onChangeText={setImpostos}
-              placeholder="0,00"
-              keyboardType="numeric"
-            />
+            <View style={[styles.inputGroup, styles.halfWidth]}>
+              <Text style={styles.label}>Impostos *</Text>
+              <TextInput
+                style={styles.input}
+                value={impostos}
+                onChangeText={setImpostos}
+                placeholder="0,00"
+                keyboardType="numeric"
+              />
+            </View>
           </View>
 
           {/* Campos calculados (readonly) */}
@@ -299,25 +314,7 @@ export default function ComissaoForm({ navigation, route }) {
             </View>
           </View>
 
-          {/* Parcelas */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Parcelas</Text>
-            <TextInput
-              style={styles.input}
-              value={parcelas}
-              onChangeText={setParcelas}
-              placeholder="1"
-              keyboardType="numeric"
-            />
-          </View>
-
-          {/* Comissão por Parcela */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Comissão por Parcela</Text>
-            <Text style={styles.readonlyInput}>R$ {comissaoParcela}</Text>
-          </View>
-
-          {/* Forma de Pagamento */}
+          {/* Forma de Pagamento - linha inteira */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Forma de Pagamento *</Text>
             <View style={styles.pickerContainer}>
@@ -333,17 +330,23 @@ export default function ComissaoForm({ navigation, route }) {
             </View>
           </View>
 
-          {/* Data de Entrega */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Data de Entrega *</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.dateButtonText}>
-                {dataEntrega.toLocaleDateString('pt-BR')}
-              </Text>
-              <MaterialIcons name="date-range" size={20} color="#666" />
-            </TouchableOpacity>
+          {/* Parcelas e Comissão por Parcela na mesma linha */}
+          <View style={styles.rowContainer}>
+            <View style={[styles.inputGroup, styles.halfWidth]}>
+              <Text style={styles.label}>Parcelas</Text>
+              <TextInput
+                style={styles.input}
+                value={parcelas}
+                onChangeText={setParcelas}
+                placeholder="1" 
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={[styles.inputGroup, styles.halfWidth]}>
+              <Text style={styles.label}>Comissão por Parcela</Text>
+              <Text style={styles.readonlyInput}>R$ {comissaoParcela}</Text>
+            </View>
           </View>
 
           {showDatePicker && (

@@ -127,6 +127,11 @@ export const screenConfigs = [
     component: Screens.CaixaGeralScreen,
     options: createHeaderOptions('Caixa Diário'),
   },
+  {
+    name: 'CobrancasList',
+    component: Screens.CobrancasList,
+    options: createHeaderOptions('Cobranças a Receber'),
+  },
 
   // Telas de contratos
   {
@@ -142,7 +147,7 @@ export const screenConfigs = [
     options: createHeaderOptions('Comissão'),
   },
   {
-    name: 'ComissaoList',
+    name: 'Lista de Comissões',
     component: Screens.ComissaoList,
     options: createHeaderOptions('Lista de Comissões'),
   },
@@ -178,7 +183,6 @@ export const screenConfigs = [
     component: Screens.CriarOrdemServico,
     options: createHeaderOptions('Abertura O.S'),
   },
-
   {
     name: 'Ordem de Serviço Geral',
     component: Screens.OrdemServicoGeral,

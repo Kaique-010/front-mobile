@@ -34,6 +34,7 @@ export { default as ContaReceberForm } from '../componentsContaReceber/ContaRece
 export { default as BaixaTituloForm } from '../screens/BaixaTituloForm'
 export { default as MoviCaixaScreen } from '../screens/MoviCaixa'
 export { default as CaixaGeralScreen } from '../screens/CaixaGeral'
+export { default as CobrancasList } from '../screens/CobrancasList'
 
 // Telas de contratos
 export { default as ContratosForm } from '../screens/ContratosForm'
