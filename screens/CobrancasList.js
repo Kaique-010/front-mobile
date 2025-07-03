@@ -29,8 +29,31 @@ export default function CobrancasList() {
   const [selectedCobranca, setSelectedCobranca] = useState(null)
   const [searchText, setSearchText] = useState('')
   const [loadingWhats, setLoadingWhats] = useState(false)
+  const [selecionadas, setSelecionadas] = useState([])
 
   const { enviarEmail, loading: loadingEmail } = useEnviarEmail()
+
+  const toggleSelecionada = (item) => {
+    const chave = item.id || item.numero_titulo
+    setSelecionadas((prev) => {
+      if (prev.includes(chave)) {
+        return prev.filter((i) => i !== chave)
+      } else {
+        return [...prev, chave]
+      }
+    })
+  }
+
+  const onDateChange = (event, selectedDate) => {
+    if (selectedDate) {
+      if (showDatePicker.type === 'ini') {
+        setDataIni(selectedDate)
+      } else {
+        setDataFim(selectedDate)
+      }
+    }
+    setShowDatePicker({ show: false, type: '' }) // sempre fecha após selecionar
+  }
 
   const buscarCobrancas = async () => {
     setLoading(true)
@@ -94,6 +117,7 @@ export default function CobrancasList() {
     setModalVisible(true)
   }
 
+  //Função de envio de whatsapp unitario
   const enviarCobrancaWhatsApp = async () => {
     try {
       setLoadingWhats(true)
@@ -165,94 +189,102 @@ export default function CobrancasList() {
     }
   }
 
-  const enviarCobrancaEmail = async () => {
-    Alert.prompt(
-      'Email do Cliente',
-      'Digite o email para envio da cobrança:',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Enviar',
-          onPress: async (emailDigitado) => {
-            if (!emailDigitado) {
-              Alert.alert('Erro', 'Email é obrigatório')
-              return
-            }
-
-            // Validar formato do email
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            if (!emailRegex.test(emailDigitado)) {
-              Alert.alert('Erro', 'Email inválido')
-              return
-            }
-
-            try {
-              const dadosEmail = {
-                assunto: `Cobrança - Título ${selectedCobranca.numero_titulo}`,
-                corpo: `
-    Caro(a) ${selectedCobranca.cliente_nome},
-  
-    Segue em anexo o boleto para pagamento:
-  
-    Título: ${selectedCobranca.numero_titulo}
-    Parcela: ${selectedCobranca.parcela}
-    Vencimento: ${formatarData(selectedCobranca.vencimento)}
-    Valor: ${formatarValor(selectedCobranca.valor)}
-  
-    ${
-      selectedCobranca.linha_digitavel
-        ? `Linha Digitável: ${selectedCobranca.linha_digitavel}`
-        : ''
-    }
-    ${
-      selectedCobranca.url_boleto
-        ? `Link do Boleto: ${selectedCobranca.url_boleto}`
-        : ''
-    }
-  
-    Atenciosamente,
-    Equipe Financeira
-                  `,
-                anexos: selectedCobranca.url_boleto
-                  ? [selectedCobranca.url_boleto]
-                  : [],
-              }
-
-              const sucesso = await enviarEmail(emailDigitado, dadosEmail)
-              if (sucesso) {
-                setModalVisible(false)
-                Alert.alert('Sucesso', 'Email enviado com sucesso!')
-              }
-            } catch (error) {
-              console.error('Erro ao enviar email:', error)
-              Alert.alert('Erro', 'Falha ao enviar email')
-            }
-          }, // Adicionando ; para fechar a função
-        },
-        { text: 'Cancelar', style: 'cancel' },
-      ],
-      'plain-text'
+  //Enviar vários títulos pelo whatsapp
+  const enviarMultiplosWhatsapps = async () => {
+    const cobrancasSelecionadas = cobrancas.filter((c) =>
+      selecionadas.includes(c.id || c.numero_titulo)
     )
+
+    for (let cobranca of cobrancasSelecionadas) {
+      const numeroRaw =
+        cobranca.cliente_celular || cobranca.cliente_telefone || ''
+      const numeroLimpo = numeroRaw.replace(/\D/g, '')
+
+      if (!numeroLimpo || numeroLimpo.length < 10) continue
+
+      const numeroZap = `55${numeroLimpo}`
+      const mensagem = `*Cobrança - ${cobranca.cliente_nome}*\n\nTítulo: ${
+        cobranca.numero_titulo
+      }\nParcela: ${cobranca.parcela}\nVencimento: ${formatarData(
+        cobranca.vencimento
+      )}\nValor: ${formatarValor(cobranca.valor)}\n\n${
+        cobranca.linha_digitavel
+          ? `Linha Digitável: ${cobranca.linha_digitavel}`
+          : ''
+      }\n${cobranca.url_boleto ? `Link: ${cobranca.url_boleto}` : ''}`
+
+      const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
+        mensagem
+      )}`
+      const canOpen = await Linking.canOpenURL(url)
+      if (canOpen) await Linking.openURL(url)
+    }
+
+    Toast.show({
+      type: 'success',
+      text1: 'WhatsApp',
+      text2: 'Envios abertos com sucesso!',
+    })
+
+    setSelecionadas([])
   }
 
-  const onDateChange = (event, selectedDate) => {
-    setShowDatePicker({ show: false, type: '' })
-    if (selectedDate) {
-      if (showDatePicker.type === 'ini') {
-        setDataIni(selectedDate)
-      } else {
-        setDataFim(selectedDate)
+  const enviarMultiplosEmails = async () => {
+    const cobrancasSelecionadas = cobrancas.filter((c) =>
+      selecionadas.includes(c.id || c.numero_titulo)
+    )
+
+    let enviados = 0
+
+    for (let cobranca of cobrancasSelecionadas) {
+      const email = cobranca.cliente_email
+      if (!email) continue
+
+      const dadosEmail = {
+        assunto: `Cobrança - Título ${cobranca.numero_titulo}`,
+        corpo: `
+Prezado(a) ${cobranca.cliente_nome},
+
+Segue cobrança referente ao título ${cobranca.numero_titulo}, parcela ${
+          cobranca.parcela
+        }, vencimento ${formatarData(
+          cobranca.vencimento
+        )}, valor ${formatarValor(cobranca.valor)}.
+
+${
+  cobranca.linha_digitavel ? `Linha Digitável: ${cobranca.linha_digitavel}` : ''
+}
+${cobranca.url_boleto ? `Link: ${cobranca.url_boleto}` : ''}
+
+Att,
+Equipe Financeira
+      `,
+        anexos: cobranca.url_boleto ? [cobranca.url_boleto] : [],
+      }
+
+      try {
+        await enviarEmail(email, dadosEmail)
+        enviados++
+      } catch (err) {
+        console.error('Erro ao enviar:', cobranca.numero_titulo, err.message)
       }
     }
+
+    Alert.alert('Envio Concluído', `${enviados} e-mails enviados com sucesso!`)
+    setSelecionadas([])
   }
 
   const renderCobranca = ({ item }) => (
     <TouchableOpacity
-      style={styles.itemContainer}
-      onPress={() => abrirModalCobranca(item)}>
+      style={[
+        styles.itemContainer,
+        selecionadas.includes(item.id || item.numero_titulo) && {
+          borderColor: '#4caf50',
+          borderWidth: 2,
+        },
+      ]}
+      onPress={() => toggleSelecionada(item)}
+      onLongPress={() => abrirModalCobranca(item)}>
       <View style={styles.itemHeader}>
         <Text style={styles.clienteNome}>{item.cliente_nome}</Text>
         <Text style={styles.valor}>{formatarValor(item.valor)}</Text>
@@ -406,7 +438,50 @@ export default function CobrancasList() {
 
                   <TouchableOpacity
                     style={[styles.actionButton, styles.emailButton]}
-                    onPress={enviarCobrancaEmail}
+                    onPress={() => {
+                      if (selectedCobranca?.cliente_email) {
+                        enviarEmail(selectedCobranca.cliente_email, {
+                          assunto: `Cobrança - Título ${selectedCobranca.numero_titulo}`,
+                          corpo: `
+Caro(a) ${selectedCobranca.cliente_nome},
+
+Segue em anexo o boleto para pagamento:
+
+Título: ${selectedCobranca.numero_titulo}
+Parcela: ${selectedCobranca.parcela}
+Vencimento: ${formatarData(selectedCobranca.vencimento)}
+Valor: ${formatarValor(selectedCobranca.valor)}
+
+${
+  selectedCobranca.linha_digitavel
+    ? `Linha Digitável: ${selectedCobranca.linha_digitavel}`
+    : ''
+}
+${
+  selectedCobranca.url_boleto
+    ? `Link do Boleto: ${selectedCobranca.url_boleto}`
+    : ''
+}
+
+Atenciosamente,
+Equipe Financeira
+      `,
+                          anexos: selectedCobranca.url_boleto
+                            ? [selectedCobranca.url_boleto]
+                            : [],
+                        })
+                          .then(() => {
+                            Alert.alert('Sucesso', 'Email enviado com sucesso!')
+                            setModalVisible(false)
+                          })
+                          .catch((err) => {
+                            Alert.alert('Erro', 'Falha ao enviar email')
+                            console.error(err)
+                          })
+                      } else {
+                        Alert.alert('Erro', 'Cliente sem email cadastrado')
+                      }
+                    }}
                     disabled={loadingEmail}>
                     <Text style={styles.actionButtonText}>
                       {loadingEmail ? 'Enviando...' : 'Enviar Email'}
@@ -424,6 +499,38 @@ export default function CobrancasList() {
           </View>
         </View>
       </Modal>
+      {selecionadas.length > 0 && (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-around',
+            marginVertical: 10,
+          }}>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.whatsappButton,
+              { flex: 1, marginRight: 5 },
+            ]}
+            onPress={enviarMultiplosWhatsapps}>
+            <Text style={styles.actionButtonText}>
+              WhatsApp ({selecionadas.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.emailButton,
+              { flex: 1, marginLeft: 5 },
+            ]}
+            onPress={enviarMultiplosEmails}>
+            <Text style={styles.actionButtonText}>
+              E-mail ({selecionadas.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* DatePicker */}
       {showDatePicker.show && (

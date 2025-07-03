@@ -63,6 +63,7 @@ export { default as ImplantacaoForm } from '../screens/ImplantacaoForm'
 export { default as DashboardFinanceiroGrafico } from '../dashboardFinanceiro/DashboardFinanceiroGrafico'
 export { default as DashRealizado } from '../dashboardFinanceiro/DashRealizado'
 export { default as DashBalanceteCC } from '../dashboardFinanceiro/DashBalanceteCC'
+export { default as DashDRE } from '../componetsDRE/DashDRE'
 
 // Dashboards de vendas
 export { default as DashExtratoCaixa } from '../dashsVendas/DashExtratoCaixa'

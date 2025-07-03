@@ -34,6 +34,7 @@ import ComissaoList from '../componentsComissao/ComissaoList'
 import DashComissao from '../componentsComissao/DashComissao'
 
 import CobrancasList from '../screens/CobrancasList'
+import DashDRE from '../componetsDRE/DashDRE'
 
 const Drawer = createDrawerNavigator()
 
@@ -127,6 +128,14 @@ export default function DrawerNavigator() {
               <Drawer.Screen
                 name="DashRealizado"
                 component={DashRealizado}
+                options={{
+                  drawerLabel: () => null,
+                  drawerItemStyle: { height: 0 },
+                }}
+              />
+              <Drawer.Screen
+                name="DashDRE"
+                component={DashDRE}
                 options={{
                   drawerLabel: () => null,
                   drawerItemStyle: { height: 0 },

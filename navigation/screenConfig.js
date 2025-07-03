@@ -210,17 +210,22 @@ export const screenConfigs = [
   {
     name: 'DashboardFinanceiroGrafico',
     component: Screens.DashboardFinanceiroGrafico,
-    options: createHeaderOptions('Grafico Financeiro'),
+    options: createHeaderOptions('Gráficos Financeiros'),
   },
   {
-    name: 'Dashboard Financeiro Realizado',
+    name: 'DashRealizado',
     component: Screens.DashRealizado,
-    options: createHeaderOptions('Realizado Dash'),
+    options: createHeaderOptions('Dashboard Realizado'),
   },
   {
     name: 'DashBalanceteCC',
     component: Screens.DashBalanceteCC,
     options: createHeaderOptions('Balancete por Centro de Custos'),
+  },
+  {
+    name: 'DashDRE',
+    component: Screens.DashDRE,
+    options: createHeaderOptions('DRE Gerencial'),
   },
 
   // Dashboards de vendas

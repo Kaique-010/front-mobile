@@ -101,6 +101,12 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('financeiro'),
         },
         {
+          name: 'DRE Gerencial',
+          route: 'DashDRE',
+          icon: 'trending-up',
+          condition: hasModulo('financeiro'),
+        },
+        {
           name: 'Extrato de Caixa',
           route: 'Extrato de Caixa',
           icon: 'file-text',
