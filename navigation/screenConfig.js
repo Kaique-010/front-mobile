@@ -32,6 +32,11 @@ export const screenConfigs = [
     component: Screens.AuditoriaScreen,
     options: createHeaderOptions('Logs do Sistema'),
   },
+  {
+    name: 'AlterarSenha',
+    component: Screens.AlterarSenhaScreen,
+    options: createHeaderOptions('Alterar Senha'),
+  },
 
   // Telas de produtos
   {

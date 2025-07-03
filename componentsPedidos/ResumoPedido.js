@@ -1,4 +1,3 @@
-// ResumoPedido.js
 import React, { useState, useEffect } from 'react'
 import {
   View,
@@ -42,13 +41,12 @@ export default function ResumoPedido({ total, pedido }) {
   const enviarZap = async () => {
     try {
       if (!pedido.pedi_forn) {
-        Alert.alert('Erro', 'Cliente tem celular definido ?.')
+        Alert.alert('Erro', 'Cliente tem celular definido?.')
         return
       }
       const entidade = await apiGetComContexto(
         `entidades/entidades/${pedido.pedi_forn}/`
       )
-      console.log('📦 Dados da entidade:', entidade)
       const numeroPedido = pedido.pedi_nume
       const numeroRaw = entidade.enti_celu || entidade.enti_fone || ''
       const numeroLimpo = numeroRaw.replace(/\D/g, '')
@@ -98,15 +96,12 @@ export default function ResumoPedido({ total, pedido }) {
 
     try {
       let data
-
       if (pedido.pedi_nume) {
-        // Pedido já existe, usa PUT
         data = await apiPutComContexto(
           `pedidos/pedidos/${pedido.pedi_nume}/`,
           pedido
         )
       } else {
-        // Novo pedido
         data = await apiPostComContexto(`pedidos/pedidos/`, pedido)
       }
 
@@ -133,34 +128,35 @@ export default function ResumoPedido({ total, pedido }) {
       <View style={styles.botoesContainer}>
         <TouchableOpacity
           style={[
-            styles.botao1,
+            styles.botao,
+            styles.botaoSalvar,
             (!pedido.pedi_empr || !pedido.pedi_fili) && { opacity: 0.5 },
           ]}
           onPress={salvar}
           disabled={!pedido.pedi_empr || !pedido.pedi_fili}>
-          <Text style={styles.textobotao}>Salvar Pedido</Text>
+          <Text style={styles.textobotao}>Salvar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.botao2} onPress={enviarZap}>
+        <TouchableOpacity
+          style={[styles.botao, styles.botaoZap]}
+          onPress={enviarZap}>
           <Text style={styles.textobotao}>
+            <MaterialCommunityIcons name="whatsapp" size={16} color="#fff" />{' '}
             Enviar
-            <MaterialCommunityIcons name="whatsapp" size={18} color="#fff" />
           </Text>
         </TouchableOpacity>
-      </View>
 
-      <TouchableOpacity 
-        style={[
-          styles.botaoRecebimento,
-          !pedido.pedi_nume && { opacity: 0.5 }
-        ]}
-        onPress={() => setModalRecebimentoVisivel(true)}
-        disabled={!pedido.pedi_nume}
-      >
-        <Text style={styles.textobotao}>
-          💳 Processar Recebimento
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.botao,
+            styles.botaoReceber,
+            !pedido.pedi_nume && { opacity: 0.5 },
+          ]}
+          onPress={() => setModalRecebimentoVisivel(true)}
+          disabled={!pedido.pedi_nume}>
+          <Text style={styles.textobotao}>💳 Receber</Text>
+        </TouchableOpacity>
+      </View>
 
       <RecebimentoModal
         visivel={modalRecebimentoVisivel}
@@ -188,34 +184,27 @@ const styles = StyleSheet.create({
   botoesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 35,
+    gap: 8,
+    marginBottom: 10,
   },
-  botao1: {
+  botao: {
     flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  botaoSalvar: {
     backgroundColor: '#109ea3',
-    marginRight: 8,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
   },
-  botao2: {
-    flex: 1,
+  botaoZap: {
     backgroundColor: '#25D366',
-    marginLeft: 8,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
+  },
+  botaoReceber: {
+    backgroundColor: '#6A4C93',
   },
   textobotao: {
     color: 'white',
     fontWeight: '700',
-    fontSize: 16,
-  },
-  botaoRecebimento: {
-    backgroundColor: '#6A4C93',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
+    fontSize: 14,
   },
 })

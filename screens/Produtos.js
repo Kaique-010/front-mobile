@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, memo } from 'react'
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native'
+import { FlashList } from '@shopify/flash-list'
 import { apiGetComContextoSemFili } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import Toast from 'react-native-toast-message'
@@ -15,12 +16,49 @@ import styles from '../styles/produtosStyles'
 
 const ITEM_HEIGHT = 140
 
+const ProdutoCard = memo(({ item, navigation }) => (
+  <View style={styles.card}>
+    <Text style={styles.nome}>{item.prod_nome}</Text>
+    <View style={styles.cardContent}>
+      {item.imagem_base64 ? (
+        <Image
+          source={{ uri: `data:image/png;base64,${item.imagem_base64}` }}
+          style={styles.imagemProduto}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.imagemProduto, styles.imagemPlaceholder]}>
+          <Text style={{ color: '#888' }}>Sem Imagem</Text>
+        </View>
+      )}
+      <View style={styles.infoContainer}>
+        <Text style={styles.codigo}>Código: {item.prod_codi}</Text>
+        <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
+        <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
+        <Text style={styles.saldo}>Saldo: {item.saldo_estoque}</Text>
+        <Text style={styles.saldo}>Preço: {item.prod_preco_vista}</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.botao}
+            onPress={() =>
+              navigation.navigate('ProdutoForm', { produto: item })
+            }>
+            <Text style={styles.botaoTexto}>✏️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.botao}>
+            <Text style={styles.botaoTexto}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  </View>
+))
+
 export default function Produtos({ navigation }) {
   const [produtos, setProdutos] = useState([])
   const [initialLoading, setInitialLoading] = useState(true)
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [slug, setSlug] = useState('')
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
@@ -38,29 +76,14 @@ export default function Produtos({ navigation }) {
     carregarSlug()
   }, [])
 
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (slug && searchTerm !== '') {
-        buscarProdutos(true)
-      }
-    }, 600)
-
-    return () => clearTimeout(delayDebounce)
-  }, [searchTerm, slug])
-
-  const handleSearchSubmit = () => {
-    buscarProdutos(true)
-  }
-
   const buscarProdutos = useCallback(
-    async (reset = false) => {
+    async ({ reset = false }) => {
       if (!slug || (isFetchingMore && !reset)) return
 
+      const atualOffset = reset ? 0 : offset
       if (reset) {
-        if (produtos.length === 0) {
-          setInitialLoading(true)
-        }
-        setIsSearching(true) // ativando o "carregando" da busca
+        setInitialLoading(produtos.length === 0)
+        setIsSearching(true)
         setOffset(0)
         setHasMore(true)
       } else {
@@ -68,9 +91,8 @@ export default function Produtos({ navigation }) {
       }
 
       try {
-        const atualOffset = reset ? 0 : offset
         const data = await apiGetComContextoSemFili(
-          `produtos/produtos/`,
+          'produtos/produtos/',
           {
             limit: 20,
             offset: atualOffset,
@@ -79,69 +101,41 @@ export default function Produtos({ navigation }) {
           'prod_'
         )
 
-        if (reset) {
-          setProdutos(data.results || [])
-        } else {
-          setProdutos((prev) => [...prev, ...(data.results || [])])
-        }
-
+        const novos = data.results || []
+        setProdutos(reset ? novos : [...produtos, ...novos])
         setOffset(atualOffset + 20)
         setHasMore(data.next !== null)
       } catch (error) {
         console.log('❌ Erro ao buscar produtos:', error.message)
+        Toast.show({ type: 'error', text1: 'Erro ao buscar produtos' })
       } finally {
-        if (reset) {
-          setInitialLoading(false)
-          setIsSearching(false) // desativa "carregando" da busca
-        }
+        setInitialLoading(false)
+        setIsSearching(false)
         setIsFetchingMore(false)
       }
     },
-    [slug, offset, searchTerm, isFetchingMore]
+    [slug, offset, searchTerm, isFetchingMore, produtos]
   )
+
   useEffect(() => {
     if (slug && produtos.length === 0 && !searchTerm) {
-      buscarProdutos(true)
+      buscarProdutos({ reset: true })
     }
   }, [slug])
 
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      if (slug && searchTerm !== '') {
+        buscarProdutos({ reset: true })
+      }
+    }, 600)
+    return () => clearTimeout(delay)
+  }, [searchTerm])
+
+  const handleSearchSubmit = () => buscarProdutos({ reset: true })
+
   const renderItem = useCallback(
-    ({ item }) => (
-      <View style={styles.card}>
-        <Text style={styles.nome}>{item.prod_nome}</Text>
-        <View style={styles.cardContent}>
-          {item.imagem_base64 ? (
-            <Image
-              source={{ uri: `data:image/png;base64,${item.imagem_base64}` }}
-              style={styles.imagemProduto}
-            />
-          ) : (
-            <View style={[styles.imagemProduto, styles.imagemPlaceholder]}>
-              <Text style={{ color: '#888' }}>Sem Imagem</Text>
-            </View>
-          )}
-          <View style={styles.infoContainer}>
-            <Text style={styles.codigo}>Código: {item.prod_codi}</Text>
-            <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
-            <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
-            <Text style={styles.saldo}>Saldo: {item.saldo_estoque}</Text>
-            <Text style={styles.saldo}>Preço:{item.prod_preco_vista}</Text>
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.botao}
-                onPress={() =>
-                  navigation.navigate('ProdutoForm', { produto: item })
-                }>
-                <Text style={styles.botaoTexto}>✏️</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.botao}>
-                <Text style={styles.botaoTexto}>🗑️</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </View>
-    ),
+    ({ item }) => <ProdutoCard item={item} navigation={navigation} />,
     [navigation]
   )
 
@@ -190,25 +184,21 @@ export default function Produtos({ navigation }) {
 
         <TouchableOpacity
           style={styles.searchButton}
-          onPress={() => buscarProdutos(true)}>
+          onPress={handleSearchSubmit}>
           <Text style={styles.searchButtonText}>
             {isSearching ? '🔍...' : 'Buscar'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <FlashList
         data={produtos}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={true}
+        estimatedItemSize={ITEM_HEIGHT}
         onEndReached={() => {
           if (hasMore && !isFetchingMore && !initialLoading) {
-            buscarProdutos()
+            buscarProdutos({ reset: false })
           }
         }}
         onEndReachedThreshold={0.5}

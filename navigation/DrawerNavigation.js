@@ -349,6 +349,15 @@ export default function DrawerNavigator() {
               drawerItemStyle: { height: 0 },
             }}
           />
+          
+          <Drawer.Screen
+            name="AlterarSenha"
+            component={require('../screens/AlterarSenhaScreen').default}
+            options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
         </>
       )}
 

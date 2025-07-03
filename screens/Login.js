@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   TextInput,
@@ -22,6 +22,22 @@ export default function Login({ navigation }) {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [modulos, setModulos] = useState([])
+
+  useEffect(() => {
+    const carregarDadosSalvos = async () => {
+      try {
+        const docuSalvo = await AsyncStorage.getItem('docu')
+        const usernameSalvo = await AsyncStorage.getItem('username')
+
+        if (docuSalvo) setDocu(docuSalvo)
+        if (usernameSalvo) setUsername(usernameSalvo)
+      } catch (e) {
+        console.error('Erro ao carregar dados salvos do AsyncStorage', e)
+      }
+    }
+
+    carregarDadosSalvos()
+  }, [])
 
   const [fontsLoaded] = useFonts({
     FaunaOne_400Regular,
@@ -57,6 +73,11 @@ export default function Login({ navigation }) {
 
     setIsLoading(true)
     try {
+      await AsyncStorage.multiSet([
+        ['docu', docu],
+        ['username', username],
+      ])
+
       const slugMap = await fetchSlugMap()
       const slug = slugMap[docu]
 

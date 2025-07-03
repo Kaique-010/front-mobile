@@ -6,6 +6,7 @@ export { default as SelectFilial } from '../screens/SelectFilial'
 // Telas principais
 export { default as AppNavigator } from './AppNavigator'
 export { default as AuditoriaScreen } from '../screens/AuditoriaScreen'
+export { default as AlterarSenhaScreen } from '../screens/AlterarSenhaScreen'
 
 // Telas de produtos
 export { default as ProdutoForm } from '../screens/ProdutoForm'

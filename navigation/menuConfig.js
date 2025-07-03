@@ -141,6 +141,12 @@ export const getMenuConfig = (hasModulo) => {
       icon: 'settings',
       items: [
         {
+          name: 'Alterar Senha',
+          route: 'AlterarSenha',
+          icon: 'lock',
+          condition: true,
+        },
+        {
           name: 'Implantações',
           route: 'Implantações',
           icon: 'settings',
