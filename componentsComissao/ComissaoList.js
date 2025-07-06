@@ -72,7 +72,7 @@ export default function ComissaoList({ navigation }) {
       }
 
       if (buscaFuncionario) {
-        params.nome_funcionario__icontains = buscaFuncionario
+        params.comi_func_nome__icontains = buscaFuncionario
       }
       if (categoria) {
         params.comi_cate = categoria
@@ -123,7 +123,9 @@ export default function ComissaoList({ navigation }) {
     return dados.filter((item) => {
       const matchFuncionario =
         !buscaFuncionario ||
-        item.comi_func?.toLowerCase().includes(buscaFuncionario.toLowerCase())
+        item.comi_func_nome
+          ?.toLowerCase()
+          .includes(buscaFuncionario.toLowerCase())
       const matchCategoria = !categoria || item.comi_cate === categoria
 
       return matchFuncionario && matchCategoria
@@ -140,7 +142,7 @@ export default function ComissaoList({ navigation }) {
       <View style={styles.itemHeader}>
         <View style={styles.itemInfo}>
           <Text style={styles.itemFuncionario}>
-            Funcionário: {item.comi_func}
+            Funcionário: {item.comi_func_nome || item.comi_func}
           </Text>
           <Text style={styles.itemCategoria}>
             {getCategoriaLabel(item.comi_cate)}
@@ -216,7 +218,7 @@ export default function ComissaoList({ navigation }) {
         <View style={styles.itemRow}>
           <Text style={styles.itemLabel}>Cliente:</Text>
           <Text style={styles.itemValue}>
-            {item.comi_clie || 'Cliente não informado'}
+            {item.comi_clie_nome || item.comi_clie || 'Cliente não informado'}
           </Text>
         </View>
       </View>
@@ -307,7 +309,7 @@ export default function ComissaoList({ navigation }) {
         data={dadosFiltrados}
         keyExtractor={(item) => item.comi_id.toString()}
         renderItem={renderItem}
-        style={styles.lista}
+        style={styles.listacomissao}
         contentContainerStyle={styles.listaContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

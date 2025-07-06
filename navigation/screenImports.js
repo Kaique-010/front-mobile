@@ -64,6 +64,7 @@ export { default as DashboardFinanceiroGrafico } from '../dashboardFinanceiro/Da
 export { default as DashRealizado } from '../dashboardFinanceiro/DashRealizado'
 export { default as DashBalanceteCC } from '../dashboardFinanceiro/DashBalanceteCC'
 export { default as DashDRE } from '../componetsDRE/DashDRE'
+export { default as DashDRECaixa } from '../componetsDRE/DashDRECaixa'
 
 // Dashboards de vendas
 export { default as DashExtratoCaixa } from '../dashsVendas/DashExtratoCaixa'
@@ -74,3 +75,8 @@ export { default as Dashvendas } from '../screens/Dashvendas'
 
 // Painéis
 export { default as PainelCooperado } from '../screens/PainelCooperado'
+
+// Telas gerenciais
+export { default as DespesasPrevistas } from '../componentsGerencial/DespesasPrevistas'
+export { default as LucroPrevisto } from '../componentsGerencial/LucroPrevisto'
+export { default as FluxoCaixaPrevisto } from '../componentsGerencial/FluxoCaixaPrevisto'

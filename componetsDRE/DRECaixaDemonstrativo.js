@@ -1,11 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 
-export default function DREDemonstrativo({ dados }) {
-  // Debug: verificar dados recebidos
-  console.log('🔍 DREDemonstrativo - dados recebidos:', dados)
-  console.log('🔍 data_ini:', dados?.data_ini, 'tipo:', typeof dados?.data_ini)
-  console.log('🔍 data_fim:', dados?.data_fim, 'tipo:', typeof dados?.data_fim)
+export default function DRECaixaDemonstrativo({ dados }) {
   const formatarMoeda = (valor) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -14,24 +10,17 @@ export default function DREDemonstrativo({ dados }) {
   }
 
   const formatarData = (data) => {
-    console.log('📅 formatarData chamada com:', data, 'tipo:', typeof data)
-    
     if (!data) {
-      console.log('📅 Data é null/undefined')
       return 'Data não informada'
     }
     
-    // Tenta diferentes formatos de data
     let date
     
-    // Se já é um objeto Date
     if (data instanceof Date) {
       date = data
     } else if (typeof data === 'string') {
-      // Remove possíveis caracteres extras e tenta parsear
       const cleanData = data.trim()
       
-      // Formato ISO (YYYY-MM-DD)
       if (cleanData.match(/^\d{4}-\d{2}-\d{2}$/)) {
         date = new Date(cleanData + 'T00:00:00')
       } else {
@@ -42,7 +31,6 @@ export default function DREDemonstrativo({ dados }) {
     }
     
     if (isNaN(date.getTime())) {
-      console.log('⚠️ Data inválida recebida:', data)
       return 'Data inválida'
     }
     
@@ -78,10 +66,15 @@ export default function DREDemonstrativo({ dados }) {
     </View>
   )
 
+  const calcularMargem = (valor, base) => {
+    if (!base || base === 0) return 0
+    return ((valor / base) * 100).toFixed(1)
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>
-        📋 Demonstração do Resultado do Exercício
+        💰 Demonstrativo de Fluxo de Caixa
       </Text>
 
       <View style={styles.periodo}>
@@ -92,88 +85,81 @@ export default function DREDemonstrativo({ dados }) {
       </View>
 
       <View style={styles.demonstrativo}>
-        {/* Receitas */}
+        {/* Entradas */}
         <LinhaItem
-          label="RECEITA OPERACIONAL BRUTA"
-          valor={dados.receita_bruta}
+          label="(+) TOTAL RECEBIDO"
+          valor={dados.total_recebido || 0}
           destaque={true}
-        />
-
-        <LinhaItem
-          label="(-) Deduções da Receita Bruta"
-          valor={dados.deducoes}
-          nivel={1}
-          negativo={true}
         />
 
         <View style={styles.separador} />
 
+        {/* Saídas */}
         <LinhaItem
-          label="RECEITA OPERACIONAL LÍQUIDA"
-          valor={dados.receita_liquida}
-          destaque={true}
-        />
-
-        {/* Custos */}
-        <LinhaItem
-          label="(-) Custo das Mercadorias Vendidas"
-          valor={dados.cmv}
-          nivel={1}
+          label="(-) TOTAL DESPESAS"
+          valor={dados.total_despesas || 0}
           negativo={true}
-        />
-
-        <View style={styles.separador} />
-
-        <LinhaItem
-          label="LUCRO BRUTO"
-          valor={dados.lucro_bruto}
           destaque={true}
-        />
-
-        {/* Despesas */}
-        <LinhaItem
-          label="(-) Despesas Operacionais"
-          valor={dados.total_despesas}
-          nivel={1}
-          negativo={true}
         />
 
         <View style={styles.separadorFinal} />
 
+        {/* Resultado */}
         <LinhaItem
-          label="RESULTADO OPERACIONAL"
-          valor={dados.resultado_operacional}
+          label="RESULTADO DO CAIXA"
+          valor={dados.resultado_caixa || 0}
           destaque={true}
         />
 
         {/* Indicadores */}
         <View style={styles.indicadores}>
           <Text style={styles.indicadorTitulo}>
-            📈 Indicadores de Performance
+            📊 Análise do Fluxo de Caixa
           </Text>
 
           <View style={styles.indicadorLinha}>
-            <Text style={styles.indicadorLabel}>Margem Bruta:</Text>
-            <Text style={styles.indicadorValor}>
-              {((dados.lucro_bruto / dados.receita_liquida) * 100).toFixed(1)}%
+            <Text style={styles.indicadorLabel}>Eficiência do Caixa:</Text>
+            <Text
+              style={[
+                styles.indicadorValor,
+                {
+                  color: dados.resultado_caixa >= 0 ? '#4CAF50' : '#F44336',
+                },
+              ]}>
+              {dados.total_despesas > 0
+                ? calcularMargem(dados.resultado_caixa, dados.total_recebido)
+                : '0.0'}%
             </Text>
           </View>
 
           <View style={styles.indicadorLinha}>
-            <Text style={styles.indicadorLabel}>Margem Operacional:</Text>
+            <Text style={styles.indicadorLabel}>Cobertura de Despesas:</Text>
             <Text
               style={[
                 styles.indicadorValor,
                 {
                   color:
-                    dados.resultado_operacional >= 0 ? '#4CAF50' : '#F44336',
+                    dados.total_recebido >= dados.total_despesas
+                      ? '#4CAF50'
+                      : '#F44336',
                 },
               ]}>
-              {(
-                (dados.resultado_operacional / dados.receita_liquida) *
-                100
-              ).toFixed(1)}
-              %
+              {dados.total_despesas > 0
+                ? calcularMargem(dados.total_recebido, dados.total_despesas)
+                : '0.0'}%
+            </Text>
+          </View>
+
+          <View style={styles.indicadorLinha}>
+            <Text style={styles.indicadorLabel}>Status do Caixa:</Text>
+            <Text
+              style={[
+                styles.indicadorValor,
+                {
+                  color: dados.resultado_caixa >= 0 ? '#4CAF50' : '#F44336',
+                },
+              ]}>
+              {dados.resultado_caixa >= 0 ? 'POSITIVO' : 'NEGATIVO'}
             </Text>
           </View>
         </View>
@@ -200,36 +186,40 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   periodoTexto: {
-    textAlign: 'center',
-    fontWeight: '600',
+    fontSize: 14,
     color: '#1976d2',
+    textAlign: 'center',
+    fontWeight: '500',
   },
   demonstrativo: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
-    elevation: 3,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
   },
   linha: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
     alignItems: 'center',
+    paddingVertical: 8,
   },
   linhaDestaque: {
     backgroundColor: '#f5f5f5',
     marginHorizontal: -16,
     paddingHorizontal: 16,
-    borderRadius: 6,
+    borderRadius: 4,
   },
   linhaLabel: {
-    flex: 1,
     fontSize: 14,
     color: '#333',
+    flex: 1,
   },
   labelDestaque: {
     fontWeight: 'bold',
@@ -237,16 +227,16 @@ const styles = StyleSheet.create({
   },
   linhaValor: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#333',
+    fontWeight: '500',
+    textAlign: 'right',
   },
   valorNegativo: {
     color: '#F44336',
   },
   valorDestaque: {
-    fontSize: 16,
     fontWeight: 'bold',
-    color: '#1976d2',
+    fontSize: 15,
   },
   separador: {
     height: 1,
@@ -260,28 +250,29 @@ const styles = StyleSheet.create({
   },
   indicadores: {
     marginTop: 16,
-    padding: 12,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
   },
   indicadorTitulo: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
     color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   indicadorLinha: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    alignItems: 'center',
+    paddingVertical: 6,
   },
   indicadorLabel: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#666',
   },
   indicadorValor: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
   },
 })

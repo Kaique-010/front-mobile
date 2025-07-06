@@ -227,6 +227,11 @@ export const screenConfigs = [
     component: Screens.DashDRE,
     options: createHeaderOptions('DRE Gerencial'),
   },
+  {
+    name: 'DashDRECaixa',
+    component: Screens.DashDRECaixa,
+    options: createHeaderOptions('DRE Caixa'),
+  },
 
   // Dashboards de vendas
   {
@@ -260,5 +265,22 @@ export const screenConfigs = [
     name: 'PainelCooperado',
     component: Screens.PainelCooperado,
     options: createHeaderOptions('Painel do Cooperado'),
+  },
+
+  // Telas gerenciais
+  {
+    name: 'DespesasPrevistas',
+    component: Screens.DespesasPrevistas,
+    options: createHeaderOptions('Análise de Despesas'),
+  },
+  {
+    name: 'LucroPrevisto',
+    component: Screens.LucroPrevisto,
+    options: createHeaderOptions('Previsão de Lucro'),
+  },
+  {
+    name: 'FluxoCaixaPrevisto',
+    component: Screens.FluxoCaixaPrevisto,
+    options: createHeaderOptions('Fluxo de Caixa Previsto'),
   },
 ]

@@ -112,7 +112,7 @@ export default function DashComissao({ navigation }) {
 
     dadosParaCalculo.forEach((item) => {
       const categoria = item.comi_cate
-      const funcionario = item.nome_funcionario || 'Não informado'
+      const funcionario = item.comi_func_nome || 'Não informado'
       const comissao = parseFloat(item.comi_comi_tota || 0)
 
       if (!totalPorCategoria[categoria]) {
@@ -144,7 +144,7 @@ export default function DashComissao({ navigation }) {
 
     if (buscaFuncionario) {
       filtrados = filtrados.filter((item) =>
-        item.nome_funcionario
+        item.comi_func_nome
           ?.toLowerCase()
           .includes(buscaFuncionario.toLowerCase())
       )
@@ -196,7 +196,7 @@ export default function DashComissao({ navigation }) {
       <View style={styles.itemCard}>
         <View style={styles.itemHeader}>
           <View style={styles.itemInfo}>
-            <Text style={styles.itemFuncionario}>{item.nome_funcionario}</Text>
+            <Text style={styles.itemFuncionario}>{item.comi_func_nome || item.comi_func}</Text>
             <View
               style={[
                 styles.categoriaBadge,
@@ -240,6 +240,11 @@ export default function DashComissao({ navigation }) {
                 currency: 'BRL',
               })}
             </Text>
+          </View>
+
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Cliente:</Text>
+            <Text style={styles.itemValue}>{item.comi_clie_nome || item.comi_clie || 'Não informado'}</Text>
           </View>
 
           <View style={styles.itemRow}>

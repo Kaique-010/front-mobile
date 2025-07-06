@@ -151,17 +151,20 @@ export default StyleSheet.create({
 
   // Resumo Cards
   resumoContainer: {
-    paddingVertical: 16,
-    paddingLeft: 16,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: 25,
   },
   resumoCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     marginRight: 12,
-    minWidth: 160,
+    minWidth: 120,
+    minHeight: 80,
+    maxHeight: 90,
     borderLeftWidth: 4,
-    elevation: 3,
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -171,22 +174,27 @@ export default StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 15,
   },
   resumoTitulo: {
-    fontSize: 12,
-    color: '#7f8c8d',
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontSize: 11,
+    color: '#666',
+    fontWeight: '500',
     flex: 1,
   },
   resumoValor: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
+    marginTop: 2,
   },
 
   // Lista
   lista: {
+    flex: 1,
+    marginTop: -400,
+  },
+
+  listacomissao: {
     flex: 1,
   },
   listaContent: {

@@ -26,7 +26,17 @@ const DashDRE = () => {
   const [filialId, setFilialId] = useState('')
 
   const formatDate = (date) => {
+    if (!date || isNaN(date.getTime())) {
+      return new Date().toISOString().split('T')[0]
+    }
     return date.toISOString().split('T')[0]
+  }
+
+  const formatDateDisplay = (date) => {
+    if (!date || isNaN(date.getTime())) {
+      return 'Data inválida'
+    }
+    return date.toLocaleDateString('pt-BR')
   }
 
   useEffect(() => {
@@ -99,8 +109,13 @@ const DashDRE = () => {
       // Verifica se a resposta tem o formato paginado
       if (response && response.results) {
         if (response.results.length > 0) {
-          setDreData(response.results[0])
-          console.log('📊 Dados processados:', response.results[0])
+          const dadosComPeriodo = {
+            ...response.results[0],
+            data_ini: formatDate(startDate),
+            data_fim: formatDate(endDate)
+          }
+          setDreData(dadosComPeriodo)
+          console.log('📊 Dados processados:', dadosComPeriodo)
         } else {
           console.log('📊 Results vazio:', response.results)
           setDreData(null)
@@ -111,8 +126,13 @@ const DashDRE = () => {
         !Array.isArray(response)
       ) {
         // Resposta direta (não paginada)
-        setDreData(response)
-        console.log('📊 Dados processados (direto):', response)
+        const dadosComPeriodo = {
+          ...response,
+          data_ini: formatDate(startDate),
+          data_fim: formatDate(endDate)
+        }
+        setDreData(dadosComPeriodo)
+        console.log('📊 Dados processados (direto):', dadosComPeriodo)
       } else {
         console.log('📊 Resposta inválida:', response)
         setDreData(null)
@@ -150,14 +170,14 @@ const DashDRE = () => {
 
   const onStartDateChange = (event, selectedDate) => {
     setShowStartPicker(false)
-    if (selectedDate) {
+    if (selectedDate && !isNaN(selectedDate.getTime())) {
       setStartDate(selectedDate)
     }
   }
 
   const onEndDateChange = (event, selectedDate) => {
     setShowEndPicker(false)
-    if (selectedDate) {
+    if (selectedDate && !isNaN(selectedDate.getTime())) {
       setEndDate(selectedDate)
     }
   }
@@ -173,7 +193,7 @@ const DashDRE = () => {
             onPress={() => setShowStartPicker(true)}>
             <Feather name="calendar" size={16} color="#666" />
             <Text style={dreStyles.dateText}>
-              {startDate.toLocaleDateString('pt-BR')}
+              {formatDateDisplay(startDate)}
             </Text>
           </TouchableOpacity>
 
@@ -184,7 +204,7 @@ const DashDRE = () => {
             onPress={() => setShowEndPicker(true)}>
             <Feather name="calendar" size={16} color="#666" />
             <Text style={dreStyles.dateText}>
-              {endDate.toLocaleDateString('pt-BR')}
+              {formatDateDisplay(endDate)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -227,7 +247,7 @@ const DashDRE = () => {
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={dreStyles.loadingText}>Carregando dados...</Text>
         </View>
-      ) : dreData ? (
+      ) : dreData && typeof dreData === 'object' ? (
         <>
           <DRECards dados={dreData} />
           <DREDemonstrativo dados={dreData} />

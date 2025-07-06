@@ -107,6 +107,12 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('financeiro'),
         },
         {
+          name: 'DRE Caixa',
+          route: 'DashDRECaixa',
+          icon: 'dollar-sign',
+          condition: hasModulo('financeiro'),
+        },
+        {
           name: 'Extrato de Caixa',
           route: 'Extrato de Caixa',
           icon: 'file-text',
@@ -213,6 +219,32 @@ export const getMenuConfig = (hasModulo) => {
           route: 'DashPedidosVenda',
           icon: 'shopping-cart',
           condition: hasModulo('dash'),
+        },
+      ]
+        .filter((item) => item.condition)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    },
+    gerencial: {
+      name: 'Gerencial',
+      icon: 'trending-up',
+      items: [
+        {
+          name: 'Análise de Despesas',
+          route: 'DespesasPrevistas',
+          icon: 'trending-down',
+          condition: hasModulo('financeiro'),
+        },
+        {
+          name: 'Previsão de Lucro',
+          route: 'LucroPrevisto',
+          icon: 'dollar-sign',
+          condition: hasModulo('financeiro'),
+        },
+        {
+          name: 'Fluxo de Caixa Previsto',
+          route: 'FluxoCaixaPrevisto',
+          icon: 'activity',
+          condition: hasModulo('financeiro'),
         },
       ]
         .filter((item) => item.condition)

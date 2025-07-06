@@ -92,11 +92,11 @@ export default function ComissaoForm({ navigation, route }) {
 
       setFuncionario({
         enti_clie: comissao.comi_func,
-        enti_nome: comissao.nome_funcionario || 'Funcionário',
+        enti_nome: comissao.comi_func_nome || 'Funcionário',
       })
       setCliente({
         enti_clie: comissao.comi_clie,
-        enti_nome: comissao.nome_cliente || 'Cliente',
+        enti_nome: comissao.comi_clie_nome || 'Cliente',
       })
       setCategoria(comissao.comi_cate)
       setValorTotal(comissao.comi_valo_tota.toString())
@@ -147,7 +147,9 @@ export default function ComissaoForm({ navigation, route }) {
         comi_empr: parseInt(empresaId),
         comi_fili: parseInt(filialId),
         comi_func: funcionario.enti_clie,
+        comi_func_nome: funcionario.enti_nome,
         comi_clie: cliente.enti_clie,
+        comi_clie_nome: cliente.enti_nome,
         comi_cate: categoria,
         comi_valo_tota: parseFloat(valorTotal),
         comi_impo: parseFloat(impostos),
