@@ -80,3 +80,8 @@ export { default as PainelCooperado } from '../screens/PainelCooperado'
 export { default as DespesasPrevistas } from '../componentsGerencial/DespesasPrevistas'
 export { default as LucroPrevisto } from '../componentsGerencial/LucroPrevisto'
 export { default as FluxoCaixaPrevisto } from '../componentsGerencial/FluxoCaixaPrevisto'
+
+// Telas de Ordem de Produção
+export { default as ListagemOrdensProducao } from '../componentsOrdemProducao/ListagemOrdensProducao'
+export { default as DetalhesOrdemProducao } from '../componentsOrdemProducao/DetalhesOrdemProducao'
+export { default as FormOrdemProducao } from '../componentsOrdemProducao/FormOrdemProducao'

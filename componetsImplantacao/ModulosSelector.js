@@ -1,7 +1,3 @@
-import React from 'react'
-import { Text, TouchableOpacity } from 'react-native'
-import styles from '../styles/formStyles'
-
 const MODULOS_CHOICES = [
   { label: 'Cadastros', value: 'cadastro' },
   { label: 'Estoque', value: 'estoque' },
@@ -12,6 +8,7 @@ const MODULOS_CHOICES = [
   { label: 'Ordem de Serviço', value: 'os' },
   { label: 'Transportes', value: 'transportes' },
   { label: 'Confecção', value: 'confeccao' },
+  { label: 'Ordem de Produção', value: 'ordemproducao' }, // ✅ Adicionar novo módulo
   { label: 'Controle de Materiais', value: 'materiais' },
 ]
 

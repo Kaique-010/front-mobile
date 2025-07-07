@@ -94,6 +94,11 @@ export default function BuscaVendedorInput({
   )
 
   const selecionar = (item) => {
+    if (!item || !item.enti_clie) {
+      console.warn('Item inválido selecionado:', item)
+      return
+    }
+    
     const texto = `${item.enti_clie} - ${item.enti_nome}`
     setTermo(texto)
     digitando.current = false
@@ -156,6 +161,8 @@ export default function BuscaVendedorInput({
             `${item.enti_clie}-${item.enti_fili}-${item.enti_empr}`
           }
           keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={true}
+          style={styles.sugestaoLista}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => selecionar(item)}
@@ -165,7 +172,6 @@ export default function BuscaVendedorInput({
               </Text>
             </TouchableOpacity>
           )}
-          style={styles.sugestaoLista}
         />
       )}
     </View>

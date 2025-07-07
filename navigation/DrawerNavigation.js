@@ -36,6 +36,12 @@ import DashComissao from '../componentsComissao/DashComissao'
 import CobrancasList from '../screens/CobrancasList'
 import DashDRE from '../componetsDRE/DashDRE'
 
+import {
+  ListagemOrdensProducao,
+  DetalhesOrdemProducao,
+  FormOrdemProducao,
+} from '../componentsOrdemProducao'
+
 const Drawer = createDrawerNavigator()
 
 export default function DrawerNavigator() {
@@ -358,7 +364,7 @@ export default function DrawerNavigator() {
               drawerItemStyle: { height: 0 },
             }}
           />
-          
+
           <Drawer.Screen
             name="AlterarSenha"
             component={require('../screens/AlterarSenhaScreen').default}
@@ -388,6 +394,77 @@ export default function DrawerNavigator() {
             name="DashComissao"
             component={DashComissao}
             options={{
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+        </>
+      )}
+
+      {/* Ordem de Produção */}
+      {hasModulo('OrdemProducao') && (
+        <>
+          <Drawer.Screen
+            name="ListagemOrdensProducao"
+            component={ListagemOrdensProducao}
+            options={{
+              title: 'Ordens de Produção',
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+          <Drawer.Screen
+            name="DetalhesOrdemProducao"
+            component={DetalhesOrdemProducao}
+            options={{
+              title: 'Detalhes da Ordem',
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+          <Drawer.Screen
+            name="CriarOrdemProducao"
+            component={FormOrdemProducao}
+            options={{
+              title: 'Nova Ordem de Produção',
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+          <Drawer.Screen
+            name="EditarOrdemProducao"
+            component={FormOrdemProducao}
+            options={{
+              title: 'Editar Ordem de Produção',
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+
+          {/* Telas de Gerencial */}
+          <Drawer.Screen
+            name="DespesasPrevistas"
+            component={DespesasPrevistas}
+            options={{
+              title: 'Despesas Previstas',
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+          <Drawer.Screen
+            name="LucroPrevisto"
+            component={LucroPrevisto}
+            options={{
+              title: 'Lucro Previsto',
+              drawerLabel: () => null,
+              drawerItemStyle: { height: 0 },
+            }}
+          />
+          <Drawer.Screen
+            name="FluxoCaixaPrevisto"
+            component={FluxoCaixaPrevisto}
+            options={{
+              title: 'Fluxo Caixa Previsto',
               drawerLabel: () => null,
               drawerItemStyle: { height: 0 },
             }}

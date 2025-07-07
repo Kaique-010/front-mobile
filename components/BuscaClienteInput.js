@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   TextInput,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   Text,
   View,
@@ -70,10 +70,12 @@ export default function BuscaClienteInput({
 
         let resultados = data.results || []
 
-        if (tipo === 'cliente') {
+        if (tipo === 'fornecedor') {
           resultados = resultados.filter((e) => e.enti_tipo_enti === 'FO')
         } else if (tipo === 'vendedor') {
           resultados = resultados.filter((e) => e.enti_tipo_enti === 'VE')
+        } else if (tipo === 'cliente') {
+          resultados = resultados.filter((e) => e.enti_tipo_enti === 'CL')
         }
 
         setClientes(resultados)
@@ -152,16 +154,17 @@ export default function BuscaClienteInput({
         ) : null}
       </View>
 
-
-
       {showResults && clientes.length > 0 && (
-        <ScrollView
-          style={[styles.sugestaoLista, { maxHeight: 200 }]}
+        <FlatList
+          data={clientes}
+          keyExtractor={(item) =>
+            `${item.enti_clie}-${item.enti_fili}-${item.enti_empr}`
+          }
           keyboardShouldPersistTaps="handled"
-          nestedScrollEnabled={true}>
-          {clientes.map((item) => (
+          nestedScrollEnabled={true}
+          style={[styles.sugestaoLista, { maxHeight: 200 }]}
+          renderItem={({ item }) => (
             <TouchableOpacity
-              key={`${item.enti_clie}-${item.enti_fili}-${item.enti_empr}`}
               onPress={() => selecionar(item)}
               style={styles.sugestaoItem}>
               <Text style={styles.sugestaoTexto}>
@@ -169,8 +172,8 @@ export default function BuscaClienteInput({
                 {item.enti_cpf || item.enti_cnpj}
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          )}
+        />
       )}
     </View>
   )

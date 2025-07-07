@@ -199,6 +199,41 @@ export const screenConfigs = [
     options: createHeaderOptions('Gráficos de OS'),
   },
 
+  // Telas de Ordem de Produção
+  {
+    name: 'ListagemOrdensProducao',
+    component: Screens.ListagemOrdensProducao,
+    options: createHeaderOptions('Listagem de Ordens de Produção'),
+  },
+  {
+    name: 'DetalhesOrdemProducao',
+    component: Screens.DetalhesOrdemProducao,
+    options: createHeaderOptions('Detalhes da Ordem de Produção'),
+  },
+  {
+    name: 'FormOrdemProducao',
+    component: Screens.FormOrdemProducao,
+    options: createHeaderOptions('Ordem de Produção'),
+  },
+
+  // Telas de Gerencial
+
+  {
+    name: 'Despesas Previstas',
+    component: Screens.DespesasPrevistas,
+    options: createHeaderOptions('Despesas Previstas'),
+  },
+  {
+    name: 'Lucro Previsto',
+    component: Screens.LucroPrevisto,
+    options: createHeaderOptions('Lucro Previsto'),
+  },
+  {
+    name: 'Fluxo Caixa Previsto',
+    component: Screens.FluxoCaixaPrevisto,
+    options: createHeaderOptions('Fluxo Caixa Previsto'),
+  },
+
   // Telas de implantação
   {
     name: 'ImplantacaoForm',
@@ -265,22 +300,5 @@ export const screenConfigs = [
     name: 'PainelCooperado',
     component: Screens.PainelCooperado,
     options: createHeaderOptions('Painel do Cooperado'),
-  },
-
-  // Telas gerenciais
-  {
-    name: 'DespesasPrevistas',
-    component: Screens.DespesasPrevistas,
-    options: createHeaderOptions('Análise de Despesas'),
-  },
-  {
-    name: 'LucroPrevisto',
-    component: Screens.LucroPrevisto,
-    options: createHeaderOptions('Previsão de Lucro'),
-  },
-  {
-    name: 'FluxoCaixaPrevisto',
-    component: Screens.FluxoCaixaPrevisto,
-    options: createHeaderOptions('Fluxo de Caixa Previsto'),
   },
 ]

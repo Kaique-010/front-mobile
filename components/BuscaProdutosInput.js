@@ -122,6 +122,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
         <FlatList
           data={produtos}
           keyExtractor={(item) => item.prod_codi.toString()}
+          nestedScrollEnabled={true}
           renderItem={({ item }) => (
             <Card
               onPress={() => handleSelecionarProduto(item)}

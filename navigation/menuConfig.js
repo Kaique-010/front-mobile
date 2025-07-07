@@ -229,22 +229,36 @@ export const getMenuConfig = (hasModulo) => {
       icon: 'trending-up',
       items: [
         {
-          name: 'Análise de Despesas',
-          route: 'DespesasPrevistas',
+          name: 'Despesas Previstas',
+          route: 'Despesas Previstas',  // Corrigido para corresponder ao screenConfig
           icon: 'trending-down',
           condition: hasModulo('financeiro'),
         },
         {
           name: 'Previsão de Lucro',
-          route: 'LucroPrevisto',
+          route: 'Lucro Previsto',  // Corrigido para corresponder ao screenConfig
           icon: 'dollar-sign',
           condition: hasModulo('financeiro'),
         },
         {
           name: 'Fluxo de Caixa Previsto',
-          route: 'FluxoCaixaPrevisto',
+          route: 'Fluxo Caixa Previsto',  // Corrigido para corresponder ao screenConfig
           icon: 'activity',
           condition: hasModulo('financeiro'),
+        },
+      ]
+        .filter((item) => item.condition)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    },
+    producao: {
+      name: 'Ordem de Produção',
+      icon: 'codepen',
+      items: [
+        {
+          name: 'Ordens de Produção',
+          route: 'ListagemOrdensProducao',
+          icon: 'codepen',
+          condition: hasModulo('ordemproducao'),
         },
       ]
         .filter((item) => item.condition)

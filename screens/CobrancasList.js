@@ -709,9 +709,11 @@ const styles = StyleSheet.create({
   },
   whatsappButton: {
     backgroundColor: '#25d366',
+    marginBottom: 150,
   },
   emailButton: {
     backgroundColor: '#2196f3',
+    marginBottom: 150,
   },
   cancelButton: {
     backgroundColor: '#757575',
