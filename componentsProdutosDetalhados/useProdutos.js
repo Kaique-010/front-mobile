@@ -13,6 +13,11 @@ const useProdutos = () => {
   const [hasMore, setHasMore] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
 
+  // Novos estados para filtros
+  const [marcaSelecionada, setMarcaSelecionada] = useState('')
+  const [saldoFiltro, setSaldoFiltro] = useState('todos')
+  const [marcas, setMarcas] = useState([])
+
   useEffect(() => {
     const carregarSlug = async () => {
       try {
@@ -40,19 +45,54 @@ const useProdutos = () => {
       }
 
       try {
+        const params = {
+          limit: 20,
+          offset: atualOffset,
+          search: searchTerm,
+        }
+
+        // Adicionar filtros aos parâmetros
+        if (marcaSelecionada) {
+          if (marcaSelecionada === 'Sem marca') {
+            params.marca_nome = '__sem_marca__' // Valor especial para produtos sem marca
+          } else {
+            params.marca_nome = marcaSelecionada
+          }
+        }
+        // Remover estas duas linhas que estão causando o erro:
+        // params.marca = marcaSelecionada
+        // }
+
+        if (saldoFiltro === 'com') {
+          params.com_saldo = true
+        } else if (saldoFiltro === 'sem') {
+          params.sem_saldo = true
+        }
+
         const data = await apiGetComContextoSemFili(
           'produtos/produtosdetalhados/',
-          {
-            limit: 20,
-            offset: atualOffset,
-            search: searchTerm,
-          }
+          params
         )
 
         const novos = data.results || []
         setProdutos(reset ? novos : [...produtos, ...novos])
         setOffset(atualOffset + 20)
         setHasMore(data.next !== null)
+
+        // Extrair marcas únicas para o filtro
+        if (reset) {
+          const marcasUnicas = [
+            ...new Set(novos.map((p) => p.marca_nome).filter(Boolean)),
+          ]
+          
+          // Criar lista de marcas tratadas incluindo "Sem marca"
+          const marcasTratadas = [
+            'Sem marca', // Opção para produtos sem marca
+            ...marcasUnicas.sort() // Marcas existentes em ordem alfabética
+          ]
+          
+          setMarcas(marcasTratadas)
+        }
       } catch (error) {
         console.log('❌ Erro ao buscar produtos:', error.message)
         Toast.show({ type: 'error', text1: 'Erro ao buscar produtos' })
@@ -62,7 +102,15 @@ const useProdutos = () => {
         setIsFetchingMore(false)
       }
     },
-    [slug, offset, searchTerm, isFetchingMore, produtos]
+    [
+      slug,
+      offset,
+      searchTerm,
+      marcaSelecionada,
+      saldoFiltro,
+      isFetchingMore,
+      produtos,
+    ]
   )
 
   useEffect(() => {
@@ -80,12 +128,27 @@ const useProdutos = () => {
     return () => clearTimeout(delay)
   }, [searchTerm])
 
+  // Novo useEffect para filtros
+  useEffect(() => {
+    if (slug) {
+      buscarProdutos({ reset: true })
+    }
+  }, [marcaSelecionada, saldoFiltro])
+
   const handleSearchSubmit = () => buscarProdutos({ reset: true })
 
   const handleLoadMore = () => {
     if (hasMore && !isFetchingMore && !initialLoading) {
       buscarProdutos({ reset: false })
     }
+  }
+
+  const handleMarcaChange = (marca) => {
+    setMarcaSelecionada(marca)
+  }
+
+  const handleSaldoChange = (saldo) => {
+    setSaldoFiltro(saldo)
   }
 
   return {
@@ -98,6 +161,14 @@ const useProdutos = () => {
     isFetchingMore,
     handleSearchSubmit,
     handleLoadMore,
+    // Novos retornos para filtros
+    marcaSelecionada,
+    setMarcaSelecionada,
+    saldoFiltro,
+    setSaldoFiltro,
+    marcas,
+    handleMarcaChange,
+    handleSaldoChange,
   }
 }
 

@@ -64,6 +64,7 @@ export { default as ImplantacaoForm } from '../screens/ImplantacaoForm'
 export { default as DashboardFinanceiroGrafico } from '../dashboardFinanceiro/DashboardFinanceiroGrafico'
 export { default as DashRealizado } from '../dashboardFinanceiro/DashRealizado'
 export { default as DashBalanceteCC } from '../dashboardFinanceiro/DashBalanceteCC'
+export { default as DashBalanceteEstoque } from '../dashboardFinanceiro/DashBalanceteEstoque'
 export { default as DashDRE } from '../componetsDRE/DashDRE'
 export { default as DashDRECaixa } from '../componetsDRE/DashDRECaixa'
 
@@ -86,3 +87,12 @@ export { default as FluxoCaixaPrevisto } from '../componentsGerencial/FluxoCaixa
 export { default as ListagemOrdensProducao } from '../componentsOrdemProducao/ListagemOrdensProducao'
 export { default as DetalhesOrdemProducao } from '../componentsOrdemProducao/DetalhesOrdemProducao'
 export { default as FormOrdemProducao } from '../componentsOrdemProducao/FormOrdemProducao'
+
+// Telas de parâmetros
+export { default as ParametrosMenu } from '../Parametros/ParametrosMenu'
+export { default as ParametrosGeraisList } from '../Parametros/ParametrosGeraisList'
+export { default as ParametrosGeraisForm } from '../Parametros/ParametrosGeraisForm'
+export { default as PermissoesModulosList } from '../Parametros/PermissoesModulosList'
+export { default as ConfiguracaoEstoqueForm } from '../Parametros/ConfiguracaoEstoqueForm'
+export { default as ConfiguracaoFinanceiroForm } from '../Parametros/ConfiguracaoFinanceiroForm'
+export { default as LogParametrosList } from '../Parametros/LogParametrosList'

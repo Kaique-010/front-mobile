@@ -166,6 +166,12 @@ export const getMenuConfig = (hasModulo) => {
           condition: true,
         },
         {
+          name: 'Parâmetros do Sistema',
+          route: 'ParametrosMenu',
+          icon: 'settings',
+          condition: hasModulo('implantacao'),
+        },
+        {
           name: 'Implantações',
           route: 'Implantações',
           icon: 'settings',
@@ -183,7 +189,7 @@ export const getMenuConfig = (hasModulo) => {
     },
     dashboards: {
       name: 'Dashboards',
-      icon: 'bar-chart',
+      icon: 'bar-chart-2',
       items: [
         {
           name: 'Dashboard de Comissões',
@@ -216,10 +222,10 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('financeiro'),
         },
         {
-          name: 'Balancete por Centro de Custos',
-          route: 'DashBalanceteCC',
-          icon: 'trending-up',
-          condition: hasModulo('financeiro'),
+          name: 'Balancete de Estoque',
+          route: 'DashBalanceteEstoque',
+          icon: 'package',
+          condition: (modulos) => hasModulo(modulos, 'Dash'),
         },
         {
           name: 'Pedidos de Venda',
@@ -237,19 +243,19 @@ export const getMenuConfig = (hasModulo) => {
       items: [
         {
           name: 'Despesas Previstas',
-          route: 'Despesas Previstas',  // Corrigido para corresponder ao screenConfig
+          route: 'Despesas Previstas', // Corrigido para corresponder ao screenConfig
           icon: 'trending-down',
           condition: hasModulo('financeiro'),
         },
         {
           name: 'Previsão de Lucro',
-          route: 'Lucro Previsto',  // Corrigido para corresponder ao screenConfig
+          route: 'Lucro Previsto', // Corrigido para corresponder ao screenConfig
           icon: 'dollar-sign',
           condition: hasModulo('financeiro'),
         },
         {
           name: 'Fluxo de Caixa Previsto',
-          route: 'Fluxo Caixa Previsto',  // Corrigido para corresponder ao screenConfig
+          route: 'Fluxo Caixa Previsto', // Corrigido para corresponder ao screenConfig
           icon: 'activity',
           condition: hasModulo('financeiro'),
         },
@@ -296,3 +302,19 @@ export const getFrisiaMenuItems = (hasModulo) =>
       condition: hasModulo('frisia'),
     },
   ].filter((item) => item.condition)
+
+// Modificar para buscar módulos liberados da API
+export const getMenuDinamico = async () => {
+  try {
+    const response = await getModulosLiberados()
+    const modulosLiberados = response.data.modulos || []
+    
+    // Filtrar menu baseado nos módulos liberados
+    return MENU_COMPLETO.filter(item => 
+      modulosLiberados.includes(item.modulo) || item.publico
+    )
+  } catch (error) {
+    console.error('Erro ao carregar módulos:', error)
+    return MENU_BASICO // Menu mínimo em caso de erro
+  }
+}

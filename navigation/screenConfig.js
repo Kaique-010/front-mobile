@@ -263,6 +263,11 @@ export const screenConfigs = [
     options: createHeaderOptions('Balancete por Centro de Custos'),
   },
   {
+    name: 'DashBalanceteEstoque',
+    component: Screens.DashBalanceteEstoque,
+    options: createHeaderOptions('Balancete de Estoque'),
+  },
+  {
     name: 'DashDRE',
     component: Screens.DashDRE,
     options: createHeaderOptions('DRE Gerencial'),
@@ -305,5 +310,41 @@ export const screenConfigs = [
     name: 'PainelCooperado',
     component: Screens.PainelCooperado,
     options: createHeaderOptions('Painel do Cooperado'),
+  },
+  // Telas de parâmetros
+  {
+    name: 'ParametrosMenu',
+    component: Screens.ParametrosMenu,
+    options: createHeaderOptions('Parâmetros do Sistema'),
+  },
+  {
+    name: 'ParametrosGeraisList',
+    component: Screens.ParametrosGeraisList,
+    options: createHeaderOptions('Parâmetros Gerais'),
+  },
+  {
+    name: 'ParametrosGeraisForm',
+    component: Screens.ParametrosGeraisForm,
+    options: createHeaderOptions('Parâmetro'),
+  },
+  {
+    name: 'PermissoesModulosList',
+    component: Screens.PermissoesModulosList,
+    options: createHeaderOptions('Permissões de Módulos'),
+  },
+  {
+    name: 'ConfiguracaoEstoqueForm',
+    component: Screens.ConfiguracaoEstoqueForm,
+    options: createHeaderOptions('Configuração de Estoque'),
+  },
+  {
+    name: 'ConfiguracaoFinanceiroForm',
+    component: Screens.ConfiguracaoFinanceiroForm,
+    options: createHeaderOptions('Configuração Financeira'),
+  },
+  {
+    name: 'LogParametrosList',
+    component: Screens.LogParametrosList,
+    options: createHeaderOptions('Logs de Parâmetros'),
   },
 ]

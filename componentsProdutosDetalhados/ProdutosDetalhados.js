@@ -22,8 +22,13 @@ export default function ProdutosList() {
     isFetchingMore,
     handleSearchSubmit,
     handleLoadMore,
+    marcaSelecionada,
+    saldoFiltro,
+    marcas,
+    handleMarcaChange,
+    handleSaldoChange,
   } = useProdutos()
-  
+
   const [produtoSelecionado, setProdutoSelecionado] = useState(null)
 
   const renderItem = useCallback(
@@ -56,6 +61,11 @@ export default function ProdutosList() {
         onSearchChange={setSearchTerm}
         onSearchSubmit={handleSearchSubmit}
         isSearching={isSearching}
+        marcaSelecionada={marcaSelecionada}
+        onMarcaChange={handleMarcaChange}
+        saldoFiltro={saldoFiltro}
+        onSaldoChange={handleSaldoChange}
+        marcas={marcas}
       />
 
       <FlashList
