@@ -23,6 +23,7 @@ import PainelAcompanhamento from '../screens/PainelOs'
 import PainelOrdens from '../screens/PainelOrdens'
 import Pedidos from '../screens/Pedidos'
 import Produtos from '../screens/Produtos'
+import ProdutosDetalhados from '../componentsProdutosDetalhados/ProdutosDetalhados'
 import SaidasEstoque from '../screens/SaidasEstoque'
 import ImplantacoesList from '../screens/ImplantacoesList'
 import ContasPagarList from '../screens/ContasPagarList'
@@ -200,6 +201,17 @@ export default function DrawerNavigator() {
             <Drawer.Screen
               name="Produtos"
               component={Produtos}
+              options={{
+                drawerLabel: () => null,
+                drawerItemStyle: { height: 0 },
+              }}
+            />
+          )}
+
+          {hasModulo('produtos') && (
+            <Drawer.Screen
+              name="ProdutosDetalhados"
+              component={ProdutosDetalhados}
               options={{
                 drawerLabel: () => null,
                 drawerItemStyle: { height: 0 },

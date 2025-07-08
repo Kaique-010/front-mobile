@@ -12,6 +12,7 @@ export { default as AlterarSenhaScreen } from '../screens/AlterarSenhaScreen'
 export { default as ProdutoForm } from '../screens/ProdutoForm'
 export { default as ProdutoPrecos } from '../componetsProdutos/ProdutoPrecos'
 export { default as Produtos } from '../screens/Produtos'
+export { default as ProdutosDetalhados } from '../componentsProdutosDetalhados/ProdutosDetalhados'
 
 // Telas de entidades
 export { default as EntidadeForm } from '../screens/EntidadeForm'

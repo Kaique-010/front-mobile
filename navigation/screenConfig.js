@@ -49,6 +49,11 @@ export const screenConfigs = [
     component: Screens.ProdutoPrecos,
     options: createHeaderOptions('Preços dos Itens'),
   },
+  {
+    name: 'ProdutosDetalhados',
+    component: Screens.ProdutosDetalhados,
+    options: createHeaderOptions('Produtos Detalhados'),
+  },
 
   // Telas de entidades
   {

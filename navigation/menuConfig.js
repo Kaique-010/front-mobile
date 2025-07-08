@@ -24,6 +24,13 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('produtos'),
         },
         {
+          name: 'Produtos Detalhados',
+          route: 'ProdutosDetalhados',
+          icon: 'box',
+          condition: hasModulo('produtos'),
+        },
+
+        {
           name: 'Saídas de Estoque',
           route: 'Saidas de Estoque',
           icon: 'arrow-up-circle',
