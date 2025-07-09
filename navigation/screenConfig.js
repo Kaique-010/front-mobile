@@ -313,6 +313,11 @@ export const screenConfigs = [
   },
   // Telas de parâmetros
   {
+    name: 'SistemaPermissoes',
+    component: Screens.SistemaPermissoes,
+    options: createHeaderOptions('Sistema de Permissões'),
+  },
+  {
     name: 'ParametrosMenu',
     component: Screens.ParametrosMenu,
     options: createHeaderOptions('Parâmetros do Sistema'),
@@ -326,11 +331,6 @@ export const screenConfigs = [
     name: 'ParametrosGeraisForm',
     component: Screens.ParametrosGeraisForm,
     options: createHeaderOptions('Parâmetro'),
-  },
-  {
-    name: 'PermissoesModulosList',
-    component: Screens.PermissoesModulosList,
-    options: createHeaderOptions('Permissões de Módulos'),
   },
   {
     name: 'ConfiguracaoEstoqueForm',

@@ -166,6 +166,12 @@ export const getMenuConfig = (hasModulo) => {
           condition: true,
         },
         {
+          name: 'Sistema de Permissões',
+          route: 'SistemaPermissoes',
+          icon: 'shield',
+          condition: hasModulo('implantacao'),
+        },
+        {
           name: 'Parâmetros do Sistema',
           route: 'ParametrosMenu',
           icon: 'settings',

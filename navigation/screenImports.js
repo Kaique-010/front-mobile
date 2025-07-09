@@ -88,11 +88,11 @@ export { default as ListagemOrdensProducao } from '../componentsOrdemProducao/Li
 export { default as DetalhesOrdemProducao } from '../componentsOrdemProducao/DetalhesOrdemProducao'
 export { default as FormOrdemProducao } from '../componentsOrdemProducao/FormOrdemProducao'
 
-// Telas de parâmetros
+// Parâmetros
+export { default as SistemaPermissoes } from '../Parametros/SistemaPermissoes'
 export { default as ParametrosMenu } from '../Parametros/ParametrosMenu'
 export { default as ParametrosGeraisList } from '../Parametros/ParametrosGeraisList'
 export { default as ParametrosGeraisForm } from '../Parametros/ParametrosGeraisForm'
-export { default as PermissoesModulosList } from '../Parametros/PermissoesModulosList'
 export { default as ConfiguracaoEstoqueForm } from '../Parametros/ConfiguracaoEstoqueForm'
 export { default as ConfiguracaoFinanceiroForm } from '../Parametros/ConfiguracaoFinanceiroForm'
 export { default as LogParametrosList } from '../Parametros/LogParametrosList'

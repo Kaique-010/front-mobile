@@ -1,28 +1,115 @@
 import { StyleSheet } from 'react-native'
 
-// Mudar de export default para named export
 export const parametrosStyles = StyleSheet.create({
+  // Container principal
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    padding: 16,
+    backgroundColor: '#f5f5f5',
   },
-  header: {
-    marginBottom: 24,
+
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+
+  // Error states
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#dc3545',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  errorWarning: {
+    fontSize: 14,
+    color: '#ff6b6b',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Disabled states
+  buttonDisabled: {
+    backgroundColor: '#6c757d',
+    opacity: 0.6,
+  },
+  buttonTextDisabled: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  fieldDisabled: {
+    backgroundColor: '#f8f9fa',
+    borderColor: '#dee2e6',
+    opacity: 0.6,
+  },
+  fieldTextDisabled: {
+    color: '#6c757d',
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+
+  // Header
+  header: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
+    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
   },
+  syncButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007bff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  syncButtonText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
+  // Menu
+  menuContainer: {
+    flex: 1,
+  },
   menuGrid: {
+    padding: 16,
     gap: 16,
   },
   menuCard: {
@@ -39,89 +126,261 @@ export const parametrosStyles = StyleSheet.create({
   menuCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
   menuIcon: {
-    fontSize: 24,
     marginRight: 12,
+  },
+  menuContent: {
+    flex: 1,
   },
   menuTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    flex: 1,
+    marginBottom: 4,
   },
   menuDescription: {
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
   },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 12,
-  },
-  incluirButton: {
-    backgroundColor: '#007bff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    flex: 1,
-  },
-  incluirButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  importarButton: {
-    backgroundColor: '#28a745',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    flex: 1,
-  },
-  importarButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  filtrosContainer: {
-    marginBottom: 16,
-    gap: 12,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+
+  // Info section
+  infoContainer: {
     backgroundColor: '#fff',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  picker: {
-    height: 50,
-  },
-  card: {
-    backgroundColor: '#fff',
+    margin: 16,
+    padding: 20,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  infoFeatures: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+  },
+  infoFeatureTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  infoFeature: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+
+  // Resumo
+  resumoCard: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  resumoTitulo: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  resumoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  resumoLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  resumoValor: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+
+  // Módulos
+  modulosContainer: {
+    paddingHorizontal: 16,
+  },
+  secaoTitulo: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  moduloCard: {
+    backgroundColor: '#fff',
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  moduloHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  moduloInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  moduloNome: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  moduloDescricao: {
+    fontSize: 14,
+    color: '#666',
+  },
+  dataVencimento: {
+    fontSize: 12,
+    color: '#ff6b6b',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  telasContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  telasTitulo: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 6,
+  },
+  telaItem: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 8,
+    marginBottom: 2,
+  },
+
+  // Ações
+  acoesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 16,
+    gap: 12,
+  },
+  acaoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#28a745',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: '45%',
+  },
+  acaoButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
+  // Lista de parâmetros
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  incluirButton: {
+    backgroundColor: '#007bff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  incluirButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  importarButton: {
+    backgroundColor: '#28a745',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  importarButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
+  // Filtros
+  filtrosContainer: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  searchContainer: {
+    marginBottom: 12,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+  picker: {
+    height: 50,
+  },
+
+  // Cards de parâmetros
+  card: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -130,56 +389,53 @@ export const parametrosStyles = StyleSheet.create({
     marginBottom: 8,
   },
   parametroNome: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     flex: 1,
   },
   tipoBadge: {
-    backgroundColor: '#e9ecef',
+    backgroundColor: '#007bff',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   tipoTexto: {
+    color: '#fff',
     fontSize: 12,
-    color: '#495057',
     fontWeight: '500',
   },
   parametroDescricao: {
     fontSize: 14,
     color: '#666',
     marginBottom: 12,
-    lineHeight: 20,
   },
   valorContainer: {
-    flexDirection: 'row',
     marginBottom: 12,
   },
   valorLabel: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#333',
-    marginRight: 8,
+    marginBottom: 4,
   },
   valorTexto: {
     fontSize: 14,
-    color: '#007bff',
-    flex: 1,
-    fontFamily: 'monospace',
+    color: '#666',
+    backgroundColor: '#f8f9fa',
+    padding: 8,
+    borderRadius: 4,
   },
   metadados: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 12,
   },
   metadadosTexto: {
     fontSize: 12,
-    color: '#6c757d',
+    color: '#888',
+    marginBottom: 2,
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     gap: 8,
   },
   botaoEditar: {
@@ -187,150 +443,77 @@ export const parametrosStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
+    flex: 1,
   },
   botaoExcluir: {
     backgroundColor: '#dc3545',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
+    flex: 1,
   },
   botaoTexto: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  footerText: {
-    textAlign: 'center',
-    color: '#6c757d',
     fontSize: 14,
-    marginTop: 16,
-  },
-  formContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    margin: 16,
-  },
-  formTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 24,
+    fontWeight: '500',
     textAlign: 'center',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  switchGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  metadadosContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  metadadosLabel: {
-    fontSize: 14,
-    color: '#495057',
-    marginBottom: 4,
-  },
-  salvarButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  salvarButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  buttonDisabled: {
-    backgroundColor: '#6c757d',
   },
 
-  // Estilos para permissões
+  // Lista de permissões (antiga)
+  listItem: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 16,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  itemHeader: {
+    marginBottom: 12,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  itemSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
   permissionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 8,
+    marginBottom: 12,
   },
   permissionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 4,
   },
   permissionLabel: {
     fontSize: 14,
     color: '#333',
-    flex: 1,
+    marginRight: 8,
   },
-
-  // Estilos para configurações
-  configItem: {
+  listContainer: {
+    paddingBottom: 20,
+  },
+  headerButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#007bff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
   },
-  configLabel: {
-    fontSize: 16,
-    color: '#333',
-    flex: 1,
-  },
-
-  // Estilos para logs
-  actionBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  actionText: {
+  headerButtonText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-  valueChange: {
-    marginTop: 8,
-    padding: 8,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 4,
-  },
-  valueLabel: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: 'bold',
-  },
-  valueText: {
+    marginLeft: 6,
     fontSize: 14,
-    color: '#333',
-    marginTop: 2,
+    fontWeight: '500',
   },
 })
