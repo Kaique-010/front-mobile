@@ -40,7 +40,14 @@ export default function useContextoApp() {
     carregar();
   }, []);
 
-  const hasModulo = (mod) => modulos.includes(mod);
+  const hasModulo = (mod) => {
+    // Se modulos é um array de objetos com estrutura {nome, ativo, ...}
+    if (modulos.length > 0 && typeof modulos[0] === 'object') {
+      return modulos.some(modulo => modulo.nome === mod && modulo.ativo === true);
+    }
+    // Fallback para o formato antigo (array de strings)
+    return modulos.includes(mod);
+  };
 
   const logout = async () => {
     try {

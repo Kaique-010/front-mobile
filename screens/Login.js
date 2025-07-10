@@ -102,6 +102,12 @@ export default function Login({ navigation }) {
         }
       )
 
+      // ADICIONAR ESTES LOGS PARA DEBUG:
+      console.log('Resposta completa da API:', response.data)
+      console.log('Módulos retornados pela API:', response.data.modulos)
+      console.log('Tipo dos módulos:', typeof response.data.modulos)
+      console.log('É array?', Array.isArray(response.data.modulos))
+
       // Definir os modulos após a resposta da API
       setModulos(response.data.modulos)
 
@@ -112,11 +118,11 @@ export default function Login({ navigation }) {
         ['access', access],
         ['refresh', refresh],
         ['usuario', JSON.stringify(usuario)],
-        ['usuario_id', usuario.usuario_id.toString()], // salva direto a chave que o getAuthHeaders espera
+        ['usuario_id', usuario.usuario_id.toString()],
         ['username', usuario.username],
         ['docu', docu],
         ['slug', slug],
-        ['modulos', JSON.stringify(response.data.modulos)],
+        ['modulos', JSON.stringify(response.data.modulos)], // ← Módulos sendo salvos aqui
       ])
 
       console.log('Dados armazenados no AsyncStorage:', {

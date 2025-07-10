@@ -7,9 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native'
-import {
-  DrawerContentScrollView,
-} from '@react-navigation/drawer'
+import { DrawerContentScrollView } from '@react-navigation/drawer'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as ImagePicker from 'expo-image-picker'
 import Icon from 'react-native-vector-icons/Feather'
@@ -36,8 +34,13 @@ export default function CustomDrawer(props) {
   useEffect(() => {
     const fetchModulos = async () => {
       const modulosStorage = await AsyncStorage.getItem('modulos')
+      console.log('Módulos lidos do AsyncStorage (raw):', modulosStorage)
       if (modulosStorage) {
-        setModulos(JSON.parse(modulosStorage))
+        const modulosParsed = JSON.parse(modulosStorage)
+        console.log('Módulos parseados:', modulosParsed)
+        console.log('Tipo dos módulos parseados:', typeof modulosParsed)
+        console.log('É array?', Array.isArray(modulosParsed))
+        setModulos(modulosParsed)
       }
     }
     fetchModulos()
@@ -75,19 +78,32 @@ export default function CustomDrawer(props) {
 
   if (!modulos) return null
 
-  const hasModulo = (mod) => modulos.includes(mod)
-
-  const toggleCategory = (categoryKey) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryKey]: !prev[categoryKey]
-    }));
+  // Na função hasModulo (linha ~77)
+  const hasModulo = (nomeModulo) => {
+    if (!modulos || !Array.isArray(modulos)) {
+      return false;
+    }
+    
+    // Se é um array de objetos (formato atual do backend)
+    if (modulos.length > 0 && typeof modulos[0] === 'object') {
+      return modulos.some(modulo => 
+        modulo.nome === nomeModulo && modulo.ativo === true
+      );
+    }
+    
+    // Fallback para array de strings (formato antigo)
+    return modulos.includes(nomeModulo);
   };
 
-  const menuConfig = getMenuConfig(hasModulo);
-  const individualItems = getIndividualMenuItems(hasModulo);
+  const toggleCategory = (categoryKey) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryKey]: !prev[categoryKey],
+    }))
+  }
 
-
+  const menuConfig = getMenuConfig(hasModulo)
+  const individualItems = getIndividualMenuItems(hasModulo)
 
   return (
     <DrawerContentScrollView {...props} style={styles.container}>
@@ -120,20 +136,20 @@ export default function CustomDrawer(props) {
 
       {/* Categorias */}
       {Object.entries(menuConfig).map(([key, categoria]) => {
-        if (categoria.items.length === 0) return null;
-        
+        if (categoria.items.length === 0) return null
+
         return (
           <MenuCategory
             key={key}
             categoria={{
               ...categoria,
               expanded: expandedCategories[key] || false,
-              setExpanded: () => toggleCategory(key)
+              setExpanded: () => toggleCategory(key),
             }}
             navigation={props.navigation}
             styles={styles}
           />
-        );
+        )
       })}
 
       {/* Botão de logout */}
@@ -147,7 +163,12 @@ export default function CustomDrawer(props) {
               routes: [{ name: 'Login' }],
             })
           }}>
-          <Icon name="log-out" size={18} color="#fff" style={{ marginRight: 8 }} />
+          <Icon
+            name="log-out"
+            size={18}
+            color="#fff"
+            style={{ marginRight: 8 }}
+          />
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
       </View>

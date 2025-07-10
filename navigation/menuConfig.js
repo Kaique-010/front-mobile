@@ -9,32 +9,44 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Entidades',
           route: 'Entidades',
           icon: 'users',
-          condition: hasModulo('entidades'),
+          condition: hasModulo('Entidades'),
+        },
+        // Na seção cadastros
+        {
+          name: 'Entradas de Estoque',
+          route: 'EntradasEstoque',
+          icon: 'arrow-down-circle',
+          condition: hasModulo('Entradas_Estoque'),
         },
         {
           name: 'Entradas de Estoque',
-          route: 'Entradas de Estoque',
+          route: 'EntradasForm',
           icon: 'arrow-down-circle',
-          condition: hasModulo('entradasestoque'),
+          condition: hasModulo('Entradas_Estoque'),
         },
         {
           name: 'Produtos',
           route: 'Produtos',
           icon: 'box',
-          condition: hasModulo('produtos'),
+          condition: hasModulo('Produtos'),
         },
         {
           name: 'Produtos Detalhados',
           route: 'ProdutosDetalhados',
           icon: 'box',
-          condition: hasModulo('produtos'),
+          condition: hasModulo('Produtos'),
         },
-
         {
           name: 'Saídas de Estoque',
-          route: 'Saidas de Estoque',
+          route: 'SaidasEstoque',
           icon: 'arrow-up-circle',
-          condition: hasModulo('saidasestoque'),
+          condition: hasModulo('Saidas_Estoque'),
+        },
+        {
+          name: 'Saídas de Estoque',
+          route: 'SaidasForm',
+          icon: 'arrow-up-circle',
+          condition: hasModulo('Saidas_Estoque'),
         },
       ]
         .filter((item) => item.condition)
@@ -51,8 +63,8 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('contratos'),
         },
         {
-          name: 'Lista de Casamento',
-          route: 'Lista de Casamento',
+          name: 'ListaCasamento',
+          route: 'ListaCasamento',
           icon: 'ring',
           iconType: 'MaterialCommunityIcons',
           condition: hasModulo('listacasamento'),
@@ -61,13 +73,13 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Orçamentos',
           route: 'Orcamentos',
           icon: 'shopping-bag',
-          condition: hasModulo('orcamentos'),
+          condition: hasModulo('Orcamentos'),
         },
         {
           name: 'Pedidos',
           route: 'Pedidos',
           icon: 'package',
-          condition: hasModulo('pedidos'),
+          condition: hasModulo('Pedidos'),
         },
       ]
         .filter((item) => item.condition)
@@ -79,45 +91,45 @@ export const getMenuConfig = (hasModulo) => {
       items: [
         {
           name: 'Caixa',
-          route: 'Caixa',
+          route: 'CaixaGeral',
           icon: 'credit-card',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Financeiro'),
         },
         {
           name: 'Cobranças',
-          route: 'Lista de Cobranças a vencer',
+          route: 'CobrancasList',
           icon: 'receipt',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Financeiro'),
         },
         {
           name: 'Comissões',
           route: 'Lista de Comissões',
           icon: 'percent',
-          condition: hasModulo('comissoes'),
+          condition: hasModulo('SpsComissoes'),
         },
         {
           name: 'Contas a Pagar',
-          route: 'Contas a Pagar',
+          route: 'ContasPagarList',
           icon: 'credit-card',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Financeiro'),
         },
         {
           name: 'Contas a Receber',
-          route: 'Contas a Receber',
+          route: 'ContasReceberList',
           icon: 'dollar-sign',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Financeiro'),
         },
         {
           name: 'DRE Gerencial',
           route: 'DashDRE',
           icon: 'trending-up',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Financeiro'),
         },
         {
           name: 'DRE Caixa',
           route: 'DashDRECaixa',
           icon: 'dollar-sign',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('CaixaDiario'),
         },
         {
           name: 'Extrato de Caixa',
@@ -134,22 +146,22 @@ export const getMenuConfig = (hasModulo) => {
       icon: 'tool',
       items: [
         {
-          name: 'Ordens de Serviço',
-          route: 'Ordens de Serviço',
+          name: ' Painel Os',
+          route: 'Painel Os',
           icon: 'settings',
-          condition: hasModulo('os'),
+          condition: hasModulo('O_S'),
         },
         {
           name: "Painel de O'S",
-          route: "Painel de Acompanhamento de O'S",
+          route: 'PainelAcompanhamento',
           icon: 'clipboard',
-          condition: hasModulo('ordemdeservico'),
+          condition: hasModulo('OrdemdeServico'),
         },
         {
           name: 'Relação de O.S',
           route: 'Ordem de Serviço Geral',
           icon: 'tool',
-          condition: hasModulo('os'),
+          condition: hasModulo('O_S'),
         },
       ]
         .filter((item) => item.condition)
@@ -179,7 +191,7 @@ export const getMenuConfig = (hasModulo) => {
         },
         {
           name: 'Implantações',
-          route: 'Implantações',
+          route: 'ImplantacaoForm',
           icon: 'settings',
           condition: hasModulo('implantacao'),
         },
@@ -201,19 +213,19 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Dashboard de Comissões',
           route: 'DashComissao',
           icon: 'percent',
-          condition: hasModulo('comissoes'),
+          condition: hasModulo('SpsComissoes'),
         },
         {
           name: 'Dashboard de Contratos',
-          route: 'Dashboard de Contratos',
+          route: 'DashContratos',
           icon: 'file-text',
           condition: hasModulo('contratos'),
         },
         {
           name: 'Dashboard Financeiro',
-          route: 'DashboardFinanceiro',
+          route: 'DashboardFinanceiroGrafico',
           icon: 'dollar-sign',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Financeiro'),
         },
         {
           name: 'Dashboard Geral',
@@ -225,13 +237,13 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Dashboard Realizado',
           route: 'DashRealizado',
           icon: 'trending-up',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Financeiro'),
         },
         {
           name: 'Balancete de Estoque',
           route: 'DashBalanceteEstoque',
           icon: 'package',
-          condition: (modulos) => hasModulo(modulos, 'Dash'),
+          condition: (modulos) => hasModulo(modulos, 'sash'),
         },
         {
           name: 'Pedidos de Venda',
@@ -251,19 +263,19 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Despesas Previstas',
           route: 'Despesas Previstas', // Corrigido para corresponder ao screenConfig
           icon: 'trending-down',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Gerencial'),
         },
         {
           name: 'Previsão de Lucro',
           route: 'Lucro Previsto', // Corrigido para corresponder ao screenConfig
           icon: 'dollar-sign',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Gerencial'),
         },
         {
           name: 'Fluxo de Caixa Previsto',
           route: 'Fluxo Caixa Previsto', // Corrigido para corresponder ao screenConfig
           icon: 'activity',
-          condition: hasModulo('financeiro'),
+          condition: hasModulo('Gerencial'),
         },
       ]
         .filter((item) => item.condition)
@@ -277,7 +289,7 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Ordens de Produção',
           route: 'ListagemOrdensProducao',
           icon: 'codepen',
-          condition: hasModulo('ordemproducao'),
+          condition: hasModulo('OrdemProducao'),
         },
       ]
         .filter((item) => item.condition)
@@ -314,10 +326,10 @@ export const getMenuDinamico = async () => {
   try {
     const response = await getModulosLiberados()
     const modulosLiberados = response.data.modulos || []
-    
+
     // Filtrar menu baseado nos módulos liberados
-    return MENU_COMPLETO.filter(item => 
-      modulosLiberados.includes(item.modulo) || item.publico
+    return MENU_COMPLETO.filter(
+      (item) => modulosLiberados.includes(item.modulo) || item.publico
     )
   } catch (error) {
     console.error('Erro ao carregar módulos:', error)

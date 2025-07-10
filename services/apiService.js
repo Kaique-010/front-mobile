@@ -5,7 +5,6 @@ import { BASE_URL, fetchSlugMap } from '../utils/api'
 export const fetchDashboardData = async () => {
   // Obtém os dados do storage
   const stored = await getStoredData()
-  console.log('Stored data:', stored)
 
   // Tenta pegar o CNPJ de diferentes fontes no objeto
   const cnpj = stored?.docu || stored?.empr_docu || stored?.empresaDocu
@@ -23,8 +22,6 @@ export const fetchDashboardData = async () => {
   }
 
   const slug = slugObj.slug
-  console.log('[DEBUG] SLUG:', slug)
-  console.log('[DEBUG] CNPJ:', cnpj)
 
   // Parâmetros para a requisição
   const params = {
@@ -40,6 +37,6 @@ export const fetchDashboardData = async () => {
       params,
     }
   )
-  console.log('[DEBUG] Dashboard response:', response.data)
+
   return response.data
 }

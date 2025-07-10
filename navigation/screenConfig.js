@@ -40,14 +40,20 @@ export const screenConfigs = [
 
   // Telas de produtos
   {
-    name: 'ProdutoForm',
-    component: Screens.ProdutoForm,
+    name: 'Produtos',
+    component: Screens.Produtos,
     options: createHeaderOptions('Produtos'),
   },
+
   {
     name: 'ProdutoPrecos',
     component: Screens.ProdutoPrecos,
     options: createHeaderOptions('Preços dos Itens'),
+  },
+  {
+    name: 'ProdutoForm',
+    component: Screens.ProdutoForm,
+    options: createHeaderOptions('Produtos'),
   },
   {
     name: 'ProdutosDetalhados',
@@ -68,10 +74,38 @@ export const screenConfigs = [
   },
 
   // Telas de vendas
+
+  {
+    name: 'Contratos',
+    component: Screens.Contratos,
+    options: createHeaderOptions('Contratos'),
+  },
+  {
+    name: 'ContratosForm',
+    component: Screens.ContratosForm,
+    options: createHeaderOptions('Contratos'),
+  },
+  {
+    name: 'ListaCasamento',
+    component: Screens.ListaCasamento,
+    options: createHeaderOptions('Lista de Casamento'),
+  },
+
+  {
+    name: 'Pedidos',
+    component: Screens.Pedidos,
+    options: createHeaderOptions('Pedidos'),
+  },
+
   {
     name: 'PedidosForm',
     component: Screens.PedidosForm,
     options: createHeaderOptions('Pedido de Venda'),
+  },
+  {
+    name: 'Orcamentos',
+    component: Screens.Orcamentos,
+    options: createHeaderOptions('Orçamentos'),
   },
   {
     name: 'OrcamentosForm',
@@ -91,9 +125,21 @@ export const screenConfigs = [
 
   // Telas de estoque
   {
+    name: 'EntradasEstoque',
+    component: Screens.EntradasEstoque,
+    options: createHeaderOptions('Entradas de Estoque'),
+  },
+
+  {
     name: 'EntradasForm',
     component: Screens.EntradasForm,
     options: createHeaderOptions('Entradas de Estoque'),
+  },
+
+  {
+    name: 'SaidasEstoque',
+    component: Screens.SaidasEstoque,
+    options: createHeaderOptions('Saidas de Estoque'),
   },
   {
     name: 'SaidasForm',
@@ -143,13 +189,6 @@ export const screenConfigs = [
     options: createHeaderOptions('Cobranças a Receber'),
   },
 
-  // Telas de contratos
-  {
-    name: 'ContratosForm',
-    component: Screens.ContratosForm,
-    options: createHeaderOptions('Contratos de Venda'),
-  },
-
   // Telas de comissão
   {
     name: 'ComissaoForm',
@@ -172,6 +211,11 @@ export const screenConfigs = [
     name: 'PainelAcompanhamento',
     component: Screens.PainelAcompanhamento,
     options: { title: 'Painel OS' },
+  },
+  {
+    name: 'Painel Os',
+    component: Screens.PainelOrdens,
+    options: { title: 'Painel Ordens de serviço' },
   },
   {
     name: 'OrdemDetalhe',
@@ -346,5 +390,10 @@ export const screenConfigs = [
     name: 'LogParametrosList',
     component: Screens.LogParametrosList,
     options: createHeaderOptions('Logs de Parâmetros'),
+  },
+  {
+    name: 'Modulos',
+    component: Screens.Modulos,
+    options: createHeaderOptions('Módulos do Sistema'),
   },
 ]
