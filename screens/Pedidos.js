@@ -153,9 +153,7 @@ export default function Pedidos({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiDeleteComContexto(
-                `/pedidos/pedidos/${pedido.pedi_nume}/`
-              )
+              await apiDeleteComContexto(`pedidos/pedidos/${pedido.pedi_nume}/`)
               setPedidos((prev) =>
                 prev.filter((p) => p.pedi_nume !== pedido.pedi_nume)
               )
@@ -242,22 +240,24 @@ export default function Pedidos({ navigation }) {
         }}
         onEndReachedThreshold={0.2}
         initialNumToRender={10}
-        maxToRenderPerBatch={5}  // Reduzido para 5
-        windowSize={3}           // Reduzido para 3
-        updateCellsBatchingPeriod={50}  // Adicionar controle de batch
+        maxToRenderPerBatch={5} // Reduzido para 5
+        windowSize={3} // Reduzido para 3
+        updateCellsBatchingPeriod={50} // Adicionar controle de batch
         removeClippedSubviews={true}
         getItemLayout={(data, index) => ({
           length: 180, // Altura estimada do item
           offset: 180 * index,
           index,
         })}
-        ListFooterComponent={isFetchingMore ? (
-          <ActivityIndicator
-            size="small"
-            color="#007bff"
-            style={{ marginVertical: 10 }}
-          />
-        ) : null}
+        ListFooterComponent={
+          isFetchingMore ? (
+            <ActivityIndicator
+              size="small"
+              color="#007bff"
+              style={{ marginVertical: 10 }}
+            />
+          ) : null
+        }
       />
       <Text style={styles.footerText}>
         {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} encontrado

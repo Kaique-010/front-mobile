@@ -115,7 +115,7 @@ export default function Orcamentos({ navigation }) {
           onPress: async () => {
             try {
               await apiDeleteComContexto(
-                `/orcamentos/orcamentos/${orcamentos.pedi_nume}/`
+                `orcamentos/orcamentos/${orcamentos.pedi_nume}/`
               )
               setOrcamentos((prev) =>
                 prev.filter((o) => o.pedi_nume !== orcamentos.pedi_nume)
