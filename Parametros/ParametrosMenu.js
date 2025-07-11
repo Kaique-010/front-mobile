@@ -13,14 +13,7 @@ const ParametrosMenu = ({ navigation }) => {
       color: '#007bff',
       route: 'Modulos',
     },
-    {
-      id: 'sistema-permissoes',
-      title: 'Sistema de Permissões',
-      description: 'Gerenciar módulos, telas e operações liberadas',
-      icon: 'shield',
-      color: '#007bff',
-      route: 'SistemaPermissoes',
-    },
+
     {
       id: 'parametros-gerais',
       title: 'Parâmetros Gerais',

@@ -48,9 +48,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'arrow-up-circle',
           condition: hasModulo('Saidas_Estoque'),
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     vendas: {
       name: 'Vendas',
@@ -63,7 +61,7 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('contratos'),
         },
         {
-          name: 'ListaCasamento',
+          name: 'Lista de Casamento',
           route: 'ListaCasamento',
           icon: 'ring',
           iconType: 'MaterialCommunityIcons',
@@ -81,9 +79,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'package',
           condition: hasModulo('Pedidos'),
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     financeiro: {
       name: 'Financeiro',
@@ -137,9 +133,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'file-text',
           condition: true,
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     os: {
       name: 'O.S',
@@ -149,7 +143,7 @@ export const getMenuConfig = (hasModulo) => {
           name: ' Painel Os',
           route: 'Painel Os',
           icon: 'settings',
-          condition: hasModulo('O_S'),
+          condition: hasModulo('OrdemdeServico'),
         },
         {
           name: "Painel de O'S",
@@ -161,11 +155,9 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Relação de O.S',
           route: 'Ordem de Serviço Geral',
           icon: 'tool',
-          condition: hasModulo('O_S'),
+          condition: hasModulo('OrdemdeServico'),
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     utilitarios: {
       name: 'Utilitários',
@@ -181,13 +173,13 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Sistema de Permissões',
           route: 'SistemaPermissoes',
           icon: 'shield',
-          condition: hasModulo('implantacao'),
+          condition: hasModulo('parametros_admin'),
         },
         {
           name: 'Parâmetros do Sistema',
           route: 'ParametrosMenu',
           icon: 'settings',
-          condition: hasModulo('implantacao'),
+          condition: hasModulo('parametros_admin'),
         },
         {
           name: 'Implantações',
@@ -201,9 +193,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'clock',
           condition: true,
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     dashboards: {
       name: 'Dashboards',
@@ -229,9 +219,9 @@ export const getMenuConfig = (hasModulo) => {
         },
         {
           name: 'Dashboard Geral',
-          route: 'Dashboard',
+          route: 'DashboardFinanceiro',
           icon: 'bar-chart-2',
-          condition: hasModulo('dash'),
+          condition: hasModulo('Gerencial'),
         },
         {
           name: 'Dashboard Realizado',
@@ -243,17 +233,15 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Balancete de Estoque',
           route: 'DashBalanceteEstoque',
           icon: 'package',
-          condition: (modulos) => hasModulo(modulos, 'sash'),
+          condition: hasModulo('Produtos'),
         },
         {
           name: 'Pedidos de Venda',
           route: 'DashPedidosVenda',
           icon: 'shopping-cart',
-          condition: hasModulo('dash'),
+          condition: hasModulo('Pedidos'),
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     gerencial: {
       name: 'Gerencial',
@@ -277,9 +265,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'activity',
           condition: hasModulo('Gerencial'),
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     producao: {
       name: 'Ordem de Produção',
@@ -291,9 +277,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'codepen',
           condition: hasModulo('OrdemProducao'),
         },
-      ]
-        .filter((item) => item.condition)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ].sort((a, b) => a.name.localeCompare(b.name)),
     },
   }
 }

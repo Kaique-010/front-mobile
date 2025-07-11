@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, FlatList, RefreshControl, TextInput } from 'react-native'
+import {
+  View,
+  Text,
+  FlatList,
+  RefreshControl,
+  TextInput,
+  ActivityIndicator,
+} from 'react-native'
 import { Feather } from '@expo/vector-icons'
 import { getLogsParametros } from '../services/parametrosService'
-import { parametrosStyles } from './styles/parametrosStyles'
 
-const LogParametrosList = ({ navigation }) => {
+const LogParametrosList = () => {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -22,25 +28,16 @@ const LogParametrosList = ({ navigation }) => {
   const loadLogs = async () => {
     try {
       setLoading(true)
-      const response = await getLogsParametros({
-        ordering: '-data_alteracao',
-      })
-      
-      // Handle different response structures
-      let logs
-      if (response?.data?.results && Array.isArray(response.data.results)) {
-        logs = response.data.results
-      } else if (response?.data && Array.isArray(response.data)) {
-        logs = response.data
-      } else {
-        logs = []
-      }
-      
+      const response = await getLogsParametros({ ordering: '-data_alteracao' })
+
+      let logs = []
+      if (response?.data?.results) logs = response.data.results
+      else if (Array.isArray(response?.data)) logs = response.data
+
       setLogs(logs)
     } catch (error) {
       console.error('Erro ao carregar logs:', error)
       setLogs([])
-      // Don't show alert for logs as it's not critical
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -48,16 +45,14 @@ const LogParametrosList = ({ navigation }) => {
   }
 
   const filterLogs = () => {
-    if (!searchText.trim()) {
-      setFilteredLogs(logs)
-      return
-    }
+    if (!searchText.trim()) return setFilteredLogs(logs)
 
+    const texto = searchText.toLowerCase()
     const filtered = logs.filter(
       (log) =>
-        log.parametro_nome?.toLowerCase().includes(searchText.toLowerCase()) ||
-        log.usuario_nome?.toLowerCase().includes(searchText.toLowerCase()) ||
-        log.acao?.toLowerCase().includes(searchText.toLowerCase())
+        log.parametro_nome?.toLowerCase().includes(texto) ||
+        log.usuario_nome?.toLowerCase().includes(texto) ||
+        log.acao?.toLowerCase().includes(texto)
     )
     setFilteredLogs(filtered)
   }
@@ -70,72 +65,102 @@ const LogParametrosList = ({ navigation }) => {
   const getActionColor = (action) => {
     switch (action?.toLowerCase()) {
       case 'criacao':
-        return '#4CAF50'
+        return '#22c55e'
       case 'edicao':
-        return '#FF9800'
+        return '#facc15'
       case 'exclusao':
-        return '#F44336'
+        return '#ef4444'
       default:
-        return '#2196F3'
+        return '#3b82f6'
     }
   }
 
   const renderLogItem = ({ item }) => (
-    <View style={parametrosStyles.listItem}>
-      <View style={parametrosStyles.itemHeader}>
-        <Text style={parametrosStyles.itemTitle}>{item.parametro_nome}</Text>
+    <View
+      style={{
+        backgroundColor: '#2f3e52',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+      }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+          {item.parametro_nome}
+        </Text>
         <View
-          style={[
-            parametrosStyles.actionBadge,
-            { backgroundColor: getActionColor(item.acao) },
-          ]}>
-          <Text style={parametrosStyles.actionText}>{item.acao}</Text>
+          style={{
+            backgroundColor: getActionColor(item.acao),
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 6,
+          }}>
+          <Text style={{ color: '#000', fontWeight: 'bold' }}>
+            {item.acao?.toUpperCase()}
+          </Text>
         </View>
       </View>
 
-      <Text style={parametrosStyles.itemSubtitle}>
-        Usuário: {item.usuario_nome}
+      <Text style={{ color: '#aaa', marginTop: 6 }}>
+        Usuário: <Text style={{ color: '#fff' }}>{item.usuario_nome}</Text>
       </Text>
-
-      <Text style={parametrosStyles.itemSubtitle}>
-        Data: {formatDate(item.data_alteracao)}
+      <Text style={{ color: '#aaa' }}>
+        Data:{' '}
+        <Text style={{ color: '#fff' }}>{formatDate(item.data_alteracao)}</Text>
       </Text>
 
       {item.valor_anterior && (
-        <View style={parametrosStyles.valueChange}>
-          <Text style={parametrosStyles.valueLabel}>Valor anterior:</Text>
-          <Text style={parametrosStyles.valueText}>{item.valor_anterior}</Text>
-        </View>
+        <Text style={{ color: '#f87171', marginTop: 6 }}>
+          ↓ Valor anterior: {item.valor_anterior}
+        </Text>
       )}
-
       {item.valor_novo && (
-        <View style={parametrosStyles.valueChange}>
-          <Text style={parametrosStyles.valueLabel}>Valor novo:</Text>
-          <Text style={parametrosStyles.valueText}>{item.valor_novo}</Text>
-        </View>
+        <Text style={{ color: '#4ade80' }}>
+          ↑ Valor novo: {item.valor_novo}
+        </Text>
       )}
-
       {item.observacoes && (
-        <View style={parametrosStyles.valueChange}>
-          <Text style={parametrosStyles.valueLabel}>Observações:</Text>
-          <Text style={parametrosStyles.valueText}>{item.observacoes}</Text>
-        </View>
+        <Text style={{ color: '#c084fc', marginTop: 4 }}>
+          Obs: {item.observacoes}
+        </Text>
       )}
     </View>
   )
 
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#243242',
+        }}>
+        <ActivityIndicator size="large" color="#0ea5e9" />
+      </View>
+    )
+  }
+
   return (
-    <View style={parametrosStyles.container}>
-      <View style={parametrosStyles.searchContainer}>
-        <Feather
-          name="search"
-          size={20}
-          color="#666"
-          style={parametrosStyles.searchIcon}
-        />
+    <View style={{ flex: 1, backgroundColor: '#243242', padding: 16 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: '#2f3e52',
+          paddingHorizontal: 12,
+          borderRadius: 10,
+          marginBottom: 16,
+        }}>
+        <Feather name="search" size={20} color="#aaa" />
         <TextInput
-          style={parametrosStyles.searchInput}
+          style={{
+            flex: 1,
+            marginLeft: 8,
+            color: '#fff',
+            height: 40,
+          }}
           placeholder="Buscar logs..."
+          placeholderTextColor="#888"
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -146,14 +171,17 @@ const LogParametrosList = ({ navigation }) => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderLogItem}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={loadLogs} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={loadLogs}
+            tintColor="#fff"
+          />
         }
-        contentContainerStyle={parametrosStyles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={parametrosStyles.emptyContainer}>
-            <Feather name="file-text" size={48} color="#ccc" />
-            <Text style={parametrosStyles.emptyText}>
+          <View style={{ alignItems: 'center', marginTop: 60 }}>
+            <Feather name="file-text" size={48} color="#666" />
+            <Text style={{ color: '#999', marginTop: 8 }}>
               {searchText ? 'Nenhum log encontrado' : 'Nenhum log disponível'}
             </Text>
           </View>

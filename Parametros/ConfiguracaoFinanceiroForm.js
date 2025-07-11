@@ -7,13 +7,13 @@ import {
   Alert,
   Switch,
   TextInput,
+  ActivityIndicator,
 } from 'react-native'
 import { Feather } from '@expo/vector-icons'
 import {
   getConfiguracaoFinanceiro,
   updateConfiguracaoFinanceiro,
 } from '../services/parametrosService'
-import { parametrosStyles } from './styles/parametrosStyles'
 
 const ConfiguracaoFinanceiroForm = ({ navigation }) => {
   const [configuracao, setConfiguracao] = useState(null)
@@ -27,8 +27,7 @@ const ConfiguracaoFinanceiroForm = ({ navigation }) => {
     try {
       setLoading(true)
       const response = await getConfiguracaoFinanceiro()
-      
-      // Handle different response structures
+
       let config
       if (response?.data?.results && Array.isArray(response.data.results)) {
         config = response.data.results[0]
@@ -37,8 +36,7 @@ const ConfiguracaoFinanceiroForm = ({ navigation }) => {
       } else {
         config = null
       }
-      
-      // Set default values if no config found
+
       const finalConfig = config || {
         permitir_desconto: false,
         desconto_maximo_percentual: 0,
@@ -49,12 +47,12 @@ const ConfiguracaoFinanceiroForm = ({ navigation }) => {
         multa_atraso_percentual: 0,
         calcular_juros_automatico: false,
       }
-      
+
       setConfiguracao(finalConfig)
     } catch (error) {
       console.error('Erro ao carregar configuração:', error)
-      
-      // Set default configuration on error
+      Alert.alert('Aviso', 'Erro ao carregar. Usando padrão.')
+
       setConfiguracao({
         permitir_desconto: false,
         desconto_maximo_percentual: 0,
@@ -65,8 +63,6 @@ const ConfiguracaoFinanceiroForm = ({ navigation }) => {
         multa_atraso_percentual: 0,
         calcular_juros_automatico: false,
       })
-      
-      Alert.alert('Aviso', 'Não foi possível carregar a configuração. Usando valores padrão.')
     } finally {
       setLoading(false)
     }
@@ -108,151 +104,143 @@ const ConfiguracaoFinanceiroForm = ({ navigation }) => {
     }))
   }
 
+  const renderSwitch = (label, field) => (
+    <View
+      style={{
+        backgroundColor: '#2f3e52',
+        padding: 15,
+        marginBottom: 12,
+        borderRadius: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '500' }}>
+        {label}
+      </Text>
+      <Switch
+        value={configuracao[field]}
+        onValueChange={() => handleToggle(field)}
+        trackColor={{ false: '#777', true: '#34d399' }}
+        thumbColor={configuracao[field] ? '#22c55e' : '#ccc'}
+      />
+    </View>
+  )
+
+  const renderInput = (label, field, placeholder = '0') => (
+    <View style={{ marginBottom: 16 }}>
+      <Text
+        style={{
+          color: '#fff',
+          marginBottom: 4,
+          fontSize: 14,
+          fontWeight: '500',
+        }}>
+        {label}
+      </Text>
+      <TextInput
+        style={{
+          backgroundColor: '#2f3e52',
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          color: '#fff',
+          fontSize: 16,
+        }}
+        value={configuracao[field]?.toString()}
+        onChangeText={(value) =>
+          handleInputChange(
+            field,
+            field.includes('parcelas')
+              ? parseInt(value) || 0
+              : parseFloat(value) || 0
+          )
+        }
+        keyboardType="numeric"
+        placeholder={placeholder}
+        placeholderTextColor="#aaa"
+      />
+    </View>
+  )
+
   if (loading || !configuracao) {
     return (
-      <View style={parametrosStyles.loadingContainer}>
-        <Text>Carregando...</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#243242',
+        }}>
+        <ActivityIndicator size="large" color="#0ea5e9" />
       </View>
     )
   }
 
   return (
-    <View style={parametrosStyles.container}>
-      <ScrollView style={parametrosStyles.scrollContainer}>
-        <View style={parametrosStyles.section}>
-          <Text style={parametrosStyles.sectionTitle}>Descontos</Text>
+    <View style={{ flex: 1, backgroundColor: '#243242', padding: 16 }}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginBottom: 12,
+          }}>
+          Descontos
+        </Text>
+        {renderSwitch('Permitir Desconto', 'permitir_desconto')}
+        {renderInput('Desconto Máximo (%)', 'desconto_maximo_percentual')}
+        {renderSwitch(
+          'Exigir Aprovação para Desconto',
+          'exigir_aprovacao_desconto'
+        )}
 
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>Permitir Desconto</Text>
-            <Switch
-              value={configuracao.permitir_desconto}
-              onValueChange={() => handleToggle('permitir_desconto')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.permitir_desconto ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginVertical: 16,
+          }}>
+          Parcelamento
+        </Text>
+        {renderSwitch('Permitir Parcelamento', 'permitir_parcelamento')}
+        {renderInput('Máximo de Parcelas', 'maximo_parcelas', '12')}
 
-          <View style={parametrosStyles.inputGroup}>
-            <Text style={parametrosStyles.inputLabel}>Desconto Máximo (%)</Text>
-            <TextInput
-              style={parametrosStyles.input}
-              value={configuracao.desconto_maximo_percentual?.toString()}
-              onChangeText={(value) =>
-                handleInputChange(
-                  'desconto_maximo_percentual',
-                  parseFloat(value) || 0
-                )
-              }
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </View>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>
-              Exigir Aprovação para Desconto
-            </Text>
-            <Switch
-              value={configuracao.exigir_aprovacao_desconto}
-              onValueChange={() => handleToggle('exigir_aprovacao_desconto')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.exigir_aprovacao_desconto ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-        </View>
-
-        <View style={parametrosStyles.section}>
-          <Text style={parametrosStyles.sectionTitle}>Parcelamento</Text>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>
-              Permitir Parcelamento
-            </Text>
-            <Switch
-              value={configuracao.permitir_parcelamento}
-              onValueChange={() => handleToggle('permitir_parcelamento')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.permitir_parcelamento ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-
-          <View style={parametrosStyles.inputGroup}>
-            <Text style={parametrosStyles.inputLabel}>Máximo de Parcelas</Text>
-            <TextInput
-              style={parametrosStyles.input}
-              value={configuracao.maximo_parcelas?.toString()}
-              onChangeText={(value) =>
-                handleInputChange('maximo_parcelas', parseInt(value) || 12)
-              }
-              keyboardType="numeric"
-              placeholder="12"
-            />
-          </View>
-        </View>
-
-        <View style={parametrosStyles.section}>
-          <Text style={parametrosStyles.sectionTitle}>Juros e Multas</Text>
-
-          <View style={parametrosStyles.inputGroup}>
-            <Text style={parametrosStyles.inputLabel}>
-              Juros de Mora Mensal (%)
-            </Text>
-            <TextInput
-              style={parametrosStyles.input}
-              value={configuracao.juros_mora_mensal?.toString()}
-              onChangeText={(value) =>
-                handleInputChange('juros_mora_mensal', parseFloat(value) || 0)
-              }
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </View>
-
-          <View style={parametrosStyles.inputGroup}>
-            <Text style={parametrosStyles.inputLabel}>
-              Multa por Atraso (%)
-            </Text>
-            <TextInput
-              style={parametrosStyles.input}
-              value={configuracao.multa_atraso_percentual?.toString()}
-              onChangeText={(value) =>
-                handleInputChange(
-                  'multa_atraso_percentual',
-                  parseFloat(value) || 0
-                )
-              }
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </View>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>
-              Calcular Juros Automaticamente
-            </Text>
-            <Switch
-              value={configuracao.calcular_juros_automatico}
-              onValueChange={() => handleToggle('calcular_juros_automatico')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.calcular_juros_automatico ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-        </View>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginVertical: 16,
+          }}>
+          Juros e Multas
+        </Text>
+        {renderInput('Juros de Mora Mensal (%)', 'juros_mora_mensal')}
+        {renderInput('Multa por Atraso (%)', 'multa_atraso_percentual')}
+        {renderSwitch(
+          'Calcular Juros Automaticamente',
+          'calcular_juros_automatico'
+        )}
       </ScrollView>
 
       <TouchableOpacity
-        style={parametrosStyles.saveButton}
+        style={{
+          backgroundColor: '#0ea5e9',
+          padding: 15,
+          borderRadius: 10,
+          marginTop: 20,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 8,
+        }}
         onPress={handleSave}>
         <Feather name="save" size={20} color="#fff" />
-        <Text style={parametrosStyles.saveButtonText}>Salvar Configuração</Text>
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+          Salvar Configuração
+        </Text>
       </TouchableOpacity>
     </View>
   )

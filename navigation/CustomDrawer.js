@@ -32,18 +32,20 @@ export default function CustomDrawer(props) {
   }, [])
 
   useEffect(() => {
-    const fetchModulos = async () => {
-      const modulosStorage = await AsyncStorage.getItem('modulos')
-      console.log('Módulos lidos do AsyncStorage (raw):', modulosStorage)
-      if (modulosStorage) {
-        const modulosParsed = JSON.parse(modulosStorage)
-        console.log('Módulos parseados:', modulosParsed)
-        console.log('Tipo dos módulos parseados:', typeof modulosParsed)
-        console.log('É array?', Array.isArray(modulosParsed))
-        setModulos(modulosParsed)
+    const carregarModulos = async () => {
+      try {
+        const modulosSalvos = await AsyncStorage.getItem('modulos')
+        if (modulosSalvos) {
+          const modulosParsed = JSON.parse(modulosSalvos)
+
+          setModulos(modulosParsed)
+        }
+      } catch (error) {
+        console.error('❌ CustomDrawer: Erro ao carregar módulos:', error)
       }
     }
-    fetchModulos()
+
+    carregarModulos()
   }, [])
 
   const escolherImagem = async () => {
@@ -80,20 +82,53 @@ export default function CustomDrawer(props) {
 
   // Na função hasModulo (linha ~77)
   const hasModulo = (nomeModulo) => {
-    if (!modulos || !Array.isArray(modulos)) {
-      return false;
+    if (
+      [
+        'Orcamentos',
+        'listacasamento',
+        'Entradas_Estoque',
+        'Saidas_Estoque',
+      ].includes(nomeModulo)
+    ) {
     }
-    
+
+    if (!modulos || !Array.isArray(modulos) || modulos.length === 0) {
+      return false
+    }
+
     // Se é um array de objetos (formato atual do backend)
-    if (modulos.length > 0 && typeof modulos[0] === 'object') {
-      return modulos.some(modulo => 
-        modulo.nome === nomeModulo && modulo.ativo === true
-      );
+    if (typeof modulos[0] === 'object') {
+      const resultado = modulos.some((modulo) => {
+        // Verificação mais restritiva para o campo ativo
+        const isAtivo =
+          modulo.modu_ativ === true ||
+          modulo.modu_ativ === 1 ||
+          modulo.modu_ativ === 'S'
+
+        // Verificar por nome ou código do módulo
+        const nomeMatch =
+          modulo.modu_nome === nomeModulo || modulo.nome === nomeModulo
+        const codigoMatch = modulo.modu_codi === nomeModulo
+
+        const temPermissao = (nomeMatch || codigoMatch) && isAtivo
+
+        if (temPermissao) {
+        }
+
+        return temPermissao
+      })
+
+      if (!resultado) {
+      }
+
+      return resultado
     }
-    
+
     // Fallback para array de strings (formato antigo)
-    return modulos.includes(nomeModulo);
-  };
+    const resultado = modulos.includes(nomeModulo)
+
+    return resultado
+  }
 
   const toggleCategory = (categoryKey) => {
     setExpandedCategories((prev) => ({
@@ -104,6 +139,27 @@ export default function CustomDrawer(props) {
 
   const menuConfig = getMenuConfig(hasModulo)
   const individualItems = getIndividualMenuItems(hasModulo)
+
+  // Aplicar filtragem manual para garantir que as condições sejam avaliadas corretamente
+  const menuConfigFiltrado = {}
+  Object.entries(menuConfig).forEach(([key, categoria]) => {
+    // Verificação específica para o grupo dashboards
+    if (key === 'dashboards' && !hasModulo('dashboards')) {
+      return // Pula o grupo dashboards se não tiver permissão
+    }
+
+    const itensFiltrados = categoria.items.filter((item) => {
+      const resultado =
+        typeof item.condition === 'function' ? item.condition() : item.condition
+
+      return resultado
+    })
+
+    menuConfigFiltrado[key] = {
+      ...categoria,
+      items: itensFiltrados,
+    }
+  })
 
   return (
     <DrawerContentScrollView {...props} style={styles.container}>
@@ -135,7 +191,7 @@ export default function CustomDrawer(props) {
       ))}
 
       {/* Categorias */}
-      {Object.entries(menuConfig).map(([key, categoria]) => {
+      {Object.entries(menuConfigFiltrado).map(([key, categoria]) => {
         if (categoria.items.length === 0) return null
 
         return (

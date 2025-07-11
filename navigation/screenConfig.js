@@ -297,6 +297,11 @@ export const screenConfigs = [
     options: createHeaderOptions('Gráficos Financeiros'),
   },
   {
+    name: 'DashboardFinanceiro',
+    component: Screens.DashboardFinanceiro,
+    options: createHeaderOptions('Gráficos Financeiros'),
+  },
+  {
     name: 'DashRealizado',
     component: Screens.DashRealizado,
     options: createHeaderOptions('Dashboard Realizado'),

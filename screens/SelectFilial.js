@@ -9,6 +9,7 @@ import {
 } from 'react-native'
 import { BASE_URL, fetchSlugMap } from '../utils/api'
 import axios from 'axios'
+import { getModulosComPermissao } from '../utils/modulosComPermissao'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/loginStyles'
 
@@ -77,9 +78,30 @@ export default function SelectFilial({ route, navigation }) {
         ['filialId', filialId.toString()],
         ['filialNome', filialNome],
       ])
+
       console.log('[STORAGE] Filial salva:', filialId, filialNome)
 
-      navigation.navigate('MainApp') // Redireciona após salvar a filial
+      // Carregar módulos específicos da filial selecionada
+      console.log('📱 Carregando módulos permitidos...')
+      const modulosPermitidos = await getModulosComPermissao()
+      
+      console.log('🔍 Módulos retornados pela API:')
+      console.log('📊 Quantidade:', modulosPermitidos?.length || 0)
+      console.log('📋 Lista completa:', JSON.stringify(modulosPermitidos, null, 2))
+      
+      if (modulosPermitidos && modulosPermitidos.length > 0) {
+        await AsyncStorage.setItem('modulos', JSON.stringify(modulosPermitidos))
+        console.log('✅ Módulos salvos no AsyncStorage:', modulosPermitidos.length)
+        
+        // Verificar se foram salvos corretamente
+        const modulosSalvos = await AsyncStorage.getItem('modulos')
+        console.log('🔍 Verificação - Módulos no AsyncStorage:', JSON.parse(modulosSalvos || '[]').length)
+      } else {
+        console.log('⚠️ Nenhum módulo permitido encontrado')
+        await AsyncStorage.setItem('modulos', JSON.stringify([]))
+      }
+
+      navigation.navigate('MainApp')
     } catch (error) {
       console.error('Erro ao salvar filial selecionada:', error)
       Alert.alert('Erro', 'Erro ao salvar filial. Tente novamente.')

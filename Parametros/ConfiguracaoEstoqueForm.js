@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
+  ActivityIndicator,
 } from 'react-native'
 import { Feather } from '@expo/vector-icons'
 import {
   getConfiguracaoEstoque,
   updateConfiguracaoEstoque,
 } from '../services/parametrosService'
-import { parametrosStyles } from './styles/parametrosStyles'
 
 const ConfiguracaoEstoqueForm = ({ navigation }) => {
   const [configuracao, setConfiguracao] = useState(null)
@@ -26,8 +26,7 @@ const ConfiguracaoEstoqueForm = ({ navigation }) => {
     try {
       setLoading(true)
       const response = await getConfiguracaoEstoque()
-      
-      // Handle different response structures
+
       let config
       if (response?.data?.results && Array.isArray(response.data.results)) {
         config = response.data.results[0]
@@ -36,8 +35,7 @@ const ConfiguracaoEstoqueForm = ({ navigation }) => {
       } else {
         config = null
       }
-      
-      // Set default values if no config found
+
       const finalConfig = config || {
         controlar_estoque: false,
         permitir_estoque_negativo: false,
@@ -45,14 +43,13 @@ const ConfiguracaoEstoqueForm = ({ navigation }) => {
         usar_ultimo_custo: false,
         calcular_automatico: false,
         alertar_estoque_minimo: false,
-        bloquear_venda_sem_estoque: false,
       }
-      
+
       setConfiguracao(finalConfig)
     } catch (error) {
       console.error('Erro ao carregar configuração:', error)
-      
-      // Set default configuration on error
+      Alert.alert('Aviso', 'Erro ao carregar dados. Usando valores padrão.')
+
       setConfiguracao({
         controlar_estoque: false,
         permitir_estoque_negativo: false,
@@ -60,10 +57,7 @@ const ConfiguracaoEstoqueForm = ({ navigation }) => {
         usar_ultimo_custo: false,
         calcular_automatico: false,
         alertar_estoque_minimo: false,
-        bloquear_venda_sem_estoque: false,
       })
-      
-      Alert.alert('Aviso', 'Não foi possível carregar a configuração. Usando valores padrão.')
     } finally {
       setLoading(false)
     }
@@ -74,7 +68,7 @@ const ConfiguracaoEstoqueForm = ({ navigation }) => {
       if (configuracao.usar_custo_medio && configuracao.usar_ultimo_custo) {
         Alert.alert(
           'Erro',
-          'Não é possível usar custo médio e último custo simultaneamente'
+          'Não é possível usar custo médio e último custo ao mesmo tempo.'
         )
         return
       }
@@ -98,125 +92,105 @@ const ConfiguracaoEstoqueForm = ({ navigation }) => {
     }))
   }
 
+  const renderItem = (label, field) => (
+    <View
+      style={{
+        backgroundColor: '#2f3e52',
+        padding: 15,
+        marginBottom: 12,
+        borderRadius: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        elevation: 4,
+      }}>
+      <Text style={{ color: '#fff', fontSize: 16, fontWeight: '500' }}>
+        {label}
+      </Text>
+      <Switch
+        value={configuracao[field]}
+        onValueChange={() => handleToggle(field)}
+        trackColor={{ false: '#777', true: '#34d399' }}
+        thumbColor={configuracao[field] ? '#22c55e' : '#ccc'}
+      />
+    </View>
+  )
+
   if (loading || !configuracao) {
     return (
-      <View style={parametrosStyles.loadingContainer}>
-        <Text>Carregando...</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#243242',
+        }}>
+        <ActivityIndicator size="large" color="#0ea5e9" />
       </View>
     )
   }
 
   return (
-    <View style={parametrosStyles.container}>
-      <ScrollView style={parametrosStyles.scrollContainer}>
-        <View style={parametrosStyles.section}>
-          <Text style={parametrosStyles.sectionTitle}>Controle de Estoque</Text>
+    <View style={{ flex: 1, backgroundColor: '#243242', padding: 16 }}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginBottom: 12,
+          }}>
+          Controle de Estoque
+        </Text>
+        {renderItem('Controlar Estoque', 'controlar_estoque')}
+        {renderItem('Permitir Estoque Negativo', 'permitir_estoque_negativo')}
+        {renderItem('Bloquear Venda sem Estoque', 'bloquear_venda_sem_estoque')}
 
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>Controlar Estoque</Text>
-            <Switch
-              value={configuracao.controlar_estoque}
-              onValueChange={() => handleToggle('controlar_estoque')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.controlar_estoque ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginVertical: 16,
+          }}>
+          Cálculo de Custos
+        </Text>
+        {renderItem('Usar Custo Médio', 'usar_custo_medio')}
+        {renderItem('Usar Último Custo', 'usar_ultimo_custo')}
+        {renderItem('Calcular Automaticamente', 'calcular_automatico')}
 
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>
-              Permitir Estoque Negativo
-            </Text>
-            <Switch
-              value={configuracao.permitir_estoque_negativo}
-              onValueChange={() => handleToggle('permitir_estoque_negativo')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.permitir_estoque_negativo ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>
-              Bloquear Venda sem Estoque
-            </Text>
-            <Switch
-              value={configuracao.bloquear_venda_sem_estoque}
-              onValueChange={() => handleToggle('bloquear_venda_sem_estoque')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.bloquear_venda_sem_estoque ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-        </View>
-
-        <View style={parametrosStyles.section}>
-          <Text style={parametrosStyles.sectionTitle}>Cálculo de Custos</Text>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>Usar Custo Médio</Text>
-            <Switch
-              value={configuracao.usar_custo_medio}
-              onValueChange={() => handleToggle('usar_custo_medio')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={configuracao.usar_custo_medio ? '#f5dd4b' : '#f4f3f4'}
-            />
-          </View>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>Usar Último Custo</Text>
-            <Switch
-              value={configuracao.usar_ultimo_custo}
-              onValueChange={() => handleToggle('usar_ultimo_custo')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.usar_ultimo_custo ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>
-              Calcular Automaticamente
-            </Text>
-            <Switch
-              value={configuracao.calcular_automatico}
-              onValueChange={() => handleToggle('calcular_automatico')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.calcular_automatico ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-        </View>
-
-        <View style={parametrosStyles.section}>
-          <Text style={parametrosStyles.sectionTitle}>Alertas</Text>
-
-          <View style={parametrosStyles.configItem}>
-            <Text style={parametrosStyles.configLabel}>
-              Alertar Estoque Mínimo
-            </Text>
-            <Switch
-              value={configuracao.alertar_estoque_minimo}
-              onValueChange={() => handleToggle('alertar_estoque_minimo')}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={
-                configuracao.alertar_estoque_minimo ? '#f5dd4b' : '#f4f3f4'
-              }
-            />
-          </View>
-        </View>
+        <Text
+          style={{
+            color: '#fff',
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginVertical: 16,
+          }}>
+          Alertas
+        </Text>
+        {renderItem('Alertar Estoque Mínimo', 'alertar_estoque_minimo')}
       </ScrollView>
 
       <TouchableOpacity
-        style={parametrosStyles.saveButton}
+        style={{
+          backgroundColor: '#0ea5e9',
+          padding: 15,
+          borderRadius: 10,
+          marginTop: 20,
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 8,
+        }}
         onPress={handleSave}>
         <Feather name="save" size={20} color="#fff" />
-        <Text style={parametrosStyles.saveButtonText}>Salvar Configuração</Text>
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+          Salvar Configuração
+        </Text>
       </TouchableOpacity>
     </View>
   )

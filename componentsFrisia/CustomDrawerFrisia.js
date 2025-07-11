@@ -57,8 +57,11 @@ const CustomDrawerFrisia = (props) => {
             {frisiaMenuItems.map((item, index) => (
               <MenuItem
                 key={index}
-                item={item}
+                name={item.name}
+                route={item.route}
+                icon={item.icon}
                 navigation={props.navigation}
+                styles={styles}
                 condition={item.condition}
               />
             ))}
@@ -136,6 +139,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginLeft: 10,
     fontSize: 16,
+    fontWeight: '500',
+  },
+  menuSection: {
+    marginVertical: 5,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#2c3e50',
+    borderBottomWidth: 1,
+    borderBottomColor: '#34495e',
+  },
+  menuItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemText: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#fff',
     fontWeight: '500',
   },
 });
