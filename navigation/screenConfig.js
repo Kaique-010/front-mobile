@@ -401,4 +401,9 @@ export const screenConfigs = [
     component: Screens.Modulos,
     options: createHeaderOptions('Módulos do Sistema'),
   },
+  {
+    name: 'ParametrosPorModulo',
+    component: Screens.ParametrosPorModulo,
+    options: createHeaderOptions('Parâmetros por Módulo'),
+  },
 ]

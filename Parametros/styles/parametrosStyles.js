@@ -516,4 +516,114 @@ export const parametrosStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  // Estilos para parâmetros por módulo
+  moduloContainer: {
+    backgroundColor: '#fff',
+    marginBottom: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  
+  moduloHeader: {
+    backgroundColor: '#2f3e52',
+    padding: 15,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  
+  moduloHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  
+  moduloNome: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  
+  moduloCount: {
+    color: '#ccc',
+    fontSize: 12,
+    marginLeft: 10,
+  },
+  
+  parametrosContainer: {
+    backgroundColor: '#f8f9fa',
+  },
+  
+  parametroItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  
+  parametroInfo: {
+    flex: 1,
+    marginRight: 15,
+  },
+  
+  parametroNome: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  
+  parametroDescricao: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  
+  parametroValor: {
+    fontSize: 11,
+    color: '#888',
+  },
+  
+  salvarButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  
+  salvarButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
+  scrollContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
 })

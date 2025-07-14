@@ -15,36 +15,20 @@ const ParametrosMenu = ({ navigation }) => {
     },
 
     {
-      id: 'parametros-gerais',
-      title: 'Parâmetros Gerais',
-      description: 'Configurações gerais do sistema',
-      icon: 'settings',
-      color: '#28a745',
-      route: 'ParametrosGeraisList',
-    },
-    {
-      id: 'config-estoque',
-      title: 'Configuração de Estoque',
-      description: 'Controle de movimentação e validações de estoque',
-      icon: 'package',
-      color: '#ffc107',
-      route: 'ConfiguracaoEstoqueForm',
-    },
-    {
-      id: 'config-financeiro',
-      title: 'Configuração Financeira',
-      description: 'Controle de descontos, prazos e comissões',
-      icon: 'dollar-sign',
-      color: '#17a2b8',
-      route: 'ConfiguracaoFinanceiroForm',
-    },
-    {
       id: 'logs-parametros',
       title: 'Logs de Alterações',
       description: 'Histórico de mudanças nos parâmetros',
       icon: 'file-text',
       color: '#6c757d',
       route: 'LogParametrosList',
+    },
+    {
+      id: 'parametros-por-modulo',
+      title: 'Parâmetros por Módulo',
+      description: 'Ativar/inativar parâmetros organizados por módulo',
+      icon: 'layers',
+      color: '#6f42c1',
+      route: 'ParametrosPorModulo',
     },
   ]
 

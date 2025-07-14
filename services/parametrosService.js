@@ -3,6 +3,7 @@ import {
   apiPostComContexto,
   apiPutComContexto,
   apiDeleteComContexto,
+  apiPatchComContexto,
 } from '../utils/api'
 
 // Parâmetros Gerais
@@ -98,4 +99,14 @@ export const verificarPermissaoTela = (tela, operacao) => {
 
 export const getConfiguracaoCompleta = () => {
   return apiGetComContexto('parametros-admin/configuracao-completa/')
+}
+
+
+// Parâmetros por Módulo
+export const getParametrosPorModulo = (params = {}) => {
+  return apiGetComContexto('parametros-admin/parametros-por-modulo/', params)
+}
+
+export const updateParametrosPorModulo = (data) => {
+  return apiPatchComContexto('parametros-admin/parametros-por-modulo/', data)
 }

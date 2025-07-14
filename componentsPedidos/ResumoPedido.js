@@ -11,11 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
 
-import {
-  apiPostComContexto,
-  apiGetComContexto,
-  apiPutComContexto,
-} from '../utils/api'
+import { apiPost, apiGetComContexto, apiPut } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import RecebimentoModal from './RecebimentoModal'
 
@@ -57,11 +53,12 @@ export default function ResumoPedido({ total, pedido }) {
         )
         return
       }
-
+  
       const numeroZap = `55${numeroLimpo}`
       const nomeCliente = entidade.enti_nome || 'Cliente'
-
-      const corpo = (pedido.itens || [])
+  
+      // ✅ Corrigir para usar itens_input
+      const corpo = (pedido.itens_input || [])
         .map((item, idx) => {
           const nome = item.produto_nome || 'Sem nome'
           const codigo = item.iped_prod || 'N/A'
@@ -72,11 +69,11 @@ export default function ResumoPedido({ total, pedido }) {
           }. ${nome} (Cód: ${codigo}) - Qtde: ${qtd} - R$ ${valor}`
         })
         .join('\n')
-
+  
       const texto = `Novo pedido:  ${numeroPedido}!\nCliente: ${nomeCliente}\n\nItens:\n${corpo}\n\nTotal: R$ ${totalFormatado.toFixed(
         2
       )}`
-
+  
       const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(texto)}`
       Linking.openURL(url)
     } catch (err) {
@@ -95,29 +92,76 @@ export default function ResumoPedido({ total, pedido }) {
     }
 
     try {
+      // Obter slug para construir endpoint manualmente
+      const { slug } = await getStoredData()
+  
+      // Preparar payload limpo
+      const payload = {
+        pedi_empr: Number(pedido.pedi_empr),
+        pedi_fili: Number(pedido.pedi_fili),
+        pedi_forn: Number(pedido.pedi_forn),
+        pedi_vend: Number(pedido.pedi_vend),
+        pedi_data: pedido.pedi_data,
+        pedi_fina: Number(pedido.pedi_fina || 0),
+        status: Number(pedido.status || 0),
+        pedi_obse: pedido.pedi_obse || '',
+        pedi_tota: Number(pedido.pedi_tota || 0),
+        // ✅ Corrigir para usar itens_input
+        itens_input: (pedido.itens_input || []).map((item) => ({
+          iped_prod: Number(item.iped_prod),
+          iped_quan: Number(item.iped_quan),
+          iped_unit: Number(item.iped_unit),
+          iped_tota: Number(item.iped_tota),
+        })),
+      }
+  
+      // Adicionar pedi_nume apenas se existir (para edição)
+      if (pedido.pedi_nume) {
+        payload.pedi_nume = pedido.pedi_nume
+      }
+  
+      console.log(
+        'Payload final sendo enviado:',
+        JSON.stringify(payload, null, 2)
+      )
+  
       let data
       if (pedido.pedi_nume) {
-        data = await apiPutComContexto(
-          `pedidos/pedidos/${pedido.pedi_nume}/`,
-          pedido
+        // Para edição, usar apiPut com endpoint completo
+        data = await apiPut(
+          `/api/${slug}/pedidos/pedidos/${pedido.pedi_nume}/`,
+          payload
         )
       } else {
-        data = await apiPostComContexto(`pedidos/pedidos/`, pedido)
+        // Para criação, usar apiPost com endpoint completo
+        data = await apiPost(`/api/${slug}/pedidos/pedidos/`, payload)
       }
-
+  
       const pedi_nume = data.pedi_nume || 'desconhecido'
-
+  
       Toast.show({
         type: 'success',
         text1: `Pedido #${pedi_nume} salvo com sucesso!`,
         position: 'bottom',
         visibilityTime: 3000,
       })
-
+  
       navigation.navigate('MainApp', { screen: 'Pedidos' })
     } catch (error) {
-      console.error('Erro ao salvar pedido:', error)
-      Alert.alert('Erro', 'Falha ao salvar o pedido.')
+      console.error('=== ERRO DETALHADO AO SALVAR PEDIDO ===')
+      console.error('Status:', error.response?.status)
+      console.error('Data:', error.response?.data)
+      console.error('Headers:', error.response?.headers)
+      console.error('Config:', error.config)
+  
+      Alert.alert(
+        'Erro',
+        `Falha ao salvar o pedido: ${
+          error.response?.data?.erro ||
+          error.response?.data?.detail ||
+          error.message
+        }`
+      )
     }
   }
 
