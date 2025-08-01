@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://192.168.20.84:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'http://192.168.20.80:8000' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -44,54 +44,58 @@ const getAuthHeaders = async () => {
   }
 }
 
-// Função principal de requisição
+// Função principal de requisição melhorada
 const apiFetch = async (
   endpoint,
   method = 'get',
   data = null,
-  params = null
+  params = null,
+  retryCount = 0
 ) => {
-  const token = await AsyncStorage.getItem('access') // ✅ CORRIGIDO
-  console.log('🔐 API Token check:', !!token)
-  console.log(
-    '🔐 Token preview:',
-    token ? token.substring(0, 20) + '...' : 'NO TOKEN'
-  )
-
-  if (!token) {
-    console.error('❌ No authentication token found!')
-    // Handle token refresh or redirect to login
-  }
-
-  const headersExtras = await getAuthHeaders()
-
-  const buildConfig = (tk) => ({
-    method,
-    url: `${BASE_URL}${endpoint}`,
-    headers: {
-      Authorization: `Bearer ${tk}`,
-      ...headersExtras,
-    },
-    ...(data && { data }),
-    ...(params && { params }),
-  })
-
+  const maxRetries = 1
+  
   try {
-    const config = buildConfig(token)
+    let currentToken = await AsyncStorage.getItem('access')
+
+    if (!currentToken) {
+      console.error('❌ Token de autenticação não encontrado!')
+      throw new Error('Token de autenticação não encontrado')
+    }
+
+    const headersExtras = await getAuthHeaders()
+
+    const config = {
+      method,
+      url: `${BASE_URL}${endpoint}`,
+      headers: {
+        Authorization: `Bearer ${currentToken}`,
+        ...headersExtras,
+      },
+      ...(data && { data }),
+      ...(params && { params }),
+    }
+
     const response = await axios(config)
     return response
   } catch (error) {
-    if (error.response?.status === 401) {
+    // Se for erro 401 (token expirado) e ainda não tentamos renovar
+    if (error.response?.status === 401 && retryCount < maxRetries) {
       console.log('🔄 Token expirado, tentando renovar...')
       try {
-        token = await refreshToken()
-        const retryConfig = buildConfig(token)
-        const retryResponse = await axios(retryConfig)
-        return retryResponse
+        const newToken = await refreshToken()
+        console.log('✅ Token renovado com sucesso')
+        
+        // Retry da requisição com o novo token
+        return await apiFetch(endpoint, method, data, params, retryCount + 1)
       } catch (refreshError) {
-        throw refreshError
+        console.error('❌ Erro ao renovar token:', refreshError.message)
+        // Limpar tokens inválidos
+        await AsyncStorage.multiRemove(['access', 'refresh'])
+        throw new Error('Sessão expirada. Faça login novamente.')
       }
     }
+    
+    // Para outros erros ou se já tentamos renovar o token
     throw error
   }
 }

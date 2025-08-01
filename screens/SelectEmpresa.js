@@ -57,11 +57,6 @@ export default function SelectEmpresa({ navigation }) {
             }
           )
 
-          console.log(
-            '[DEBUG] URL da API:',
-            `${BASE_URL}/api/${slug}/licencas/empresas/`
-          )
-
           if (response.data && Array.isArray(response.data)) {
             setEmpresas(response.data)
           } else {
@@ -93,7 +88,6 @@ export default function SelectEmpresa({ navigation }) {
       // Salvando a empresa selecionada no AsyncStorage
       await AsyncStorage.setItem('empresaId', empresaId.toString())
       await AsyncStorage.setItem('empresaNome', empresaNome) // Salvando o nome também
-      console.log('[STORAGE] Empresa salva:', empresaId)
 
       // Navega para a próxima tela após salvar a empresa
       navigation.navigate('SelectFilial', {

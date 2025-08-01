@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { FlatList, View, ActivityIndicator } from 'react-native'
 import { TextInput, Card, Snackbar } from 'react-native-paper'
 import { getStoredData } from '../services/storageService'
-import { apiGet } from '../utils/api'
+import { apiGetComContexto } from '../utils/api'
 
 // Hook de debounce
 function useDebounce(value, delay = 500) {
@@ -22,31 +22,13 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   const [produtos, setProdutos] = useState([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [slug, setSlug] = useState('')
-
-  useEffect(() => {
-    const carregarSlug = async () => {
-      try {
-        const { slug } = await getStoredData()
-        if (slug) setSlug(slug)
-        else console.warn('Slug não encontrado')
-      } catch (err) {
-        console.error('Erro ao carregar slug:', err.message)
-      }
-    }
-    carregarSlug()
-  }, [])
 
   useEffect(() => {
     if (initialValue) setSearchTerm(initialValue)
   }, [initialValue])
 
   useEffect(() => {
-    if (
-      !slug ||
-      debouncedSearchTerm.trim().length < 2 ||
-      debouncedSearchTerm === initialValue
-    ) {
+    if (debouncedSearchTerm.trim().length < 2 || debouncedSearchTerm === initialValue) {
       setProdutos([])
       return
     }
@@ -54,9 +36,9 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
     const buscar = async () => {
       setLoading(true)
       try {
-        const data = await apiGet(`/api/${slug}/produtos/produtos/`, {
+        const data = await apiGetComContexto('produtos/produtos/', {
           search: debouncedSearchTerm,
-        })
+        }, 'prod_')
 
         const validos = data.results.filter(
           (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
@@ -71,7 +53,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
     }
 
     buscar()
-  }, [debouncedSearchTerm, slug])
+  }, [debouncedSearchTerm])
 
   const handleSelecionarProduto = (produto) => {
     if (!produto?.prod_codi || isNaN(Number(produto.prod_codi))) {
@@ -121,7 +103,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
       ) : (
         <FlatList
           data={produtos}
-          keyExtractor={(item) => item.prod_codi.toString()}
+          keyExtractor={(item) => `produto-${item.prod_codi}`}
           nestedScrollEnabled={true}
           renderItem={({ item }) => (
             <Card

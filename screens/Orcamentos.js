@@ -17,6 +17,7 @@ import {
 } from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
+import BotaoTransformarOrcamento from '../componentsOrcamentos/BotaoTransformarOrcamento'
 
 export default function Orcamentos({ navigation }) {
   const [orcamentos, setOrcamentos] = useState([])
@@ -129,31 +130,63 @@ export default function Orcamentos({ navigation }) {
     )
   }
 
-  const renderOrcamentos = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.numero}>Nº Orcamento: {item.pedi_nume}</Text>
-      <Text style={styles.data}>Data: {item.pedi_data}</Text>
-      <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
-      <Text style={styles.total}>Total orcamento: {item.pedi_tota}</Text>
-      <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
+  const handleTransformacaoSucesso = (pedidoData) => {
+    // Atualiza a lista de orçamentos após transformação bem-sucedida
+    buscarOrcamentos(false, false)
+    
+    // Opcional: navegar para a tela de pedidos ou mostrar mais informações
+    Alert.alert(
+      'Sucesso', 
+      `Orçamento transformado em pedido nº ${pedidoData?.pedi_nume || ''}!`,
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Opcional: navegar para a tela de pedidos
+            // navigation.navigate('Pedidos')
+          }
+        }
+      ]
+    )
+  }
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.botao}
-          onPress={() =>
-            navigation.navigate('OrcamentosForm', { orcamento: item })
-          }>
-          <Text style={styles.botaoTexto}>✏️</Text>
-        </TouchableOpacity>
+  const renderOrcamentos = ({ item }) => {
+    // Debug log para verificar os dados do item
+    console.log('[DEBUG] Dados do orçamento:', item)
+    console.log('[DEBUG] ID que será passado:', item.pedi_nume)
+    
+    return (
+      <View style={styles.card}>
+        <Text style={styles.numero}>Nº Orcamento: {item.pedi_nume}</Text>
+        <Text style={styles.data}>Data: {item.pedi_data}</Text>
+        <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
+        <Text style={styles.total}>Total orcamento: {item.pedi_tota}</Text>
+        <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
 
-        <TouchableOpacity
-          style={styles.botao}
-          onPress={() => deletarOrcamento(item)}>
-          <Text style={styles.botaoTexto}>🗑️</Text>
-        </TouchableOpacity>
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.botao}
+            onPress={() =>
+              navigation.navigate('OrcamentosForm', { orcamento: item })
+            }>
+            <Text style={styles.botaoTexto}>✏️</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.botao}
+            onPress={() => deletarOrcamento(item)}>
+            <Text style={styles.botaoTexto}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Botão para transformar orçamento em pedido */}
+        <BotaoTransformarOrcamento 
+          orcamentoId={item.pedi_nume}
+          onSuccess={handleTransformacaoSucesso}
+        />
       </View>
-    </View>
-  )
+    )
+  }
 
   if (initialLoading) {
     return (

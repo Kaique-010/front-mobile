@@ -102,12 +102,6 @@ export default function Login({ navigation }) {
         }
       )
 
-      // ADICIONAR ESTES LOGS PARA DEBUG:
-      console.log('Resposta completa da API:', response.data)
-      console.log('Módulos retornados pela API:', response.data.modulos)
-      console.log('Tipo dos módulos:', typeof response.data.modulos)
-      console.log('É array?', Array.isArray(response.data.modulos))
-
       // Definir os modulos após a resposta da API
       setModulos(response.data.modulos)
 

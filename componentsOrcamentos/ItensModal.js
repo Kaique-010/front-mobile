@@ -163,7 +163,7 @@ export default function ItensModal({
           />
         ) : (
           <>
-            <Text style={styles.cabecalho}>ITENS DO PEDIDO</Text>
+            <Text style={styles.cabecalho}>ITENS DO ORÇAMENTO</Text>
 
             <Text style={styles.label}>Produto:</Text>
             <View style={styles.buscaComIcone}>

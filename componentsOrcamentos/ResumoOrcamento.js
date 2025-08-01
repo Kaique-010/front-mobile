@@ -11,7 +11,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
-import BotaoTransformarOrcamento from './BotaoTransformarOrcamento'
+
 import {
   apiPostComContexto,
   apiGetComContexto,
@@ -142,12 +142,6 @@ export default function ResumoOrcamento({ total, orcamento }) {
             <MaterialCommunityIcons name="whatsapp" size={18} color="#fff" />
           </Text>
         </TouchableOpacity>
-        <BotaoTransformarOrcamento
-          orcamentoId={orcamento.pedi_nume}
-          onSuccess={() => {
-            navigation.navigate('MainApp', { screen: 'Orcamentos' })
-          }}
-        />
       </View>
     </View>
   )
