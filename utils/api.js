@@ -53,7 +53,7 @@ const apiFetch = async (
   retryCount = 0
 ) => {
   const maxRetries = 1
-  
+
   try {
     let currentToken = await AsyncStorage.getItem('access')
 
@@ -84,7 +84,7 @@ const apiFetch = async (
       try {
         const newToken = await refreshToken()
         console.log('✅ Token renovado com sucesso')
-        
+
         // Retry da requisição com o novo token
         return await apiFetch(endpoint, method, data, params, retryCount + 1)
       } catch (refreshError) {
@@ -94,7 +94,7 @@ const apiFetch = async (
         throw new Error('Sessão expirada. Faça login novamente.')
       }
     }
-    
+
     // Para outros erros ou se já tentamos renovar o token
     throw error
   }

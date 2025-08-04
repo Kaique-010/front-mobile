@@ -282,6 +282,11 @@ export const screenConfigs = [
     component: Screens.FluxoCaixaPrevisto,
     options: createHeaderOptions('Fluxo Caixa Previsto'),
   },
+  {
+    name: 'ConsultaScreen',
+    component: Screens.ConsultaScreen,
+    options: createHeaderOptions('Consulta Inteligente'),
+  },
 
   // Telas de implantação
   {

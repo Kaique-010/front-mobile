@@ -267,6 +267,18 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
+    consulta: {
+      name: 'Consulta Inteligente',
+      icon: 'question-circle',
+      items: [
+        {
+          name: 'Consulta Inteligente',
+          route: 'ConsultaScreen',
+          icon: 'question-circle',
+          condition: true,
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
     producao: {
       name: 'Ordem de Produção',
       icon: 'codepen',

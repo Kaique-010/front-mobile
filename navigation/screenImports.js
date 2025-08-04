@@ -106,3 +106,6 @@ export { default as ConfiguracaoFinanceiroForm } from '../Parametros/Configuraca
 export { default as LogParametrosList } from '../Parametros/LogParametrosList'
 export { default as Modulos } from '../Parametros/Modulos'
 export { default as ParametrosPorModulo } from '../Parametros/ParametrosPorModulo'
+
+// Telas de MCP
+export { default as ConsultaScreen } from '../componentsMCP/consultaMCP'
