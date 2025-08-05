@@ -269,12 +269,12 @@ export const getMenuConfig = (hasModulo) => {
     },
     consulta: {
       name: 'Consulta Inteligente',
-      icon: 'question-circle',
+      icon: 'check-circle',
       items: [
         {
           name: 'Consulta Inteligente',
           route: 'ConsultaScreen',
-          icon: 'question-circle',
+          icon: 'check-circle',
           condition: true,
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
