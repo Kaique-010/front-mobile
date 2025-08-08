@@ -99,13 +99,13 @@ export { default as FormOrdemProducao } from '../componentsOrdemProducao/FormOrd
 // Parâmetros
 export { default as SistemaPermissoes } from '../Parametros/SistemaPermissoes'
 export { default as ParametrosMenu } from '../Parametros/ParametrosMenu'
-export { default as ParametrosGeraisList } from '../Parametros/ParametrosGeraisList'
-export { default as ParametrosGeraisForm } from '../Parametros/ParametrosGeraisForm'
-export { default as ConfiguracaoEstoqueForm } from '../Parametros/ConfiguracaoEstoqueForm'
-export { default as ConfiguracaoFinanceiroForm } from '../Parametros/ConfiguracaoFinanceiroForm'
 export { default as LogParametrosList } from '../Parametros/LogParametrosList'
 export { default as Modulos } from '../Parametros/Modulos'
-export { default as ParametrosPorModulo } from '../Parametros/ParametrosPorModulo'
+export { default as Parametros } from '../Parametros/Parametros'
+export { default as ParametrosVendas } from '../Parametros/Screens/ParametrosVendas'
+export { default as ParametrosCompras } from '../Parametros/Screens/ParametrosCompras'
+export { default as ParametrosEstoque } from '../Parametros/Screens/ParametrosEstoque'
+export { default as ParametrosFinanceiro } from '../Parametros/Screens/ParametrosFinanceiro'
 
 // Telas de MCP
 export { default as ConsultaScreen } from '../componentsMCP/consultaMCP'

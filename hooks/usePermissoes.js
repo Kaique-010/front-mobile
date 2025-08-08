@@ -121,6 +121,33 @@ export const usePermissoes = () => {
     return getConfigFinanceiro().conf_praz_maxi_vend || 0
   }, [getConfigFinanceiro])
 
+  // NOVOS PARÂMETROS DE DESCONTO
+  
+  // Verificar se permite desconto por item
+  const permiteDescontoItem = useCallback(() => {
+    return getConfigFinanceiro().conf_perm_desc_item || false
+  }, [getConfigFinanceiro])
+
+  // Verificar se permite desconto no total
+  const permiteDescontoTotal = useCallback(() => {
+    return getConfigFinanceiro().conf_perm_desc_total || false
+  }, [getConfigFinanceiro])
+
+  // Obter configuração de arredondamento
+  const getConfigArredondamento = useCallback(() => {
+    return getConfigFinanceiro().conf_arre_deci || 2
+  }, [getConfigFinanceiro])
+
+  // Verificar se deve aplicar desconto automaticamente
+  const aplicarDescontoAutomatico = useCallback(() => {
+    return getConfigFinanceiro().conf_desc_auto || false
+  }, [getConfigFinanceiro])
+
+  // Obter tipo de desconto padrão (percentual ou valor)
+  const getTipoDescontoPadrao = useCallback(() => {
+    return getConfigFinanceiro().conf_tipo_desc_padr || 'valor' // 'valor' ou 'percentual'
+  }, [getConfigFinanceiro])
+
   // Lista de módulos liberados
   const modulosLiberados = useCallback(() => {
     return modulos.filter(m => m.perm_ativ).map(m => m.modu_nome)
@@ -180,6 +207,13 @@ export const usePermissoes = () => {
     getDescontoMaximo,
     permiteVendasPrazo,
     getPrazoMaximoVendas,
+    
+    // NOVOS PARÂMETROS DE DESCONTO
+    permiteDescontoItem,
+    permiteDescontoTotal,
+    getConfigArredondamento,
+    aplicarDescontoAutomatico,
+    getTipoDescontoPadrao,
     
     // Listas
     modulosLiberados,

@@ -169,12 +169,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'lock',
           condition: true,
         },
-        {
-          name: 'Sistema de Permissões',
-          route: 'SistemaPermissoes',
-          icon: 'shield',
-          condition: hasModulo('parametros_admin'),
-        },
+
         {
           name: 'Parâmetros do Sistema',
           route: 'ParametrosMenu',

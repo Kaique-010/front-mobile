@@ -15,20 +15,12 @@ const ParametrosMenu = ({ navigation }) => {
     },
 
     {
-      id: 'logs-parametros',
-      title: 'Logs de Alterações',
-      description: 'Histórico de mudanças nos parâmetros',
-      icon: 'file-text',
-      color: '#6c757d',
-      route: 'LogParametrosList',
-    },
-    {
-      id: 'parametros-por-modulo',
-      title: 'Parâmetros por Módulo',
-      description: 'Ativar/inativar parâmetros organizados por módulo',
+      id: 'parametros',
+      title: 'Parâmetros',
+      description: 'Ativar/inativar parâmetros ',
       icon: 'layers',
       color: '#6f42c1',
-      route: 'ParametrosPorModulo',
+      route: 'Parametros',
     },
   ]
 

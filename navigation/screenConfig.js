@@ -376,26 +376,7 @@ export const screenConfigs = [
     component: Screens.ParametrosMenu,
     options: createHeaderOptions('Parâmetros do Sistema'),
   },
-  {
-    name: 'ParametrosGeraisList',
-    component: Screens.ParametrosGeraisList,
-    options: createHeaderOptions('Parâmetros Gerais'),
-  },
-  {
-    name: 'ParametrosGeraisForm',
-    component: Screens.ParametrosGeraisForm,
-    options: createHeaderOptions('Parâmetro'),
-  },
-  {
-    name: 'ConfiguracaoEstoqueForm',
-    component: Screens.ConfiguracaoEstoqueForm,
-    options: createHeaderOptions('Configuração de Estoque'),
-  },
-  {
-    name: 'ConfiguracaoFinanceiroForm',
-    component: Screens.ConfiguracaoFinanceiroForm,
-    options: createHeaderOptions('Configuração Financeira'),
-  },
+
   {
     name: 'LogParametrosList',
     component: Screens.LogParametrosList,
@@ -407,8 +388,28 @@ export const screenConfigs = [
     options: createHeaderOptions('Módulos do Sistema'),
   },
   {
-    name: 'ParametrosPorModulo',
-    component: Screens.ParametrosPorModulo,
-    options: createHeaderOptions('Parâmetros por Módulo'),
+    name: 'Parametros',
+    component: Screens.Parametros,
+    options: createHeaderOptions('Parâmetros do Sistema'),
+  },
+  {
+    name: 'ParametrosVendas',
+    component: Screens.ParametrosVendas,
+    options: createHeaderOptions('Parâmetros de Vendas'),
+  },
+  {
+    name: 'ParametrosCompras',
+    component: Screens.ParametrosCompras,
+    options: createHeaderOptions('Parâmetros de Compras'),
+  },
+  {
+    name: 'ParametrosEstoque',
+    component: Screens.ParametrosEstoque,
+    options: createHeaderOptions('Parâmetros de Estoque'),
+  },
+  {
+    name: 'ParametrosFinanceiro',
+    component: Screens.ParametrosFinanceiro,
+    options: createHeaderOptions('Parâmetros Financeiro'),
   },
 ]

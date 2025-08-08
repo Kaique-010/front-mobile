@@ -36,18 +36,19 @@ const SistemaPermissoes = ({ navigation }) => {
   const carregarDados = async () => {
     try {
       setLoading(true)
-      
+
       // Carregar dados da empresa/filial
       const { empresaId, filialId } = await getStoredData()
       setEmpresaId(empresaId)
       setFilialId(filialId)
 
       // Carregar dados em paralelo
-      const [modulosResponse, permissoesResponse, configResponse] = await Promise.all([
-        getModulosLiberados(),
-        getPermissoesUsuario(),
-        getConfiguracaoCompleta(),
-      ])
+      const [modulosResponse, permissoesResponse, configResponse] =
+        await Promise.all([
+          getModulosLiberados(),
+          getPermissoesUsuario(),
+          getConfiguracaoCompleta(),
+        ])
 
       setModulos(modulosResponse?.data || [])
       setPermissoes(permissoesResponse?.data || {})
@@ -64,15 +65,13 @@ const SistemaPermissoes = ({ navigation }) => {
   const handleToggleModulo = async (moduloId, ativo) => {
     try {
       await updatePermissaoModulo(moduloId, { perm_ativ: !ativo })
-      
-      setModulos(prev => 
-        prev.map(mod => 
-          mod.modu_codi === moduloId 
-            ? { ...mod, perm_ativ: !ativo }
-            : mod
+
+      setModulos((prev) =>
+        prev.map((mod) =>
+          mod.modu_codi === moduloId ? { ...mod, perm_ativ: !ativo } : mod
         )
       )
-      
+
       Alert.alert('Sucesso', 'Permissão atualizada com sucesso')
     } catch (error) {
       console.error('Erro ao atualizar permissão:', error)
@@ -108,11 +107,15 @@ const SistemaPermissoes = ({ navigation }) => {
       <View style={parametrosStyles.moduloHeader}>
         <View style={parametrosStyles.moduloInfo}>
           <Text style={parametrosStyles.moduloNome}>{modulo.modu_nome}</Text>
-          <Text style={parametrosStyles.moduloDescricao}>{modulo.modu_desc}</Text>
+          <Text style={parametrosStyles.moduloDescricao}>
+            {modulo.modu_desc}
+          </Text>
         </View>
         <Switch
           value={modulo.perm_ativ}
-          onValueChange={() => handleToggleModulo(modulo.modu_codi, modulo.perm_ativ)}
+          onValueChange={() =>
+            handleToggleModulo(modulo.modu_codi, modulo.perm_ativ)
+          }
           trackColor={{ false: '#767577', true: '#81b0ff' }}
           thumbColor={modulo.perm_ativ ? '#f5dd4b' : '#f4f3f4'}
         />
@@ -120,14 +123,15 @@ const SistemaPermissoes = ({ navigation }) => {
 
       {modulo.perm_data_venc && (
         <Text style={parametrosStyles.dataVencimento}>
-          Expira em: {new Date(modulo.perm_data_venc).toLocaleDateString('pt-BR')}
+          Expira em:{' '}
+          {new Date(modulo.perm_data_venc).toLocaleDateString('pt-BR')}
         </Text>
       )}
 
       {modulo.telas && modulo.telas.length > 0 && (
         <View style={parametrosStyles.telasContainer}>
           <Text style={parametrosStyles.telasTitulo}>Telas disponíveis:</Text>
-          {modulo.telas.map(tela => (
+          {modulo.telas.map((tela) => (
             <Text key={tela.tela_codi} style={parametrosStyles.telaItem}>
               • {tela.tela_nome}
             </Text>
@@ -140,11 +144,11 @@ const SistemaPermissoes = ({ navigation }) => {
   const renderResumoPermissoes = () => (
     <View style={parametrosStyles.resumoCard}>
       <Text style={parametrosStyles.resumoTitulo}>Resumo de Permissões</Text>
-      
+
       <View style={parametrosStyles.resumoItem}>
         <Text style={parametrosStyles.resumoLabel}>Módulos Liberados:</Text>
         <Text style={parametrosStyles.resumoValor}>
-          {modulos.filter(m => m.perm_ativ).length} / {modulos.length}
+          {modulos.filter((m) => m.perm_ativ).length} / {modulos.length}
         </Text>
       </View>
 
@@ -164,7 +168,9 @@ const SistemaPermissoes = ({ navigation }) => {
     return (
       <View style={parametrosStyles.loadingContainer}>
         <ActivityIndicator size="large" color="#007bff" />
-        <Text style={parametrosStyles.loadingText}>Carregando sistema de permissões...</Text>
+        <Text style={parametrosStyles.loadingText}>
+          Carregando sistema de permissões...
+        </Text>
       </View>
     )
   }
@@ -186,7 +192,6 @@ const SistemaPermissoes = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={carregarDados} />
         }
         showsVerticalScrollIndicator={false}>
-        
         {renderResumoPermissoes()}
 
         <View style={parametrosStyles.modulosContainer}>
@@ -194,31 +199,10 @@ const SistemaPermissoes = ({ navigation }) => {
           {modulos.map(renderModulo)}
         </View>
 
-        <View style={parametrosStyles.acoesContainer}>
-          <TouchableOpacity
-            style={parametrosStyles.acaoButton}
-            onPress={() => navigation.navigate('ParametrosGeraisList')}>
-            <Feather name="settings" size={20} color="#fff" />
-            <Text style={parametrosStyles.acaoButtonText}>Parâmetros Gerais</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={parametrosStyles.acaoButton}
-            onPress={() => navigation.navigate('ConfiguracaoEstoqueForm')}>
-            <Feather name="package" size={20} color="#fff" />
-            <Text style={parametrosStyles.acaoButtonText}>Config. Estoque</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={parametrosStyles.acaoButton}
-            onPress={() => navigation.navigate('ConfiguracaoFinanceiroForm')}>
-            <Feather name="dollar-sign" size={20} color="#fff" />
-            <Text style={parametrosStyles.acaoButtonText}>Config. Financeiro</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={parametrosStyles.acoesContainer}></View>
       </ScrollView>
     </View>
   )
 }
 
-export default SistemaPermissoes 
+export default SistemaPermissoes
