@@ -16,12 +16,15 @@ export default function ItensList({ itens, onEdit, onRemove }) {
       contentContainerStyle={styles.container}
       renderItem={({ item }) => (
         <View style={styles.item}>
+          const total = (Number(item.iped_quan) || 0) * (Number(item.iped_unit) || 0);
+          const descontoItem = item.desconto_item_disponivel ? total * (item.percentual_desconto || 0) : 0;
+          const totalComDesconto = total - descontoItem;
           <Text style={styles.text} numberOfLines={1} ellipsizeMode="tail">
             {item?.iped_prod || 'Sem código'} -
             {(item?.produto_nome || 'Sem nome').slice(0, 10)} qtd -
-            {(Number(item.iped_quan) || 0).toFixed(2)} x{' '}
-            {(Number(item.iped_unit) || 0).toFixed(2)} ={' '}
-            {(Number(item.iped_tota) || 0).toFixed(2)}
+            {(Number(item.iped_quan) || 0).toFixed(2)} x {' '}
+            {(Number(item.iped_unit) || 0).toFixed(2)} = {' '}
+            {totalComDesconto.toFixed(2)}
           </Text>
           <View style={styles.botoesContainer}>
             <TouchableOpacity
