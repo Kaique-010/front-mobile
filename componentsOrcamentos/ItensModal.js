@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Vibration,
+  Switch,
 } from 'react-native'
 import { LogBox } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
@@ -27,6 +28,10 @@ export default function ItensModal({
     produtoNome: '',
     quantidade: '',
     preco: '',
+    descontoHabilitado: false,
+    tipoDesconto: 'percentual', // 'percentual' | 'valor'
+    percentualDesconto: '', // em % (ex: 10 para 10%)
+    valorDesconto: '', // valor absoluto
   })
   const [isScanningModal, setIsScanningModal] = useState(false)
   const [highlight, setHighlight] = useState(false)
@@ -40,6 +45,14 @@ export default function ItensModal({
         preco: itemEditando.iped_unit?.toString() || '',
         produtoNome: itemEditando.produto_nome || '',
         idExistente: !!itemEditando.id,
+        descontoHabilitado: !!itemEditando.desconto_item_disponivel,
+        tipoDesconto: itemEditando.desconto_valor ? 'valor' : 'percentual',
+        percentualDesconto: itemEditando.percentual_desconto
+          ? String((Number(itemEditando.percentual_desconto) || 0) * 100)
+          : '',
+        valorDesconto: itemEditando.desconto_valor
+          ? String(itemEditando.desconto_valor)
+          : '',
       })
     } else {
       setForm({
@@ -47,6 +60,10 @@ export default function ItensModal({
         produtoNome: '',
         quantidade: '',
         preco: '',
+        descontoHabilitado: false,
+        tipoDesconto: 'percentual',
+        percentualDesconto: '',
+        valorDesconto: '',
       })
     }
   }, [itemEditando, visivel])
@@ -124,14 +141,40 @@ export default function ItensModal({
       return
     }
 
-    const total = quantidadeNum * precoNum
+    const totalBruto = quantidadeNum * precoNum
+    let descontoValor = 0
+    if (form.descontoHabilitado) {
+      if (form.tipoDesconto === 'percentual') {
+        const perc = Math.max(
+          0,
+          Math.min(100, parseFloat(form.percentualDesconto) || 0)
+        )
+        descontoValor = (totalBruto * perc) / 100
+      } else {
+        descontoValor = Math.max(0, parseFloat(form.valorDesconto) || 0)
+        descontoValor = Math.min(descontoValor, totalBruto)
+      }
+    }
+    const totalLiquido = totalBruto - descontoValor
 
     const novoItem = {
       iped_prod: parseInt(form.produtoId),
       iped_quan: quantidadeNum,
       iped_unit: precoNum,
-      iped_tota: total,
+      iped_tota: totalLiquido,
       produto_nome: form.produtoNome,
+      desconto_item_disponivel: !!form.descontoHabilitado,
+      percentual_desconto: form.descontoHabilitado
+        ? form.tipoDesconto === 'percentual'
+          ? Math.max(
+              0,
+              Math.min(100, parseFloat(form.percentualDesconto) || 0)
+            ) / 100
+          : totalBruto > 0
+          ? descontoValor / totalBruto
+          : 0
+        : 0,
+      desconto_valor: form.descontoHabilitado ? descontoValor : 0,
     }
 
     onAdicionar(novoItem, itemEditando)
@@ -216,12 +259,81 @@ export default function ItensModal({
               style={styles.input}
             />
 
+            <View style={styles.descontoHeader}>
+              <Text style={styles.label}>Aplicar Desconto:</Text>
+              <Switch
+                value={!!form.descontoHabilitado}
+                onValueChange={(v) => onChange('descontoHabilitado', v)}
+              />
+            </View>
+
+            {form.descontoHabilitado && (
+              <View style={styles.descontoContainer}>
+                <View style={styles.tipoDescontoContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.tipoButton,
+                      form.tipoDesconto === 'percentual' &&
+                        styles.tipoButtonAtivo,
+                    ]}
+                    onPress={() => onChange('tipoDesconto', 'percentual')}>
+                    <Text style={styles.tipoButtonTexto}>Percentual (%)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.tipoButton,
+                      form.tipoDesconto === 'valor' && styles.tipoButtonAtivo,
+                    ]}
+                    onPress={() => onChange('tipoDesconto', 'valor')}>
+                    <Text style={styles.tipoButtonTexto}>Valor (R$)</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {form.tipoDesconto === 'percentual' ? (
+                  <TextInput
+                    placeholder="% Desconto"
+                    placeholderTextColor="#9aa"
+                    keyboardType="numeric"
+                    value={form.percentualDesconto}
+                    onChangeText={(v) => onChange('percentualDesconto', v)}
+                    style={styles.input}
+                  />
+                ) : (
+                  <TextInput
+                    placeholder="Valor do Desconto"
+                    placeholderTextColor="#9aa"
+                    keyboardType="numeric"
+                    value={form.valorDesconto}
+                    onChangeText={(v) => onChange('valorDesconto', v)}
+                    style={styles.input}
+                  />
+                )}
+              </View>
+            )}
+
             <Text style={styles.total}>
-              Total: R${' '}
-              {(
-                (parseFloat(form.quantidade) || 0) *
-                (parseFloat(form.preco) || 0)
-              ).toFixed(2)}
+              {(() => {
+                const q = parseFloat(form.quantidade) || 0
+                const pu = parseFloat(form.preco) || 0
+                const bruto = q * pu
+                let desc = 0
+                if (form.descontoHabilitado) {
+                  if (form.tipoDesconto === 'percentual') {
+                    const perc = Math.max(
+                      0,
+                      Math.min(100, parseFloat(form.percentualDesconto) || 0)
+                    )
+                    desc = (bruto * perc) / 100
+                  } else {
+                    desc = Math.max(0, parseFloat(form.valorDesconto) || 0)
+                    desc = Math.min(desc, bruto)
+                  }
+                }
+                const liquido = bruto - desc
+                return `Total: R$ ${liquido.toFixed(2)}${
+                  desc > 0 ? ` (desc.: R$ ${desc.toFixed(2)})` : ''
+                }`
+              })()}
             </Text>
 
             <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { View, TextInput, Text, StyleSheet } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
+import { MaterialIcons } from '@expo/vector-icons'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
 import { apiGetComContexto } from '../utils/api'
@@ -10,7 +11,6 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
 
   useEffect(() => {
     const buscarDadosCliente = async () => {
-      // Se temos o código do cliente mas não o nome, busca os dados
       if (pedido?.pedi_forn && !pedido?.pedi_forn_nome) {
         setCarregandoCliente(true)
         try {
@@ -46,128 +46,162 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.labeldata}>Data do Pedido:</Text>
-      <TextInput
-        value={pedido?.pedi_data ?? ''}
-        onChangeText={(v) => setPedido((prev) => ({ ...prev, pedi_data: v }))}
-        style={styles.inputdata}
-      />
+      <View style={styles.fieldContainer}>
+        <View style={styles.labelContainer}>
+          <MaterialIcons name="event" size={12} color="#2ecc71" />
+          <Text style={styles.label}>Data do Pedido</Text>
+        </View>
+        <TextInput
+          value={pedido?.pedi_data ?? ''}
+          onChangeText={(v) => setPedido((prev) => ({ ...prev, pedi_data: v }))}
+          style={styles.input}
+          placeholder="DD/MM/AAAA"
+          placeholderTextColor="#666"
+        />
+      </View>
 
-      <Text style={styles.label}>Cliente:</Text>
-      <BuscaClienteInput
-        value={clienteFormatado}
-        onSelect={(item) => {
-          if (!item) {
+      <View style={styles.fieldContainer}>
+        <View style={styles.labelContainer}>
+          <MaterialIcons name="person" size={12} color="#2ecc71" />
+          <Text style={styles.label}>Cliente</Text>
+        </View>
+        <BuscaClienteInput
+          value={clienteFormatado}
+          onSelect={(item) => {
+            if (!item) {
+              setPedido((prev) => ({
+                ...prev,
+                pedi_forn: null,
+                pedi_forn_nome: null,
+              }))
+              return
+            }
             setPedido((prev) => ({
               ...prev,
-              pedi_forn: null,
-              pedi_forn_nome: null,
+              pedi_forn: item.enti_clie,
+              pedi_forn_nome: item.enti_nome,
             }))
-            return
-          }
-          setPedido((prev) => ({
-            ...prev,
-            pedi_forn: item.enti_clie,
-            pedi_forn_nome: item.enti_nome,
-          }))
-        }}
-      />
+          }}
+          style={styles.searchInput}
+        />
+      </View>
 
-      <Text style={styles.label}>Vendedor:</Text>
-      <BuscaVendedorInput
-        value={vendedorFormatado}
-        onSelect={(item) => {
-          if (!item) {
+      <View style={styles.fieldContainer}>
+        <View style={styles.labelContainer}>
+          <MaterialIcons name="work" size={12} color="#2ecc71" />
+          <Text style={styles.label}>Vendedor</Text>
+        </View>
+        <BuscaVendedorInput
+          value={vendedorFormatado}
+          onSelect={(item) => {
+            if (!item) {
+              setPedido((prev) => ({
+                ...prev,
+                pedi_vend: null,
+                pedi_vend_nome: null,
+              }))
+              return
+            }
             setPedido((prev) => ({
               ...prev,
-              pedi_vend: null,
-              pedi_vend_nome: null,
+              pedi_vend: item.enti_clie,
+              pedi_vend_nome: item.enti_nome,
             }))
-            return
-          }
-          setPedido((prev) => ({
-            ...prev,
-            pedi_vend: item.enti_clie,
-            pedi_vend_nome: item.enti_nome,
-          }))
-        }}
-      />
+          }}
+          style={styles.searchInput}
+        />
+      </View>
 
-      <Text style={styles.label}>Financeiro:</Text>
-      <Picker
-        selectedValue={pedido?.pedi_fina ?? '0'}
-        onValueChange={(val) =>
-          setPedido((prev) => ({
-            ...prev,
-            pedi_fina: val,
-          }))
-        }
-        style={{
-          color: '#fff',
-          backgroundColor: '#232935',
-          marginTop: 5,
-          marginBottom: 5,
-          borderRadius: 10,
-        }}>
-        <Picker.Item label="À Vista" value="0" />
-        <Picker.Item label="A Prazo" value="1" />
-        <Picker.Item label="Sem Financeiro" value="2" />
-        <Picker.Item label="Na emissão" value="3" />
-      </Picker>
+      <View style={styles.fieldContainer}>
+        <View style={styles.labelContainer}>
+          <MaterialIcons name="payment" size={12} color="#2ecc71" />
+          <Text style={styles.label}>Tipo de Financeiro</Text>
+        </View>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={pedido?.pedi_fina ?? '0'}
+            onValueChange={(val) =>
+              setPedido((prev) => ({
+                ...prev,
+                pedi_fina: val,
+              }))
+            }
+            style={styles.picker}
+            dropdownIconColor="#2ecc71">
+            <Picker.Item label="À Vista" value="0" />
+            <Picker.Item label="A Prazo" value="1" />
+            <Picker.Item label="Sem Financeiro" value="2" />
+            <Picker.Item label="Na emissão" value="3" />
+          </Picker>
+        </View>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 15,
-    backgroundColor: '#111a22',
+    backgroundColor: '#1a252f',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  headerTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a3441',
+  },
+  title: {
+    color: '#faebd7',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  fieldContainer: {
+    marginBottom: 16,
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   label: {
-    color: '#faebd7',
-    marginTop: 10,
-    marginBottom: 5,
-    fontWeight: 'bold',
-    fontSize: 15,
-    textDecorationLine: 'underline',
-  },
-  labeldata: {
-    color: '#faebd7',
-    marginBottom: 10,
-    fontWeight: 'bold',
-    fontSize: 15,
-    textAlign: 'right',
-    textDecorationLine: 'underline',
-  },
-  inputdata: {
-    textDecorationLine: 'underline',
-    borderRadius: 8,
-    color: 'white',
-    textAlign: 'right',
-  },
-  inputcliente: {
-    backgroundColor: '#0c0c24',
-    borderRadius: 8,
-    padding: 10,
-    color: 'white',
+    color: '#2ecc71',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   input: {
     backgroundColor: '#232935',
     borderRadius: 8,
-    padding: 10,
-    color: 'white',
+    padding: 12,
+    color: '#faebd7',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#3a4651',
   },
-
-  clienteInput: {
+  searchInput: {
     backgroundColor: '#232935',
     borderRadius: 8,
-    padding: 10,
-    color: 'white',
+    borderWidth: 1,
+    borderColor: '#3a4651',
   },
-  vendedorInput: {
+  pickerContainer: {
     backgroundColor: '#232935',
     borderRadius: 8,
-    padding: 10,
-    color: 'white',
+    borderWidth: 1,
+    borderColor: '#3a4651',
+    overflow: 'hidden',
+  },
+  picker: {
+    color: '#faebd7',
+    backgroundColor: '#232935',
   },
 })

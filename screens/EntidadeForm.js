@@ -43,7 +43,8 @@ export default function EntidadeForm({ navigation, route }) {
     enti_ende: '',
     enti_nume: '',
     enti_bair: '',
-    enti_pais: '',
+    enti_pais: '1058',
+    enti_codi_pais: '1058',
     enti_cida: '',
     enti_esta: '',
     enti_fone: '',
@@ -56,7 +57,11 @@ export default function EntidadeForm({ navigation, route }) {
 
   useEffect(() => {
     if (isEdicao && entidade) {
-      setFormData({ ...entidade })
+      setFormData((prev) => ({
+        ...prev,
+        ...entidade,
+        enti_pais: entidade.enti_pais || prev.enti_pais || '1058',
+      }))
     } else {
       const carregarEmpresaFilial = async () => {
         const empresaId = await AsyncStorage.getItem('empresaId')
@@ -111,6 +116,10 @@ export default function EntidadeForm({ navigation, route }) {
     setIsSalvando(true)
 
     const { enti_clie, ...dadosEntidade } = formData
+    
+    // Garantir que os campos de país sempre tenham valores válidos
+    dadosEntidade.enti_pais = dadosEntidade.enti_pais || '1058'
+    dadosEntidade.enti_codi_pais = dadosEntidade.enti_codi_pais || '1058'
 
     try {
       if (!slug) throw new Error('Slug ainda não carregado')
@@ -181,7 +190,8 @@ export default function EntidadeForm({ navigation, route }) {
         enti_bair: data.bairro || '',
         enti_cida: data.cidade || '',
         enti_esta: data.estado || '',
-        enti_pais: data.pais || '',
+        enti_pais: data.pais || prev.enti_pais || '1058',
+        enti_codi_pais: data.pais || prev.enti_codi_pais || '1058',
       }))
     } catch (error) {
       console.error('Erro ao buscar endereço:', error)

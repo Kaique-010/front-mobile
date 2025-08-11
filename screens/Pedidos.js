@@ -31,7 +31,32 @@ const PedidoItem = React.memo(
         <Text style={styles.numero}>Nº Pedido: {item.pedi_nume}</Text>
         <Text style={styles.data}>Data: {item.pedi_data}</Text>
         <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
-        <Text style={styles.total}>Total Pedido: {item.pedi_tota}</Text>
+        {(() => {
+          const bruto = Number(item.pedi_tota ?? item.valor_total ?? 0)
+          const desc = Number(item.pedi_desc ?? 0)
+          const liquido = Math.max(0, bruto - desc)
+          return (
+            <>
+              <Text style={styles.total}>
+                Total Pedido:{' '}
+                {liquido.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                })}
+              </Text>
+              {desc > 0 ? (
+                <Text
+                  style={[styles.total, { color: '#ff7b7b', fontSize: 12 }]}>
+                  Desconto: -
+                  {desc.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
+                </Text>
+              ) : null}
+            </>
+          )
+        })()}
         <Text style={styles.empresa}>
           Empresa: {item.empresa_nome || '---'}
         </Text>

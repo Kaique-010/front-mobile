@@ -133,10 +133,10 @@ export default function Orcamentos({ navigation }) {
   const handleTransformacaoSucesso = (pedidoData) => {
     // Atualiza a lista de orçamentos após transformação bem-sucedida
     buscarOrcamentos(false, false)
-    
+
     // Opcional: navegar para a tela de pedidos ou mostrar mais informações
     Alert.alert(
-      'Sucesso', 
+      'Sucesso',
       `Orçamento transformado em pedido nº ${pedidoData?.pedi_nume || ''}!`,
       [
         {
@@ -144,8 +144,8 @@ export default function Orcamentos({ navigation }) {
           onPress: () => {
             // Opcional: navegar para a tela de pedidos
             // navigation.navigate('Pedidos')
-          }
-        }
+          },
+        },
       ]
     )
   }
@@ -154,14 +154,41 @@ export default function Orcamentos({ navigation }) {
     // Debug log para verificar os dados do item
     console.log('[DEBUG] Dados do orçamento:', item)
     console.log('[DEBUG] ID que será passado:', item.pedi_nume)
-    
+
     return (
       <View style={styles.card}>
         <Text style={styles.numero}>Nº Orcamento: {item.pedi_nume}</Text>
         <Text style={styles.data}>Data: {item.pedi_data}</Text>
         <Text style={styles.cliente}>Cliente: {item.cliente_nome}</Text>
-        <Text style={styles.total}>Total orcamento: {item.pedi_tota}</Text>
-        <Text style={styles.empresa}>Empresa: {item.empresa_nome || '---'}</Text>
+        {(() => {
+          const bruto = Number(item.pedi_tota ?? item.valor_total ?? 0)
+          const desc = Number(item.pedi_desc ?? 0)
+          const liquido = Math.max(0, bruto - desc)
+          return (
+            <>
+              <Text style={styles.total}>
+                Total Orçamento:{' '}
+                {liquido.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                })}
+              </Text>
+              {desc > 0 ? (
+                <Text
+                  style={[styles.total, { color: '#ff7b7b', fontSize: 12 }]}>
+                  Desconto: -
+                  {desc.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
+                </Text>
+              ) : null}
+            </>
+          )
+        })()}
+        <Text style={styles.empresa}>
+          Empresa: {item.empresa_nome || '---'}
+        </Text>
 
         <View style={styles.actions}>
           <TouchableOpacity
@@ -180,7 +207,7 @@ export default function Orcamentos({ navigation }) {
         </View>
 
         {/* Botão para transformar orçamento em pedido */}
-        <BotaoTransformarOrcamento 
+        <BotaoTransformarOrcamento
           orcamentoId={item.pedi_nume}
           onSuccess={handleTransformacaoSucesso}
         />

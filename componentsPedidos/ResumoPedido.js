@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
@@ -6,12 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  TextInput,
 } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
 
-import { apiPost, apiGetComContexto, apiPut } from '../utils/api'
+import { apiPostComContexto, apiGetComContexto, apiPutComContexto } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import RecebimentoModal from './RecebimentoModal'
 
@@ -19,6 +20,14 @@ export default function ResumoPedido({ total, pedido }) {
   const [slug, setSlug] = useState('')
   const [modalRecebimentoVisivel, setModalRecebimentoVisivel] = useState(false)
   const navigation = useNavigation()
+  const [descontoHabilitado, setDescontoHabilitado] = useState(false)
+  const [tipoDesconto, setTipoDesconto] = useState('percentual')
+  const [percentualDesconto, setPercentualDesconto] = useState('')
+  const [valorDesconto, setValorDesconto] = useState('')
+  
+  // Estados para controle de expansão
+  const [resumoExpandido, setResumoExpandido] = useState(false)
+  const [descontoExpandido, setDescontoExpandido] = useState(false)
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -32,7 +41,70 @@ export default function ResumoPedido({ total, pedido }) {
     carregarSlug()
   }, [])
 
-  const totalFormatado = Number(total) || 0
+  const itens = useMemo(() => pedido?.itens_input || [], [pedido?.itens_input])
+
+  // Sincroniza controles com dados vindos do backend ao abrir/editar
+  useEffect(() => {
+    if (pedido) {
+      setDescontoHabilitado(!!pedido.desconto_geral_aplicado)
+      setTipoDesconto(pedido.desconto_geral_tipo || 'percentual')
+      setPercentualDesconto(
+        pedido.desconto_geral_percentual
+          ? String((Number(pedido.desconto_geral_percentual) || 0) * 100)
+          : ''
+      )
+      setValorDesconto(
+        pedido.desconto_geral_valor ? String(pedido.desconto_geral_valor) : ''
+      )
+    }
+  }, [
+    pedido?.desconto_geral_aplicado,
+    pedido?.desconto_geral_tipo,
+    pedido?.desconto_geral_percentual,
+    pedido?.desconto_geral_valor,
+  ])
+
+  const calcularTotais = () => {
+    const somaComDescontoItem = itens.reduce((acc, item) => {
+      if (item?.desconto_item_disponivel) {
+        const t = Number(item?.iped_tota) || 0
+        return acc + t
+      }
+      return acc
+    }, 0)
+
+    const somaSemDescontoItem = itens.reduce((acc, item) => {
+      if (!item?.desconto_item_disponivel) {
+        const t = Number(item?.iped_tota)
+        if (!isNaN(t)) return acc + t
+        const q = Number(item?.iped_quan) || 0
+        const u = Number(item?.iped_unit) || 0
+        return acc + q * u
+      }
+      return acc
+    }, 0)
+
+    let descGeral = 0
+    if (descontoHabilitado) {
+      if (tipoDesconto === 'percentual') {
+        const perc = Math.max(
+          0,
+          Math.min(100, parseFloat(percentualDesconto) || 0)
+        )
+        descGeral = (somaSemDescontoItem * perc) / 100
+      } else {
+        descGeral = Math.max(0, parseFloat(valorDesconto) || 0)
+        descGeral = Math.min(descGeral, somaSemDescontoItem)
+      }
+    }
+
+    const totalFinal = somaComDescontoItem + (somaSemDescontoItem - descGeral)
+    return { somaComDescontoItem, somaSemDescontoItem, descGeral, totalFinal }
+  }
+
+  const { somaComDescontoItem, somaSemDescontoItem, descGeral, totalFinal } =
+    calcularTotais()
+  const totalComDescontoGeral = totalFinal
 
   const enviarZap = async () => {
     try {
@@ -53,11 +125,10 @@ export default function ResumoPedido({ total, pedido }) {
         )
         return
       }
-  
+
       const numeroZap = `55${numeroLimpo}`
       const nomeCliente = entidade.enti_nome || 'Cliente'
-  
-      // ✅ Corrigir para usar itens_input
+
       const corpo = (pedido.itens_input || [])
         .map((item, idx) => {
           const nome = item.produto_nome || 'Sem nome'
@@ -69,11 +140,11 @@ export default function ResumoPedido({ total, pedido }) {
           }. ${nome} (Cód: ${codigo}) - Qtde: ${qtd} - R$ ${valor}`
         })
         .join('\n')
-  
-      const texto = `Novo pedido:  ${numeroPedido}!\nCliente: ${nomeCliente}\n\nItens:\n${corpo}\n\nTotal: R$ ${totalFormatado.toFixed(
-        2
-      )}`
-  
+
+      const texto = `Novo pedido:  ${numeroPedido}!\nCliente: ${nomeCliente}\n\nItens:\n${corpo}\n\nTotal: R$ ${Number(
+        totalComDescontoGeral
+      ).toFixed(2)}`
+
       const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(texto)}`
       Linking.openURL(url)
     } catch (err) {
@@ -92,10 +163,13 @@ export default function ResumoPedido({ total, pedido }) {
     }
 
     try {
-      // Obter slug para construir endpoint manualmente
-      const { slug } = await getStoredData()
-  
       // Preparar payload limpo
+      const pedi_topr = (pedido.itens_input || []).reduce((acc, it) => {
+        const q = Number(it.iped_quan) || 0
+        const u = Number(it.iped_unit) || 0
+        return acc + q * u
+      }, 0)
+
       const payload = {
         pedi_empr: Number(pedido.pedi_empr),
         pedi_fili: Number(pedido.pedi_fili),
@@ -105,100 +179,243 @@ export default function ResumoPedido({ total, pedido }) {
         pedi_fina: Number(pedido.pedi_fina || 0),
         status: Number(pedido.status || 0),
         pedi_obse: pedido.pedi_obse || '',
-        pedi_tota: Number(pedido.pedi_tota || 0),
-        // ✅ Corrigir para usar itens_input
+        pedi_topr: Number(pedi_topr.toFixed(2)),
+        pedi_tota: Number(
+          (pedi_topr - (descontoHabilitado ? Number(descGeral) : 0)).toFixed(2)
+        ),
+        desconto_geral_aplicado: !!descontoHabilitado,
+        desconto_geral_tipo: tipoDesconto,
+        desconto_geral_percentual:
+          descontoHabilitado && tipoDesconto === 'percentual'
+            ? Math.max(0, Math.min(100, parseFloat(percentualDesconto) || 0)) /
+              100
+            : 0,
+        desconto_geral_valor: descontoHabilitado ? Number(descGeral) : 0,
+        pedi_desc: descontoHabilitado ? Number(descGeral) : 0,
         itens_input: (pedido.itens_input || []).map((item) => ({
           iped_prod: Number(item.iped_prod),
           iped_quan: Number(item.iped_quan),
           iped_unit: Number(item.iped_unit),
           iped_tota: Number(item.iped_tota),
+          produto_nome: item.produto_nome,
+          desconto_item_disponivel: !!item.desconto_item_disponivel,
+          percentual_desconto: Number(item.percentual_desconto || 0),
+          desconto_valor: Number(item.desconto_valor || 0),
         })),
       }
-  
-      // Adicionar pedi_nume apenas se existir (para edição)
-      if (pedido.pedi_nume) {
-        payload.pedi_nume = pedido.pedi_nume
-      }
-  
-      console.log(
-        'Payload final sendo enviado:',
-        JSON.stringify(payload, null, 2)
-      )
-  
+
+      console.log('📤 Enviando payload para salvar pedido:', JSON.stringify(payload, null, 2))
+
       let data
       if (pedido.pedi_nume) {
-        // Para edição, usar apiPut com endpoint completo
-        data = await apiPut(
-          `/api/${slug}/pedidos/pedidos/${pedido.pedi_nume}/`,
-          payload
-        )
+        // Editar pedido existente
+        data = await apiPutComContexto(`pedidos/pedidos/${pedido.pedi_nume}/`, payload)
       } else {
-        // Para criação, usar apiPost com endpoint completo
-        data = await apiPost(`/api/${slug}/pedidos/pedidos/`, payload)
+        // Criar novo pedido
+        data = await apiPostComContexto(`pedidos/pedidos/`, payload)
       }
-  
+
       const pedi_nume = data.pedi_nume || 'desconhecido'
-  
+
       Toast.show({
         type: 'success',
         text1: `Pedido #${pedi_nume} salvo com sucesso!`,
         position: 'bottom',
         visibilityTime: 3000,
       })
-  
-      navigation.navigate('MainApp', { screen: 'Pedidos' })
+
+      // Navegar para a lista de pedidos
+      navigation.navigate('Pedidos')
     } catch (error) {
-      console.error('=== ERRO DETALHADO AO SALVAR PEDIDO ===')
-      console.error('Status:', error.response?.status)
-      console.error('Data:', error.response?.data)
-      console.error('Headers:', error.response?.headers)
-      console.error('Config:', error.config)
-  
-      Alert.alert(
-        'Erro',
-        `Falha ao salvar o pedido: ${
-          error.response?.data?.erro ||
-          error.response?.data?.detail ||
-          error.message
-        }`
-      )
+      console.error('❌ Erro ao salvar pedido:', error)
+      console.error('❌ Detalhes do erro:', error.response?.data || error.message)
+      
+      let mensagemErro = 'Falha ao salvar o pedido.'
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          mensagemErro = error.response.data
+        } else if (error.response.data.detail) {
+          mensagemErro = error.response.data.detail
+        } else if (error.response.data.message) {
+          mensagemErro = error.response.data.message
+        }
+      } else if (error.message) {
+        mensagemErro = error.message
+      }
+      
+      Alert.alert('Erro', mensagemErro)
     }
+  }
+
+  const formatarMoeda = (valor) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(valor || 0)
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.total}>Total: R$ {totalFormatado.toFixed(2)}</Text>
+      {/* Total Principal - Sempre visível */}
+      <TouchableOpacity 
+        style={styles.totalContainer}
+        onPress={() => setResumoExpandido(!resumoExpandido)}
+        activeOpacity={0.7}
+      >
+        <MaterialIcons name="shopping-cart" size={24} color="#2ecc71" />
+        <Text style={styles.total}>
+          Total: {formatarMoeda(totalComDescontoGeral)}
+        </Text>
+        <MaterialIcons 
+          name={resumoExpandido ? "expand-less" : "expand-more"} 
+          size={24} 
+          color="#2ecc71" 
+        />
+      </TouchableOpacity>
 
+      {/* Resumo Detalhado - Expansível */}
+      {resumoExpandido && (
+        <View style={styles.resumoBox}>
+          <Text style={styles.resumoTitle}>Resumo Detalhado</Text>
+          <View style={styles.resumoLinha}>
+            <Text style={styles.resumoRotulo}>Itens com desconto:</Text>
+            <Text style={styles.resumoValor}>{formatarMoeda(somaComDescontoItem)}</Text>
+          </View>
+          <View style={styles.resumoLinha}>
+            <Text style={styles.resumoRotulo}>Itens sem desconto:</Text>
+            <Text style={styles.resumoValor}>{formatarMoeda(somaSemDescontoItem)}</Text>
+          </View>
+          <View style={styles.resumoLinha}>
+            <Text style={styles.resumoRotulo}>Desconto geral aplicado:</Text>
+            <Text style={styles.resumoValorDesconto}>
+              -{formatarMoeda(descGeral)}
+            </Text>
+          </View>
+          <View style={[styles.resumoLinha, styles.totalFinalRow]}>
+            <Text style={styles.resumoRotuloDestaque}>Total final:</Text>
+            <Text style={styles.resumoValorDestaque}>
+              {formatarMoeda(totalComDescontoGeral)}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Seção de Desconto - Expansível */}
+      <View style={styles.descontoSection}>
+        <TouchableOpacity 
+          style={styles.descontoHeader}
+          onPress={() => setDescontoExpandido(!descontoExpandido)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.descontoHeaderLeft}>
+            <MaterialIcons name="local-offer" size={20} color="#2ecc71" />
+            <Text style={styles.descontoLabel}>Desconto Geral</Text>
+          </View>
+          <View style={styles.descontoHeaderRight}>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation()
+                setDescontoHabilitado((v) => !v)
+              }}
+              style={[
+                styles.toggleBotao,
+                { backgroundColor: descontoHabilitado ? '#2ecc71' : '#666' }
+              ]}
+            >
+              <Text style={styles.toggleText}>
+                {descontoHabilitado ? 'ON' : 'OFF'}
+              </Text>
+            </TouchableOpacity>
+            <MaterialIcons 
+              name={descontoExpandido ? "expand-less" : "expand-more"} 
+              size={24} 
+              color="#faebd7" 
+            />
+          </View>
+        </TouchableOpacity>
+
+        {descontoExpandido && descontoHabilitado && (
+          <View style={styles.descontoContainer}>
+            <View style={styles.tipoDescontoContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tipoButton,
+                  tipoDesconto === 'percentual' && styles.tipoButtonAtivo,
+                ]}
+                onPress={() => setTipoDesconto('percentual')}
+              >
+                <Text
+                  style={[
+                    styles.tipoButtonText,
+                    tipoDesconto === 'percentual' && styles.tipoButtonTextAtivo,
+                  ]}
+                >
+                  %
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tipoButton,
+                  tipoDesconto === 'valor' && styles.tipoButtonAtivo,
+                ]}
+                onPress={() => setTipoDesconto('valor')}
+              >
+                <Text
+                  style={[
+                    styles.tipoButtonText,
+                    tipoDesconto === 'valor' && styles.tipoButtonTextAtivo,
+                  ]}
+                >
+                  R$
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {tipoDesconto === 'percentual' ? (
+              <TextInput
+                style={styles.inputDesconto}
+                placeholder="Ex: 10"
+                placeholderTextColor="#666"
+                value={percentualDesconto}
+                onChangeText={setPercentualDesconto}
+                keyboardType="numeric"
+              />
+            ) : (
+              <TextInput
+                style={styles.inputDesconto}
+                placeholder="Ex: 50.00"
+                placeholderTextColor="#666"
+                value={valorDesconto}
+                onChangeText={setValorDesconto}
+                keyboardType="numeric"
+              />
+            )}
+
+            <Text style={styles.descontoInfo}>
+              Desconto aplicado: {formatarMoeda(descGeral)}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Botões de Ação */}
       <View style={styles.botoesContainer}>
-        <TouchableOpacity
-          style={[
-            styles.botao,
-            styles.botaoSalvar,
-            (!pedido.pedi_empr || !pedido.pedi_fili) && { opacity: 0.5 },
-          ]}
-          onPress={salvar}
-          disabled={!pedido.pedi_empr || !pedido.pedi_fili}>
-          <Text style={styles.textobotao}>Salvar</Text>
+        <TouchableOpacity style={styles.botaoSalvar} onPress={salvar}>
+          <MaterialIcons name="save" size={20} color="#fff" />
+          <Text style={styles.textoBotao}>Salvar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.botaoZap} onPress={enviarZap}>
+          <MaterialCommunityIcons name="whatsapp" size={20} color="#fff" />
+          <Text style={styles.textoBotao}>Enviar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.botao, styles.botaoZap]}
-          onPress={enviarZap}>
-          <Text style={styles.textobotao}>
-            <MaterialCommunityIcons name="whatsapp" size={16} color="#fff" />{' '}
-            Enviar
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.botao,
-            styles.botaoReceber,
-            !pedido.pedi_nume && { opacity: 0.5 },
-          ]}
+          style={styles.botaoReceber}
           onPress={() => setModalRecebimentoVisivel(true)}
-          disabled={!pedido.pedi_nume}>
-          <Text style={styles.textobotao}>💳 Receber</Text>
+        >
+          <MaterialIcons name="payment" size={20} color="#fff" />
+          <Text style={styles.textoBotao}>Receber</Text>
         </TouchableOpacity>
       </View>
 
@@ -206,7 +423,7 @@ export default function ResumoPedido({ total, pedido }) {
         visivel={modalRecebimentoVisivel}
         onFechar={() => setModalRecebimentoVisivel(false)}
         pedido={pedido}
-        totalPedido={totalFormatado}
+        total={totalComDescontoGeral}
       />
     </View>
   )
@@ -214,41 +431,219 @@ export default function ResumoPedido({ total, pedido }) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    backgroundColor: '#161c23',
+    backgroundColor: '#1a252f',
+    borderRadius: 12,
+    padding: 16,
+    margin: 8,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#0f1a24',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2ecc71',
+    elevation: 2,
+    shadowColor: '#2ecc71',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   total: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#58D58D',
-    textAlign: 'right',
-    marginBottom: 15,
+    color: '#2ecc71',
+    marginLeft: 8,
+    flex: 1,
+    textAlign: 'center',
+  },
+  descontoSection: {
+    marginBottom: 20,
+  },
+  descontoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#0f1a24',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  descontoHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  descontoHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  descontoLabel: {
+    color: '#faebd7',
+    fontWeight: '600',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  toggleBotao: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  toggleText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  descontoContainer: {
+    backgroundColor: '#0f1a24',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  tipoDescontoContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  tipoButton: {
+    flex: 1,
+    backgroundColor: '#232935',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3a4651',
+  },
+  tipoButtonAtivo: {
+    backgroundColor: '#2ecc71',
+    borderColor: '#2ecc71',
+  },
+  tipoButtonText: {
+    color: '#faebd7',
+    fontWeight: '600',
+  },
+  input: {
+    backgroundColor: '#232935',
+    color: '#faebd7',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#3a4651',
+    fontSize: 16,
+  },
+  resumoBox: {
+    backgroundColor: '#0f1a24',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  resumoTitle: {
+    color: '#2ecc71',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  resumoLinha: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  resumoRotulo: {
+    color: '#a0a0a0',
+    fontSize: 14,
+  },
+  resumoValor: {
+    color: '#faebd7',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  resumoValorDesconto: {
+    color: '#ff6b6b',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  totalFinalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  resumoRotuloDestaque: {
+    color: '#2ecc71',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  resumoValorDestaque: {
+    color: '#2ecc71',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   botoesContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: 8,
-    marginBottom: 10,
-  },
-  botao: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
   },
   botaoSalvar: {
-    backgroundColor: '#109ea3',
+    flex: 1,
+    backgroundColor: '#2ecc71',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 3,
+    shadowColor: '#2ecc71',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  botaoZap: {
+  botaoWhatsapp: {
+    flex: 1,
     backgroundColor: '#25D366',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 3,
+    shadowColor: '#25d366',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   botaoReceber: {
-    backgroundColor: '#6A4C93',
+    flex: 1,
+    backgroundColor: '#f39c12',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    elevation: 3,
+    shadowColor: '#f39c12',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  textobotao: {
-    color: 'white',
-    fontWeight: '700',
+  textoBotao: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 14,
   },
 })

@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native'
+import { MaterialIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import OrcamentoHeader from '../componentsOrcamentos/OrcamentoHeader'
 import ItensList from '../componentsOrcamentos/ItensLista'
@@ -21,6 +29,12 @@ export default function TelaOrcamento({ route, navigation }) {
     pedi_obse: null,
     itens_input: [],
     itens_removidos: [],
+    pedi_desc: 0,
+    desconto_geral_aplicado: true,
+    desconto_geral_tipo: 'percentual',
+    desconto_geral_percentual: 0,
+    desconto_geral_valor: 0,
+    pedi_topr: 0,
     pedi_tota: 0,
   })
 
@@ -81,6 +95,12 @@ export default function TelaOrcamento({ route, navigation }) {
             pedi_obse: 'orcamento Enviado por Mobile',
             itens_input: [],
             itens_removidos: [],
+            pedi_desc: 0,
+            desconto_geral_aplicado: true,
+            desconto_geral_tipo: 'percentual',
+            desconto_geral_percentual: 0,
+            desconto_geral_valor: 0,
+            pedi_topr: 0,
             pedi_tota: 0,
           })
         }
@@ -138,24 +158,58 @@ export default function TelaOrcamento({ route, navigation }) {
     }))
   }
 
+  if (carregando) {
+    return (
+      <View style={styles.carregandoContainer}>
+        <ActivityIndicator size="large" color="#10a2a7" />
+        <Text style={styles.carregandoTexto}>Carregando orçamento...</Text>
+      </View>
+    )
+  }
+
   return (
     <View style={styles.container}>
-      <OrcamentoHeader orcamento={orcamento} setOrcamento={setOrcamento} />
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerContainer}>
+          <MaterialIcons name="description" size={28} color="#10a2a7" />
+          <Text style={styles.pageTitle}>
+            {orcamentoParam ? 'Editar Orçamento' : 'Novo Orçamento'}
+          </Text>
+        </View>
 
-      <TouchableOpacity
-        style={styles.botaoadditens}
-        onPress={() => setModalVisivel(true)}>
-        <Text style={styles.textobotao}>Adicionar Item</Text>
-      </TouchableOpacity>
+        <OrcamentoHeader orcamento={orcamento} setOrcamento={setOrcamento} />
 
-      <ItensList
-        itens={orcamento.itens_input}
-        onEdit={(item) => {
-          setItemEditando(item)
-          setModalVisivel(true)
-        }}
-        onRemove={handleRemoverItem}
-      />
+        <View style={styles.itensSection}>
+          <View style={styles.itensSectionHeader}>
+            <MaterialIcons name="list" size={20} color="#10a2a7" />
+            <Text style={styles.sectionTitle}>Itens do Orçamento</Text>
+            <Text style={styles.itensCount}>
+              {orcamento.itens_input?.length || 0} {orcamento.itens_input?.length === 1 ? 'item' : 'itens'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.botaoAdicionarItem}
+            onPress={() => setModalVisivel(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="add-circle" size={24} color="#fff" />
+            <Text style={styles.textoBotaoAdicionar}>Adicionar Item</Text>
+          </TouchableOpacity>
+
+          <ItensList
+            itens={orcamento.itens_input}
+            onEdit={(item) => {
+              setItemEditando(item)
+              setModalVisivel(true)
+            }}
+            onRemove={handleRemoverItem}
+          />
+        </View>
+      </ScrollView>
 
       <ResumoOrcamento total={orcamento.pedi_tota} orcamento={orcamento} />
 
@@ -175,25 +229,86 @@ export default function TelaOrcamento({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 8,
     flex: 1,
     backgroundColor: '#0e1c25',
+  },
+  scrollView: {
+    flex: 1,
   },
   carregandoContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#0e1c25',
   },
-  botaoadditens: {
-    padding: 12,
-    marginTop: 15,
-    backgroundColor: '#10a2a7',
-    borderRadius: 8,
+  carregandoTexto: {
+    color: '#faebd7',
+    marginTop: 16,
+    fontSize: 16,
+  },
+  headerContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#1a252f',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a3441',
   },
-  textobotao: {
-    color: 'black',
+  pageTitle: {
+    color: '#faebd7',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 12,
+  },
+  itensSection: {
+    flex: 1,
+    padding: 8,
+  },
+  itensSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  sectionTitle: {
+    color: '#faebd7',
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    marginLeft: 8,
+  },
+  itensCount: {
+    color: '#10a2a7',
+    fontSize: 14,
+    fontWeight: '600',
+    backgroundColor: '#1a252f',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  botaoAdicionarItem: {
+    backgroundColor: '#10a2a7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  textoBotaoAdicionar: {
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    marginLeft: 8,
   },
 })
