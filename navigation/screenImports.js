@@ -52,6 +52,12 @@ export { default as ComissaoForm } from '../componentsComissao/ComissaoForm'
 export { default as ComissaoList } from '../componentsComissao/ComissaoList'
 export { default as DashComissao } from '../componentsComissao/DashComissao'
 
+// Telas de controle de visitas
+export { default as ControleVisitaDashboard } from '../screens/ControleVisitaDashboardScreen'
+export { default as ControleVisitas } from '../screens/ControleVisitasScreen'
+export { default as ControleVisitaForm } from '../screens/ControleVisitaFormScreen'
+export { default as ControleVisitaDetalhes } from '../screens/ControleVisitaDetalhesScreen'
+
 // Telas de ordem de serviço
 export { default as PainelAcompanhamento } from '../screens/PainelOs'
 export { default as PainelOs } from '../screens/PainelOs'

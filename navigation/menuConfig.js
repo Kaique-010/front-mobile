@@ -81,6 +81,30 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
+    crm: {
+      name: 'CRM',
+      icon: 'users',
+      items: [
+        {
+          name: 'Dashboard CRM',
+          route: 'ControleVisitaDashboard',
+          icon: 'bar-chart-2',
+          condition: hasModulo('Pedidos'),
+        },
+        {
+          name: 'Controle de Visitas',
+          route: 'ControleVisitas',
+          icon: 'map-pin',
+          condition: hasModulo('Pedidos'),
+        },
+        {
+          name: 'Nova Visita',
+          route: 'ControleVisitaForm',
+          icon: 'plus-circle',
+          condition: hasModulo('Pedidos'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
     financeiro: {
       name: 'Financeiro',
       icon: 'dollar-sign',
@@ -195,6 +219,12 @@ export const getMenuConfig = (hasModulo) => {
       icon: 'bar-chart-2',
       items: [
         {
+          name: 'Dashboard CRM',
+          route: 'ControleVisitaDashboard',
+          icon: 'users',
+          condition: hasModulo('Pedidos'),
+        },
+        {
           name: 'Dashboard de Comissões',
           route: 'DashComissao',
           icon: 'percent',
@@ -250,13 +280,13 @@ export const getMenuConfig = (hasModulo) => {
         },
         {
           name: 'Previsão de Lucro',
-          route: 'Lucro Previsto', // Corrigido para corresponder ao screenConfig
+          route: 'Lucro Previsto',
           icon: 'dollar-sign',
           condition: hasModulo('Gerencial'),
         },
         {
           name: 'Fluxo de Caixa Previsto',
-          route: 'Fluxo Caixa Previsto', // Corrigido para corresponder ao screenConfig
+          route: 'Fluxo Caixa Previsto',
           icon: 'activity',
           condition: hasModulo('Gerencial'),
         },

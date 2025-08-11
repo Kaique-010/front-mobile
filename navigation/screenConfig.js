@@ -206,6 +206,28 @@ export const screenConfigs = [
     options: createHeaderOptions('Dashboard de Comissões'),
   },
 
+  // Telas de controle de visitas
+  {
+    name: 'ControleVisitaDashboard',
+    component: Screens.ControleVisitaDashboard,
+    options: createHeaderOptions('Dashboard CRM'),
+  },
+  {
+    name: 'ControleVisitas',
+    component: Screens.ControleVisitas,
+    options: createHeaderOptions('Controle de Visitas'),
+  },
+  {
+    name: 'ControleVisitaForm',
+    component: Screens.ControleVisitaForm,
+    options: createHeaderOptions('Cadastro de Visita'),
+  },
+  {
+    name: 'ControleVisitaDetalhes',
+    component: Screens.ControleVisitaDetalhes,
+    options: createHeaderOptions('Detalhes da Visita'),
+  },
+
   // Telas de ordem de serviço
   {
     name: 'PainelAcompanhamento',
