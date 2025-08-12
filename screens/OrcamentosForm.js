@@ -169,12 +169,18 @@ export default function TelaOrcamento({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         <View style={styles.headerContainer}>
-          <MaterialIcons name="description" size={28} color="#10a2a7" />
+          <MaterialIcons
+            name="description"
+            marginHorizontal={10}
+            marginBottom={10}
+            marginLeft={80}
+            size={20}
+            color="#10a2a7"
+          />
           <Text style={styles.pageTitle}>
             {orcamentoParam ? 'Editar Orçamento' : 'Novo Orçamento'}
           </Text>
@@ -187,15 +193,15 @@ export default function TelaOrcamento({ route, navigation }) {
             <MaterialIcons name="list" size={20} color="#10a2a7" />
             <Text style={styles.sectionTitle}>Itens do Orçamento</Text>
             <Text style={styles.itensCount}>
-              {orcamento.itens_input?.length || 0} {orcamento.itens_input?.length === 1 ? 'item' : 'itens'}
+              {orcamento.itens_input?.length || 0}{' '}
+              {orcamento.itens_input?.length === 1 ? 'item' : 'itens'}
             </Text>
           </View>
 
           <TouchableOpacity
             style={styles.botaoAdicionarItem}
             onPress={() => setModalVisivel(true)}
-            activeOpacity={0.8}
-          >
+            activeOpacity={0.8}>
             <MaterialIcons name="add-circle" size={24} color="#fff" />
             <Text style={styles.textoBotaoAdicionar}>Adicionar Item</Text>
           </TouchableOpacity>

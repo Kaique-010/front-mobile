@@ -48,7 +48,7 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
     <View style={styles.container}>
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="event" size={12} color="#2ecc71" />
+          <MaterialIcons name="event" size={12} color="#18b7df" />
           <Text style={styles.label}>Data do Pedido</Text>
         </View>
         <TextInput
@@ -62,7 +62,7 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
 
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="person" size={12} color="#2ecc71" />
+          <MaterialIcons name="person" size={12} color="#18b7df" />
           <Text style={styles.label}>Cliente</Text>
         </View>
         <BuscaClienteInput
@@ -88,7 +88,7 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
 
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="work" size={12} color="#2ecc71" />
+          <MaterialIcons name="work" size={12} color="#18b7df" />
           <Text style={styles.label}>Vendedor</Text>
         </View>
         <BuscaVendedorInput
@@ -114,7 +114,7 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
 
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="payment" size={12} color="#2ecc71" />
+          <MaterialIcons name="payment" size={12} color="#18b7df" />
           <Text style={styles.label}>Tipo de Financeiro</Text>
         </View>
         <View style={styles.pickerContainer}>
@@ -127,7 +127,7 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
               }))
             }
             style={styles.picker}
-            dropdownIconColor="#2ecc71">
+            dropdownIconColor="#18b7df">
             <Picker.Item label="À Vista" value="0" />
             <Picker.Item label="A Prazo" value="1" />
             <Picker.Item label="Sem Financeiro" value="2" />
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   label: {
-    color: '#2ecc71',
+    color: '#18b7df',
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,

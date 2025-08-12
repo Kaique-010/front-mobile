@@ -70,7 +70,12 @@ export default function SelectFilial({ route, navigation }) {
     fetchFiliais()
   }, [empresaId])
 
+  const [botaoDesabilitado, setBotaoDesabilitado] = useState(false)
+
   const handleSelectFilial = async (filialId, filialNome) => {
+    if (botaoDesabilitado) {
+      return setBotaoDesabilitado(true)
+    }
     try {
       await AsyncStorage.multiSet([
         ['empresaId', empresaId.toString()],
@@ -116,7 +121,7 @@ export default function SelectFilial({ route, navigation }) {
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() => handleSelectFilial(item.empr_codi, item.empr_nome)}
-            style={styles.button}>
+            style={[styles.button, botaoDesabilitado && styles.buttonDisabled]}>
             <Text style={styles.buttonText}>{item.empr_nome}</Text>
           </TouchableOpacity>
         )}

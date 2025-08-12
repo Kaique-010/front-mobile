@@ -62,7 +62,7 @@ export default function ItensList({ itens, onEdit, onRemove }) {
           <MaterialIcons 
             name={isExpanded ? "expand-less" : "expand-more"} 
             size={24} 
-            color="#2ecc71" 
+            color="#18b7df" 
           />
         </TouchableOpacity>
 
@@ -144,7 +144,7 @@ export default function ItensList({ itens, onEdit, onRemove }) {
         activeOpacity={0.7}
       >
         <View style={styles.listaHeaderLeft}>
-          <MaterialIcons name="list" size={24} color="#2ecc71" />
+          <MaterialIcons name="list" size={24} color="#18b7df" />
           <View style={styles.listaHeaderInfo}>
             <Text style={styles.listaTitle}>
               Itens do Pedido ({totalItens})
@@ -157,7 +157,7 @@ export default function ItensList({ itens, onEdit, onRemove }) {
         <MaterialIcons 
           name={listaExpandida ? "expand-less" : "expand-more"} 
           size={24} 
-          color="#2ecc71" 
+          color="#18b7df" 
         />
       </TouchableOpacity>
 
@@ -189,9 +189,9 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: '#2ecc71',
+    borderColor: '#18b7df',
     elevation: 2,
-    shadowColor: '#2ecc71',
+    shadowColor: '#18b7df',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   listaTotalPreview: {
-    color: '#2ecc71',
+    color: '#18b7df',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     marginHorizontal: 4,
     borderLeftWidth: 4,
-    borderLeftColor: '#2ecc71',
+    borderLeftColor: '#18b7df',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   itemNumber: {
-    backgroundColor: '#2ecc71',
+    backgroundColor: '#18b7df',
     borderRadius: 16,
     width: 32,
     height: 32,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   codigoProduto: {
-    color: '#2ecc71',
+    color: '#18b7df',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   totalPreview: {
-    color: '#2ecc71',
+    color: '#18b7df',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -307,12 +307,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   totalLabel: {
-    color: '#2ecc71',
+    color: '#18b7df',
     fontSize: 16,
     fontWeight: 'bold',
   },
   totalValue: {
-    color: '#2ecc71',
+    color: '#18b7df',
     fontSize: 16,
     fontWeight: 'bold',
   },

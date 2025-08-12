@@ -13,6 +13,7 @@ import PedidoHeader from '../componentsPedidos/PedidoHeader'
 import ItensList from '../componentsPedidos/ItensLista'
 import ItensModal from '../componentsPedidos/ItensModal'
 import ResumoPedido from '../componentsPedidos/ResumoPedido'
+import ResumoPedidoComFinanceiro from '../componentsPedidos/ResumoPedidoComFinanceiro'
 import { apiGetComContexto } from '../utils/api'
 
 const PEDIDO_CACHE_ID = 'pedido-edicao-cache'
@@ -66,19 +67,31 @@ export default function TelaPedidoVenda({ route, navigation }) {
           )
           const itens = data.itens || []
 
-          setPedido({
+          // Mapear corretamente os campos de desconto
+          const pedidoMapeado = {
             ...data,
-            itens_input: itens,
+            itens_input: itens.map((item) => ({
+              ...item,
+              desconto_item_disponivel: !!item.desconto_item_disponivel,
+              percentual_desconto: Number(item.percentual_desconto || 0),
+              desconto_valor: Number(item.desconto_valor || 0),
+            })),
             pedi_tota: calcularTotal(itens),
-          })
+            // Mapear campos de desconto geral
+            desconto_geral_aplicado: !!data.desconto_geral_aplicado,
+            desconto_geral_tipo: data.desconto_geral_tipo || 'percentual',
+            desconto_geral_percentual: Number(
+              data.desconto_geral_percentual || 0
+            ),
+            desconto_geral_valor: Number(data.desconto_geral_valor || 0),
+            pedi_desc: Number(data.pedi_desc || 0),
+          }
+
+          setPedido(pedidoMapeado)
 
           await AsyncStorage.setItem(
             PEDIDO_CACHE_ID,
-            JSON.stringify({
-              ...data,
-              itens_input: itens,
-              pedi_tota: calcularTotal(itens),
-            })
+            JSON.stringify(pedidoMapeado)
           )
         } else {
           await AsyncStorage.removeItem(PEDIDO_CACHE_ID)
@@ -94,6 +107,11 @@ export default function TelaPedidoVenda({ route, navigation }) {
             itens_input: [],
             itens_removidos: [],
             pedi_tota: 0,
+            desconto_geral_aplicado: false,
+            desconto_geral_tipo: 'percentual',
+            desconto_geral_percentual: 0,
+            desconto_geral_valor: 0,
+            pedi_desc: 0,
           })
         }
       } catch (error) {
@@ -153,7 +171,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
   if (carregando) {
     return (
       <View style={styles.carregandoContainer}>
-        <ActivityIndicator size="large" color="#2ecc71" />
+        <ActivityIndicator size="large" color="#18b7df" />
         <Text style={styles.carregandoTexto}>Carregando pedido...</Text>
       </View>
     )
@@ -171,7 +189,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
             marginBottom={10}
             marginLeft={80}
             size={20}
-            color="#2ecc71"
+            color="#18b7df"
           />
 
           <Text style={styles.pageTitle}>
@@ -183,7 +201,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
 
         <View style={styles.itensSection}>
           <View style={styles.itensSectionHeader}>
-            <MaterialIcons name="list" size={20} color="#2ecc71" />
+            <MaterialIcons name="list" size={20} color="#18b7df" />
             <Text style={styles.sectionTitle}>Itens do Pedido</Text>
             <Text style={styles.itensCount}>
               {pedido.itens_input?.length || 0}{' '}
@@ -210,7 +228,11 @@ export default function TelaPedidoVenda({ route, navigation }) {
         </View>
       </ScrollView>
 
-      <ResumoPedido total={pedido.pedi_tota} pedido={pedido} />
+      <ResumoPedidoComFinanceiro
+        total={pedido.pedi_tota}
+        pedido={pedido}
+        setPedido={setPedido}
+      />
 
       <ItensModal
         visivel={modalVisivel}
@@ -282,7 +304,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   itensCount: {
-    color: '#2ecc71',
+    color: '#18b7df',
     fontSize: 14,
     fontWeight: '600',
     backgroundColor: '#1a252f',
@@ -291,7 +313,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   botaoAdicionarItem: {
-    backgroundColor: '#2ecc71',
+    backgroundColor: '#18b7df',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

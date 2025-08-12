@@ -70,7 +70,7 @@ export const screenConfigs = [
   {
     name: 'Entidades',
     component: Screens.Entidades,
-    options: { title: 'Entidades' },
+    options: createHeaderOptions('Entidades'),
   },
 
   // Telas de vendas

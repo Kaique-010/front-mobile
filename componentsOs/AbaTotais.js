@@ -484,6 +484,7 @@ export default function AbaTotais({
                 keyboardType="numeric"
                 style={styles.input}
                 mode="outlined"
+                textColor="#fff"
                 theme={{ colors: { primary: '#10a2a7' } }}
                 disabled={loading}
               />
@@ -494,6 +495,7 @@ export default function AbaTotais({
                 onChangeText={setDataBase}
                 style={styles.input}
                 mode="outlined"
+                textColor="#fff"
                 theme={{ colors: { primary: '#10a2a7' } }}
                 disabled={loading}
               />

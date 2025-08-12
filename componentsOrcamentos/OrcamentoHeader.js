@@ -45,14 +45,9 @@ export default function OrcamentoHeader({ orcamento = {}, setOrcamento }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerTitle}>
-        <MaterialIcons name="description" size={24} color="#10a2a7" />
-        <Text style={styles.title}>Dados do Orçamento</Text>
-      </View>
-
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="event" size={16} color="#10a2a7" />
+          <MaterialIcons name="event" size={12} color="#10a2a7" />
           <Text style={styles.label}>Data do Orçamento</Text>
         </View>
         <TextInput
@@ -68,7 +63,7 @@ export default function OrcamentoHeader({ orcamento = {}, setOrcamento }) {
 
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="person" size={16} color="#10a2a7" />
+          <MaterialIcons name="person" size={12} color="#10a2a7" />
           <Text style={styles.label}>Cliente</Text>
         </View>
         <BuscaClienteInput
@@ -94,7 +89,7 @@ export default function OrcamentoHeader({ orcamento = {}, setOrcamento }) {
 
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="work" size={16} color="#10a2a7" />
+          <MaterialIcons name="work" size={12} color="#10a2a7" />
           <Text style={styles.label}>Vendedor</Text>
         </View>
         <BuscaVendedorInput

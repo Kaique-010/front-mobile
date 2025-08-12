@@ -39,6 +39,8 @@ export default function ItensModal({
 
   useEffect(() => {
     if (itemEditando) {
+      console.log('🎯 [ItensModal] Item editando recebido:', itemEditando)
+
       setForm({
         produtoId: itemEditando.iped_prod?.toString() || '',
         quantidade: itemEditando.iped_quan?.toString() || '',
@@ -177,10 +179,21 @@ export default function ItensModal({
       desconto_valor: form.descontoHabilitado ? descontoValor : 0,
     }
 
+    console.log('🎯 [ItensModal] Novo item criado:', novoItem)
+
     onAdicionar(novoItem, itemEditando)
 
     if (!itemEditando) {
-      setForm({ produtoId: '', produtoNome: '', quantidade: '', preco: '' })
+      setForm({
+        produtoId: '',
+        produtoNome: '',
+        quantidade: '',
+        preco: '',
+        descontoHabilitado: false,
+        tipoDesconto: 'percentual',
+        percentualDesconto: '',
+        valorDesconto: '',
+      })
     }
 
     onFechar()

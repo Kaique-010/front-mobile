@@ -29,33 +29,7 @@ const FORMAS_RECEBIMENTO = [
   { codigo: '60', descricao: 'PIX' },
 ]
 
-export default function AbaTotais({
-  pecas = [],
-  servicos = [],
-  os_os: orde_nume,
-  os_clie: os_clie,
-  os_empr,
-  os_fili,
-  onFinanceiroGerado, // Novo prop
-}) {
-  useEffect(() => {
-    console.log('AbaTotais props:', {
-      orde_nume,
-      os_clie,
-      os_empr,
-      os_fili,
-
-      totalPecas: pecas.reduce(
-        (acc, peca) => acc + (Number(peca.peca_tota) || 0),
-        0
-      ),
-      totalServicos: servicos.reduce(
-        (acc, servico) => acc + (Number(servico.serv_tota) || 0),
-        0
-      ),
-    })
-  }, [orde_nume, os_clie, os_empr, os_fili, pecas, servicos])
-
+export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
   const [loading, setLoading] = useState(false)
   const [titulos, setTitulos] = useState([])
   const [formaPagamento, setFormaPagamento] = useState('54')
@@ -67,17 +41,20 @@ export default function AbaTotais({
   const [modalVisible, setModalVisible] = useState(false)
   const [tituloEmEdicao, setTituloEmEdicao] = useState(null)
 
-  const totalPecas = pecas.reduce((acc, peca) => {
-    const valor = Number(peca.peca_tota) || 0
-    return acc + valor
-  }, 0)
+  const pedi_nume = pedido?.pedi_nume
+  const pedi_forn = pedido?.pedi_forn
+  const pedi_empr = pedido?.pedi_empr
+  const pedi_fili = pedido?.pedi_fili
 
-  const totalServicos = servicos.reduce((acc, servico) => {
-    const valor = Number(servico.serv_tota) || 0
-    return acc + valor
-  }, 0)
-
-  const totalGeral = totalPecas + totalServicos
+  useEffect(() => {
+    console.log('FinanceiroPedido props:', {
+      pedi_nume,
+      pedi_forn,
+      pedi_empr,
+      pedi_fili,
+      totalGeral,
+    })
+  }, [pedi_nume, pedi_forn, pedi_empr, pedi_fili, totalGeral])
 
   useEffect(() => {
     const numParcelas = parseInt(parcelas) || 1
@@ -101,40 +78,13 @@ export default function AbaTotais({
     setParcelasSimuladas(novasParcelasSimuladas)
   }, [parcelas, totalGeral, dataBase])
 
-  useEffect(() => {
-    const atualizarTotalOrdem = async () => {
-      if (!orde_nume) return
-
-      try {
-        await apiPostComContexto(`Os/ordens/${orde_nume}/atualizar_total/`, {
-          os_tota: Number(totalGeral),
-          os_empr: Number(os_empr),
-          os_fili: Number(os_fili),
-          orde_nume: Number(orde_nume), // Alterado de os_os para orde_nume
-          empr: String(os_empr),
-          fili: String(os_fili),
-          usua: '1',
-        })
-      } catch (error) {
-        console.error('Erro ao atualizar total da ordem:', error)
-        Toast.show({
-          type: 'error',
-          text1: 'Erro ao atualizar total',
-          text2: 'Não foi possível salvar o total da ordem de serviço',
-        })
-      }
-    }
-
-    atualizarTotalOrdem()
-  }, [totalGeral, orde_nume])
-
   const carregarTitulos = async () => {
-    if (!orde_nume) return
+    if (!pedi_nume) return
 
     try {
       setLoading(true)
       const response = await apiGetComContexto(
-        `Os/financeiro/consultar-titulos/${orde_nume}/`
+        `pedidos/consultar-titulos-pedido/${pedi_nume}/`
       )
       setTitulos(response.titulos || [])
     } catch (error) {
@@ -156,14 +106,14 @@ export default function AbaTotais({
 
   useEffect(() => {
     carregarTitulos()
-  }, [orde_nume])
+  }, [pedi_nume])
 
   const gerarTitulos = async () => {
-    if (!orde_nume || !os_clie || !totalGeral) {
+    if (!pedi_nume || !pedi_forn || !totalGeral) {
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: 'Cliente, número da ordem e total são obrigatórios',
+        text2: 'Cliente, número do pedido e total são obrigatórios',
       })
       return
     }
@@ -171,20 +121,17 @@ export default function AbaTotais({
     try {
       setLoading(true)
       const payload = {
-        os_os: orde_nume, // Corrigido: usando orde_nume em vez de os_os
-        os_clie: os_clie,
-        os_tota: totalGeral,
+        pedi_nume,
+        pedi_forn,
+        pedi_tota: totalGeral,
         forma_pagamento: formaPagamento,
         parcelas: parseInt(parcelas),
         data_base: dataBase,
-        empr: os_empr,
-        fili: os_fili,
       }
 
-      console.log('Payload:', payload)
+      console.log('Payload para gerar títulos:', payload)
 
-      await apiPostComContexto('Os/financeiro/gerar-titulos/', payload)
-      onFinanceiroGerado && onFinanceiroGerado(true) // Notifica o componente pai
+      await apiPostComContexto('pedidos/gerar-titulos-pedido/', payload)
 
       Toast.show({
         type: 'success',
@@ -210,11 +157,8 @@ export default function AbaTotais({
   const removerTitulos = async () => {
     try {
       setLoading(true)
-      await apiPostComContexto('Os/financeiro/remover-titulos/', {
-        os_os: orde_nume,
-        empr: os_empr,
-        fili: os_fili,
-        usua: '1',
+      await apiPostComContexto('pedidos/remover-titulos-pedido/', {
+        pedi_nume,
       })
 
       Toast.show({
@@ -224,11 +168,9 @@ export default function AbaTotais({
       })
 
       setTitulos([])
-      onFinanceiroGerado && onFinanceiroGerado(false) // Atualiza o estado para permitir adicionar peças/serviços novamente
     } catch (error) {
       if (error.response?.status === 404) {
         setTitulos([])
-        onFinanceiroGerado && onFinanceiroGerado(false) // Também atualiza em caso de 404
         return
       }
 
@@ -254,13 +196,11 @@ export default function AbaTotais({
 
     try {
       setLoading(true)
-      await apiPostComContexto('Os/financeiro/atualizar-titulo/', {
-        orde_nume,
+      await apiPostComContexto('pedidos/atualizar-titulo-pedido/', {
+        pedi_nume,
         parcela: tituloEmEdicao.parcela,
         valor: parseFloat(tituloEmEdicao.valor),
         vencimento: tituloEmEdicao.vencimento,
-        empr: os_empr,
-        fili: os_fili,
       })
 
       Toast.show({
@@ -377,32 +317,28 @@ export default function AbaTotais({
   return (
     <ScrollView style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Resumo da Ordem de Serviço</Text>
+        <Text style={styles.cardTitle}>Financeiro do Pedido</Text>
 
         <View style={styles.infoContainer}>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Total de Peças:</Text>
-            <Text style={styles.valor}>R$ {totalPecas.toFixed(2)}</Text>
+            <Text style={styles.label}>Total do Pedido:</Text>
+            <Text style={styles.valor}>R$ {totalGeral.toFixed(2)}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Total de Serviços:</Text>
-            <Text style={styles.valor}>R$ {totalServicos.toFixed(2)}</Text>
+            <Text style={styles.label}>Número do Pedido:</Text>
+            <Text style={styles.valor}>{pedi_nume || 'N/A'}</Text>
           </View>
 
-          <View style={styles.divisor} />
-
           <View style={styles.infoRow}>
-            <Text style={[styles.label, styles.total]}>Total Geral:</Text>
-            <Text style={[styles.valor, styles.totalValor]}>
-              R$ {totalGeral.toFixed(2)}
-            </Text>
+            <Text style={styles.label}>Cliente:</Text>
+            <Text style={styles.valor}>{pedi_forn || 'N/A'}</Text>
           </View>
         </View>
 
         <View style={styles.divisor} />
 
-        <Text style={styles.cardTitle}>Financeiro</Text>
+        <Text style={styles.cardTitle}>Geração de Títulos</Text>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -435,6 +371,12 @@ export default function AbaTotais({
                   <Text style={styles.tituloLabel}>Vencimento:</Text>
                   <Text style={styles.tituloValor}>
                     {new Date(titulo.vencimento).toLocaleDateString()}
+                  </Text>
+                </View>
+                <View style={styles.tituloRow}>
+                  <Text style={styles.tituloLabel}>Forma de Pagamento:</Text>
+                  <Text style={styles.tituloValor}>
+                    {titulo.forma_pagamento || 'N/A'}
                   </Text>
                 </View>
                 <View style={styles.tituloRow}>
@@ -491,13 +433,7 @@ export default function AbaTotais({
                 style={styles.input}
                 mode="outlined"
                 textColor="#fff"
-                theme={{
-                  colors: {
-                    primary: '#10a2a7',
-                    text: '#fff', // texto digitado
-                    placeholder: '#999', // texto do placeholder
-                  },
-                }}
+                theme={{ colors: { primary: '#10a2a7' } }}
                 disabled={loading}
               />
 
@@ -508,13 +444,7 @@ export default function AbaTotais({
                 style={styles.input}
                 mode="outlined"
                 textColor="#fff"
-                theme={{
-                  colors: {
-                    primary: '#10a2a7',
-                    text: '#fff',
-                    placeholder: '#999',
-                  },
-                }}
+                theme={{ colors: { primary: '#10a2a7' } }}
                 disabled={loading}
               />
 
@@ -539,11 +469,13 @@ export default function AbaTotais({
               <TouchableOpacity
                 style={[
                   styles.button,
-                  (loading || !orde_nume || !os_clie || totalGeral <= 0) &&
+                  (loading || !pedi_nume || !pedi_forn || totalGeral <= 0) &&
                     styles.buttonDisabled,
                 ]}
                 onPress={gerarTitulos}
-                disabled={loading || !orde_nume || !os_clie || totalGeral <= 0}>
+                disabled={
+                  loading || !pedi_nume || !pedi_forn || totalGeral <= 0
+                }>
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
@@ -554,7 +486,7 @@ export default function AbaTotais({
 
             <View style={styles.semTitulosContainer}>
               <Text style={styles.semTitulosTexto}>
-                Esta ordem de serviço ainda não possui títulos gerados.
+                Este pedido ainda não possui títulos gerados.
               </Text>
             </View>
           </>
@@ -613,15 +545,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2c3e50',
     marginVertical: 20,
   },
-  total: {
-    color: '#10a2a7',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  totalValor: {
-    color: '#10a2a7',
-    fontSize: 20,
-  },
   formContainer: {
     backgroundColor: '#1a2f3d',
     borderRadius: 8,
@@ -652,11 +575,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: '#232935',
     color: '#fff',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
   },
   button: {
     backgroundColor: '#10a2a7',
@@ -741,11 +659,6 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 16,
     textAlign: 'center',
-  },
-  buttonErrorText: {
-    color: '#ff9999',
-    fontSize: 12,
-    marginTop: 4,
   },
   modalContainer: {
     flex: 1,
