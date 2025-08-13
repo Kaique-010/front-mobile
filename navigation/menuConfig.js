@@ -50,6 +50,36 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
+    pisos: {
+      name: 'Pisos',
+      icon: 'folder',
+      items: [
+        {
+          name: 'Pedidos de Pisos',
+          route: 'PedidosPisos',
+          icon: 'file-text',
+          condition: hasModulo('Pisos'),
+        },
+        {
+          name: 'Pedidos de Pisos',
+          route: 'PedidosPisosForm',
+          icon: 'file-text',
+          condition: hasModulo('Pisos'),
+        },
+        {
+          name: 'Dashboard Pisos',
+          route: 'DashPedidosPisos',
+          icon: 'dashboard',
+          condition: hasModulo('Pisos'),
+        },
+        {
+          name: 'Gráfico Pisos',
+          route: 'DashPedidosPisosGrafico',
+          icon: 'bar-chart',
+          condition: hasModulo('Pisos'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
     vendas: {
       name: 'Vendas',
       icon: 'shopping-cart',
@@ -356,4 +386,18 @@ export const getMenuDinamico = async () => {
     console.error('Erro ao carregar módulos:', error)
     return MENU_BASICO // Menu mínimo em caso de erro
   }
+}
+
+// Add to the appropriate section (likely 'vendas' or create a new 'pisos' section)
+const menuConfig = {
+  name: 'Pisos',
+  icon: 'home-work',
+  items: [
+    {
+      name: 'Pedidos Pisos',
+      route: 'PedidosPisos',
+      icon: 'list-alt',
+      condition: (modulos) => modulos?.pisos,
+    },
+  ],
 }

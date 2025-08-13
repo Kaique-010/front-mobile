@@ -99,6 +99,40 @@ const styles = StyleSheet.create({
   footerText: {
     margin: 20,
   },
+  // ====== Estilos específicos para Pisos ======
+  pisosInfo: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  pisosDetalhe: {
+    color: '#ccc',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  // ====== Estilos adicionais para Pedidos ======
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  vendedor: {
+    color: '#aaa',
+    marginTop: 2,
+  },
+  valor: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 5,
+  },
+  observacao: {
+    color: '#999',
+    fontSize: 12,
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
 })
 
 export default styles

@@ -387,6 +387,29 @@ export const screenConfigs = [
     component: Screens.PainelCooperado,
     options: createHeaderOptions('Painel do Cooperado'),
   },
+
+  //telas de pisos
+  {
+    name: 'DashPedidosPisos',
+    component: Screens.DashPedidosPisos,
+    options: createHeaderOptions('Dashboard de Pedidos de Pisos'),
+  },
+  {
+    name: 'DashPedidosPisosGrafico',
+    component: Screens.DashPedidosPisosGrafico,
+    options: createHeaderOptions('Gráficos de Pedidos de Pisos'),
+  },
+  {
+    name: 'PedidosPisos',
+    component: Screens.PedidosPisos,
+    options: createHeaderOptions('Pedidos de Pisos'),
+  },
+  {
+    name: 'PedidosPisosForm',
+    component: Screens.PedidosPisosForm,
+    options: createHeaderOptions('Formulário de Pedidos de Pisos'),
+  },
+
   // Telas de parâmetros
   {
     name: 'SistemaPermissoes',

@@ -1,6 +1,10 @@
 import React from 'react'
 import { BackHandler } from 'react-native'
 
+import { LogBox } from 'react-native'
+LogBox.ignoreLogs(['Warning: ...'])
+LogBox.ignoreAllLogs()
+
 // Polyfill for BackHandler compatibility
 if (!BackHandler.removeEventListener) {
   BackHandler.removeEventListener = (eventType, handler) => {

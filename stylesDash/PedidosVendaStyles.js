@@ -277,4 +277,40 @@ export default StyleSheet.create({
     color: '#bdc3c7',
     marginTop: 16,
   },
+  // Adicionar ao final do arquivo, antes do fechamento do StyleSheet.create:
+
+  // Estilos para Pisos
+  pisosInfo: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  pisosDetalhe: {
+    fontSize: 12,
+    color: '#18b7df',
+    marginBottom: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  vendedor: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+  },
+  valor: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#27ae60',
+  },
+  observacao: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
 })

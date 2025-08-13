@@ -216,7 +216,10 @@ export default function ControleVisitasList({ navigation }) {
         <TouchableOpacity
           style={styles.dashboardButton}
           onPress={() => navigation.navigate('ControleVisitaDashboard')}>
+          // Linha 219 - TROCAR:
           <MaterialIcons name="dashboard" size={24} color="#fff" />
+          // POR:
+          <MaterialIcons name="view-dashboard" size={24} color="#fff" />
           <Text style={styles.dashboardButtonText}>Dashboard</Text>
         </TouchableOpacity>
       </View>

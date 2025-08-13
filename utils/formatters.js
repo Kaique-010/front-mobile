@@ -151,3 +151,29 @@ export const capitalizeWords = (text) => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
+
+// Adicionar ao final do arquivo:
+
+// Função para formatar data no padrão brasileiro (DD/MM/AAAA)
+export const formatarData = (data) => {
+  if (!data) return '';
+  
+  const date = new Date(data);
+  if (isNaN(date.getTime())) return '';
+  
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+
+// Função para formatar data para API (YYYY-MM-DD)
+export const formatarDataAPI = (data) => {
+  if (!data) return '';
+  
+  const date = new Date(data);
+  if (isNaN(date.getTime())) return '';
+  
+  return date.toISOString().split('T')[0];
+};

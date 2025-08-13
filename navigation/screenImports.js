@@ -115,3 +115,9 @@ export { default as ParametrosFinanceiro } from '../Parametros/Screens/Parametro
 
 // Telas de MCP
 export { default as ConsultaScreen } from '../componentsMCP/consultaMCP'
+
+// Pisos
+export { default as DashPedidosPisos } from '../componetsPisos/DashPedidosPisos'
+export { default as DashPedidosPisosGrafico } from '../componetsPisos/DashPedidosPisosGrafico'
+export { default as PedidosPisos } from '../componetsPisos/PedidosPisos'
+export { default as PedidosPisosForm } from '../componetsPisos/PedidosPisosForm'
