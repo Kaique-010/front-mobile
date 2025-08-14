@@ -16,38 +16,53 @@ import { formatDate, formatNumber } from '../utils/formatters'
 export default function ControleVisitaDetalhes({ route, navigation }) {
   const { visitaId } = route.params
   const [visita, setVisita] = useState(null)
+  const [etapas, setEtapas] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    carregarVisita()
+    carregarDados()
   }, [])
 
-  const carregarVisita = async () => {
+  const carregarDados = async () => {
     try {
       setLoading(true)
-
-      const response = await apiGetComContexto(
-        `controledevisitas/controle-visitas/${visitaId}/`
-      )
-      setVisita(response)
+      
+      // Carregar etapas e visita em paralelo
+      const [etapasResponse, visitaResponse] = await Promise.all([
+        apiGetComContexto('controledevisitas/etapas-visita/'),
+        apiGetComContexto(`controledevisitas/controle-visitas/${visitaId}/`)
+      ])
+      
+      const etapasData = Array.isArray(etapasResponse) ? etapasResponse : etapasResponse?.results || []
+      setEtapas(etapasData)
+      setVisita(visitaResponse)
     } catch (error) {
-      console.error('Erro ao carregar visita:', error)
-      Alert.alert('Erro', 'Não foi possível carregar os detalhes da visita')
+      console.error('Erro ao carregar dados:', error)
+      Alert.alert('Erro', 'Não foi possível carregar os dados')
       navigation.goBack()
     } finally {
       setLoading(false)
     }
   }
 
-  const getEtapaInfo = (etapa) => {
-    const etapas = {
-      1: { label: 'Prospecção', icon: 'search', color: '#3498db' },
-      2: { label: 'Qualificação', icon: 'assignment', color: '#f39c12' },
-      3: { label: 'Proposta', icon: 'description', color: '#9b59b6' },
-      4: { label: 'Negociação', icon: 'handshake', color: '#e74c3c' },
-      5: { label: 'Fechamento', icon: 'check-circle', color: '#2ecc71' },
+  const getEtapaInfo = (etapaId) => {
+    const etapa = etapas.find(e => e.etvi_codigo === etapaId)
+    if (!etapa) return { label: 'N/A', icon: 'help', color: '#666' }
+    
+    // Mapear ícones baseado na descrição
+    const iconMap = {
+      'Prospecção': 'search',
+      'Qualificação': 'assignment',
+      'Proposta': 'description', 
+      'Negociação': 'handshake',
+      'Fechamento': 'check-circle'
     }
-    return etapas[etapa] || { label: 'N/A', icon: 'help', color: '#666' }
+    
+    return {
+      label: etapa.etvi_descricao,
+      icon: iconMap[etapa.etvi_descricao] || 'help',
+      color: etapa.etvi_cor || '#666'
+    }
   }
 
   const handleEdit = () => {
@@ -55,6 +70,14 @@ export default function ControleVisitaDetalhes({ route, navigation }) {
       visitaId: visita.ctrl_id,
       visita: visita,
     })
+  }
+
+  // Calcular KM percorrido de forma segura
+  const calcularKmPercorrido = () => {
+    if (!visita?.ctrl_km_inic || !visita?.ctrl_km_fina) return null
+    const inicial = parseFloat(visita.ctrl_km_inic) || 0
+    const final = parseFloat(visita.ctrl_km_fina) || 0
+    return final > inicial ? final - inicial : null
   }
 
   if (loading) {
@@ -76,7 +99,7 @@ export default function ControleVisitaDetalhes({ route, navigation }) {
   }
 
   const etapaInfo = getEtapaInfo(visita.ctrl_etapa)
-  const kmPercorrido = visita.km_percorrido
+  const kmPercorrido = calcularKmPercorrido()
 
   return (
     <View style={styles.container}>
@@ -97,7 +120,7 @@ export default function ControleVisitaDetalhes({ route, navigation }) {
           <View style={styles.mainCardHeader}>
             <View style={styles.numeroContainer}>
               <Text style={styles.numeroLabel}>Visita</Text>
-              <Text style={styles.numeroText}>#{visita.ctrl_numero}</Text>
+              <Text style={styles.numeroText}>#{visita.ctrl_numero || 'N/A'}</Text>
             </View>
             <View
               style={[styles.etapaBadge, { backgroundColor: etapaInfo.color }]}>

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, onRefresh } from 'react'
+
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import {
   StyleSheet,
   TextInput,
 } from 'react-native'
+import Toast from 'react-native-toast-message'
 import { MaterialIcons, Feather } from '@expo/vector-icons'
 import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import ControleVisitaCard from './ControleVisitaCard'
@@ -17,6 +19,13 @@ import ControleVisitaFilters from './ControleVisitaFilters'
 
 export default function ControleVisitasList({ navigation }) {
   const [visitas, setVisitas] = useState([])
+  const [etapas, setEtapas] = useState([])
+  const [stats, setStats] = useState([])
+  const [estatisticasGerais, setEstatisticasGerais] = useState({
+    etapas: {},
+    top_vendedores: {},
+    total_visitas: 0,
+  })
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [searchText, setSearchText] = useState('')
@@ -27,77 +36,206 @@ export default function ControleVisitasList({ navigation }) {
     data_inicio: '',
     data_fim: '',
     cliente_nome: '',
-  })
-  const [stats, setStats] = useState({
-    total: 0,
-    prospeccao: 0,
-    qualificacao: 0,
-    proposta: 0,
-    negociacao: 0,
-    fechamento: 0,
+    proxima_visita: false, // Novo filtro
   })
 
-  const etapas = [
-    { value: 1, label: 'Prospecção', color: '#3498db' },
-    { value: 2, label: 'Qualificação', color: '#f39c12' },
-    { value: 3, label: 'Proposta', color: '#9b59b6' },
-    { value: 4, label: 'Negociação', color: '#e74c3c' },
-    { value: 5, label: 'Fechamento', color: '#2ecc71' },
-  ]
-
-  const carregarVisitas = useCallback(async () => {
-    try {
-      setLoading(true)
-      const params = {
-        ...filters,
-        search: searchText,
-        ordering: '-ctrl_data',
-      }
-
-      // Carregar visitas com tratamento de erro melhorado
-      const response = await apiGetComContexto(
-        'controledevisitas/controle-visitas/',
-        params
-      )
-
-      // Garantir que sempre temos um array
-      const visitasData = Array.isArray(response)
-        ? response
-        : Array.isArray(response?.results)
-        ? response.results
-        : []
-
-      console.log('Visitas carregadas na lista:', visitasData.length)
-      setVisitas(visitasData)
-
-      // Calcular estatísticas
-      const novasStats = {
-        total: visitasData.length,
-        prospeccao: visitasData.filter((v) => v.ctrl_etapa === 1).length,
-        qualificacao: visitasData.filter((v) => v.ctrl_etapa === 2).length,
-        proposta: visitasData.filter((v) => v.ctrl_etapa === 3).length,
-        negociacao: visitasData.filter((v) => v.ctrl_etapa === 4).length,
-        fechamento: visitasData.filter((v) => v.ctrl_etapa === 5).length,
-      }
-      setStats(novasStats)
-    } catch (error) {
-      console.error('Erro listar:', error)
-      Alert.alert('Erro', 'Não foi possível carregar as visitas')
-      setVisitas([]) // Garantir que visitas seja um array vazio em caso de erro
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [filters, searchText])
-
-  useEffect(() => {
-    carregarVisitas()
-  }, [carregarVisitas])
-
-  const onRefresh = () => {
-    setRefreshing(true)
-    carregarVisitas()
+  // Mover esta função para ANTES de carregarVisitas
+  const getEtapaColor = (etapaId) => {
+    const colors = ['#3498db', '#e74c3c', '#f39c12', '#2ecc71', '#9b59b6']
+    return colors[etapaId % colors.length] || '#95a5a6'
   }
+
+  const extrairEtapasDasVisitas = (visitas) => {
+    const etapasUnicas = new Map()
+
+    visitas.forEach((visita) => {
+      if (visita.ctrl_etapa && visita.etapa_descricao) {
+        etapasUnicas.set(visita.ctrl_etapa, {
+          etap_id: visita.ctrl_etapa,
+          etap_descricao: visita.etapa_descricao,
+          etap_cor: getEtapaColor(visita.ctrl_etapa),
+        })
+      }
+    })
+
+    return Array.from(etapasUnicas.values())
+  }
+
+  // Função corrigida para aplicar filtros
+  const carregarVisitas = useCallback(
+    async (filtrosAplicados = {}) => {
+      setLoading(true)
+      try {
+        // Se for filtro de próxima visita, usar endpoint específico
+        if (filtrosAplicados.proxima_visita) {
+          const response = await apiGetComContexto(
+            'controledevisitas/controle-visitas/proximas/',
+            {
+              limit: 1000,
+            }
+          )
+
+          const proximasVisitas = response?.proximas_visitas || []
+          
+         
+          const data = proximasVisitas.map(visita => ({
+            ctrl_id: visita.ctrl_id,
+            ctrl_numero: visita.ctrl_numero,
+            ctrl_data: visita.ctrl_data_original,
+            ctrl_prox_visi: visita.ctrl_prox_visi,
+            ctrl_etapa: visita.etapa?.id,
+            etapa_descricao: visita.etapa?.nome,
+            ctrl_cliente: visita.cliente?.id,
+            cliente_nome: visita.cliente?.nome,
+            ctrl_vendedor: visita.vendedor?.id,
+            vendedor_nome: visita.vendedor?.nome,
+            ctrl_contato: visita.contato,
+            ctrl_fone: visita.telefone,
+            ctrl_obse: visita.observacoes,
+            dias_restantes: visita.dias_restantes,
+            urgencia: visita.urgencia
+          }))
+          
+          setVisitas(data)
+
+          // Extrair etapas
+          const etapasExtraidas = extrairEtapasDasVisitas(data)
+          setEtapas(etapasExtraidas)
+
+          // Calcular stats
+          const total = data.length
+          const estatisticasCalculadas = etapasExtraidas.map((etapa) => {
+            const visitasEtapa = data.filter(
+              (v) => v.ctrl_etapa === etapa.etap_id
+            )
+            return {
+              id: etapa.etap_id,
+              label: etapa.etap_descricao,
+              value: etapa.etap_id,
+              color: etapa.etap_cor,
+              count: visitasEtapa.length,
+              percentage:
+                total > 0
+                  ? ((visitasEtapa.length / total) * 100).toFixed(1)
+                  : '0',
+            }
+          })
+
+          setStats(estatisticasCalculadas)
+
+          Toast.show({
+            type: 'success',
+            text1: `${data.length} próximas visitas carregadas!`,
+          })
+
+          return
+        }
+
+        // Construir parâmetros da query com filtros para endpoint normal
+        const queryParams = {
+          limit: 1000,
+        }
+
+        // Aplicar filtros se existirem
+        if (filtrosAplicados.etapa) {
+          queryParams.etapa = filtrosAplicados.etapa
+        }
+        if (filtrosAplicados.vendedor) {
+          queryParams.ctrl_vendedor = filtrosAplicados.vendedor
+        }
+        if (filtrosAplicados.data_inicio) {
+          queryParams.data_inicio = filtrosAplicados.data_inicio
+        }
+        if (filtrosAplicados.data_fim) {
+          queryParams.data_fim = filtrosAplicados.data_fim
+        }
+        if (filtrosAplicados.cliente_nome) {
+          queryParams.cliente_nome = filtrosAplicados.cliente_nome
+        }
+
+        // Aplicar busca por texto se existir
+        if (searchText.trim()) {
+          queryParams.search = searchText.trim()
+        }
+
+        const response = await apiGetComContexto(
+          'controledevisitas/controle-visitas/',
+          queryParams
+        )
+
+        // Garantir que data seja um array
+        const data = response?.results || response || []
+        if (!Array.isArray(data)) {
+          console.warn('API retornou dados em formato inesperado:', data)
+          setVisitas([])
+          return
+        }
+
+        setVisitas(data)
+
+        // Extrair etapas
+        const etapasExtraidas = extrairEtapasDasVisitas(data)
+        setEtapas(etapasExtraidas)
+
+        // Calcular stats
+        const total = data.length
+        const estatisticasCalculadas = etapasExtraidas.map((etapa) => {
+          const visitasEtapa = data.filter(
+            (v) => v.ctrl_etapa === etapa.etap_id
+          )
+          return {
+            id: etapa.etap_id,
+            label: etapa.etap_descricao,
+            value: etapa.etap_id,
+            color: etapa.etap_cor,
+            count: visitasEtapa.length,
+            percentage:
+              total > 0
+                ? ((visitasEtapa.length / total) * 100).toFixed(1)
+                : '0',
+          }
+        })
+
+        setStats(estatisticasCalculadas)
+
+        Toast.show({
+          type: 'success',
+          text1: `${data.length} visitas carregadas!`,
+        })
+      } catch (error) {
+        console.error('Erro ao carregar visitas:', error)
+        Toast.show({
+          type: 'error',
+          text1: 'Erro ao carregar visitas',
+          text2: error.message,
+        })
+      } finally {
+        setLoading(false)
+      }
+    },
+    [searchText]
+  )
+
+  // useEffect para carregar visitas inicialmente
+  useEffect(() => {
+    carregarVisitas(filters)
+  }, [])
+
+  // useEffect para aplicar filtros quando mudarem
+  useEffect(() => {
+    if (Object.values(filters).some((f) => f)) {
+      carregarVisitas(filters)
+    }
+  }, [filters, carregarVisitas])
+
+  // useEffect para busca por texto
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      carregarVisitas(filters)
+    }, 500) // Debounce de 500ms
+
+    return () => clearTimeout(timeoutId)
+  }, [searchText, carregarVisitas])
 
   const handleEdit = (visita) => {
     navigation.navigate('ControleVisitaForm', {
@@ -140,43 +278,61 @@ export default function ControleVisitasList({ navigation }) {
   const applyFilters = (newFilters) => {
     setFilters(newFilters)
     setShowFilters(false)
+    // carregarVisitas será chamado automaticamente pelo useEffect
   }
 
   const clearFilters = () => {
-    setFilters({
+    const filtrosLimpos = {
       etapa: '',
       vendedor: '',
       data_inicio: '',
       data_fim: '',
       cliente_nome: '',
-    })
+      proxima_visita: false,
+    }
+    setFilters(filtrosLimpos)
     setSearchText('')
+    setShowFilters(false)
+    // carregarVisitas será chamado automaticamente pelo useEffect
   }
 
-  const renderStatsCard = () => (
-    <View style={styles.statsContainer}>
-      <Text style={styles.statsTitle}>Funil de Vendas</Text>
-      <View style={styles.statsGrid}>
-        {etapas.map((etapa) => {
-          const count =
-            stats[etapa.label.toLowerCase().replace('ção', 'cao')] || 0
-          const percentage =
-            stats.total > 0 ? ((count / stats.total) * 100).toFixed(1) : 0
+  const renderStatsCard = () => {
+    if (!etapas || etapas.length === 0) {
+      return (
+        <View style={styles.statsContainer}>
+          <Text style={styles.statsTitle}>Funil de Vendas</Text>
+          <Text style={styles.statLabel}>Carregando etapas...</Text>
+        </View>
+      )
+    }
 
-          return (
+    if (!stats || stats.length === 0) {
+      return (
+        <View style={styles.statsContainer}>
+          <Text style={styles.statsTitle}>Funil de Vendas</Text>
+          <Text style={styles.statLabel}>Calculando estatísticas...</Text>
+        </View>
+      )
+    }
+
+    return (
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsTitle}>Funil de Vendas</Text>
+        <View style={styles.statsGrid}>
+          {stats.map((etapa) => (
             <TouchableOpacity
-              key={etapa.value}
+              key={etapa.id}
               style={[styles.statCard, { borderLeftColor: etapa.color }]}
               onPress={() => setFilters({ ...filters, etapa: etapa.value })}>
-              <Text style={styles.statNumber}>{count}</Text>
+              <Text style={styles.statNumber}>{etapa.count}</Text>
               <Text style={styles.statLabel}>{etapa.label}</Text>
-              <Text style={styles.statPercentage}>{percentage}%</Text>
+              <Text style={styles.statPercentage}>{etapa.percentage}%</Text>
             </TouchableOpacity>
-          )
-        })}
+          ))}
+        </View>
       </View>
-    </View>
-  )
+    )
+  }
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -216,10 +372,7 @@ export default function ControleVisitasList({ navigation }) {
         <TouchableOpacity
           style={styles.dashboardButton}
           onPress={() => navigation.navigate('ControleVisitaDashboard')}>
-          // Linha 219 - TROCAR:
           <MaterialIcons name="dashboard" size={24} color="#fff" />
-          // POR:
-          <MaterialIcons name="view-dashboard" size={24} color="#fff" />
           <Text style={styles.dashboardButtonText}>Dashboard</Text>
         </TouchableOpacity>
       </View>

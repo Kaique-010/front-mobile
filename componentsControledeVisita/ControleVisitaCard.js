@@ -1,17 +1,21 @@
 import React from 'react'
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet} from 'react-native'
+
 import { MaterialIcons, Feather } from '@expo/vector-icons'
 import { formatDate } from '../utils/formatters'
 
-export default function ControleVisitaCard({ visita, onEdit, onDelete, onView, etapas }) {
-  const etapa = etapas.find(e => e.value === visita.ctrl_etapa)
-  const etapaColor = etapa?.color || '#666'
-  const etapaLabel = etapa?.label || 'Não definida'
+export default function ControleVisitaCard({
+  visita,
+  onEdit,
+  onDelete,
+  onView,
+  etapas,
+}) {
+
+  
+  const etapa = etapas.find((e) => e.etap_id === visita.ctrl_etapa)
+  const etapaColor = etapa?.etap_cor || '#666'
+  const etapaLabel = etapa?.etap_descricao || visita.etapa_descricao || 'Não definida'
 
   const formatDateSafe = (dateString) => {
     if (!dateString) return 'Não informado'
@@ -19,26 +23,30 @@ export default function ControleVisitaCard({ visita, onEdit, onDelete, onView, e
   }
 
   const getStatusIcon = () => {
-    switch (visita.ctrl_etapa) {
-      case 1: return 'search'
-      case 2: return 'check-circle'
-      case 3: return 'file-text'
-      case 4: return 'trending-up'
-      case 5: return 'award'
-      default: return 'help-circle'
+    if (!etapa) return 'help-circle'
+
+    // Mapear ícones baseado na descrição da etapa
+    const iconMap = {
+      1: 'search',
+      2: 'check-circle',
+      3: 'file-text',
+      4: 'trending-up',
+      5: 'award',
     }
+
+    return iconMap[etapa.etap_id] || 'help-circle'
   }
 
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={() => onView(visita)}
-      activeOpacity={0.7}
-    >
+      activeOpacity={0.7}>
       {/* Header do Card */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={[styles.statusIndicator, { backgroundColor: etapaColor }]}>
+          <View
+            style={[styles.statusIndicator, { backgroundColor: etapaColor }]}>
             <Feather name={getStatusIcon()} size={16} color="#fff" />
           </View>
           <View style={styles.headerInfo}>
@@ -66,7 +74,7 @@ export default function ControleVisitaCard({ visita, onEdit, onDelete, onView, e
             {visita.cliente_nome || 'Não informado'}
           </Text>
         </View>
-        
+
         <View style={styles.infoRow}>
           <Feather name="briefcase" size={16} color="#3498db" />
           <Text style={styles.infoLabel}>Vendedor:</Text>
@@ -120,24 +128,21 @@ export default function ControleVisitaCard({ visita, onEdit, onDelete, onView, e
       <View style={styles.actionsContainer}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onView(visita)}
-        >
+          onPress={() => onView(visita)}>
           <Feather name="eye" size={18} color="#3498db" />
           <Text style={styles.actionButtonText}>Ver</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onEdit(visita)}
-        >
+          onPress={() => onEdit(visita)}>
           <Feather name="edit" size={18} color="#2ecc71" />
           <Text style={styles.actionButtonText}>Editar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onDelete(visita)}
-        >
+          onPress={() => onDelete(visita)}>
           <Feather name="trash-2" size={18} color="#e74c3c" />
           <Text style={styles.actionButtonText}>Excluir</Text>
         </TouchableOpacity>

@@ -12,10 +12,10 @@ import {
 import { MaterialIcons, Feather } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { Picker } from '@react-native-picker/picker'
-import { 
-  apiGetComContexto, 
-  apiPostComContexto, 
-  apiPutComContexto 
+import {
+  apiGetComContexto,
+  apiPostComContexto,
+  apiPutComContexto,
 } from '../utils/api'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
@@ -25,8 +25,11 @@ export default function ControleVisitaForm({ route, navigation }) {
   const isEdit = mode === 'edit' && visitaId
 
   const [loading, setLoading] = useState(false)
-  const [showDatePicker, setShowDatePicker] = useState({ field: null, show: false })
-  
+  const [showDatePicker, setShowDatePicker] = useState({
+    field: null,
+    show: false,
+  })
+
   const [formData, setFormData] = useState({
     ctrl_cliente: '',
     ctrl_data: new Date().toISOString().split('T')[0],
@@ -49,26 +52,37 @@ export default function ControleVisitaForm({ route, navigation }) {
   const [selectedCliente, setSelectedCliente] = useState(null)
   const [selectedVendedor, setSelectedVendedor] = useState(null)
 
-  const etapas = [
-    { value: 1, label: 'Prospecção', color: '#3498db' },
-    { value: 2, label: 'Qualificação', color: '#f39c12' },
-    { value: 3, label: 'Proposta', color: '#9b59b6' },
-    { value: 4, label: 'Negociação', color: '#e74c3c' },
-    { value: 5, label: 'Fechamento', color: '#2ecc71' },
-  ]
+  const [etapas, setEtapas] = useState([])
 
+  // Remover array hardcoded de etapas e carregar do backend
   useEffect(() => {
+    carregarEtapas()
     if (isEdit) {
       carregarVisita()
     }
   }, [isEdit, visitaId])
 
+  // Dentro da função carregarEtapas
+  const carregarEtapas = async () => {
+    try {
+      const response = await apiGetComContexto('controledevisitas/etapas/')
+      // Tratar resposta paginada e garantir array
+      const etapasData = response?.results || response || []
+      setEtapas(Array.isArray(etapasData) ? etapasData : [])
+    } catch (error) {
+      console.error('Erro ao carregar etapas:', error)
+      setEtapas([]) // Garantir array vazio em caso de erro
+    }
+  }
+
   const carregarVisita = async () => {
     try {
       setLoading(true)
-      // CORRIGIDO: endpoint duplicado
-      const response = await apiGetComContexto(`controledevisitas/controle-visitas/${visitaId}/`)
-      
+
+      const response = await apiGetComContexto(
+        `controledevisitas/controle-visitas/${visitaId}/`
+      )
+
       setFormData({
         ...response,
         ctrl_data: response.ctrl_data || new Date().toISOString().split('T')[0],
@@ -78,14 +92,13 @@ export default function ControleVisitaForm({ route, navigation }) {
         ctrl_nume_orca: response.ctrl_nume_orca?.toString() || '',
       })
 
-      // Carregar dados do cliente e vendedor se existirem
       if (response.ctrl_cliente) {
         setSelectedCliente({
           enti_codigo: response.ctrl_cliente,
           enti_nome: response.cliente_nome,
         })
       }
-      
+
       if (response.ctrl_vendedor) {
         setSelectedVendedor({
           enti_codigo: response.ctrl_vendedor,
@@ -104,25 +117,36 @@ export default function ControleVisitaForm({ route, navigation }) {
   const handleSave = async () => {
     try {
       // Validações
-      if (!formData.ctrl_cliente) {
+      if (!selectedCliente) {
         Alert.alert('Erro', 'Selecione um cliente')
         return
       }
 
       if (!formData.ctrl_data) {
-        Alert.alert('Erro', 'Informe a data da visita')
+        Alert.alert('Erro', 'Selecione uma data')
         return
       }
 
-      if (!formData.ctrl_vendedor) {
+      if (!selectedVendedor) {
         Alert.alert('Erro', 'Selecione um vendedor')
+        return
+      }
+
+      // NOVA VALIDAÇÃO: Etapa obrigatória
+      if (!formData.ctrl_etapa) {
+        Alert.alert('Erro', 'Selecione uma etapa')
+        return
+      }
+
+      if (!formData.ctrl_km || formData.ctrl_km <= 0) {
+        Alert.alert('Erro', 'Informe a quilometragem')
         return
       }
 
       // Validar KM
       const kmInic = parseFloat(formData.ctrl_km_inic) || 0
       const kmFina = parseFloat(formData.ctrl_km_fina) || 0
-      
+
       if (kmInic > 0 && kmFina > 0 && kmFina < kmInic) {
         Alert.alert('Erro', 'KM final deve ser maior que KM inicial')
         return
@@ -132,19 +156,31 @@ export default function ControleVisitaForm({ route, navigation }) {
 
       const dataToSave = {
         ...formData,
-        ctrl_km_inic: formData.ctrl_km_inic ? parseFloat(formData.ctrl_km_inic) : null,
-        ctrl_km_fina: formData.ctrl_km_fina ? parseFloat(formData.ctrl_km_fina) : null,
-        ctrl_nume_orca: formData.ctrl_nume_orca ? parseInt(formData.ctrl_nume_orca) : null,
+        ctrl_km_inic: formData.ctrl_km_inic
+          ? parseFloat(formData.ctrl_km_inic)
+          : null,
+        ctrl_km_fina: formData.ctrl_km_fina
+          ? parseFloat(formData.ctrl_km_fina)
+          : null,
+        ctrl_nume_orca: formData.ctrl_nume_orca
+          ? parseInt(formData.ctrl_nume_orca)
+          : null,
         ctrl_prox_visi: formData.ctrl_prox_visi || null,
       }
 
       if (isEdit) {
         // CORRIGIDO: endpoint duplicado
-        await apiPutComContexto(`controledevisitas/controle-visitas/${visitaId}/`, dataToSave)
+        await apiPutComContexto(
+          `controledevisitas/controle-visitas/${visitaId}/`,
+          dataToSave
+        )
         Alert.alert('Sucesso', 'Visita atualizada com sucesso')
       } else {
         // CORRIGIDO: endpoint duplicado
-        await apiPostComContexto('controledevisitas/controle-visitas/', dataToSave)
+        await apiPostComContexto(
+          'controledevisitas/controle-visitas/',
+          dataToSave
+        )
         Alert.alert('Sucesso', 'Visita criada com sucesso')
       }
 
@@ -159,7 +195,7 @@ export default function ControleVisitaForm({ route, navigation }) {
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker({ field: null, show: false })
-    
+
     if (selectedDate && showDatePicker.field) {
       const formattedDate = selectedDate.toISOString().split('T')[0]
       setFormData({
@@ -206,7 +242,7 @@ export default function ControleVisitaForm({ route, navigation }) {
       </View>
       <Switch
         value={!!formData[field]}
-        onValueChange={(value) => 
+        onValueChange={(value) =>
           setFormData({ ...formData, [field]: value ? 1 : 0 })
         }
         trackColor={{ false: '#2a3441', true: '#2ecc71' }}
@@ -234,7 +270,6 @@ export default function ControleVisitaForm({ route, navigation }) {
         {/* Informações Básicas */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Informações Básicas</Text>
-          
           {/* Cliente */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Cliente *</Text>
@@ -245,21 +280,18 @@ export default function ControleVisitaForm({ route, navigation }) {
               style={styles.input}
             />
           </View>
-
           {/* Data da Visita */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Data da Visita *</Text>
             <TouchableOpacity
               style={styles.dateButton}
-              onPress={() => showDatePickerModal('ctrl_data')}
-            >
+              onPress={() => showDatePickerModal('ctrl_data')}>
               <Feather name="calendar" size={20} color="#2ecc71" />
               <Text style={styles.dateButtonText}>
                 {formatDateForDisplay(formData.ctrl_data)}
               </Text>
             </TouchableOpacity>
           </View>
-
           {/* Vendedor */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Vendedor *</Text>
@@ -270,25 +302,28 @@ export default function ControleVisitaForm({ route, navigation }) {
               style={styles.input}
             />
           </View>
-
           {/* Etapa */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Etapa</Text>
+            <Text style={styles.fieldLabel}>Etapa *</Text>
+            // Dentro do Picker de etapas
             <View style={styles.pickerContainer}>
               <Picker
                 selectedValue={formData.ctrl_etapa}
-                onValueChange={(value) => 
+                onValueChange={(value) =>
                   setFormData({ ...formData, ctrl_etapa: value })
                 }
-                style={styles.picker}
-                dropdownIconColor="#2ecc71"
-              >
+                style={styles.picker}>
+                <Picker.Item
+                  label="Selecione uma etapa"
+                  value=""
+                  color="#999"
+                />
                 {etapas.map((etapa) => (
                   <Picker.Item
-                    key={etapa.value}
-                    label={etapa.label}
-                    value={etapa.value}
-                    color="#fff"
+                    key={etapa.etap_id}
+                    label={etapa.etap_descricao}
+                    value={etapa.etap_id}
+                    color="#000"
                   />
                 ))}
               </Picker>
@@ -299,7 +334,7 @@ export default function ControleVisitaForm({ route, navigation }) {
         {/* Informações de Contato */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contato</Text>
-          
+
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Nome do Contato</Text>
             <TextInput
@@ -307,7 +342,7 @@ export default function ControleVisitaForm({ route, navigation }) {
               placeholder="Nome da pessoa de contato"
               placeholderTextColor="#666"
               value={formData.ctrl_contato}
-              onChangeText={(text) => 
+              onChangeText={(text) =>
                 setFormData({ ...formData, ctrl_contato: text })
               }
             />
@@ -320,7 +355,7 @@ export default function ControleVisitaForm({ route, navigation }) {
               placeholder="(00) 00000-0000"
               placeholderTextColor="#666"
               value={formData.ctrl_fone}
-              onChangeText={(text) => 
+              onChangeText={(text) =>
                 setFormData({ ...formData, ctrl_fone: text })
               }
               keyboardType="phone-pad"
@@ -331,14 +366,14 @@ export default function ControleVisitaForm({ route, navigation }) {
         {/* Observações */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Observações</Text>
-          
+
           <View style={styles.field}>
             <TextInput
               style={[styles.textInput, styles.textArea]}
               placeholder="Observações sobre a visita..."
               placeholderTextColor="#666"
               value={formData.ctrl_obse}
-              onChangeText={(text) => 
+              onChangeText={(text) =>
                 setFormData({ ...formData, ctrl_obse: text })
               }
               multiline
@@ -351,34 +386,34 @@ export default function ControleVisitaForm({ route, navigation }) {
         {/* Controles de Atividade */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Atividades Realizadas</Text>
-          
+
           {renderSwitchField(
-            'Cliente Novo', 
-            'ctrl_novo', 
+            'Cliente Novo',
+            'ctrl_novo',
             'Marque se é um cliente novo'
           )}
-          
+
           {renderSwitchField(
-            'Levantamento de Base', 
-            'ctrl_base', 
+            'Levantamento de Base',
+            'ctrl_base',
             'Foi feito levantamento da base do cliente'
           )}
-          
+
           {renderSwitchField(
-            'Proposta Apresentada', 
-            'ctrl_prop', 
+            'Proposta Apresentada',
+            'ctrl_prop',
             'Foi apresentada uma proposta'
           )}
-          
+
           {renderSwitchField(
-            'Levantamento Técnico', 
-            'ctrl_leva', 
+            'Levantamento Técnico',
+            'ctrl_leva',
             'Foi feito levantamento técnico'
           )}
-          
+
           {renderSwitchField(
-            'Projeto Elaborado', 
-            'ctrl_proj', 
+            'Projeto Elaborado',
+            'ctrl_proj',
             'Foi elaborado um projeto'
           )}
         </View>
@@ -386,7 +421,7 @@ export default function ControleVisitaForm({ route, navigation }) {
         {/* Informações Adicionais */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Informações Adicionais</Text>
-          
+
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>KM Inicial</Text>
             <TextInput
@@ -394,7 +429,7 @@ export default function ControleVisitaForm({ route, navigation }) {
               placeholder="0.00"
               placeholderTextColor="#666"
               value={formData.ctrl_km_inic}
-              onChangeText={(text) => 
+              onChangeText={(text) =>
                 setFormData({ ...formData, ctrl_km_inic: text })
               }
               keyboardType="numeric"
@@ -408,7 +443,7 @@ export default function ControleVisitaForm({ route, navigation }) {
               placeholder="0.00"
               placeholderTextColor="#666"
               value={formData.ctrl_km_fina}
-              onChangeText={(text) => 
+              onChangeText={(text) =>
                 setFormData({ ...formData, ctrl_km_fina: text })
               }
               keyboardType="numeric"
@@ -422,7 +457,7 @@ export default function ControleVisitaForm({ route, navigation }) {
               placeholder="Número do orçamento"
               placeholderTextColor="#666"
               value={formData.ctrl_nume_orca}
-              onChangeText={(text) => 
+              onChangeText={(text) =>
                 setFormData({ ...formData, ctrl_nume_orca: text })
               }
               keyboardType="numeric"
@@ -433,8 +468,7 @@ export default function ControleVisitaForm({ route, navigation }) {
             <Text style={styles.fieldLabel}>Próxima Visita</Text>
             <TouchableOpacity
               style={styles.dateButton}
-              onPress={() => showDatePickerModal('ctrl_prox_visi')}
-            >
+              onPress={() => showDatePickerModal('ctrl_prox_visi')}>
               <Feather name="calendar" size={20} color="#2ecc71" />
               <Text style={styles.dateButtonText}>
                 {formatDateForDisplay(formData.ctrl_prox_visi)}
@@ -452,12 +486,11 @@ export default function ControleVisitaForm({ route, navigation }) {
         <TouchableOpacity
           style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           onPress={handleSave}
-          disabled={loading}
-        >
-          <MaterialIcons 
-            name={loading ? "hourglass-empty" : "save"} 
-            size={24} 
-            color="#fff" 
+          disabled={loading}>
+          <MaterialIcons
+            name={loading ? 'hourglass-empty' : 'save'}
+            size={24}
+            color="#fff"
           />
           <Text style={styles.saveButtonText}>
             {loading ? 'Salvando...' : 'Salvar Visita'}

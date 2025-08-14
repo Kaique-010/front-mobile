@@ -19,9 +19,12 @@ export default function ControleVisitaFilters({
   onApply,
   onClear,
   onClose,
-  etapas,
+  etapas, // Agora recebe etapas do backend
 }) {
-  const [localFilters, setLocalFilters] = useState(filters)
+  const [localFilters, setLocalFilters] = useState({
+    ...filters,
+    proxima_visita: filters.proxima_visita || false,
+  })
   const [showDatePicker, setShowDatePicker] = useState({
     field: null,
     show: false,
@@ -36,7 +39,7 @@ export default function ControleVisitaFilters({
     try {
       const response = await apiGetComContexto('entidades/', {
         enti_tipo: 'V', // Vendedores
-        limit: 100,
+        limit: 1000,
       })
       // Ensure vendedores is always an array
       const vendedoresData = response?.results || response || []
@@ -80,6 +83,7 @@ export default function ControleVisitaFilters({
       data_inicio: '',
       data_fim: '',
       cliente_nome: '',
+      proxima_visita: false,
     }
     setLocalFilters(clearedFilters)
     onClear()
@@ -92,34 +96,41 @@ export default function ControleVisitaFilters({
     })
   }
 
+  // Função para obter nome do vendedor selecionado
   const getSelectedVendedorName = () => {
-    if (!Array.isArray(vendedores) || vendedores.length === 0) {
-      return ''
-    }
-    const vendedor = vendedores.find(v => v.enti_codigo === localFilters.vendedor)
-    return vendedor?.enti_nome || ''
+    if (!localFilters.vendedor) return ''
+    const vendedor = vendedores.find(
+      (v) => v.enti_id === parseInt(localFilters.vendedor)
+    )
+    return vendedor ? vendedor.enti_nome : ''
+  }
+
+  // Função para obter descrição da etapa selecionada
+  const getSelectedEtapaName = () => {
+    if (!localFilters.etapa) return ''
+    const etapa = etapas.find((e) => e.etap_id === parseInt(localFilters.etapa))
+    return etapa ? etapa.etap_descricao : ''
   }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Feather name="x" size={24} color="#fff" />
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <MaterialIcons name="close" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>Filtros</Text>
-        <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
+        <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
           <Text style={styles.clearButtonText}>Limpar</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Filtro por Cliente */}
+      <ScrollView style={styles.content}>
+        {/* Filtro de Nome do Cliente */}
         <View style={styles.filterSection}>
-          <Text style={styles.filterLabel}>Cliente</Text>
+          <Text style={styles.filterLabel}>Nome do Cliente</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Nome do cliente"
+            placeholder="Digite o nome do cliente"
             placeholderTextColor="#666"
             value={localFilters.cliente_nome}
             onChangeText={(text) =>
@@ -128,7 +139,7 @@ export default function ControleVisitaFilters({
           />
         </View>
 
-        {/* Filtro por Etapa */}
+        {/* Filtro de Etapa */}
         <View style={styles.filterSection}>
           <Text style={styles.filterLabel}>Etapa</Text>
           <View style={styles.pickerContainer}>
@@ -137,33 +148,68 @@ export default function ControleVisitaFilters({
               onValueChange={(value) =>
                 setLocalFilters({ ...localFilters, etapa: value })
               }
-              style={styles.picker}
-              dropdownIconColor="#2ecc71">
-              <Picker.Item label="Todas as etapas" value="" color="#666" />
+              style={styles.picker}>
+              <Picker.Item label="Todas as etapas" value="" color="#000" />
               {etapas.map((etapa) => (
                 <Picker.Item
-                  key={etapa.value}
-                  label={etapa.label}
-                  value={etapa.value}
-                  color="#fff"
+                  key={etapa.etap_id}
+                  label={etapa.etap_descricao}
+                  value={etapa.etap_id.toString()}
+                  color="#000"
                 />
               ))}
             </Picker>
           </View>
         </View>
 
-        {/* Filtro por Vendedor */}
+        {/* Filtro de Vendedor */}
         <View style={styles.filterSection}>
           <Text style={styles.filterLabel}>Vendedor</Text>
-          <BuscaVendedorInput
-            onVendedorSelect={handleVendedorSelect}
-            placeholder="Selecionar vendedor"
-            initialValue={getSelectedVendedorName()}
-            style={styles.vendedorInput}
-          />
+          <View style={styles.vendedorInput}>
+            <BuscaVendedorInput
+              value={getSelectedVendedorName()}
+              onSelect={handleVendedorSelect}
+              placeholder="Selecione um vendedor"
+            />
+          </View>
         </View>
 
-        {/* Filtro por Data de Início */}
+        {/* NOVO: Filtro de Próxima Visita */}
+        <View style={styles.filterSection}>
+          <TouchableOpacity
+            style={[
+              styles.checkboxContainer,
+              localFilters.proxima_visita && styles.checkboxContainerActive,
+            ]}
+            onPress={() =>
+              setLocalFilters({
+                ...localFilters,
+                proxima_visita: !localFilters.proxima_visita,
+              })
+            }>
+            <MaterialIcons
+              name={
+                localFilters.proxima_visita
+                  ? 'check-box'
+                  : 'check-box-outline-blank'
+              }
+              size={24}
+              color={localFilters.proxima_visita ? '#2ecc71' : '#666'}
+            />
+            <Text
+              style={[
+                styles.checkboxLabel,
+                localFilters.proxima_visita && styles.checkboxLabelActive,
+              ]}>
+              Apenas próximas visitas
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.checkboxDescription}>
+            Mostrar apenas visitas agendadas para hoje ou datas futuras
+          </Text>
+        </View>
+
+        {/* Filtro de Data de Início */}
         <View style={styles.filterSection}>
           <Text style={styles.filterLabel}>Data de Início</Text>
           <TouchableOpacity
@@ -171,12 +217,14 @@ export default function ControleVisitaFilters({
             onPress={() => showDatePickerModal('data_inicio')}>
             <Feather name="calendar" size={20} color="#2ecc71" />
             <Text style={styles.dateButtonText}>
-              {formatDateForDisplay(localFilters.data_inicio)}
+              {localFilters.data_inicio
+                ? formatDateForDisplay(localFilters.data_inicio)
+                : 'Selecionar data'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Filtro por Data de Fim */}
+        {/* Filtro de Data de Fim */}
         <View style={styles.filterSection}>
           <Text style={styles.filterLabel}>Data de Fim</Text>
           <TouchableOpacity
@@ -184,40 +232,70 @@ export default function ControleVisitaFilters({
             onPress={() => showDatePickerModal('data_fim')}>
             <Feather name="calendar" size={20} color="#2ecc71" />
             <Text style={styles.dateButtonText}>
-              {formatDateForDisplay(localFilters.data_fim)}
+              {localFilters.data_fim
+                ? formatDateForDisplay(localFilters.data_fim)
+                : 'Selecionar data'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Resumo dos Filtros Ativos */}
-        <View style={styles.summarySection}>
-          <Text style={styles.summaryTitle}>Filtros Ativos</Text>
-          {Object.entries(localFilters).map(([key, value]) => {
-            if (!value) return null
-
-            let displayValue = value
-            if (key === 'etapa') {
-              const etapa = etapas.find((e) => e.value === value)
-              displayValue = etapa?.label || value
-            } else if (key === 'vendedor') {
-              displayValue = getSelectedVendedorName() || value
-            } else if (key.includes('data')) {
-              displayValue = formatDateForDisplay(value)
-            }
-
-            return (
-              <View key={key} style={styles.summaryItem}>
-                <Text style={styles.summaryKey}>
-                  {key
-                    .replace('_', ' ')
-                    .replace(/\b\w/g, (l) => l.toUpperCase())}
-                  :
+        {(localFilters.cliente_nome ||
+          localFilters.etapa ||
+          localFilters.vendedor ||
+          localFilters.data_inicio ||
+          localFilters.data_fim ||
+          localFilters.proxima_visita) && (
+          <View style={styles.summarySection}>
+            <Text style={styles.summaryTitle}>Filtros Ativos:</Text>
+            {localFilters.cliente_nome && (
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryKey}>Cliente:</Text>
+                <Text style={styles.summaryValue}>
+                  {localFilters.cliente_nome}
                 </Text>
-                <Text style={styles.summaryValue}>{displayValue}</Text>
               </View>
-            )
-          })}
-        </View>
+            )}
+            {localFilters.etapa && (
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryKey}>Etapa:</Text>
+                <Text style={styles.summaryValue}>
+                  {getSelectedEtapaName()}
+                </Text>
+              </View>
+            )}
+            {localFilters.vendedor && (
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryKey}>Vendedor:</Text>
+                <Text style={styles.summaryValue}>
+                  {getSelectedVendedorName()}
+                </Text>
+              </View>
+            )}
+            {localFilters.proxima_visita && (
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryKey}>Tipo:</Text>
+                <Text style={styles.summaryValue}>Próximas visitas</Text>
+              </View>
+            )}
+            {localFilters.data_inicio && (
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryKey}>Data início:</Text>
+                <Text style={styles.summaryValue}>
+                  {formatDateForDisplay(localFilters.data_inicio)}
+                </Text>
+              </View>
+            )}
+            {localFilters.data_fim && (
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryKey}>Data fim:</Text>
+                <Text style={styles.summaryValue}>
+                  {formatDateForDisplay(localFilters.data_fim)}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Botões de Ação */}
@@ -244,6 +322,7 @@ export default function ControleVisitaFilters({
   )
 }
 
+// Adicionar novos estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -383,5 +462,34 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a252f',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  checkboxContainerActive: {
+    borderColor: '#2ecc71',
+    backgroundColor: '#1a2f1f',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: '#fff',
+    marginLeft: 12,
+    flex: 1,
+  },
+  checkboxLabelActive: {
+    color: '#2ecc71',
+    fontWeight: '600',
+  },
+  checkboxDescription: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 })
