@@ -1,8 +1,18 @@
-import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native'
 import { MaterialIcons } from '@expo/vector-icons'
 
-export default function ResumoPedidoPisos({ pedido = {}, itens = [] }) {
+export default function ResumoPedidoPisos({ pedido = {}, itens = [], onUpdatePedido }) {
+  const [descontoGeral, setDescontoGeral] = useState(0)
+  const [frete, setFrete] = useState(0)
+  const [editandoDesconto, setEditandoDesconto] = useState(false)
+  const [editandoFrete, setEditandoFrete] = useState(false)
+
+  useEffect(() => {
+    setDescontoGeral(Number(pedido?.pedi_desc) || 0)
+    setFrete(Number(pedido?.pedi_fret) || 0)
+  }, [pedido])
+
   const formatarMoeda = (valor) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -12,16 +22,16 @@ export default function ResumoPedidoPisos({ pedido = {}, itens = [] }) {
 
   const calcularSubtotal = () => {
     return itens.reduce((total, item) => {
-      const quantidade = Number(item?.iped_quan) || 0
-      const precoUnitario = Number(item?.iped_unit) || 0
-      return total + (quantidade * precoUnitario)
+      const quantidade = Number(item?.item_quan) || 0
+      const precoUnitario = Number(item?.item_unit) || 0
+      return total + quantidade * precoUnitario
     }, 0)
   }
 
   const calcularDescontoItens = () => {
     return itens.reduce((total, item) => {
-      const quantidade = Number(item?.iped_quan) || 0
-      const precoUnitario = Number(item?.iped_unit) || 0
+      const quantidade = Number(item?.item_quan) || 0
+      const precoUnitario = Number(item?.item_unit) || 0
       const subtotal = quantidade * precoUnitario
       const percentualDesconto = Number(item?.percentual_desconto) || 0
       const descontoItem = item?.desconto_item_disponivel
@@ -33,19 +43,66 @@ export default function ResumoPedidoPisos({ pedido = {}, itens = [] }) {
 
   const calcularTotalItens = () => {
     return itens.reduce((total, item) => {
-      const totalItem = Number(item?.iped_tota) || 0
+      const totalItem = Number(item?.item_suto) || 0
       return total + totalItem
     }, 0)
   }
 
-  const descontoGeral = Number(pedido?.pedi_desc) || 0
   const subtotal = calcularSubtotal()
   const descontoItens = calcularDescontoItens()
   const totalItens = calcularTotalItens()
-  const totalFinal = totalItens - descontoGeral
+  const totalFinal = totalItens - descontoGeral + frete
   const totalAreaM2 = itens.reduce((total, item) => {
     return total + (Number(item?.area_m2) || 0)
   }, 0)
+
+  const handleDescontoChange = (valor) => {
+    const novoDesconto = Number(valor) || 0
+    setDescontoGeral(novoDesconto)
+    if (onUpdatePedido) {
+      onUpdatePedido({ ...pedido, pedi_desc: novoDesconto })
+    }
+  }
+
+  const handleFreteChange = (valor) => {
+    const novoFrete = Number(valor) || 0
+    setFrete(novoFrete)
+    if (onUpdatePedido) {
+      onUpdatePedido({ ...pedido, pedi_fret: novoFrete })
+    }
+  }
+
+  const renderCampoEditavel = (label, valor, onChangeText, editando, setEditando, cor = '#fff') => {
+    return (
+      <View style={styles.valueRow}>
+        <Text style={styles.valueLabel}>{label}:</Text>
+        {editando ? (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={valor.toString()}
+              onChangeText={onChangeText}
+              keyboardType="numeric"
+              placeholder="0,00"
+              placeholderTextColor="#666"
+              onBlur={() => setEditando(false)}
+              autoFocus
+            />
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.editableValue}
+            onPress={() => setEditando(true)}
+          >
+            <Text style={[styles.valueAmount, { color: cor }]}>
+              {valor > 0 ? (label.includes('Desconto') ? '-' : '+') : ''}{formatarMoeda(valor)}
+            </Text>
+            <MaterialIcons name="edit" size={16} color="#a8e6cf" style={styles.editIcon} />
+          </TouchableOpacity>
+        )}
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -77,15 +134,28 @@ export default function ResumoPedidoPisos({ pedido = {}, itens = [] }) {
         {descontoItens > 0 && (
           <View style={styles.valueRow}>
             <Text style={styles.valueLabel}>Desconto Itens:</Text>
-            <Text style={styles.discountAmount}>-{formatarMoeda(descontoItens)}</Text>
+            <Text style={styles.discountAmount}>
+              -{formatarMoeda(descontoItens)}
+            </Text>
           </View>
         )}
 
-        {descontoGeral > 0 && (
-          <View style={styles.valueRow}>
-            <Text style={styles.valueLabel}>Desconto Geral:</Text>
-            <Text style={styles.discountAmount}>-{formatarMoeda(descontoGeral)}</Text>
-          </View>
+        {renderCampoEditavel(
+          'Desconto Geral',
+          descontoGeral,
+          handleDescontoChange,
+          editandoDesconto,
+          setEditandoDesconto,
+          '#ff6b6b'
+        )}
+
+        {renderCampoEditavel(
+          'Frete',
+          frete,
+          handleFreteChange,
+          editandoFrete,
+          setEditandoFrete,
+          '#4CAF50'
         )}
 
         <View style={styles.separator} />
@@ -115,8 +185,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     margin: 16,
     borderWidth: 1,
-    borderColor: '#18b7df',
-    shadowColor: '#18b7df',
+    borderColor: '#a8e6cf',
+    shadowColor: '#a8e6cf',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -134,7 +204,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#333',
   },
   title: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
@@ -179,6 +249,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  editableValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editIcon: {
+    marginLeft: 8,
+  },
+  inputContainer: {
+    minWidth: 100,
+  },
+  input: {
+    backgroundColor: '#333',
+    color: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'right',
+    borderWidth: 1,
+    borderColor: '#a8e6cf',
+  },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -190,12 +282,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   totalLabel: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 18,
     fontWeight: 'bold',
   },
   totalAmount: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -208,7 +300,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   observacoesLabel: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 6,

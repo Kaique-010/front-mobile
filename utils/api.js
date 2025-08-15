@@ -10,11 +10,17 @@ const refreshToken = async () => {
   if (!refresh) throw new Error('Refresh token não encontrado')
 
   const { slug } = await getStoredData()
+  const headersExtras = await getAuthHeaders() // ✅ ADICIONAR HEADERS
 
   try {
     const response = await axios.post(
       `${BASE_URL}/api/${slug}/auth/token/refresh/`,
-      { refresh }
+      { refresh },
+      {
+        headers: {
+          ...headersExtras, // ✅ INCLUIR HEADERS DE CONTEXTO
+        },
+      }
     )
     const newAccess = response.data.access
     await AsyncStorage.setItem('access', newAccess)

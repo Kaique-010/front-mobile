@@ -26,7 +26,7 @@ const PEDIDO_PISOS_CACHE_ID = 'pedido-pisos-edicao-cache'
 const ABAS = {
   HEADER: 'header',
   PRODUTOS: 'produtos',
-  RESUMO: 'resumo'
+  RESUMO: 'resumo',
 }
 
 export default function PedidosPisosForm({ route, navigation }) {
@@ -41,8 +41,8 @@ export default function PedidosPisosForm({ route, navigation }) {
 
   const calcularTotal = (itens) => {
     return itens.reduce((total, item) => {
-      const quantidade = parseFloat(item.iped_quan || 0)
-      const preco = parseFloat(item.iped_unit || 0)
+      const quantidade = parseFloat(item.item_quan || 0)
+      const preco = parseFloat(item.item_unit || 0)
       const desconto = parseFloat(item.desconto_valor || 0)
       return total + (quantidade * preco - desconto)
     }, 0)
@@ -69,6 +69,7 @@ export default function PedidosPisosForm({ route, navigation }) {
           )
           const itens = data.itens || []
 
+          // Na carga do pedido existente
           const pedidoMapeado = {
             ...data,
             itens_input: itens.map((item) => ({
@@ -102,6 +103,7 @@ export default function PedidosPisosForm({ route, navigation }) {
           )
         } else {
           await AsyncStorage.removeItem(PEDIDO_PISOS_CACHE_ID)
+          // Na inicialização do pedido novo
           setPedido({
             pedi_empr: empresaId,
             pedi_fili: filialId,
@@ -120,8 +122,8 @@ export default function PedidosPisosForm({ route, navigation }) {
             pedi_mode_port: '',
             pedi_mode_outr: '',
             pedi_sent_piso: '',
-            pedi_ajus_port: false,
-            pedi_degr_esca: false,
+            pedi_ajus_port: 'false',
+            pedi_degr_esca: 'false',
             pedi_obra_habi: false,
             pedi_movi_mobi: false,
             pedi_remo_roda: false,
@@ -152,8 +154,8 @@ export default function PedidosPisosForm({ route, navigation }) {
     let novosItens = [...pedido.itens_input]
 
     const index = itemAnterior
-      ? novosItens.findIndex((i) => i.iped_prod === itemAnterior.iped_prod)
-      : novosItens.findIndex((i) => i.iped_prod === novoItem.iped_prod)
+      ? novosItens.findIndex((i) => i.item_prod === itemAnterior.item_prod)
+      : novosItens.findIndex((i) => i.item_prod === novoItem.item_prod)
 
     if (index !== -1) {
       novosItens[index] = novoItem
@@ -175,11 +177,11 @@ export default function PedidosPisosForm({ route, navigation }) {
 
   const handleRemoverItem = (item) => {
     const novosItens = pedido.itens_input.filter(
-      (i) => i.iped_prod !== item.iped_prod
+      (i) => i.item_prod !== item.item_prod
     )
 
     const novosRemovidos = item.idExistente
-      ? [...pedido.itens_removidos, item.iped_prod]
+      ? [...pedido.itens_removidos, item.item_prod]
       : pedido.itens_removidos
 
     const novoTotal = calcularTotal(novosItens)
@@ -190,6 +192,10 @@ export default function PedidosPisosForm({ route, navigation }) {
       itens_removidos: novosRemovidos,
       pedi_tota: novoTotal,
     }))
+    console.log('novosItens', novosItens)
+    console.log('novosRemovidos', novosRemovidos)
+    console.log('novoTotal', novoTotal)
+    console.log('pedido', pedido)
   }
 
   const salvarPedido = async () => {
@@ -205,9 +211,20 @@ export default function PedidosPisosForm({ route, navigation }) {
 
     setSalvando(true)
     try {
+      // Calcular total dos itens
+      const totalItens = calcularTotal(pedido.itens_input)
+
+      // Aplicar desconto geral e frete
+      const descontoGeral = Number(pedido.pedi_desc) || 0
+      const frete = Number(pedido.pedi_fret) || 0
+      const totalFinal = totalItens - descontoGeral + frete
+
       const dadosPedido = {
         ...pedido,
-        pedi_tota: calcularTotal(pedido.itens_input),
+        pedi_tota: totalFinal,
+        // Converter boolean para string
+        pedi_ajus_port: pedido.pedi_ajus_port ? 'true' : 'false',
+        pedi_degr_esca: pedido.pedi_degr_esca ? 'true' : 'false',
       }
 
       let response
@@ -216,9 +233,11 @@ export default function PedidosPisosForm({ route, navigation }) {
           `pisos/pedidos-pisos/${pedidoParam.pedi_nume}/`,
           dadosPedido
         )
+        console.log('response dos dados enviados', response)
       } else {
         response = await apiPostComContexto('pisos/pedidos-pisos/', dadosPedido)
       }
+      console.log('response dos dados enviados', response)
 
       await AsyncStorage.removeItem(PEDIDO_PISOS_CACHE_ID)
 
@@ -269,7 +288,9 @@ export default function PedidosPisosForm({ route, navigation }) {
             onPress={() => setModalVisivel(true)}
             activeOpacity={0.8}>
             <MaterialIcons name="add" size={20} color="#fff" />
-            <Text style={styles.botaoAdicionarItemTexto}>Adicionar Produto</Text>
+            <Text style={styles.botaoAdicionarItemTexto}>
+              Adicionar Produto
+            </Text>
           </TouchableOpacity>
 
           <ItensListaPisos
@@ -285,10 +306,15 @@ export default function PedidosPisosForm({ route, navigation }) {
     )
   }
 
+  // No renderAbaResumo()
   const renderAbaResumo = () => {
     return (
       <View style={styles.abaContent}>
-        <ResumoPedidoPisos pedido={pedido} itens={pedido.itens_input || []} />
+        <ResumoPedidoPisos
+          pedido={pedido}
+          itens={pedido.itens_input || []}
+          onUpdatePedido={setPedido}
+        />
       </View>
     )
   }
@@ -335,9 +361,9 @@ export default function PedidosPisosForm({ route, navigation }) {
   const podeAvancarParaAba = (aba) => {
     switch (aba) {
       case ABAS.PRODUTOS:
-        return !!pedido.pedi_clie // Precisa ter cliente selecionado
+        return !!pedido.pedi_clie
       case ABAS.RESUMO:
-        return !!pedido.pedi_clie && pedido.itens_input?.length > 0 // Precisa ter cliente e itens
+        return !!pedido.pedi_clie && pedido.itens_input?.length > 0
       default:
         return true
     }
@@ -372,28 +398,28 @@ export default function PedidosPisosForm({ route, navigation }) {
         {Object.values(ABAS).map((aba) => {
           const isAtiva = abaAtiva === aba
           const podeAcessar = podeAvancarParaAba(aba)
-          
+
           return (
             <TouchableOpacity
               key={aba}
               style={[
                 styles.tab,
                 isAtiva && styles.tabAtiva,
-                !podeAcessar && styles.tabDesabilitada
+                !podeAcessar && styles.tabDesabilitada,
               ]}
               onPress={() => podeAcessar && setAbaAtiva(aba)}
-              activeOpacity={podeAcessar ? 0.7 : 1}
-            >
+              activeOpacity={podeAcessar ? 0.7 : 1}>
               <MaterialIcons
                 name={getAbaIcon(aba)}
                 size={18}
                 color={isAtiva ? '#fff' : podeAcessar ? '#a8e6cf' : '#666'}
               />
-              <Text style={[
-                styles.tabText,
-                isAtiva && styles.tabTextAtiva,
-                !podeAcessar && styles.tabTextDesabilitada
-              ]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  isAtiva && styles.tabTextAtiva,
+                  !podeAcessar && styles.tabTextDesabilitada,
+                ]}>
                 {getAbaLabel(aba)}
               </Text>
             </TouchableOpacity>
@@ -404,8 +430,7 @@ export default function PedidosPisosForm({ route, navigation }) {
       {/* Conteúdo da aba ativa */}
       <ScrollView
         style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         {renderConteudoAba()}
       </ScrollView>
 
@@ -414,8 +439,7 @@ export default function PedidosPisosForm({ route, navigation }) {
         <TouchableOpacity
           style={styles.botaoCancelar}
           onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
+          activeOpacity={0.8}>
           <MaterialIcons name="close" size={20} color="#ff9999" />
           <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
         </TouchableOpacity>
@@ -424,8 +448,7 @@ export default function PedidosPisosForm({ route, navigation }) {
           style={[styles.botaoSalvar, salvando && styles.botaoDesabilitado]}
           onPress={salvarPedido}
           disabled={salvando}
-          activeOpacity={0.8}
-        >
+          activeOpacity={0.8}>
           {salvando ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
@@ -516,12 +539,13 @@ const styles = StyleSheet.create({
   },
   abaContent: {
     flex: 1,
-    padding: 16,
+    padding: 0,
   },
   itensSection: {
+    flex: 1,
     backgroundColor: 'rgba(168, 230, 207, 0.05)',
     borderRadius: 12,
-    padding: 16,
+    padding: 0,
     borderWidth: 1,
     borderColor: 'rgba(168, 230, 207, 0.3)',
   },
@@ -534,8 +558,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#f5f5f5',
-    marginLeft: 8,
+    marginLeft: 15,
     flex: 1,
+    marginBottom: 20,
+    marginTop: 20,
   },
   itensCount: {
     fontSize: 12,
@@ -572,6 +598,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#333',
     gap: 12,
+    marginHorizontal: 30,
+    marginBottom: 35,
   },
   botaoCancelar: {
     flex: 1,

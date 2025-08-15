@@ -140,20 +140,23 @@ export default function PedidoPisosHeader({ pedido = {}, setPedido }) {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: '#1a1a1a',
-    margin: 15,
-    padding: 15,
+    margin: 5,
+    padding: 20,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#18b7df',
+    borderColor: '#a8e6cf',
   },
   fieldContainer: {
-    marginBottom: 15,
+    marginBottom: 30,
+    flex: 1,
+    marginTop: 3,
   },
   labelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 10,
   },
   label: {
     color: '#fff',

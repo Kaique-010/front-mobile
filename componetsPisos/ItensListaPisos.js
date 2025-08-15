@@ -27,15 +27,15 @@ export default function ItensListaPisos({ itens, onEdit, onRemove }) {
   }
 
   const renderItem = ({ item, index }) => {
-    const quantidade = Number(item?.iped_quan) || 0
-    const precoUnitario = Number(item?.iped_unit) || 0
+    const quantidade = Number(item?.item_quan) || 0
+    const precoUnitario = Number(item?.item_unit) || 0
     const total = quantidade * precoUnitario
     const percentualDesconto = Number(item?.percentual_desconto) || 0
     const descontoItem = item?.desconto_item_disponivel
       ? total * percentualDesconto
       : 0
     const totalComDesconto = total - descontoItem
-    const totalPreferencial = Number(item?.iped_tota) || totalComDesconto
+    const totalPreferencial = Number(item?.item_suto) || totalComDesconto
     const isExpanded = itensExpandidos[index]
 
     return (
@@ -49,7 +49,7 @@ export default function ItensListaPisos({ itens, onEdit, onRemove }) {
           </View>
           <View style={styles.itemInfo}>
             <Text style={styles.codigoProduto}>
-              Cód: {item?.iped_prod || 'N/A'}
+              Cód: {item?.item_prod || 'N/A'}
             </Text>
             <Text
               style={styles.nomeProduto}
@@ -134,14 +134,14 @@ export default function ItensListaPisos({ itens, onEdit, onRemove }) {
 
   const calcularTotalItens = () => {
     return itens.reduce((total, item) => {
-      const quantidade = Number(item?.iped_quan) || 0
-      const precoUnitario = Number(item?.iped_unit) || 0
+      const quantidade = Number(item?.item_quan) || 0
+      const precoUnitario = Number(item?.item_unit) || 0
       const subtotal = quantidade * precoUnitario
       const percentualDesconto = Number(item?.percentual_desconto) || 0
       const descontoItem = item?.desconto_item_disponivel
         ? subtotal * percentualDesconto
         : 0
-      const totalItem = Number(item?.iped_tota) || subtotal - descontoItem
+      const totalItem = Number(item?.item_suto) || subtotal - descontoItem
       return total + totalItem
     }, 0)
   }
@@ -205,13 +205,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#1a252f',
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginVertical: 8,
     marginHorizontal: 4,
+    marginBottom: 12,
+    marginTop: 12,
     borderWidth: 1,
-    borderColor: '#18b7df',
+    borderColor: '#a8e6cf',
     elevation: 2,
-    shadowColor: '#18b7df',
+    shadowColor: '#a8e6cf',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -224,15 +226,18 @@ const styles = StyleSheet.create({
   listaHeaderInfo: {
     marginLeft: 12,
     flex: 1,
+    marginBottom: 12,
+    marginTop: 12,
   },
   listaTitle: {
     color: '#faebd7',
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 12,
+    marginTop: 12,
   },
   listaTotalPreview: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -245,7 +250,7 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     marginHorizontal: 4,
     borderLeftWidth: 4,
-    borderLeftColor: '#18b7df',
+    borderLeftColor: '#a8e6cf',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -261,7 +266,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   itemNumber: {
-    backgroundColor: '#18b7df',
+    backgroundColor: '#a8e6cf',
     borderRadius: 16,
     width: 32,
     height: 32,
@@ -291,7 +296,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   totalPreview: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -327,12 +332,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   totalLabel: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 16,
     fontWeight: 'bold',
   },
   totalValue: {
-    color: '#18b7df',
+    color: '#a8e6cf',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -345,7 +350,7 @@ const styles = StyleSheet.create({
   },
   editButton: {
     flex: 1,
-    backgroundColor: '#4a90e2',
+    backgroundColor: '#a8e6cf',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -355,7 +360,7 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     flex: 1,
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#e64c3c',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

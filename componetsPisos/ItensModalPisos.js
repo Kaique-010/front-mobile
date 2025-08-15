@@ -173,13 +173,21 @@ export default function ItensModalPisos({
     if (!validarCampos()) return
 
     const itemData = {
+      // Campos obrigatórios do modelo
+      item_empr: pedido.pedi_empr,
+      item_fili: pedido.pedi_fili,
+      item_pedi: pedido.pedi_nume || '0', // Usar '0' em vez de null
+      item_prod: produto.prod_codi,
+
+      // Campos existentes (mantendo compatibilidade)
       item_prod: produto.prod_codi,
       produto_nome: produto.prod_nome,
       item_quan: Number(quantidade),
       item_unit: Number(precoUnitario),
-      item_tota: calcularTotal(),
+      item_suto: calcularTotal(),
       area_m2: Number(areaM2) || null,
       observacoes: observacoes.trim() || null,
+      item_ambi: 1, // Campo obrigatório
       // Campos específicos para pisos
       produto_tipo: 'PISO',
       desconto_item_disponivel: false,
@@ -330,7 +338,7 @@ export default function ItensModalPisos({
                     <View style={styles.resultadoItem}>
                       <Text style={styles.resultadoLabel}>Área líquida:</Text>
                       <Text style={styles.resultadoValor}>
-                        {dadosCalculo?.ambiente?.metragem_total ?? '—'} m²
+                        {dadosCalculo?.metragem_total ?? '—'} m²
                       </Text>
                     </View>
 
@@ -339,21 +347,21 @@ export default function ItensModalPisos({
                         Caixas necessárias:
                       </Text>
                       <Text style={styles.resultadoValor}>
-                        {dadosCalculo?.calculo?.caixas_necessarias}
+                        {dadosCalculo?.caixas_necessarias}
                       </Text>
                     </View>
 
                     <View style={styles.resultadoItem}>
                       <Text style={styles.resultadoLabel}>Total de peças:</Text>
                       <Text style={styles.resultadoValor}>
-                        {dadosCalculo?.calculo?.pecas_totais}
+                        {dadosCalculo?.pecas_necessarias}
                       </Text>
                     </View>
 
                     <View style={styles.resultadoItem}>
                       <Text style={styles.resultadoLabel}>Valor total:</Text>
                       <Text style={styles.resultadoValor}>
-                        {formatarMoeda(dadosCalculo?.calculo?.valor_total)}
+                        {formatarMoeda(dadosCalculo?.valor_total)}
                       </Text>
                     </View>
                   </View>
@@ -582,5 +590,6 @@ const styles = StyleSheet.create({
     color: '#a8e6cf',
     fontSize: 20,
     fontWeight: '600',
+    marginBottom: 30,
   },
 })
