@@ -19,6 +19,34 @@ const styles = StyleSheet.create({
     color: "#C0C0C0",
     marginBottom: 20,
   },
+  toggleContainer: {
+    flexDirection: "row",
+    backgroundColor: "#1a1a1a",
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#333",
+    overflow: "hidden",
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  toggleButtonActive: {
+    backgroundColor: "#354972",
+  },
+  toggleText: {
+    color: "#ccc",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  toggleTextActive: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
   inputContainer: {
     width: "100%",
     marginBottom: 15,
@@ -68,6 +96,34 @@ const styles = StyleSheet.create({
     marginTop: 15,
     color: "#f55",
     textAlign: "center",
+  },
+  checkboxContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkboxActive: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: '#333',
+    fontFamily: 'FaunaOne_400Regular',
   },
 });
 

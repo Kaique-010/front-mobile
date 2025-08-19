@@ -22,15 +22,25 @@ export default function Login({ navigation }) {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [modulos, setModulos] = useState([])
+  const [isClienteLogin, setIsClienteLogin] = useState(false) // Checkbox para cliente
+  const [documento, setDocumento] = useState('') // Para login de cliente
+  const [usuario, setUsuario] = useState('') // Para login de cliente
+  const [senha, setSenha] = useState('') // Para login de cliente
 
   useEffect(() => {
     const carregarDadosSalvos = async () => {
       try {
         const docuSalvo = await AsyncStorage.getItem('docu')
         const usernameSalvo = await AsyncStorage.getItem('username')
+        const documentoSalvo = await AsyncStorage.getItem('documento')
+        const usuarioSalvo = await AsyncStorage.getItem('usuario')
+        const senhaSalvo = await AsyncStorage.getItem('senha')
 
         if (docuSalvo) setDocu(docuSalvo)
         if (usernameSalvo) setUsername(usernameSalvo)
+        if (documentoSalvo) setDocumento(documentoSalvo)
+        if (usuarioSalvo) setUsuario(usuarioSalvo)
+        if (senhaSalvo) setSenha(senhaSalvo)
       } catch (e) {
         console.error('Erro ao carregar dados salvos do AsyncStorage', e)
       }
@@ -49,6 +59,10 @@ export default function Login({ navigation }) {
     setDocu(text.replace(/\D/g, ''))
   }
 
+  const handleDocumentoChange = (text) => {
+    setDocumento(text.replace(/\D/g, ''))
+  }
+
   const fetchSlugMap = async () => {
     try {
       const response = await axios.get(`${BASE_URL}/api/licencas/mapa/`)
@@ -63,13 +77,13 @@ export default function Login({ navigation }) {
     }
   }
 
-  const handleLogin = async () => {
+  const handleLoginFuncionario = async () => {
     if (!docu || !username || !password) {
       setError('Preencha todos os campos.')
       return
     }
 
-    console.log('[LOGIN ATTEMPT]', { docu, username, password })
+    console.log('[LOGIN FUNCIONARIO ATTEMPT]', { docu, username, password })
 
     setIsLoading(true)
     try {
@@ -102,12 +116,10 @@ export default function Login({ navigation }) {
         }
       )
 
-      // Definir os modulos após a resposta da API
       setModulos(response.data.modulos)
 
       const { access, refresh, usuario } = response.data
 
-      // Aguardar até o estado de modulos ser atualizado
       await AsyncStorage.multiSet([
         ['access', access],
         ['refresh', refresh],
@@ -116,27 +128,157 @@ export default function Login({ navigation }) {
         ['username', usuario.username],
         ['docu', docu],
         ['slug', slug],
-        ['modulos', JSON.stringify(response.data.modulos)], // ← Módulos sendo salvos aqui
+        ['modulos', JSON.stringify(response.data.modulos)],
+        ['userType', 'funcionario'],
       ])
 
-      console.log('Dados armazenados no AsyncStorage:', {
-        access,
-        refresh,
-        usuario,
-        docu,
-        slug,
-        modulos: response.data.modulos,
-      })
-
-      console.log('Login bem-sucedido, navegação para SelectEmpresa')
+      console.log(
+        'Login funcionário bem-sucedido, navegação para SelectEmpresa'
+      )
       navigation.navigate('SelectEmpresa')
     } catch (err) {
-      console.error('[LOGIN ERROR]', err?.response?.data || err.message)
+      console.error(
+        '[LOGIN FUNCIONARIO ERROR]',
+        err?.response?.data || err.message
+      )
       setError('Login falhou. Verifique suas credenciais.')
     } finally {
       setIsLoading(false)
     }
   }
+
+  const handleLoginCliente = async () => {
+    if (!documento || !usuario || !senha) {
+      setError('Preencha todos os campos.')
+      return
+    }
+
+    console.log('[LOGIN CLIENTE ATTEMPT]', { documento, usuario, senha })
+
+    setIsLoading(true)
+    try {
+      // Usar slug padrão para login inicial
+      const response = await axios.post(
+        `${BASE_URL}/api/demonstracao/entidades/login/`,
+        {
+          documento,
+          usuario,
+          senha,
+        }
+      )
+
+      console.log('[LOGIN CLIENTE RESPONSE]', response.data)
+
+      const { access, refresh, cliente_id, cliente_nome, banco } = response.data
+
+      if (!access) {
+        console.error(
+          '[LOGIN CLIENTE ERROR] Token de acesso não encontrado na resposta:',
+          response.data
+        )
+        setError('Erro na autenticação. Tente novamente.')
+        setIsLoading(false)
+        return
+      }
+
+      // Usar o banco retornado pela API como slug
+      const slug = banco || 'demonstracao'
+
+      await AsyncStorage.multiSet([
+        ['access', access],
+        ['refresh', refresh],
+        ['documento', documento],
+        ['usuario_cliente', usuario],
+        ['slug', slug], // Usar o banco correto
+        ['userType', 'cliente'],
+        ['cliente_id', cliente_id?.toString() || ''],
+        ['cliente_nome', cliente_nome || ''],
+      ])
+
+      console.log('Login cliente bem-sucedido, navegação para HomeCliente')
+      navigation.navigate('HomeCliente')
+    } catch (err) {
+      console.error('[LOGIN CLIENTE ERROR]', err?.response?.data || err.message)
+      setError('Login falhou. Verifique suas credenciais.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleLogin = () => {
+    if (isClienteLogin) {
+      handleLoginCliente()
+    } else {
+      handleLoginFuncionario()
+    }
+  }
+
+  const renderCheckbox = () => (
+    <MotiView
+      from={{ opacity: 0, translateY: -10 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ delay: 300 }}
+      style={styles.checkboxContainer}>
+      <TouchableOpacity
+        style={styles.checkboxRow}
+        onPress={() => {
+          setIsClienteLogin(!isClienteLogin)
+          setError('')
+        }}>
+        <View
+          style={[styles.checkbox, isClienteLogin && styles.checkboxActive]}>
+          {isClienteLogin && (
+            <FontAwesome name="check" size={14} color="#fff" />
+          )}
+        </View>
+        <Text style={styles.checkboxLabel}>Login como Cliente</Text>
+      </TouchableOpacity>
+    </MotiView>
+  )
+
+  const renderFuncionarioFields = () => [
+    [
+      'CNPJ',
+      docu,
+      handleDocuChange,
+      'building',
+      '00.000.000/0001-00',
+      'number-pad',
+    ],
+    [
+      'Usuário',
+      username,
+      (text) => setUsername(text.toLowerCase()),
+      'user',
+      'Digite seu usuário',
+      'default',
+    ],
+    ['Senha', password, setPassword, 'lock', '••••••••', 'default', true],
+  ]
+
+  const renderClienteFields = () => [
+    [
+      'CPF/CNPJ',
+      documento,
+      handleDocumentoChange,
+      'id-card',
+      '000.000.000-00',
+      'number-pad',
+    ],
+    [
+      'Usuário',
+      usuario,
+      (text) => setUsuario(text.toLowerCase()),
+      'user',
+      'Digite seu usuário',
+      'default',
+    ],
+    ['Senha', senha, setSenha, 'lock', '••••••••', 'default', true],
+  ]
+
+  const fieldsToRender = isClienteLogin
+    ? renderClienteFields()
+    : renderFuncionarioFields()
 
   return (
     <View style={styles.container}>
@@ -161,29 +303,14 @@ export default function Login({ navigation }) {
         SPARTACUS MOBILE
       </MotiText>
 
+      {/* Checkbox para login de cliente */}
+      {renderCheckbox()}
+
       {/* Campos com animação */}
-      {[
-        [
-          'CNPJ',
-          docu,
-          handleDocuChange,
-          'building',
-          '00.000.000/0001-00',
-          'number-pad',
-        ],
-        [
-          'Usuário',
-          username,
-          (text) => setUsername(text.toLowerCase()),
-          'user',
-          'Digite seu usuário',
-          'default',
-        ],
-        ['Senha', password, setPassword, 'lock', '••••••••', 'default', true],
-      ].map(
+      {fieldsToRender.map(
         ([label, value, onChange, icon, placeholder, keyboard, secure], i) => (
           <MotiView
-            key={label}
+            key={`${isClienteLogin ? 'cliente' : 'funcionario'}-${label}`}
             from={{ opacity: 0, translateY: 30 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ delay: 600 + i * 100 }}

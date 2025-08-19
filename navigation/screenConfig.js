@@ -25,6 +25,11 @@ export const screenConfigs = [
     component: Screens.AppNavigator,
     options: { headerShown: false },
   },
+  {
+    name: 'HomeCliente',
+    component: Screens.HomeCliente,
+    options: { headerShown: false },
+  },
 
   // Telas de sistema
   {

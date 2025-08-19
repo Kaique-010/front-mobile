@@ -73,9 +73,8 @@ export default function SelectFilial({ route, navigation }) {
   const [botaoDesabilitado, setBotaoDesabilitado] = useState(false)
 
   const handleSelectFilial = async (filialId, filialNome) => {
-    if (botaoDesabilitado) {
-      return setBotaoDesabilitado(true)
-    }
+    if (botaoDesabilitado) return setBotaoDesabilitado(true)
+
     try {
       await AsyncStorage.multiSet([
         ['empresaId', empresaId.toString()],
@@ -120,6 +119,7 @@ export default function SelectFilial({ route, navigation }) {
         } // Verificando se existe empr_codi
         renderItem={({ item }) => (
           <TouchableOpacity
+            disabled={botaoDesabilitado}
             onPress={() => handleSelectFilial(item.empr_codi, item.empr_nome)}
             style={[styles.button, botaoDesabilitado && styles.buttonDisabled]}>
             <Text style={styles.buttonText}>{item.empr_nome}</Text>

@@ -41,7 +41,7 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
   useEffect(() => {
     const initWebSocket = async () => {
       try {
-        const token = await AsyncStorage.getItem('accessToken')
+        const token = await AsyncStorage.getItem('access') // ✅ CORRIGIDO: era 'accessToken'
         const userId = await AsyncStorage.getItem('usuario_id')
 
         if (token && userId) {

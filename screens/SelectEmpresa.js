@@ -16,6 +16,7 @@ export default function SelectEmpresa({ navigation }) {
   const [empresas, setEmpresas] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedEmpresa, setSelectedEmpresa] = useState(null)
+  const [botaoDesabilitado, setBotaoDesabilitado] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -83,6 +84,7 @@ export default function SelectEmpresa({ navigation }) {
   const handleSelectEmpresa = async (item) => {
     const empresaId = item.empr_codi
     const empresaNome = item.empr_nome
+    setBotaoDesabilitado(true)
 
     try {
       // Salvando a empresa selecionada no AsyncStorage
@@ -119,6 +121,7 @@ export default function SelectEmpresa({ navigation }) {
         keyExtractor={(item) => item.empr_codi.toString()}
         renderItem={({ item }) => (
           <TouchableOpacity
+            disabled={botaoDesabilitado}
             onPress={() => handleSelectEmpresa(item)}
             style={styles.button}>
             <Text style={styles.buttonText}>{item.empr_nome}</Text>

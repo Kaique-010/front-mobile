@@ -7,29 +7,58 @@ export const BASE_URL = 'http://192.168.10.39:8000' //'https://mobile-sps.fly.de
 // Função para renovar o token
 const refreshToken = async () => {
   const refresh = await AsyncStorage.getItem('refresh')
+
   if (!refresh) throw new Error('Refresh token não encontrado')
 
-  const { slug } = await getStoredData()
-  const headersExtras = await getAuthHeaders() // ✅ ADICIONAR HEADERS
+  const { slug, userType } = await getStoredData()
 
   try {
-    const response = await axios.post(
-      `${BASE_URL}/api/${slug}/auth/token/refresh/`,
-      { refresh },
-      {
-        headers: {
-          ...headersExtras, // ✅ INCLUIR HEADERS DE CONTEXTO
-        },
-      }
-    )
-    const newAccess = response.data.access
+    let endpoint
+    let headers = {}
+
+    if (userType === 'cliente') {
+      endpoint = `${BASE_URL}/api/${slug}/entidades/refresh/`
+    } else {
+      endpoint = `${BASE_URL}/api/${slug}/auth/token/refresh/`
+      headers = await getAuthHeaders()
+    }
+
+    const response = await axios.post(endpoint, { refresh }, { headers })
+
+    // ✅ Obter o novo access token
+    const newAccess =
+      userType === 'cliente' ? response.data.access_token : response.data.access
+
+    if (!newAccess) {
+      throw new Error('Access token não retornado pela API')
+    }
+
+    // ✅ NOVO: Salvar também o novo refresh token se fornecido
+    if (response.data.refresh_token || response.data.refresh) {
+      const newRefresh =
+        userType === 'cliente'
+          ? response.data.refresh_token
+          : response.data.refresh
+      await AsyncStorage.setItem('refresh', newRefresh)
+      console.log('✅ Refresh token também renovado')
+    }
+
     await AsyncStorage.setItem('access', newAccess)
+    console.log('✅ Token renovado com sucesso')
     return newAccess
   } catch (error) {
     console.log(
       '❌ Erro ao renovar token:',
       error.response?.data || error.message
     )
+
+    // ✅ NOVO: Se refresh token expirou, redirecionar para login
+    if (error.response?.status === 401) {
+      await AsyncStorage.multiRemove(['access', 'refresh', 'slug', 'userType'])
+      // Aqui você pode adicionar navegação para tela de login
+      throw new Error('Sessão expirada. Faça login novamente.')
+    }
+
     throw error
   }
 }
@@ -40,6 +69,7 @@ const getAuthHeaders = async () => {
   const docu = await AsyncStorage.getItem('docu')
   const usuario_id = await AsyncStorage.getItem('usuario_id')
   const username = await AsyncStorage.getItem('username')
+  const cliente_id = await AsyncStorage.getItem('cliente_id')
 
   return {
     'X-Empresa': empresaId || '',
@@ -47,6 +77,7 @@ const getAuthHeaders = async () => {
     'X-Docu': docu || '',
     'X-Usuario-Id': usuario_id || '',
     'X-Username': username || '',
+    'X-Cliente-Id': cliente_id || '',
   }
 }
 
@@ -62,6 +93,14 @@ const apiFetch = async (
 
   try {
     let currentToken = await AsyncStorage.getItem('access')
+
+    // Log detalhado para debug
+    console.log(
+      '🔍 [DEBUG] Token lido do AsyncStorage:',
+      currentToken ? 'Token encontrado' : 'Token não encontrado'
+    )
+    console.log('🔍 [DEBUG] Endpoint:', endpoint)
+    console.log('🔍 [DEBUG] Method:', method)
 
     if (!currentToken) {
       console.error('❌ Token de autenticação não encontrado!')
@@ -81,6 +120,12 @@ const apiFetch = async (
       ...(params && { params }),
     }
 
+    // Log do header Authorization para debug
+    console.log(
+      '🔍 [DEBUG] Authorization header:',
+      config.headers.Authorization
+    )
+
     const response = await axios(config)
     return response
   } catch (error) {
@@ -90,9 +135,24 @@ const apiFetch = async (
       try {
         const newToken = await refreshToken()
         console.log('✅ Token renovado com sucesso')
+        const headersExtras = await getAuthHeaders()
+        const newConfig = {
+          method,
+          url: `${BASE_URL}${endpoint}`,
+          headers: {
+            Authorization: `Bearer ${newToken}`,
+            ...headersExtras,
+          },
+          ...(data && { data }),
+          ...(params && { params }),
+        }
 
-        // Retry da requisição com o novo token
-        return await apiFetch(endpoint, method, data, params, retryCount + 1)
+        console.log(
+          '🔍 [DEBUG] Retry com novo token:',
+          newConfig.headers.Authorization
+        )
+        const retryResponse = await axios(newConfig)
+        return retryResponse
       } catch (refreshError) {
         console.error('❌ Erro ao renovar token:', refreshError.message)
         // Limpar tokens inválidos
@@ -215,21 +275,22 @@ export const apiPostComContextoList = async (
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
 
-  const empresaId = await AsyncStorage.getItem('empresaId')
-  const filialId = await AsyncStorage.getItem('filialId')
-  const usuario_id = await AsyncStorage.getItem('usuario_id')
-
-  const payloadComContexto = lista.map((item) => ({
-    ...item,
-    ...(empresaId && { [`${prefixo}empr`]: empresaId }),
-    ...(filialId && { [`${prefixo}fili`]: filialId }),
-    ...(usuario_id && { [`${prefixo}usua`]: usuario_id }),
-  }))
-
   const response = await apiFetch(fullEndpoint, 'post', payloadComContexto)
   return response.data
 }
 
+export const addContextoControleVisita = async (obj = {}) => {
+  const empresaId = await AsyncStorage.getItem('empresaId')
+  const filialId = await AsyncStorage.getItem('filialId')
+  const usuario_id = await AsyncStorage.getItem('usuario_id')
+
+  return {
+    ...obj,
+    ...(empresaId && { ctrl_empresa: parseInt(empresaId) }),
+    ...(filialId && { ctrl_filial: parseInt(filialId) }),
+    ...(usuario_id && { ctrl_usuario: parseInt(usuario_id) }),
+  }
+}
 export const apiPostComContextoSemFili = async (
   endpointSemApi,
   params = {},

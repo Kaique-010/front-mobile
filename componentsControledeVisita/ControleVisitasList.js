@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, onRefresh } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 
 import {
   View,
@@ -76,9 +77,8 @@ export default function ControleVisitasList({ navigation }) {
           )
 
           const proximasVisitas = response?.proximas_visitas || []
-          
-         
-          const data = proximasVisitas.map(visita => ({
+
+          const data = proximasVisitas.map((visita) => ({
             ctrl_id: visita.ctrl_id,
             ctrl_numero: visita.ctrl_numero,
             ctrl_data: visita.ctrl_data_original,
@@ -93,9 +93,9 @@ export default function ControleVisitasList({ navigation }) {
             ctrl_fone: visita.telefone,
             ctrl_obse: visita.observacoes,
             dias_restantes: visita.dias_restantes,
-            urgencia: visita.urgencia
+            urgencia: visita.urgencia,
           }))
-          
+
           setVisitas(data)
 
           // Extrair etapas
@@ -237,10 +237,25 @@ export default function ControleVisitasList({ navigation }) {
     return () => clearTimeout(timeoutId)
   }, [searchText, carregarVisitas])
 
+  useFocusEffect(
+    useCallback(() => {
+      carregarVisitas(filters)
+    }, [filters, carregarVisitas])
+  )
+
   const handleEdit = (visita) => {
     navigation.navigate('ControleVisitaForm', {
       visitaId: visita.ctrl_id,
       mode: 'edit',
+      visita: visita,
+      cliente: {
+        id: visita.ctrl_cliente,
+        nome: visita.cliente_nome,
+      },
+      vendedor: {
+        id: visita.ctrl_vendedor,
+        nome: visita.vendedor_nome,
+      },
     })
   }
 
@@ -295,6 +310,11 @@ export default function ControleVisitasList({ navigation }) {
     setShowFilters(false)
     // carregarVisitas será chamado automaticamente pelo useEffect
   }
+  useFocusEffect(
+    useCallback(() => {
+      carregarVisitas(filters)
+    }, [filters, carregarVisitas])
+  )
 
   const renderStatsCard = () => {
     if (!etapas || etapas.length === 0) {
@@ -413,7 +433,11 @@ export default function ControleVisitasList({ navigation }) {
       <FlatList
         data={visitas}
         renderItem={renderVisita}
-        keyExtractor={(item) => item.ctrl_id.toString()}
+        keyExtractor={(item, index) => {
+          if (item.ctrl_id) return item.ctrl_id.toString()
+          if (item.id) return item.id.toString()
+          return index.toString()
+        }}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={!loading ? renderEmpty : null}
         refreshControl={

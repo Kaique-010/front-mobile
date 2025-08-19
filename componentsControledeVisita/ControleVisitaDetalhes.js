@@ -69,6 +69,14 @@ export default function ControleVisitaDetalhes({ route, navigation }) {
     navigation.navigate('ControleVisitaForm', {
       visitaId: visita.ctrl_id,
       visita: visita,
+      cliente: {
+        id: visita.ctrl_cliente,
+        nome: visita.cliente_nome
+      },
+      vendedor: {
+        id: visita.ctrl_vendedor,
+        nome: visita.vendedor_nome
+      }
     })
   }
 
@@ -79,6 +87,8 @@ export default function ControleVisitaDetalhes({ route, navigation }) {
     const final = parseFloat(visita.ctrl_km_fina) || 0
     return final > inicial ? final - inicial : null
   }
+
+  
 
   if (loading) {
     return (

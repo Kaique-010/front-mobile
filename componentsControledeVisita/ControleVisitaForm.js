@@ -16,12 +16,16 @@ import {
   apiGetComContexto,
   apiPostComContexto,
   apiPutComContexto,
+  addContextoControleVisita, // Adicionar import
 } from '../utils/api'
+import useContextoApp from '../hooks/useContextoApp'
+
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
+import Toast from 'react-native-toast-message'
 
 export default function ControleVisitaForm({ route, navigation }) {
-  const { visitaId, mode = 'create' } = route.params || {}
+  const { visitaId, mode = 'create', cliente, vendedor } = route.params || {}
   const isEdit = mode === 'edit' && visitaId
 
   const [loading, setLoading] = useState(false)
@@ -30,7 +34,12 @@ export default function ControleVisitaForm({ route, navigation }) {
     show: false,
   })
 
+  const { empresaId, filialId } = useContextoApp()
+
   const [formData, setFormData] = useState({
+    ctrl_empresa: empresaId,
+    ctrl_filial: filialId,
+    ctrl_numero: null,
     ctrl_cliente: '',
     ctrl_data: new Date().toISOString().split('T')[0],
     ctrl_vendedor: '',
@@ -65,13 +74,16 @@ export default function ControleVisitaForm({ route, navigation }) {
   // Dentro da função carregarEtapas
   const carregarEtapas = async () => {
     try {
-      const response = await apiGetComContexto('controledevisitas/etapas/')
+      const response = await apiGetComContexto(
+        'controledevisitas/etapas-visita/'
+      )
       // Tratar resposta paginada e garantir array
       const etapasData = response?.results || response || []
+      console.log('Etapas carregadas:', etapasData) // Debug temporário
       setEtapas(Array.isArray(etapasData) ? etapasData : [])
     } catch (error) {
       console.error('Erro ao carregar etapas:', error)
-      setEtapas([]) // Garantir array vazio em caso de erro
+      setEtapas([])
     }
   }
 
@@ -90,18 +102,22 @@ export default function ControleVisitaForm({ route, navigation }) {
         ctrl_km_inic: response.ctrl_km_inic?.toString() || '',
         ctrl_km_fina: response.ctrl_km_fina?.toString() || '',
         ctrl_nume_orca: response.ctrl_nume_orca?.toString() || '',
+        ctrl_numero: response.ctrl_numero || null, // Adicionado para edição
+        ctrl_etapa: response.ctrl_etapa || 1,
+        ctrl_empresa: response.ctrl_empresa || null,
+        ctrl_filial: response.ctrl_filial || null,
       })
 
       if (response.ctrl_cliente) {
         setSelectedCliente({
-          enti_codigo: response.ctrl_cliente,
+          enti_clie: response.ctrl_cliente,
           enti_nome: response.cliente_nome,
         })
       }
 
       if (response.ctrl_vendedor) {
         setSelectedVendedor({
-          enti_codigo: response.ctrl_vendedor,
+          enti_clie: response.ctrl_vendedor,
           enti_nome: response.vendedor_nome,
         })
       }
@@ -116,18 +132,14 @@ export default function ControleVisitaForm({ route, navigation }) {
 
   const handleSave = async () => {
     try {
-      // Validações
-      if (!selectedCliente) {
+      // Validar cliente obrigatório
+      if (!selectedCliente || !selectedCliente.enti_clie) {
         Alert.alert('Erro', 'Selecione um cliente')
         return
       }
 
-      if (!formData.ctrl_data) {
-        Alert.alert('Erro', 'Selecione uma data')
-        return
-      }
-
-      if (!selectedVendedor) {
+      // Validar vendedor obrigatório
+      if (!selectedVendedor || !selectedVendedor.enti_clie) {
         Alert.alert('Erro', 'Selecione um vendedor')
         return
       }
@@ -135,11 +147,6 @@ export default function ControleVisitaForm({ route, navigation }) {
       // NOVA VALIDAÇÃO: Etapa obrigatória
       if (!formData.ctrl_etapa) {
         Alert.alert('Erro', 'Selecione uma etapa')
-        return
-      }
-
-      if (!formData.ctrl_km || formData.ctrl_km <= 0) {
-        Alert.alert('Erro', 'Informe a quilometragem')
         return
       }
 
@@ -156,6 +163,17 @@ export default function ControleVisitaForm({ route, navigation }) {
 
       const dataToSave = {
         ...formData,
+        ctrl_cliente: selectedCliente.enti_clie, // Garantir que cliente seja enviado
+        ctrl_vendedor: selectedVendedor.enti_clie, // Garantir que vended                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           or seja enviado
+        ctrl_empresa: formData.ctrl_empresa
+          ? parseInt(formData.ctrl_empresa)
+          : null,
+        ctrl_filial: formData.ctrl_filial
+          ? parseInt(formData.ctrl_filial)
+          : null,
+        ctrl_numero: formData.ctrl_numero
+          ? parseInt(formData.ctrl_numero)
+          : null,
         ctrl_km_inic: formData.ctrl_km_inic
           ? parseFloat(formData.ctrl_km_inic)
           : null,
@@ -169,25 +187,37 @@ export default function ControleVisitaForm({ route, navigation }) {
       }
 
       if (isEdit) {
-        // CORRIGIDO: endpoint duplicado
+        const dataWithContext = await addContextoControleVisita(dataToSave)
         await apiPutComContexto(
           `controledevisitas/controle-visitas/${visitaId}/`,
-          dataToSave
+          dataWithContext
         )
-        Alert.alert('Sucesso', 'Visita atualizada com sucesso')
+        Toast.show({
+          type: 'success',
+          text1: 'Sucesso',
+          text2: 'Visita atualizada com sucesso',
+        })
       } else {
-        // CORRIGIDO: endpoint duplicado
+        const dataWithContext = await addContextoControleVisita(dataToSave)
         await apiPostComContexto(
           'controledevisitas/controle-visitas/',
-          dataToSave
+          dataWithContext
         )
-        Alert.alert('Sucesso', 'Visita criada com sucesso')
+        Toast.show({
+          type: 'success',
+          text1: 'Sucesso',
+          text2: 'Visita criada com sucesso',
+        })
       }
 
       navigation.goBack()
     } catch (error) {
       console.error('Erro ao salvar visita:', error)
-      Alert.alert('Erro', 'Não foi possível salvar a visita')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível salvar a visita',
+      })
     } finally {
       setLoading(false)
     }
@@ -220,7 +250,7 @@ export default function ControleVisitaForm({ route, navigation }) {
     setSelectedCliente(cliente)
     setFormData({
       ...formData,
-      ctrl_cliente: cliente?.enti_codigo || '',
+      ctrl_cliente: cliente?.enti_clie || '',
     })
   }
 
@@ -228,9 +258,35 @@ export default function ControleVisitaForm({ route, navigation }) {
     setSelectedVendedor(vendedor)
     setFormData({
       ...formData,
-      ctrl_vendedor: vendedor?.enti_codigo || '',
+      ctrl_vendedor: vendedor?.enti_clie || '',
     })
   }
+
+  // Adicionar este useEffect após os existentes
+  useEffect(() => {
+    // Processar dados do cliente e vendedor vindos da navegação
+    if (cliente && !isEdit) {
+      setSelectedCliente({
+        enti_clie: cliente.id,
+        enti_nome: cliente.nome,
+      })
+      setFormData((prev) => ({
+        ...prev,
+        ctrl_cliente: cliente.id,
+      }))
+    }
+
+    if (vendedor && !isEdit) {
+      setSelectedVendedor({
+        enti_clie: vendedor.id,
+        enti_nome: vendedor.nome,
+      })
+      setFormData((prev) => ({
+        ...prev,
+        ctrl_vendedor: vendedor.id,
+      }))
+    }
+  }, [cliente, vendedor, isEdit])
 
   const renderSwitchField = (label, field, description) => (
     <View style={styles.switchContainer}>
@@ -276,7 +332,7 @@ export default function ControleVisitaForm({ route, navigation }) {
             <BuscaClienteInput
               onSelect={handleClienteSelect}
               placeholder="Selecionar cliente"
-              initialValue={selectedCliente?.enti_nome || ''}
+              value={selectedCliente?.enti_nome || ''}
               style={styles.input}
             />
           </View>
@@ -298,7 +354,7 @@ export default function ControleVisitaForm({ route, navigation }) {
             <BuscaVendedorInput
               onSelect={handleVendedorSelect}
               placeholder="Selecionar vendedor"
-              initialValue={selectedVendedor?.enti_nome || ''}
+              value={selectedVendedor?.enti_nome || ''}
               style={styles.input}
             />
           </View>

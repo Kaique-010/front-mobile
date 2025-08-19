@@ -92,7 +92,7 @@ export default function ControleVisitaFilters({
   const handleVendedorSelect = (vendedor) => {
     setLocalFilters({
       ...localFilters,
-      vendedor: vendedor?.enti_codigo || '',
+      vendedor: vendedor?.enti_clie || '',
     })
   }
 

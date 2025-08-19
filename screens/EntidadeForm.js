@@ -161,10 +161,12 @@ export default function EntidadeForm({ navigation, route }) {
   const buscarEnderecoPorCep = async (cep) => {
     try {
       const { slug, accessToken } = await getStoredData()
-      console.log(slug, accessToken)
-
-      if (!slug || !accessToken)
-        throw new Error('Slug ou token não encontrados')
+      
+      // ✅ ADICIONAR VALIDAÇÃO
+      if (!slug || !accessToken) {
+        console.error('Slug ou token não encontrados:', { slug, accessToken })
+        throw new Error('Dados de autenticação não encontrados')
+      }
 
       const response = await fetch(
         `${BASE_URL}/api/${slug}/entidades/entidades/buscar-endereco/?cep=${cep}`,

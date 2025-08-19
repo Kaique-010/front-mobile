@@ -15,6 +15,9 @@ import { apiGetComContexto } from '../utils/api'
 import { useEnviarEmail } from '../hooks/useEnviarEmail'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import Toast from 'react-native-toast-message'
+import { Checkbox } from 'react-native-paper' // Adicione esta dependência
+import * as FileSystem from 'expo-file-system' // Adicionar esta dependência
+import * as Sharing from 'expo-sharing' // Adicionar esta dependência
 
 export default function CobrancasList() {
   const [cobrancas, setCobrancas] = useState([])
@@ -30,6 +33,8 @@ export default function CobrancasList() {
   const [searchText, setSearchText] = useState('')
   const [loadingWhats, setLoadingWhats] = useState(false)
   const [selecionadas, setSelecionadas] = useState([])
+  const [boleto, setBoleto] = useState('')
+  const [incluirBoleto, setIncluirBoleto] = useState(false) // Novo estado
 
   const { enviarEmail, loading: loadingEmail } = useEnviarEmail()
 
@@ -118,49 +123,98 @@ export default function CobrancasList() {
   }
 
   //Função de envio de whatsapp unitario
+  // Substituir a função enviarCobrancaWhatsApp
   const enviarCobrancaWhatsApp = async () => {
     try {
       setLoadingWhats(true)
 
-      // Verificar se tem pelo menos um dos números
       const numeroRaw =
-        selectedCobranca.cliente_celular ||
-        selectedCobranca.cliente_telefone ||
+        selectedCobranca.cliente_celular?.trim() ||
+        selectedCobranca.cliente_telefone?.trim() ||
         ''
       const numeroLimpo = numeroRaw.replace(/\D/g, '')
 
-      if (!numeroRaw || numeroLimpo.length < 10) {
-        Alert.alert(
-          'Erro',
-          'Cliente não possui número de WhatsApp válido cadastrado'
-        )
+      if (!numeroLimpo || numeroLimpo.length < 10 || numeroLimpo.length > 11) {
+        Alert.alert('Erro', 'Cliente não possui número válido')
         return
       }
 
-      const numeroZap = `55${numeroLimpo}`
+      let numeroZap =
+        numeroLimpo.length === 10 ? `5511${numeroLimpo}` : `55${numeroLimpo}`
 
-      const mensagem = `*Cobrança a Vencer do Cliente: - ${
+      let mensagem = `*Prezado, segue Cobrança - ${
         selectedCobranca.cliente_nome
       }*
-
-  *Título*: ${selectedCobranca.numero_titulo}
-  *Parcela*: ${selectedCobranca.parcela}
-
-  *Vencimento*: ${formatarData(selectedCobranca.vencimento)}
-
-  *Valor*: ${formatarValor(selectedCobranca.valor)}
-
   
-  ${
-    selectedCobranca.linha_digitavel
-      ? `Linha Digitável: ${selectedCobranca.linha_digitavel}\n`
-      : ''
-  }${
-        selectedCobranca.url_boleto
-          ? `Link do Boleto: ${selectedCobranca.url_boleto}`
+    *Título*: ${selectedCobranca.numero_titulo}
+    *Parcela*: ${selectedCobranca.parcela}
+  
+    *Vencimento*: ${formatarData(selectedCobranca.vencimento)}
+  
+    *Valor*: ${formatarValor(selectedCobranca.valor)}
+  
+      
+      ${
+        selectedCobranca.linha_digitavel
+          ? `Linha Digitável: ${selectedCobranca.linha_digitavel}\n`
           : ''
       }`
 
+      // Se incluir boleto e tiver base64
+      if (incluirBoleto && selectedCobranca.boleto_base64) {
+        try {
+          // PRIMEIRO: Enviar mensagem via WhatsApp
+          const urlTexto = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
+            mensagem + '\n\n📎 *Boleto será enviado em seguida...*'
+          )}`
+
+          const canOpenTexto = await Linking.canOpenURL(urlTexto)
+          if (canOpenTexto) {
+            await Linking.openURL(urlTexto)
+
+            setTimeout(async () => {
+              try {
+                const fileName = `boleto_${selectedCobranca.numero_titulo}_${selectedCobranca.parcela}.pdf`
+                const fileUri = FileSystem.documentDirectory + fileName
+
+                await FileSystem.writeAsStringAsync(
+                  fileUri,
+                  selectedCobranca.boleto_base64,
+                  {
+                    encoding: FileSystem.EncodingType.Base64,
+                  }
+                )
+
+                // Compartilhar arquivo
+                const isAvailable = await Sharing.isAvailableAsync()
+                if (isAvailable) {
+                  await Sharing.shareAsync(fileUri, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: 'Enviar Boleto PDF',
+                    UTI: 'com.adobe.pdf',
+                  })
+                }
+              } catch (error) {
+                console.error('Erro ao compartilhar arquivo:', error)
+              }
+            }, 3000)
+
+            setModalVisible(false)
+            Toast.show({
+              type: 'success',
+              text1: 'Sucesso',
+              text2: 'Mensagem enviada! Boleto será compartilhado em seguida.',
+            })
+            return
+          }
+        } catch (error) {
+          console.error('Erro ao processar envio:', error)
+          Alert.alert('Erro', 'Falha ao processar envio')
+          return
+        }
+      }
+
+      // Envio normal via texto se não tiver boleto
       const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
         mensagem
       )}`
@@ -200,18 +254,31 @@ export default function CobrancasList() {
         cobranca.cliente_celular || cobranca.cliente_telefone || ''
       const numeroLimpo = numeroRaw.replace(/\D/g, '')
 
-      if (!numeroLimpo || numeroLimpo.length < 10) continue
+      // Validação melhorada
+      if (!numeroLimpo || numeroLimpo.length < 10 || numeroLimpo.length > 11)
+        continue
 
-      const numeroZap = `55${numeroLimpo}`
-      const mensagem = `*Cobrança - ${cobranca.cliente_nome}*\n\nTítulo: ${
-        cobranca.numero_titulo
-      }\nParcela: ${cobranca.parcela}\nVencimento: ${formatarData(
+      // Formatação do número para WhatsApp
+      let numeroZap
+      if (numeroLimpo.length === 10) {
+        numeroZap = `5511${numeroLimpo}`
+      } else if (numeroLimpo.length === 11) {
+        numeroZap = `55${numeroLimpo}`
+      }
+
+      let mensagem = `* Prezado Cliente, Segue Cobrança - ${
+        cobranca.cliente_nome
+      }*\n\nTítulo: ${cobranca.numero_titulo}\nParcela: ${
+        cobranca.parcela
+      }\nVencimento: ${formatarData(
         cobranca.vencimento
-      )}\nValor: ${formatarValor(cobranca.valor)}\n\n${
-        cobranca.linha_digitavel
-          ? `Linha Digitável: ${cobranca.linha_digitavel}`
-          : ''
-      }\n${cobranca.url_boleto ? `Link: ${cobranca.url_boleto}` : ''}`
+      )}\nValor: ${formatarValor(cobranca.valor)}\n\n$`
+
+      // Adicionar boleto base64 se marcado e disponível
+      if (incluirBoleto && cobranca.boleto_base64) {
+        mensagem += `\n\nBoleto em anexo (pdf):
+        )}...`
+      }
 
       const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
         mensagem
@@ -240,26 +307,28 @@ export default function CobrancasList() {
       const email = cobranca.cliente_email
       if (!email) continue
 
-      const dadosEmail = {
-        assunto: `Cobrança - Título ${cobranca.numero_titulo}`,
-        corpo: `
+      let corpo = `
 Prezado(a) ${cobranca.cliente_nome},
 
 Segue cobrança referente ao título ${cobranca.numero_titulo}, parcela ${
-          cobranca.parcela
-        }, vencimento ${formatarData(
-          cobranca.vencimento
-        )}, valor ${formatarValor(cobranca.valor)}.
+        cobranca.parcela
+      }, vencimento ${formatarData(cobranca.vencimento)}, valor ${formatarValor(
+        cobranca.valor
+      )}.
+      `
 
-${
-  cobranca.linha_digitavel ? `Linha Digitável: ${cobranca.linha_digitavel}` : ''
-}
-${cobranca.url_boleto ? `Link: ${cobranca.url_boleto}` : ''}
+      // Adicionar boleto base64 se marcado e disponível
+      if (incluirBoleto && cobranca.boleto_base64) {
+        corpo += `\n\nBoleto em anexo (base64).`
+      }
 
-Att,
-Equipe Financeira
-      `,
+      corpo += `\n\nAtt,\nEquipe Financeira`
+
+      const dadosEmail = {
+        assunto: `Cobrança - Título ${cobranca.numero_titulo}`,
+        corpo,
         anexos: cobranca.url_boleto ? [cobranca.url_boleto] : [],
+        boletoBase64: incluirBoleto ? cobranca.boleto_base64 : null,
       }
 
       try {
@@ -342,6 +411,18 @@ Equipe Financeira
           onChangeText={setSearchText}
         />
 
+        {/* Novo checkbox para incluir boleto */}
+        <View style={styles.checkboxContainer}>
+          <Checkbox
+            status={incluirBoleto ? 'checked' : 'unchecked'}
+            onPress={() => setIncluirBoleto(!incluirBoleto)}
+            color="#1f6d7a"
+          />
+          <Text style={styles.checkboxLabel}>
+            Incluir boleto convertido (quando disponível)
+          </Text>
+        </View>
+
         <TouchableOpacity
           style={styles.buscarButton}
           onPress={buscarCobrancas}
@@ -352,16 +433,18 @@ Equipe Financeira
         </TouchableOpacity>
       </View>
 
-      {/* Lista */}
+      {/* Lista - CHAVE CORRIGIDA */}
       <FlatList
         data={cobrancas}
         renderItem={renderCobranca}
         keyExtractor={(item, index) => {
-          return (
-            item.id?.toString() ||
-            item.numero_titulo?.toString() ||
-            index.toString()
-          )
+          // Chave única melhorada com empresa, filial, cliente_id e vencimento
+          const chaveUnica = `${item.empresa || 'emp'}_${
+            item.filial || 'fil'
+          }_${item.cliente_id || item.id || 'cli'}_${
+            item.vencimento || 'venc'
+          }_${index}`
+          return chaveUnica
         }}
         refreshing={loading}
         onRefresh={buscarCobrancas}
@@ -457,18 +540,11 @@ ${
     ? `Linha Digitável: ${selectedCobranca.linha_digitavel}`
     : ''
 }
-${
-  selectedCobranca.url_boleto
-    ? `Link do Boleto: ${selectedCobranca.url_boleto}`
-    : ''
-}
+
 
 Atenciosamente,
 Equipe Financeira
       `,
-                          anexos: selectedCobranca.url_boleto
-                            ? [selectedCobranca.url_boleto]
-                            : [],
                         })
                           .then(() => {
                             Alert.alert('Sucesso', 'Email enviado com sucesso!')
@@ -721,5 +797,14 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#1f6d7a',
+    marginLeft: 40,
+    marginBottom: 50,
+    marginHorizontal: 25,
+    direction: 'ltr',
+    flexDirection: 'row',
   },
 })
