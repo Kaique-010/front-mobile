@@ -25,21 +25,16 @@ const refreshToken = async () => {
 
     const response = await axios.post(endpoint, { refresh }, { headers })
 
-    // ✅ Obter o novo access token
-    const newAccess =
-      userType === 'cliente' ? response.data.access_token : response.data.access
+    // ✅ CORREÇÃO: Backend retorna 'access' para ambos os tipos
+    const newAccess = response.data.access
 
     if (!newAccess) {
       throw new Error('Access token não retornado pela API')
     }
 
-    // ✅ NOVO: Salvar também o novo refresh token se fornecido
-    if (response.data.refresh_token || response.data.refresh) {
-      const newRefresh =
-        userType === 'cliente'
-          ? response.data.refresh_token
-          : response.data.refresh
-      await AsyncStorage.setItem('refresh', newRefresh)
+    // ✅ Salvar novo refresh token se fornecido
+    if (response.data.refresh) {
+      await AsyncStorage.setItem('refresh', response.data.refresh)
       console.log('✅ Refresh token também renovado')
     }
 
@@ -52,10 +47,8 @@ const refreshToken = async () => {
       error.response?.data || error.message
     )
 
-    // ✅ NOVO: Se refresh token expirou, redirecionar para login
     if (error.response?.status === 401) {
       await AsyncStorage.multiRemove(['access', 'refresh', 'slug', 'userType'])
-      // Aqui você pode adicionar navegação para tela de login
       throw new Error('Sessão expirada. Faça login novamente.')
     }
 
@@ -70,6 +63,7 @@ const getAuthHeaders = async () => {
   const usuario_id = await AsyncStorage.getItem('usuario_id')
   const username = await AsyncStorage.getItem('username')
   const cliente_id = await AsyncStorage.getItem('cliente_id')
+
 
   return {
     'X-Empresa': empresaId || '',
@@ -93,14 +87,24 @@ const apiFetch = async (
 
   try {
     let currentToken = await AsyncStorage.getItem('access')
+    let currentRefreshToken = await AsyncStorage.getItem('refresh')
 
-    // Log detalhado para debug
+    // LOGS DETALHADOS
     console.log(
       '🔍 [DEBUG] Token lido do AsyncStorage:',
       currentToken ? 'Token encontrado' : 'Token não encontrado'
     )
+    console.log(
+      '🔍 [DEBUG] Refresh token:',
+      currentRefreshToken ? 'Refresh encontrado' : 'Refresh não encontrado'
+    )
     console.log('🔍 [DEBUG] Endpoint:', endpoint)
     console.log('🔍 [DEBUG] Method:', method)
+
+    if (currentToken) {
+      console.log('🔍 [DEBUG] Token completo:', currentToken)
+      console.log('🔍 [DEBUG] Authorization header:', `Bearer ${currentToken}`)
+    }
 
     if (!currentToken) {
       console.error('❌ Token de autenticação não encontrado!')

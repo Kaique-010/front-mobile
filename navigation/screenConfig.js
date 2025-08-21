@@ -462,4 +462,35 @@ export const screenConfigs = [
     component: Screens.ParametrosFinanceiro,
     options: createHeaderOptions('Parâmetros Financeiro'),
   },
+  // ... Telas de Cliente
+  {
+    name: 'ClientePedidosList',
+    component: Screens.ClientePedidosList,
+    options: createHeaderOptions('Meus Pedidos'),
+  },
+  {
+    name: 'ClientePedidosDetalhes',
+    component: Screens.ClientePedidosDetalhes,
+    options: createHeaderOptions('Detalhes do Pedido'),
+  },
+  {
+    name: 'ClienteOrcamentosList',
+    component: Screens.ClienteOrcamentosList,
+    options: createHeaderOptions('Meus Orçamentos'),
+  },
+  {
+    name: 'ClienteOrcamentosDetalhes',
+    component: Screens.ClienteOrcamentosDetalhes,
+    options: createHeaderOptions('Detalhes do Orçamento'),
+  },
+  {
+    name: 'ClienteOrdensServicoList',
+    component: Screens.ClienteOrdensServicoList,
+    options: createHeaderOptions('Minhas Ordens de Serviço'),
+  },
+  {
+    name: 'ClienteOrdensServicoDetalhes',
+    component: Screens.ClienteOrdensServicoDetalhes,
+    options: createHeaderOptions('Detalhes da Ordem de Serviço'),
+  },
 ]

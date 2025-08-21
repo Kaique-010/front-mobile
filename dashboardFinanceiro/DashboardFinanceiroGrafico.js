@@ -3,10 +3,32 @@ import { View, Text, Dimensions, StyleSheet, ScrollView } from 'react-native'
 import { LineChart } from 'react-native-chart-kit'
 
 export default function DashboardFinanceiroGrafico({ route }) {
+  // Verificação de segurança para route.params
+  if (!route?.params?.totaisPorMes) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.titulo}>❌ Dados não encontrados</Text>
+        <Text style={{ textAlign: 'center', padding: 20 }}>
+          Volte ao dashboard e clique em "Ver Gráfico" novamente.
+        </Text>
+      </View>
+    )
+  }
+
   const { totaisPorMes } = route.params
   const screenWidth = Dimensions.get('window').width
 
   const meses = Object.keys(totaisPorMes)
+  
+  // Verificação adicional se há dados
+  if (meses.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.titulo}>📊 Sem dados para exibir</Text>
+      </View>
+    )
+  }
+
   const recebido = meses.map((mes) => totaisPorMes[mes].recebido)
   const pago = meses.map((mes) => totaisPorMes[mes].pago)
   const saldo = meses.map((mes) => totaisPorMes[mes].saldo)

@@ -14,6 +14,7 @@ import { BASE_URL } from '../utils/api'
 import { useFonts, FaunaOne_400Regular } from '@expo-google-fonts/fauna-one'
 import styles from '../styles/loginStyles'
 import { MotiView, MotiText } from 'moti'
+import useClienteAuth from '../hooks/useClienteAuth'
 
 export default function Login({ navigation }) {
   const [username, setUsername] = useState('')
@@ -26,6 +27,7 @@ export default function Login({ navigation }) {
   const [documento, setDocumento] = useState('') // Para login de cliente
   const [usuario, setUsuario] = useState('') // Para login de cliente
   const [senha, setSenha] = useState('') // Para login de cliente
+  const { login: clienteLogin, loading: clienteAuthLoading, error: clienteAuthError } = useClienteAuth()
 
   useEffect(() => {
     const carregarDadosSalvos = async () => {
@@ -152,54 +154,22 @@ export default function Login({ navigation }) {
       setError('Preencha todos os campos.')
       return
     }
-
-    console.log('[LOGIN CLIENTE ATTEMPT]', { documento, usuario, senha })
-
+  
+    console.log('[LOGIN CLIENTE]', { documento, usuario })
     setIsLoading(true)
+    
     try {
-      // Usar slug padrão para login inicial
-      const response = await axios.post(
-        `${BASE_URL}/api/demonstracao/entidades/login/`,
-        {
-          documento,
-          usuario,
-          senha,
-        }
-      )
-
-      console.log('[LOGIN CLIENTE RESPONSE]', response.data)
-
-      const { access, refresh, cliente_id, cliente_nome, banco } = response.data
-
-      if (!access) {
-        console.error(
-          '[LOGIN CLIENTE ERROR] Token de acesso não encontrado na resposta:',
-          response.data
-        )
-        setError('Erro na autenticação. Tente novamente.')
-        setIsLoading(false)
-        return
+      const success = await clienteLogin(documento, usuario, senha)
+      
+      if (success) {
+        console.log('Login cliente sucesso')
+        navigation.navigate('HomeCliente')
+      } else {
+        setError('Credenciais inválidas')
       }
-
-      // Usar o banco retornado pela API como slug
-      const slug = banco || 'demonstracao'
-
-      await AsyncStorage.multiSet([
-        ['access', access],
-        ['refresh', refresh],
-        ['documento', documento],
-        ['usuario_cliente', usuario],
-        ['slug', slug], // Usar o banco correto
-        ['userType', 'cliente'],
-        ['cliente_id', cliente_id?.toString() || ''],
-        ['cliente_nome', cliente_nome || ''],
-      ])
-
-      console.log('Login cliente bem-sucedido, navegação para HomeCliente')
-      navigation.navigate('HomeCliente')
     } catch (err) {
-      console.error('[LOGIN CLIENTE ERROR]', err?.response?.data || err.message)
-      setError('Login falhou. Verifique suas credenciais.')
+      console.error('[LOGIN CLIENTE ERROR]', err)
+      setError('Erro no login')
     } finally {
       setIsLoading(false)
     }

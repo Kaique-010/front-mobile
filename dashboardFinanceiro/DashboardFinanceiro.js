@@ -40,6 +40,14 @@ export default function DashboardFinanceiro() {
       setDados(res)
     } catch (error) {
       console.error('Erro ao buscar dashboard:', error)
+      // Adicionar tratamento visual do erro
+      Alert.alert(
+        'Erro',
+        'Falha ao carregar dados financeiros. Tente novamente.',
+        [{ text: 'OK' }]
+      )
+      // Definir estado de erro para mostrar na UI
+      setDados({ error: true })
     }
   }
 

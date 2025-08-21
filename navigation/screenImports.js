@@ -122,3 +122,11 @@ export { default as DashPedidosPisos } from '../componetsPisos/DashPedidosPisos'
 export { default as DashPedidosPisosGrafico } from '../componetsPisos/DashPedidosPisosGrafico'
 export { default as PedidosPisos } from '../componetsPisos/PedidosPisos'
 export { default as PedidosPisosForm } from '../componetsPisos/PedidosPisosForm'
+
+// Telas de Cliente
+export { default as ClientePedidosList } from '../componentsClients/ClientePedidosList'
+export { default as ClientePedidosDetalhes } from '../componentsClients/ClientePedidosDetalhes'
+export { default as ClienteOrcamentosList } from '../componentsClients/ClienteOrcamentosList'
+export { default as ClienteOrcamentosDetalhes } from '../componentsClients/ClienteOrcamentosDetalhes'
+export { default as ClienteOrdensServicoList } from '../componentsClients/ClienteOrdensServicoList'
+export { default as ClienteOrdensServicoDetalhes } from '../componentsClients/ClienteOrdensServicoDetalhes'

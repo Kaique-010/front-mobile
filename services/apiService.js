@@ -29,7 +29,6 @@ export const fetchDashboardData = async () => {
 
   const slug = slugObj.slug
 
-  // Parâmetros para a requisição
   const params = {
     empresa_id: stored?.empresaId || null,
     filial_id: stored?.filialId || null,
@@ -41,12 +40,9 @@ export const fetchDashboardData = async () => {
   }
   console.log('params', params)
 
-  // Faz a requisição à API
-  const response = apiGetComContexto(`dashboards/dashboard/`, {
-    params,
-  })
-
-  return response.data
+  // CORREÇÃO: Usar await e passar params diretamente
+  const response = await apiGetComContexto(`dashboards/dashboard/`, params)
+  return response
 }
 
 // Métodos específicos para clientes, para buscar os dados da api para os cliente em específico
@@ -63,16 +59,12 @@ export const fetchClientePedidos = async () => {
       return []
     }
 
-    const response = await apiGetComContexto(
-      `pedidos/pedidos/`,
-      {
-        params: {
-          cliente_id: cliente_id,
-          limit: 10,
-          ordering: '-data_pedido',
-        },
-      }
-    )
+    const response = await apiGetComContexto(`pedidos/pedidos/`, {
+      params: {
+        cliente_id: cliente_id,
+        ordering: '-data_pedido',
+      },
+    })
 
     return response || [] // ✅ Removido .data
   } catch (error) {
@@ -97,7 +89,6 @@ export const fetchClienteOrcamentos = async () => {
     const response = await apiGetComContexto(`orcamentos/orcamentos/`, {
       params: {
         cliente_id: cliente_id,
-        limit: 10,
         ordering: '-data_orcamento',
       },
     })
@@ -125,7 +116,6 @@ export const fetchClienteOrdensServico = async () => {
     const response = await apiGetComContexto(`ordens-servico/ordens/`, {
       params: {
         cliente_id: cliente_id,
-        limit: 10,
         ordering: '-data_abertura',
       },
     })
