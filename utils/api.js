@@ -2,7 +2,7 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://192.168.10.39:8000' //'https://mobile-sps.fly.dev' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'http://168.75.73.117' //'http://168.75.73.117'//'https://mobile-sps.fly.dev' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -63,7 +63,6 @@ const getAuthHeaders = async () => {
   const usuario_id = await AsyncStorage.getItem('usuario_id')
   const username = await AsyncStorage.getItem('username')
   const cliente_id = await AsyncStorage.getItem('cliente_id')
-
 
   return {
     'X-Empresa': empresaId || '',

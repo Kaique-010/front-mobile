@@ -80,6 +80,9 @@ export default function Login({ navigation }) {
   }
 
   const handleLoginFuncionario = async () => {
+    console.log('[APK DEBUG] Iniciando login...')
+    console.log('[APK DEBUG] BASE_URL:', BASE_URL)
+    
     if (!docu || !username || !password) {
       setError('Preencha todos os campos.')
       return
