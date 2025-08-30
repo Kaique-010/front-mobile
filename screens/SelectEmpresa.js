@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import axios from 'axios'
-import { BASE_URL, fetchSlugMap } from '../utils/api'
+import { BASE_URL, fetchSlugMap, safeSetItem } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/loginStyles'
 
@@ -34,11 +34,10 @@ export default function SelectEmpresa({ navigation }) {
 
         const slugMap = await fetchSlugMap()
 
-        // Encontrando o objeto com o CNPJ correspondente
-        const slugObj = slugMap.find((item) => item.cnpj === docu)
+        // Acessando diretamente o slug usando o CNPJ como chave
+        const slug = slugMap[docu]
 
-        if (slugObj) {
-          const slug = slugObj.slug
+        if (slug) {
           console.log('[DEBUG] SLUG:', slug)
           if (!slug) {
             console.error('[ERROR] Slug não encontrado para o CNPJ:', docu)
@@ -88,8 +87,8 @@ export default function SelectEmpresa({ navigation }) {
 
     try {
       // Salvando a empresa selecionada no AsyncStorage
-      await AsyncStorage.setItem('empresaId', empresaId.toString())
-      await AsyncStorage.setItem('empresaNome', empresaNome) // Salvando o nome também
+      await safeSetItem('empresaId', empresaId.toString())
+      await safeSetItem('empresaNome', empresaNome) // Salvando o nome também
 
       // Navega para a próxima tela após salvar a empresa
       navigation.navigate('SelectFilial', {

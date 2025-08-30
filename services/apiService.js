@@ -21,13 +21,13 @@ export const fetchDashboardData = async () => {
   }
 
   // Busca o slug no mapa usando o CNPJ
-  const slugObj = (await fetchSlugMap()).find((item) => item.cnpj === cnpj)
-  if (!slugObj) {
+  const slugMap = await fetchSlugMap()
+  const slug = slugMap[cnpj]
+  
+  if (!slug) {
     console.error('[ERROR] Slug não encontrado para o CNPJ:', cnpj)
     return null
   }
-
-  const slug = slugObj.slug
 
   const params = {
     empresa_id: stored?.empresaId || null,

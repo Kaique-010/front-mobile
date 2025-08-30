@@ -2,7 +2,10 @@ import { useState } from 'react'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-export const BASE_URL = 'http://168.75.73.117' //'http://168.75.73.117'//'https://mobile-sps.fly.dev' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+// NetInfo removido - não está instalado
+
+export const BASE_URL = 'https://mobile-sps.site' //'http://168.75.73.117'//'https://mobile-sps.site' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+import licencasLocal from '../licencas.json'
 
 // Função para renovar o token
 const refreshToken = async () => {
@@ -25,20 +28,18 @@ const refreshToken = async () => {
 
     const response = await axios.post(endpoint, { refresh }, { headers })
 
-    // ✅ CORREÇÃO: Backend retorna 'access' para ambos os tipos
     const newAccess = response.data.access
 
     if (!newAccess) {
       throw new Error('Access token não retornado pela API')
     }
 
-    // ✅ Salvar novo refresh token se fornecido
     if (response.data.refresh) {
-      await AsyncStorage.setItem('refresh', response.data.refresh)
+      await safeSetItem('refresh', response.data.refresh)
       console.log('✅ Refresh token também renovado')
     }
 
-    await AsyncStorage.setItem('access', newAccess)
+    await safeSetItem('access', newAccess)
     console.log('✅ Token renovado com sucesso')
     return newAccess
   } catch (error) {
@@ -46,12 +47,6 @@ const refreshToken = async () => {
       '❌ Erro ao renovar token:',
       error.response?.data || error.message
     )
-
-    if (error.response?.status === 401) {
-      await AsyncStorage.multiRemove(['access', 'refresh', 'slug', 'userType'])
-      throw new Error('Sessão expirada. Faça login novamente.')
-    }
-
     throw error
   }
 }
@@ -75,6 +70,17 @@ const getAuthHeaders = async () => {
 }
 
 // Função principal de requisição melhorada
+// Verificar conectividade antes das requisições
+const checkConnectivity = async () => {
+  const netInfo = await NetInfo.fetch()
+  if (!netInfo.isConnected) {
+    throw new Error('Sem conexão com a internet')
+  }
+  return netInfo
+}
+
+// Função checkConnectivity removida
+
 const apiFetch = async (
   endpoint,
   method = 'get',
@@ -85,6 +91,8 @@ const apiFetch = async (
   const maxRetries = 1
 
   try {
+    // Verificação de conectividade removida
+
     let currentToken = await AsyncStorage.getItem('access')
     let currentRefreshToken = await AsyncStorage.getItem('refresh')
 
@@ -114,7 +122,9 @@ const apiFetch = async (
 
     const config = {
       method,
-      url: `${BASE_URL}${endpoint}`,
+      url: `${BASE_URL}/${
+        endpoint.startsWith('/') ? endpoint.substring(1) : endpoint
+      }`,
       headers: {
         Authorization: `Bearer ${currentToken}`,
         ...headersExtras,
@@ -146,6 +156,7 @@ const apiFetch = async (
             Authorization: `Bearer ${newToken}`,
             ...headersExtras,
           },
+          timeout: 10000,
           ...(data && { data }),
           ...(params && { params }),
         }
@@ -360,13 +371,113 @@ export const apiPatchComContexto = async (
   return response.data
 }
 
-export async function fetchSlugMap() {
-  try {
-    const response = await axios.get(`${BASE_URL}/api/licencas/mapa/`)
+// Cache para o slugMap
+let slugMapCache = null
+let slugMapCacheTime = 0
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
-    return response.data
+export async function fetchSlugMap() {
+  const startTime = Date.now()
+  console.log(
+    `🕐 [SLUG-TIMING] Iniciando fetchSlugMap: ${new Date().toISOString()}`
+  )
+
+  // Verificar cache
+  const now = Date.now()
+  if (slugMapCache && now - slugMapCacheTime < CACHE_DURATION) {
+    console.log(
+      `⚡ [SLUG-TIMING] Usando cache válido em: ${Date.now() - startTime}ms`
+    )
+    return slugMapCache
+  }
+
+  try {
+    console.log(
+      `🌐 [SLUG-TIMING] Fazendo requisição para: ${BASE_URL}/api/licencas/mapa/`
+    )
+
+    const response = await axios.get(`${BASE_URL}/api/licencas/mapa/`, {
+      timeout: 10000, // 10 segundos
+    })
+
+    const apiData = response.data
+
+    // Converter array da API em objeto CNPJ -> slug
+    const map = {}
+    if (Array.isArray(apiData)) {
+      apiData.forEach((item) => {
+        if (item.cnpj && item.slug) {
+          map[item.cnpj] = item.slug
+        }
+      })
+    } else {
+      // Se já for um objeto, usar diretamente
+      Object.assign(map, apiData)
+    }
+
+    // Atualizar cache
+    slugMapCache = map
+    slugMapCacheTime = now
+
+    console.log(
+      `✅ [SLUG-TIMING] SlugMap obtido e cacheado em: ${
+        Date.now() - startTime
+      }ms`
+    )
+    console.log(`📊 [SLUG-TIMING] Total de slugs: ${Object.keys(map).length}`)
+    console.log(
+      `📄 [SLUG-MAP] CNPJs disponíveis na API: ${Object.keys(map).join(', ')}`
+    )
+
+    return map
   } catch (error) {
-    throw error
+    console.error(
+      `❌ [SLUG-TIMING] Erro no fetchSlugMap após: ${Date.now() - startTime}ms`
+    )
+    console.error(`❌ [SLUG-TIMING] Detalhes:`, error.message)
+
+    // Fallback 1: Cache antigo
+    if (slugMapCache) {
+      console.log(`🔄 [SLUG-TIMING] Usando cache antigo como fallback`)
+      return slugMapCache
+    }
+
+    // Fallback 2: Arquivo local licencas.json
+    console.log(
+      `📁 [SLUG-TIMING] Carregando mapa do arquivo local licencas.json`
+    )
+
+    try {
+      // Criar mapa de CNPJ -> slug baseado no arquivo local
+      const localMap = {}
+      licencasLocal.forEach((licenca) => {
+        if (licenca.cnpj && licenca.slug) {
+          localMap[licenca.cnpj] = licenca.slug
+        }
+      })
+
+      // Log dos CNPJs aptos do arquivo local
+      console.log(
+        `📄 [SLUG-MAP] CNPJs aptos carregados do licencas.json: ${Object.keys(
+          localMap
+        ).join(', ')}`
+      )
+
+      // Atualizar cache com o mapa local
+      slugMapCache = localMap
+      slugMapCacheTime = now
+
+      return localMap
+    } catch (localError) {
+      console.error(
+        `❌ [SLUG-TIMING] Erro ao carregar arquivo local:`,
+        localError.message
+      )
+
+      // Fallback 3: Mapa vazio (comportamento original)
+      console.log(`🔌 [SLUG-TIMING] Retornando mapa vazio como último recurso`)
+      return {}
+    }
   }
 }
 
@@ -383,5 +494,181 @@ export const request = async ({ method, endpoint, data = {}, params = {} }) => {
     return await apiFetch(fullEndpoint, method, data, params)
   } catch (error) {
     throw error.response?.data || { message: 'Erro inesperado' }
+  }
+}
+
+// Configuração otimizada do axios
+axios.defaults.timeout = 30000 // 30 segundos em vez de 10
+axios.defaults.headers.common['Content-Type'] = 'application/json'
+
+// Configuração de retry automático
+const MAX_RETRIES = 4
+const RETRY_DELAY = 1000 // 1 segundo
+
+// Função para delay entre tentativas
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// Interceptor para logs de timing
+axios.interceptors.request.use(
+  (config) => {
+    config.metadata = {
+      startTime: Date.now(),
+      retryCount: config.retryCount || 0,
+    }
+    console.log(
+      `🚀 [AXIOS-TIMING] Iniciando requisição: ${config.method?.toUpperCase()} ${
+        config.url
+      } (Tentativa ${config.metadata.retryCount + 1})`
+    )
+    return config
+  },
+  (error) => {
+    console.error('❌ [AXIOS-TIMING] Erro na requisição:', error)
+    return Promise.reject(error)
+  }
+)
+
+axios.interceptors.response.use(
+  (response) => {
+    const duration = Date.now() - response.config.metadata.startTime
+    console.log(
+      `✅ [AXIOS-TIMING] Resposta recebida em: ${duration}ms - ${response.config.method?.toUpperCase()} ${
+        response.config.url
+      }`
+    )
+    console.log(
+      `📊 [AXIOS-TIMING] Status: ${response.status}, Tamanho: ${
+        JSON.stringify(response.data).length
+      } chars`
+    )
+    return response
+  },
+  async (error) => {
+    const config = error.config
+
+    if (config?.metadata) {
+      const duration = Date.now() - config.metadata.startTime
+      console.error(
+        `❌ [AXIOS-TIMING] Erro após: ${duration}ms - ${config.method?.toUpperCase()} ${
+          config.url
+        }`
+      )
+    }
+
+    // Lógica de retry para erros de rede
+    if (
+      config &&
+      !config.__isRetryRequest &&
+      (config.retryCount || 0) < MAX_RETRIES &&
+      (error.code === 'ECONNABORTED' ||
+        error.code === 'NETWORK_ERROR' ||
+        error.message === 'Network Error' ||
+        error.message.includes('Network request failed') ||
+        !error.response)
+    ) {
+      config.__isRetryRequest = true
+      config.retryCount = (config.retryCount || 0) + 1
+
+      console.log(
+        `🔄 [RETRY] Tentativa ${config.retryCount}/${MAX_RETRIES} em ${
+          RETRY_DELAY * config.retryCount
+        }ms`
+      )
+
+      await delay(RETRY_DELAY * config.retryCount) // Delay progressivo
+      return axios(config)
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      console.error('⏰ [AXIOS-TIMING] Timeout na requisição')
+    } else if (error.response) {
+      console.error(
+        `🔴 [AXIOS-TIMING] Erro HTTP ${error.response.status}: ${error.response.statusText}`
+      )
+    } else if (error.request) {
+      console.error('📡 [AXIOS-TIMING] Sem resposta do servidor')
+    }
+
+    return Promise.reject(error)
+  }
+)
+
+// Função melhorada para lidar com SQLITE_FULL
+export const safeSetItem = async (key, value, retryCount = 0) => {
+  try {
+    await AsyncStorage.setItem(key, value)
+    console.log(`✅ Item salvo: ${key}`)
+  } catch (error) {
+    if (
+      error.message.includes('database or disk is full') ||
+      error.code === 'SQLITE_FULL'
+    ) {
+      console.log('🧹 Storage cheio, limpando automaticamente...')
+
+      if (retryCount < 2) {
+        // Primeira tentativa: limpar apenas cache não essencial
+        await clearNonEssentialCache()
+        return safeSetItem(key, value, retryCount + 1)
+      } else {
+        // Segunda tentativa: limpar tudo exceto dados de login
+        await clearAllExceptAuth()
+        return safeSetItem(key, value, retryCount + 1)
+      }
+    }
+    throw error
+  }
+}
+
+// Limpar apenas cache não essencial
+const clearNonEssentialCache = async () => {
+  try {
+    const keys = await AsyncStorage.getAllKeys()
+    const cacheKeys = keys.filter(
+      (key) =>
+        key.includes('_cache') ||
+        key.includes('CACHE') ||
+        key.includes('produtos') ||
+        key.includes('pedidos') ||
+        key.includes('balancete')
+    )
+
+    if (cacheKeys.length > 0) {
+      await AsyncStorage.multiRemove(cacheKeys)
+      console.log(`🧹 Removidos ${cacheKeys.length} itens de cache`)
+    }
+  } catch (error) {
+    console.error('❌ Erro ao limpar cache:', error)
+  }
+}
+
+// Limpar tudo exceto dados de autenticação
+const clearAllExceptAuth = async () => {
+  try {
+    const keys = await AsyncStorage.getAllKeys()
+    const authKeys = [
+      'access',
+      'refresh',
+      'empresaId',
+      'filialId',
+      'usuario_id',
+      'username',
+    ]
+    const keysToRemove = keys.filter((key) => !authKeys.includes(key))
+
+    if (keysToRemove.length > 0) {
+      await AsyncStorage.multiRemove(keysToRemove)
+      console.log(`🧹 Removidos ${keysToRemove.length} itens não essenciais`)
+    }
+  } catch (error) {
+    console.error('❌ Erro ao limpar storage:', error)
+  }
+}
+
+export const clearAllStorage = async () => {
+  try {
+    await AsyncStorage.clear()
+    console.log('✅ Storage limpo com sucesso')
+  } catch (error) {
+    console.error('❌ Erro ao limpar storage:', error)
   }
 }

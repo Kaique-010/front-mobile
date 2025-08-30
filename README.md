@@ -113,3 +113,8 @@ eas build -p ios --profile preview
 ## Em caso de erros
 
 npx expo install --fix
+
+
+para verificar o usuario logado no eas
+eas login
+eas whoami

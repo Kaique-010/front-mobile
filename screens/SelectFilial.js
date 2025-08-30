@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Alert, // Importando Alert para mostrar mensagens de erro
 } from 'react-native'
-import { BASE_URL, fetchSlugMap } from '../utils/api'
+import { BASE_URL, fetchSlugMap, safeSetItem } from '../utils/api'
 import axios from 'axios'
 import { getModulosComPermissao } from '../utils/modulosComPermissao'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -26,23 +26,21 @@ export default function SelectFilial({ route, navigation }) {
 
         const slugMap = await fetchSlugMap()
 
-        // Encontrando o objeto com o CNPJ correspondente
-        const slugObj = slugMap.find((item) => item.cnpj === docu)
+        // Acessando diretamente o slug usando o CNPJ como chave
+        const slug = slugMap[docu]
 
         if (!accessToken) {
           console.error('[ERROR] Token de acesso não encontrado.')
           return
         }
 
-        if (!slugObj) {
+        if (!slug) {
           // Corrigindo a condição aqui
           console.error('[ERROR] Slug não encontrado para o CNPJ.')
           Alert.alert('Erro', 'CNPJ não encontrado no mapa de licenças.')
           setLoading(false)
           return
         }
-
-        const slug = slugObj.slug
 
         // Ajuste na URL para refletir o parâmetro correto
         const response = await axios.get(
@@ -86,12 +84,12 @@ export default function SelectFilial({ route, navigation }) {
       const modulosPermitidos = await getModulosComPermissao()
 
       if (modulosPermitidos && modulosPermitidos.length > 0) {
-        await AsyncStorage.setItem('modulos', JSON.stringify(modulosPermitidos))
+        await safeSetItem('modulos', JSON.stringify(modulosPermitidos))
 
         // Verificar se foram salvos corretamente
         const modulosSalvos = await AsyncStorage.getItem('modulos')
       } else {
-        await AsyncStorage.setItem('modulos', JSON.stringify([]))
+        await safeSetItem('modulos', JSON.stringify([]))
       }
 
       navigation.navigate('MainApp')

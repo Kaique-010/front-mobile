@@ -10,9 +10,15 @@ import {
 import Toast from 'react-native-toast-message'
 import { apiGetComContextoSemFili } from '../utils/api'
 import { getStoredData } from '../services/storageService'
-import styles from '../styles/produtosStyles'
 import { useFocusEffect } from '@react-navigation/native'
 import debounce from 'lodash.debounce'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiDelete, apiGet } from '../utils/api'
+import styles from '../styles/entidadeStyles'
+
+// Cache para entidades
+const ENTIDADES_CACHE_KEY = 'entidades_cache'
+const ENTIDADES_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
 
 export default function Entidades({ navigation }) {
   const [entidades, setEntidades] = useState([])

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -6,33 +6,41 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  TextInput,
-  Switch,
+  Animated,
+  Dimensions,
 } from 'react-native'
-import { MaterialIcons, Feather } from '@expo/vector-icons'
+import { MaterialIcons, Feather, Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { Picker } from '@react-native-picker/picker'
 import {
   apiGetComContexto,
   apiPostComContexto,
   apiPutComContexto,
-  addContextoControleVisita, // Adicionar import
+  addContextoControleVisita,
 } from '../utils/api'
 import useContextoApp from '../hooks/useContextoApp'
-
-import BuscaClienteInput from '../components/BuscaClienteInput'
-import BuscaVendedorInput from '../components/BuscaVendedorInput'
 import Toast from 'react-native-toast-message'
+
+// Importar componentes das abas
+import AbaDadosBasicos from './AbaDadosBasicos'
+import AbaContato from './AbaContato'
+import AbaAtividades from './AbaAtividades'
+import AbaExtras from './AbaExtras'
+
+const { width } = Dimensions.get('window')
 
 export default function ControleVisitaForm({ route, navigation }) {
   const { visitaId, mode = 'create', cliente, vendedor } = route.params || {}
   const isEdit = mode === 'edit' && visitaId
 
   const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState(0)
   const [showDatePicker, setShowDatePicker] = useState({
     field: null,
     show: false,
   })
+
+  const scrollX = useRef(new Animated.Value(0)).current
+  const scrollViewRef = useRef(null)
 
   const { empresaId, filialId } = useContextoApp()
 
@@ -60,10 +68,40 @@ export default function ControleVisitaForm({ route, navigation }) {
 
   const [selectedCliente, setSelectedCliente] = useState(null)
   const [selectedVendedor, setSelectedVendedor] = useState(null)
-
   const [etapas, setEtapas] = useState([])
 
-  // Remover array hardcoded de etapas e carregar do backend
+  // Configuração das abas
+  const tabs = [
+    {
+      id: 0,
+      title: 'Dados Básicos',
+      icon: 'person-outline',
+      color: '#3498db',
+      component: AbaDadosBasicos,
+    },
+    {
+      id: 1,
+      title: 'Contato',
+      icon: 'call-outline',
+      color: '#9b59b6',
+      component: AbaContato,
+    },
+    {
+      id: 2,
+      title: 'Atividades',
+      icon: 'checkmark-circle-outline',
+      color: '#e74c3c',
+      component: AbaAtividades,
+    },
+    {
+      id: 3,
+      title: 'Extras',
+      icon: 'settings-outline',
+      color: '#f39c12',
+      component: AbaExtras,
+    },
+  ]
+
   useEffect(() => {
     carregarEtapas()
     if (isEdit) {
@@ -71,15 +109,12 @@ export default function ControleVisitaForm({ route, navigation }) {
     }
   }, [isEdit, visitaId])
 
-  // Dentro da função carregarEtapas
   const carregarEtapas = async () => {
     try {
       const response = await apiGetComContexto(
         'controledevisitas/etapas-visita/'
       )
-      // Tratar resposta paginada e garantir array
       const etapasData = response?.results || response || []
-      console.log('Etapas carregadas:', etapasData) // Debug temporário
       setEtapas(Array.isArray(etapasData) ? etapasData : [])
     } catch (error) {
       console.error('Erro ao carregar etapas:', error)
@@ -90,7 +125,6 @@ export default function ControleVisitaForm({ route, navigation }) {
   const carregarVisita = async () => {
     try {
       setLoading(true)
-
       const response = await apiGetComContexto(
         `controledevisitas/controle-visitas/${visitaId}/`
       )
@@ -102,7 +136,7 @@ export default function ControleVisitaForm({ route, navigation }) {
         ctrl_km_inic: response.ctrl_km_inic?.toString() || '',
         ctrl_km_fina: response.ctrl_km_fina?.toString() || '',
         ctrl_nume_orca: response.ctrl_nume_orca?.toString() || '',
-        ctrl_numero: response.ctrl_numero || null, // Adicionado para edição
+        ctrl_numero: response.ctrl_numero || null,
         ctrl_etapa: response.ctrl_etapa || 1,
         ctrl_empresa: response.ctrl_empresa || null,
         ctrl_filial: response.ctrl_filial || null,
@@ -132,25 +166,21 @@ export default function ControleVisitaForm({ route, navigation }) {
 
   const handleSave = async () => {
     try {
-      // Validar cliente obrigatório
       if (!selectedCliente || !selectedCliente.enti_clie) {
         Alert.alert('Erro', 'Selecione um cliente')
         return
       }
 
-      // Validar vendedor obrigatório
       if (!selectedVendedor || !selectedVendedor.enti_clie) {
         Alert.alert('Erro', 'Selecione um vendedor')
         return
       }
 
-      // NOVA VALIDAÇÃO: Etapa obrigatória
       if (!formData.ctrl_etapa) {
         Alert.alert('Erro', 'Selecione uma etapa')
         return
       }
 
-      // Validar KM
       const kmInic = parseFloat(formData.ctrl_km_inic) || 0
       const kmFina = parseFloat(formData.ctrl_km_fina) || 0
 
@@ -163,8 +193,8 @@ export default function ControleVisitaForm({ route, navigation }) {
 
       const dataToSave = {
         ...formData,
-        ctrl_cliente: selectedCliente.enti_clie, // Garantir que cliente seja enviado
-        ctrl_vendedor: selectedVendedor.enti_clie, // Garantir que vended                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           or seja enviado
+        ctrl_cliente: selectedCliente.enti_clie,
+        ctrl_vendedor: selectedVendedor.enti_clie,
         ctrl_empresa: formData.ctrl_empresa
           ? parseInt(formData.ctrl_empresa)
           : null,
@@ -245,7 +275,6 @@ export default function ControleVisitaForm({ route, navigation }) {
     return date.toLocaleDateString('pt-BR')
   }
 
-  // CORRIGIDO: onSelect functions
   const handleClienteSelect = (cliente) => {
     setSelectedCliente(cliente)
     setFormData({
@@ -262,9 +291,7 @@ export default function ControleVisitaForm({ route, navigation }) {
     })
   }
 
-  // Adicionar este useEffect após os existentes
   useEffect(() => {
-    // Processar dados do cliente e vendedor vindos da navegação
     if (cliente && !isEdit) {
       setSelectedCliente({
         enti_clie: cliente.id,
@@ -288,24 +315,66 @@ export default function ControleVisitaForm({ route, navigation }) {
     }
   }, [cliente, vendedor, isEdit])
 
-  const renderSwitchField = (label, field, description) => (
-    <View style={styles.switchContainer}>
-      <View style={styles.switchInfo}>
-        <Text style={styles.switchLabel}>{label}</Text>
-        {description && (
-          <Text style={styles.switchDescription}>{description}</Text>
-        )}
-      </View>
-      <Switch
-        value={!!formData[field]}
-        onValueChange={(value) =>
-          setFormData({ ...formData, [field]: value ? 1 : 0 })
+  const changeTab = (tabIndex) => {
+    setActiveTab(tabIndex)
+    scrollViewRef.current?.scrollTo({
+      x: tabIndex * width,
+      animated: true,
+    })
+  }
+
+  const onScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const offsetX = event.nativeEvent.contentOffset.x
+        const tabIndex = Math.round(offsetX / width)
+        if (tabIndex !== activeTab) {
+          setActiveTab(tabIndex)
         }
-        trackColor={{ false: '#2a3441', true: '#2ecc71' }}
-        thumbColor={formData[field] ? '#fff' : '#666'}
-      />
-    </View>
+      },
+    }
   )
+
+  const renderTabContent = (tab, index) => {
+    const TabComponent = tab.component
+    const commonProps = {
+      formData,
+      setFormData,
+      onDatePress: showDatePickerModal,
+      formatDateForDisplay,
+    }
+
+    switch (index) {
+      case 0:
+        return (
+          <TabComponent
+            {...commonProps}
+            selectedCliente={selectedCliente}
+            selectedVendedor={selectedVendedor}
+            etapas={etapas}
+            onClienteSelect={handleClienteSelect}
+            onVendedorSelect={handleVendedorSelect}
+          />
+        )
+      case 1:
+        return <TabComponent {...commonProps} />
+      case 2:
+        return (
+          <TabComponent
+            {...commonProps}
+            scrollX={scrollX}
+            activeTab={activeTab}
+            width={width}
+          />
+        )
+      case 3:
+        return <TabComponent {...commonProps} />
+      default:
+        return null
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -322,225 +391,114 @@ export default function ControleVisitaForm({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Informações Básicas */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações Básicas</Text>
-          {/* Cliente */}
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Cliente *</Text>
-            <BuscaClienteInput
-              onSelect={handleClienteSelect}
-              placeholder="Selecionar cliente"
-              value={selectedCliente?.enti_nome || ''}
-              style={styles.input}
-            />
-          </View>
-          {/* Data da Visita */}
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Data da Visita *</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => showDatePickerModal('ctrl_data')}>
-              <Feather name="calendar" size={20} color="#2ecc71" />
-              <Text style={styles.dateButtonText}>
-                {formatDateForDisplay(formData.ctrl_data)}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {/* Vendedor */}
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Vendedor *</Text>
-            <BuscaVendedorInput
-              onSelect={handleVendedorSelect}
-              placeholder="Selecionar vendedor"
-              value={selectedVendedor?.enti_nome || ''}
-              style={styles.input}
-            />
-          </View>
-          {/* Etapa */}
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Etapa *</Text>
-            // Dentro do Picker de etapas
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formData.ctrl_etapa}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, ctrl_etapa: value })
-                }
-                style={styles.picker}>
-                <Picker.Item
-                  label="Selecione uma etapa"
-                  value=""
-                  color="#999"
-                />
-                {etapas.map((etapa) => (
-                  <Picker.Item
-                    key={etapa.etap_id}
-                    label={etapa.etap_descricao}
-                    value={etapa.etap_id}
-                    color="#000"
+      {/* Tab Navigation */}
+      <View style={styles.tabNavigation}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContainer}>
+          {tabs.map((tab, index) => {
+            const isActive = activeTab === index
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.tabButton,
+                  isActive && {
+                    ...styles.tabButtonActive,
+                    borderBottomColor: tab.color,
+                  },
+                ]}
+                onPress={() => changeTab(index)}>
+                <Animated.View
+                  style={[
+                    styles.tabIconContainer,
+                    {
+                      backgroundColor: isActive
+                        ? tab.color + '20'
+                        : 'transparent',
+                    },
+                  ]}>
+                  <Ionicons
+                    name={tab.icon}
+                    size={20}
+                    color={isActive ? tab.color : '#666'}
                   />
-                ))}
-              </Picker>
-            </View>
-          </View>
-        </View>
+                </Animated.View>
+                <Text
+                  style={[
+                    styles.tabText,
+                    isActive && { color: tab.color, fontWeight: '600' },
+                  ]}>
+                  {tab.title}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
+        </ScrollView>
+      </View>
 
-        {/* Informações de Contato */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contato</Text>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Nome do Contato</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Nome da pessoa de contato"
-              placeholderTextColor="#666"
-              value={formData.ctrl_contato}
-              onChangeText={(text) =>
-                setFormData({ ...formData, ctrl_contato: text })
-              }
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Telefone</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="(00) 00000-0000"
-              placeholderTextColor="#666"
-              value={formData.ctrl_fone}
-              onChangeText={(text) =>
-                setFormData({ ...formData, ctrl_fone: text })
-              }
-              keyboardType="phone-pad"
-            />
-          </View>
-        </View>
-
-        {/* Observações */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Observações</Text>
-
-          <View style={styles.field}>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              placeholder="Observações sobre a visita..."
-              placeholderTextColor="#666"
-              value={formData.ctrl_obse}
-              onChangeText={(text) =>
-                setFormData({ ...formData, ctrl_obse: text })
-              }
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
-        </View>
-
-        {/* Controles de Atividade */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Atividades Realizadas</Text>
-
-          {renderSwitchField(
-            'Cliente Novo',
-            'ctrl_novo',
-            'Marque se é um cliente novo'
-          )}
-
-          {renderSwitchField(
-            'Levantamento de Base',
-            'ctrl_base',
-            'Foi feito levantamento da base do cliente'
-          )}
-
-          {renderSwitchField(
-            'Proposta Apresentada',
-            'ctrl_prop',
-            'Foi apresentada uma proposta'
-          )}
-
-          {renderSwitchField(
-            'Levantamento Técnico',
-            'ctrl_leva',
-            'Foi feito levantamento técnico'
-          )}
-
-          {renderSwitchField(
-            'Projeto Elaborado',
-            'ctrl_proj',
-            'Foi elaborado um projeto'
-          )}
-        </View>
-
-        {/* Informações Adicionais */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações Adicionais</Text>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>KM Inicial</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="0.00"
-              placeholderTextColor="#666"
-              value={formData.ctrl_km_inic}
-              onChangeText={(text) =>
-                setFormData({ ...formData, ctrl_km_inic: text })
-              }
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>KM Final</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="0.00"
-              placeholderTextColor="#666"
-              value={formData.ctrl_km_fina}
-              onChangeText={(text) =>
-                setFormData({ ...formData, ctrl_km_fina: text })
-              }
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Número do Orçamento</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Número do orçamento"
-              placeholderTextColor="#666"
-              value={formData.ctrl_nume_orca}
-              onChangeText={(text) =>
-                setFormData({ ...formData, ctrl_nume_orca: text })
-              }
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Próxima Visita</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => showDatePickerModal('ctrl_prox_visi')}>
-              <Feather name="calendar" size={20} color="#2ecc71" />
-              <Text style={styles.dateButtonText}>
-                {formatDateForDisplay(formData.ctrl_prox_visi)}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Espaço extra no final */}
-        <View style={{ height: 100 }} />
+      {/* Tab Content */}
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        style={styles.tabContentContainer}>
+        {tabs.map((tab, index) => (
+          <ScrollView
+            key={tab.id}
+            style={[styles.tabScrollView, { width }]}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.tabScrollContent}>
+            {renderTabContent(tab, index)}
+          </ScrollView>
+        ))}
       </ScrollView>
 
-      {/* Botão de Salvar Fixo */}
-      <View style={styles.footer}>
+      {/* Progress Indicator */}
+      <View style={styles.progressContainer}>
+        {tabs.map((tab, index) => {
+          const isActive = activeTab === index
+          return (
+            <Animated.View
+              key={tab.id}
+              style={[
+                styles.progressDot,
+                {
+                  backgroundColor: isActive ? tab.color : '#2a3441',
+                  transform: [
+                    {
+                      scale: isActive ? 1.2 : 1,
+                    },
+                  ],
+                },
+              ]}
+            />
+          )
+        })}
+      </View>
+
+      {/* Floating Action Button */}
+      <Animated.View
+        style={[
+          styles.fabContainer,
+          {
+            transform: [
+              {
+                scale: scrollX.interpolate({
+                  inputRange: [0, width * (tabs.length - 1)],
+                  outputRange: [1, 1],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}>
         <TouchableOpacity
-          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+          style={[styles.fab, loading && styles.fabDisabled]}
           onPress={handleSave}
           disabled={loading}>
           <MaterialIcons
@@ -548,11 +506,8 @@ export default function ControleVisitaForm({ route, navigation }) {
             size={24}
             color="#fff"
           />
-          <Text style={styles.saveButtonText}>
-            {loading ? 'Salvando...' : 'Salvar Visita'}
-          </Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Date Picker Modal */}
       {showDatePicker.show && (
@@ -579,122 +534,90 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#2a3441',
+    backgroundColor: '#0d1421',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
   },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2ecc71',
-    marginBottom: 16,
-  },
-  field: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  textInput: {
+  tabNavigation: {
     backgroundColor: '#1a252f',
-    borderRadius: 12,
-    padding: 16,
-    color: '#fff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#2a3441',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2a3441',
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+  tabScrollContainer: {
+    paddingHorizontal: 8,
   },
-  input: {
-    backgroundColor: '#1a252f',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2a3441',
-  },
-  pickerContainer: {
-    backgroundColor: '#1a252f',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#2a3441',
-  },
-  picker: {
-    color: '#fff',
-    backgroundColor: 'transparent',
-  },
-  dateButton: {
-    backgroundColor: '#1a252f',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
+  tabButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 4,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2a3441',
+    minWidth: 80,
   },
-  dateButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    marginLeft: 12,
+  tabButtonActive: {
+    borderBottomWidth: 3,
   },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#1a252f',
+  tabIconContainer: {
+    padding: 6,
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#2a3441',
+    marginBottom: 4,
   },
-  switchInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  switchLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  switchDescription: {
-    fontSize: 14,
+  tabText: {
+    fontSize: 12,
     color: '#666',
-    marginTop: 4,
+    textAlign: 'center',
   },
-  footer: {
+  tabContentContainer: {
+    flex: 1,
+  },
+  tabScrollView: {
+    flex: 1,
+  },
+  tabScrollContent: {
     padding: 16,
+    paddingBottom: 100,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#1a252f',
     borderTopWidth: 1,
     borderTopColor: '#2a3441',
   },
-  saveButton: {
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#2ecc71',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
   },
-  saveButtonDisabled: {
+  fabDisabled: {
     backgroundColor: '#666',
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
   },
 })

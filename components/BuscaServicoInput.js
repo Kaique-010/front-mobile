@@ -8,8 +8,13 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native'
-import { apiGetComContexto } from '../utils/api'
+import { apiGetComContexto, safeSetItem } from '../utils/api'
 import debounce from 'lodash/debounce'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+// Cache para serviços
+const SERVICOS_CACHE_KEY = 'servicos_cache'
+const SERVICOS_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
 export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
   const [query, setQuery] = useState('')
@@ -23,6 +28,24 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
       return
     }
 
+    // Verificar cache persistente
+    const cacheKey = `${SERVICOS_CACHE_KEY}_${texto.toLowerCase()}`
+    try {
+      const cacheData = await AsyncStorage.getItem(cacheKey)
+      if (cacheData) {
+        const { results, timestamp } = JSON.parse(cacheData)
+        const now = Date.now()
+        
+        if ((now - timestamp) < SERVICOS_CACHE_DURATION) {
+          console.log('📦 [CACHE-ASYNC] Usando dados em cache para serviços:', texto)
+          setServicos(results || [])
+          return
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao ler cache de serviços:', error)
+    }
+
     try {
       setLoading(true)
       const response = await apiGetComContexto('produtos/produtos/busca/', {
@@ -32,6 +55,18 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
 
       const servicosArray = response?.results || response || []
       setServicos(servicosArray)
+
+      // Salvar no cache persistente
+      try {
+        const cacheData = {
+          results: servicosArray,
+          timestamp: Date.now()
+        }
+        await safeSetItem(cacheKey, JSON.stringify(cacheData))
+        console.log('💾 [CACHE-ASYNC] Serviços salvos no cache:', texto)
+      } catch (error) {
+        console.log('⚠️ Erro ao salvar cache de serviços:', error)
+      }
     } catch (error) {
       console.error('Erro ao buscar serviços:', error)
       setServicos([])

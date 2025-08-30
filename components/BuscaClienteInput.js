@@ -9,10 +9,15 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { apiGet } from '../utils/api'
+import { apiGet, safeSetItem } from '../utils/api'
 import { getStoredData } from '../services/storageService'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/listaStyles'
 import debounce from 'lodash/debounce'
+
+// Cache para clientes
+const CLIENTES_CACHE_KEY = 'clientes_cache'
+const CLIENTES_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
 export default function BuscaClienteInput({
   onSelect,
@@ -60,6 +65,28 @@ export default function BuscaClienteInput({
         return
       }
 
+      // Verificar cache persistente
+      const cacheKey = `${CLIENTES_CACHE_KEY}_${tipo || 'todos'}_${texto.toLowerCase()}`
+      try {
+        const cacheData = await AsyncStorage.getItem(cacheKey)
+        if (cacheData) {
+          const { results, timestamp } = JSON.parse(cacheData)
+          const now = Date.now()
+          
+          if ((now - timestamp) < CLIENTES_CACHE_DURATION) {
+            console.log('📦 [CACHE-ASYNC] Usando dados em cache para clientes:', texto)
+            setClientes(results || [])
+            if (results && results.length > 0) {
+              setShowResults(true)
+            }
+            setLoading(false)
+            return
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao ler cache de clientes:', error)
+      }
+
       setLoading(true)
       setShowResults(false)
 
@@ -81,6 +108,18 @@ export default function BuscaClienteInput({
         setClientes(resultados)
         if (resultados.length > 0) {
           setShowResults(true)
+        }
+
+        // Salvar no cache persistente
+        try {
+          const cacheData = {
+            results: resultados,
+            timestamp: Date.now()
+          }
+          await safeSetItem(cacheKey, JSON.stringify(cacheData))
+          console.log('💾 [CACHE-ASYNC] Clientes salvos no cache:', texto)
+        } catch (error) {
+          console.log('⚠️ Erro ao salvar cache de clientes:', error)
         }
       } catch (err) {
         console.error('Erro ao buscar entidades:', err.message)

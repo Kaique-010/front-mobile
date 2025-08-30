@@ -10,9 +10,11 @@ import {
   Alert,
 } from 'react-native'
 import debounce from 'lodash.debounce'
-import { apiDeleteComContexto, apiGetComContexto } from '../utils/api'
+import { apiDeleteComContexto, apiGetComContexto, safeSetItem } from '../utils/api'
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiDelete, apiGet } from '../utils/api'
 
 const statusPedidos = {
   0: 'Aberto',
@@ -98,24 +100,22 @@ const PedidoItem = React.memo(
 
 // Item memoizado, evita rerender quando props não mudam
 
+// Cache para pedidos
+const PEDIDOS_CACHE_KEY = 'pedidos_cache'
+const PEDIDOS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
+
 export default function Pedidos({ navigation }) {
   const [pedidos, setPedidos] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(true)
-  const [isFetchingMore, setIsFetchingMore] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [isSearching, setIsSearching] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchCliente, setSearchCliente] = useState('')
-  const [searchNumero, setSearchNumero] = useState('')
   const [slug, setSlug] = useState('')
-  const [offset, setOffset] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
 
   useEffect(() => {
     const carregarSlug = async () => {
       try {
         const { slug } = await getStoredData()
         if (slug) setSlug(slug)
-        else console.warn('Slug não encontrado')
       } catch (err) {
         console.error('Erro ao carregar slug:', err.message)
       }
@@ -123,68 +123,78 @@ export default function Pedidos({ navigation }) {
     carregarSlug()
   }, [])
 
-  useEffect(() => {
-    if (slug) {
-      buscarPedidos(false, true)
+  const buscarPedidos = async () => {
+    if (!slug) return
+    
+    setIsSearching(true)
+    
+    // Verificar cache persistente para busca inicial
+    if (!searchTerm) {
+      try {
+        const cacheData = await AsyncStorage.getItem(PEDIDOS_CACHE_KEY)
+        if (cacheData) {
+          const { results, timestamp } = JSON.parse(cacheData)
+          const now = Date.now()
+          
+          if ((now - timestamp) < PEDIDOS_CACHE_DURATION) {
+            console.log('📦 [CACHE-PEDIDOS] Usando dados em cache persistente')
+            setPedidos(results || [])
+            setLoading(false)
+            setIsSearching(false)
+            return
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao ler cache de pedidos:', error)
+      }
     }
-  }, [slug])
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      buscarPedidos(false, false)
-    }, 600)
-    return () => clearTimeout(handler)
-  }, [searchCliente, searchNumero])
-  const debouncedSearch = useCallback(
-    debounce((text) => {
-      setSearchCliente(text)
-    }, 600),
-    []
-  )
-
-  const buscarPedidos = async (nextPage = false, primeiraCarga = false) => {
-    if (!slug || (isFetchingMore && nextPage)) return
-
-    if (!nextPage) {
-      setLoading(true)
-      if (primeiraCarga) setInitialLoading(true)
-      setOffset(0)
-      setHasMore(true)
-    } else {
-      setIsFetchingMore(true)
-    }
-
+    
     try {
-      const atualOffset = nextPage ? offset : 0
-      const data = await apiGetComContexto(
-        'pedidos/pedidos/',
-        {
-          limit: 40,
-          offset: atualOffset,
-          cliente_nome: searchCliente,
-          pedi_nume: searchNumero,
-        },
-        'pedi_'
-      )
+      console.log(`🔍 [PEDIDOS] Buscando pedidos${searchTerm ? ` para: "${searchTerm}"` : ''}`)
+      
+      const data = await apiGet('pedidos/pedidos/', {
+        search: searchTerm,
+        limit: 50,
+        ordering: '-pedi_data'
+      })
 
-      const novosPedidos = data.results || []
-      setPedidos((prev) =>
-        nextPage ? [...prev, ...novosPedidos] : novosPedidos
-      )
-      if (!data.next) setHasMore(false)
-      else setOffset(atualOffset + 50)
+      const resultados = data.results || []
+      console.log(`✅ [PEDIDOS] Encontrados ${resultados.length} pedidos`)
+      
+      setPedidos(resultados)
+      
+      // Salvar no cache persistente se for busca inicial
+      if (!searchTerm) {
+        try {
+          const cacheData = {
+            results: resultados,
+            timestamp: Date.now()
+          }
+          await safeSetItem(PEDIDOS_CACHE_KEY, JSON.stringify(cacheData))
+          console.log(`💾 [CACHE-PEDIDOS] Salvos ${resultados.length} pedidos no cache`)
+        } catch (error) {
+          console.log('⚠️ Erro ao salvar cache de pedidos:', error)
+        }
+      }
+      
     } catch (error) {
-      console.error('Erro ao buscar pedidos:', error.message)
+      console.log('❌ Erro ao buscar pedidos:', error.message)
     } finally {
+      setIsSearching(false)
       setLoading(false)
-      setIsFetchingMore(false)
-      if (!nextPage && primeiraCarga) setInitialLoading(false)
     }
   }
 
-  const deletarPedido = (pedido) => {
+  useEffect(() => {
+    if (slug) {
+      buscarPedidos()
+    }
+  }, [slug, searchTerm])
+
+  const excluirPedido = async (id) => {
     Alert.alert(
-      'Confirmar exclusão',
-      `Deseja realmente excluir o pedido nº ${pedido.pedi_nume}?`,
+      'Confirmar Exclusão',
+      'Tem certeza que deseja excluir este pedido?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -192,12 +202,17 @@ export default function Pedidos({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiDeleteComContexto(`pedidos/pedidos/${pedido.pedi_nume}/`)
-              setPedidos((prev) =>
-                prev.filter((p) => p.pedi_nume !== pedido.pedi_nume)
-              )
+              await apiDelete(`pedidos/pedidos/${id}/`)
+              
+              // Limpar cache após exclusão
+              await AsyncStorage.removeItem(PEDIDOS_CACHE_KEY)
+              console.log('🗑️ [CACHE-PEDIDOS] Cache limpo após exclusão')
+              
+              buscarPedidos()
+              Alert.alert('Sucesso', 'Pedido excluído com sucesso!')
             } catch (error) {
-              console.error('Erro ao excluir pedido:', error.message)
+              console.error('Erro ao excluir pedido:', error)
+              Alert.alert('Erro', 'Não foi possível excluir o pedido')
             }
           },
         },
@@ -205,103 +220,73 @@ export default function Pedidos({ navigation }) {
     )
   }
 
-  // Memoize funções para não criar referência nova e forçar rerender do item
-  const handleEdit = useCallback(
-    (item) => {
-      navigation.navigate('PedidosForm', { pedido: item })
-    },
-    [navigation]
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={styles.numero}>Pedido #{item.pedi_nume}</Text>
+      <Text style={styles.cliente}>{item.cliente_nome}</Text>
+      <Text style={styles.data}>Data: {new Date(item.pedi_data).toLocaleDateString('pt-BR')}</Text>
+      <Text style={styles.valor}>Valor: R$ {item.pedi_valo?.toFixed(2) || '0,00'}</Text>
+      
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => navigation.navigate('PedidosForm', { pedido: item })}
+        >
+          <Text style={styles.buttonText}>Editar</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => excluirPedido(item.pedi_codi)}
+        >
+          <Text style={styles.buttonText}>Excluir</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   )
 
-  const handleDelete = useCallback((item) => {
-    deletarPedido(item)
-  }, [])
-
-  const renderPedidos = useCallback(
-    ({ item }) => (
-      <PedidoItem item={item} onEdit={handleEdit} onDelete={handleDelete} />
-    ),
-    [handleEdit, handleDelete]
-  )
-
-  if (initialLoading) {
+  if (loading) {
     return (
-      <ActivityIndicator
-        size="large"
-        color="#007bff"
-        style={{ marginTop: 50 }}
-      />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text>Carregando pedidos...</Text>
+      </View>
     )
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.incluirButton}
-        onPress={() => navigation.navigate('PedidosForm')}>
-        <Text style={styles.incluirButtonText}>+ Incluir pedidos</Text>
-      </TouchableOpacity>
-
-      <View style={styles.searchContainer}>
+      <View style={styles.header}>
         <TextInput
-          placeholder="Buscar por nome do cliente"
-          placeholderTextColor="#777"
-          style={styles.input}
-          value={searchCliente}
-          onChangeText={(text) => {
-            setSearchCliente(text)
-            debouncedSearch(text)
-          }}
+          style={styles.searchInput}
+          placeholder="Buscar pedidos..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          onSubmitEditing={buscarPedidos}
         />
-        <TextInput
-          placeholder="Buscar por nº orçamento"
-          placeholderTextColor="#777"
-          style={styles.input}
-          keyboardType="numeric"
-          value={searchNumero}
-          onChangeText={(text) => setSearchNumero(text)}
-        />
+        
         <TouchableOpacity
-          style={styles.searchButton}
-          onPress={() => buscarPedidos(false, false)}>
-          <Text style={styles.searchButtonText}>🔍 Buscar</Text>
+          style={styles.addButton}
+          onPress={() => navigation.navigate('PedidosForm')}
+        >
+          <Text style={styles.addButtonText}>+ Novo</Text>
         </TouchableOpacity>
       </View>
 
+      {isSearching && (
+        <View style={styles.searchingContainer}>
+          <ActivityIndicator size="small" color="#007bff" />
+          <Text>Buscando...</Text>
+        </View>
+      )}
+
       <FlatList
         data={pedidos}
-        renderItem={renderPedidos}
-        keyExtractor={(item, index) =>
-          `${item.pedi_nume}-${item.pedi_empr}-${item.pedi_forn}-${index}`
-        }
-        onEndReached={() => {
-          if (hasMore && !isFetchingMore) buscarPedidos(true)
-        }}
-        onEndReachedThreshold={0.2}
-        initialNumToRender={10}
-        maxToRenderPerBatch={5} // Reduzido para 5
-        windowSize={3} // Reduzido para 3
-        updateCellsBatchingPeriod={50} // Adicionar controle de batch
-        removeClippedSubviews={true}
-        getItemLayout={(data, index) => ({
-          length: 180, // Altura estimada do item
-          offset: 180 * index,
-          index,
-        })}
-        ListFooterComponent={
-          isFetchingMore ? (
-            <ActivityIndicator
-              size="small"
-              color="#007bff"
-              style={{ marginVertical: 10 }}
-            />
-          ) : null
-        }
+        renderItem={renderItem}
+        keyExtractor={(item) => item.pedi_codi.toString()}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
       />
-      <Text style={styles.footerText}>
-        {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} encontrado
-        {pedidos.length !== 1 ? 's' : ''}
-      </Text>
     </View>
   )
 }

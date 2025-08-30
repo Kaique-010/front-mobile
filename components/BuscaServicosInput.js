@@ -11,18 +11,44 @@ import {
 import { apiGetComContexto } from '../utils/api'
 import debounce from 'lodash/debounce'
 
+// Adicionar no topo
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+// Cache para serviços (plural)
+const SERVICOS_PLURAL_CACHE_KEY = 'servicos_plural_cache'
+const SERVICOS_PLURAL_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+
 export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
   const [query, setQuery] = useState('')
   const [servicos, setServicos] = useState([])
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
 
+  // Na função de busca, adicionar:
   const buscarServicos = debounce(async (texto) => {
     if (!texto.trim()) {
       setServicos([])
       return
     }
-
+  
+    // Verificar cache persistente
+    const cacheKey = `${SERVICOS_PLURAL_CACHE_KEY}_${texto.toLowerCase()}`
+    try {
+      const cacheData = await AsyncStorage.getItem(cacheKey)
+      if (cacheData) {
+        const { results, timestamp } = JSON.parse(cacheData)
+        const now = Date.now()
+        
+        if ((now - timestamp) < SERVICOS_PLURAL_CACHE_DURATION) {
+          console.log('📦 [CACHE-ASYNC] Usando dados em cache para serviços (plural):', texto)
+          setServicos(results || [])
+          return
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao ler cache de serviços (plural):', error)
+    }
+  
     try {
       setLoading(true)
       const response = await apiGetComContexto('produtos/produtos/busca/', {

@@ -18,6 +18,11 @@ import {
 import styles from '../styles/pedidosStyle'
 import { getStoredData } from '../services/storageService'
 import BotaoTransformarOrcamento from '../componentsOrcamentos/BotaoTransformarOrcamento'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+// Cache para orçamentos
+const ORCAMENTOS_CACHE_KEY = 'orcamentos_cache'
+const ORCAMENTOS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
 
 export default function Orcamentos({ navigation }) {
   const [orcamentos, setOrcamentos] = useState([])

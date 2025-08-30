@@ -9,12 +9,19 @@ import {
   Image,
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
-import { apiGetComContextoSemFili } from '../utils/api'
+import { apiGetComContextoSemFili, safeSetItem } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import Toast from 'react-native-toast-message'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/produtosStyles'
 
 const ITEM_HEIGHT = 140
+
+// Cache para produtos básicos
+const PRODUTOS_BASICOS_CACHE_KEY = 'produtos_basicos_cache'
+const PRODUTOS_BUSCA_CACHE_KEY = 'produtos_busca_cache'
+const PRODUTOS_BASICOS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
+const PRODUTOS_BUSCA_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas para buscas
 
 const ProdutoCard = memo(({ item, navigation }) => (
   <View style={styles.card}>
@@ -80,7 +87,34 @@ export default function Produtos({ navigation }) {
     async ({ reset = false }) => {
       if (!slug || (isFetchingMore && !reset)) return
 
+      // Verificar cache persistente
+      const cacheKey = searchTerm ? PRODUTOS_BUSCA_CACHE_KEY : PRODUTOS_BASICOS_CACHE_KEY
+      const cacheDuration = searchTerm ? PRODUTOS_BUSCA_CACHE_DURATION : PRODUTOS_BASICOS_CACHE_DURATION
+      
+      if (reset) {
+        try {
+          const cacheData = await AsyncStorage.getItem(`${cacheKey}_${searchTerm || 'inicial'}`)
+          if (cacheData) {
+            const { results, timestamp } = JSON.parse(cacheData)
+            const now = Date.now()
+            
+            if ((now - timestamp) < cacheDuration) {
+              console.log(`📦 [CACHE-OTIMIZADO] Usando cache para: ${searchTerm || 'listagem inicial'}`)
+              setProdutos(results || [])
+              setInitialLoading(false)
+              setIsSearching(false)
+              return
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Erro ao ler cache otimizado:', error)
+        }
+      }
+
       const atualOffset = reset ? 0 : offset
+      // Otimização: Menos itens para busca, mais para listagem inicial
+      const limitePorRequisicao = searchTerm ? 5 : 20
+      
       if (reset) {
         setInitialLoading(produtos.length === 0)
         setIsSearching(true)
@@ -91,10 +125,12 @@ export default function Produtos({ navigation }) {
       }
 
       try {
+        console.log(`🚀 [BUSCA-OTIMIZADA] Buscando ${limitePorRequisicao} produtos${searchTerm ? ` para: "${searchTerm}"` : ''}`)
+        
         const data = await apiGetComContextoSemFili(
           'produtos/produtos/',
           {
-            limit: 20,
+            limit: limitePorRequisicao,
             offset: atualOffset,
             search: searchTerm,
           },
@@ -102,9 +138,25 @@ export default function Produtos({ navigation }) {
         )
 
         const novos = data.results || []
+        console.log(`✅ [BUSCA-OTIMIZADA] Recebidos ${novos.length} produtos em ${searchTerm ? 'busca' : 'listagem'}`)
+        
         setProdutos(reset ? novos : [...produtos, ...novos])
-        setOffset(atualOffset + 20)
+        setOffset(atualOffset + limitePorRequisicao)
         setHasMore(data.next !== null)
+        
+        // Salvar no cache otimizado
+        if (reset) {
+          try {
+            const cacheData = {
+              results: novos,
+              timestamp: Date.now()
+            }
+            await safeSetItem(`${cacheKey}_${searchTerm || 'inicial'}`, JSON.stringify(cacheData))
+            console.log(`💾 [CACHE-OTIMIZADO] Salvos ${novos.length} produtos no cache`)
+          } catch (error) {
+            console.log('⚠️ Erro ao salvar cache otimizado:', error)
+          }
+        }
       } catch (error) {
         console.log('❌ Erro ao buscar produtos:', error.message)
         Toast.show({ type: 'error', text1: 'Erro ao buscar produtos' })
@@ -128,7 +180,7 @@ export default function Produtos({ navigation }) {
       if (slug && searchTerm !== '') {
         buscarProdutos({ reset: true })
       }
-    }, 600)
+    }, 300) // Reduzido de 600ms para 300ms para ser mais responsivo
     return () => clearTimeout(delay)
   }, [searchTerm])
 

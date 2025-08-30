@@ -68,42 +68,127 @@ export default function ProdutoDados({
   }, [slug])
 
   const salvar = async () => {
+    // Validação rigorosa de dados
+    if (!nome || nome.trim() === '') {
+      Alert.alert('Erro', 'Nome do produto é obrigatório')
+      return
+    }
+    
+    if (!empresa || isNaN(parseInt(empresa))) {
+      Alert.alert('Erro', 'Empresa inválida. Tente fazer login novamente.')
+      return
+    }
+
     setSalvando(true)
 
+    // Preparar payload com validação de tipos
     const payload = {
-      prod_nome: nome,
-      prod_unme: unidade,
-      prod_ncm: ncm,
-      prod_empr: parseInt(empresa),
+      prod_nome: String(nome).trim(),
+      prod_unme: unidade ? String(unidade).trim() : 'UN',
+      prod_ncm: ncm ? String(ncm).trim() : '',
+      prod_empr: parseInt(empresa, 10),
     }
+
+    // Validação adicional
+    if (payload.prod_nome.length > 255) {
+      Alert.alert('Erro', 'Nome do produto muito longo (máximo 255 caracteres)')
+      setSalvando(false)
+      return
+    }
+
+    if (payload.prod_ncm && payload.prod_ncm.length > 20) {
+      Alert.alert('Erro', 'NCM muito longo (máximo 20 caracteres)')
+      setSalvando(false)
+      return
+    }
+
+    if (payload.prod_unme && payload.prod_unme.length > 10) {
+      Alert.alert('Erro', 'Unidade muito longa (máximo 10 caracteres)')
+      setSalvando(false)
+      return
+    }
+
+    // Logs detalhados para debug
+    console.log('🔍 [PRODUTO-DEBUG] Payload validado:')
+    console.log('- Nome:', `"${payload.prod_nome}" (${typeof payload.prod_nome}, length: ${payload.prod_nome.length})`)
+    console.log('- Unidade:', `"${payload.prod_unme}" (${typeof payload.prod_unme})`)
+    console.log('- NCM:', `"${payload.prod_ncm}" (${typeof payload.prod_ncm})`)
+    console.log('- Empresa ID:', `${payload.prod_empr} (${typeof payload.prod_empr})`)
+    console.log('- Produto código:', produto?.prod_codi)
 
     try {
       if (produto?.prod_codi) {
-        console.log('Enviando produto:', payload)
-        console.log('Slug atual:', slug)
-        console.log('Empresa ID:', empresa)
-        await apiPutComContextoSemFili(
+        console.log('🚀 [PRODUTO-UPDATE] Atualizando produto:', produto.prod_codi)
+        
+        const response = await apiPutComContextoSemFili(
           `produtos/produtos/${produto.prod_codi}/`,
           payload,
           'prod_'
         )
+        
+        console.log('✅ [PRODUTO-UPDATE] Resposta do servidor:', response)
         Alert.alert('Sucesso', 'Produto atualizado com sucesso!')
         atualizarProduto({ ...payload, prod_codi: produto.prod_codi })
         navigation.navigate('ProdutoPrecos', { produto, slug, atualizarProduto })
       } else {
-        const { prod_codi } = await apiPostComContextoSemFili(
+        console.log('🚀 [PRODUTO-CREATE] Criando novo produto')
+        
+        const response = await apiPostComContextoSemFili(
           `produtos/produtos/`,
           payload,
           'prod_'
         )
+        
+        console.log('✅ [PRODUTO-CREATE] Resposta do servidor:', response)
+        const prod_codi = response?.prod_codi || response?.data?.prod_codi
+        
+        if (!prod_codi) {
+          throw new Error('Código do produto não retornado pela API')
+        }
+        
         Alert.alert('Criado', `Produto criado com código: ${prod_codi}`)
         const novoProduto = { ...payload, prod_codi }
         atualizarProduto(novoProduto)
         navigation.replace('ProdutoPrecos', { produto: novoProduto, slug, atualizarProduto })
       }
     } catch (err) {
-      console.error('Erro ao salvar produto:', err)
-      Alert.alert('Erro', 'Erro ao salvar produto.')
+      console.error('❌ [PRODUTO-ERROR] Erro completo:')
+      console.error('- Status:', err?.response?.status)
+      console.error('- Data:', JSON.stringify(err?.response?.data, null, 2))
+      console.error('- Headers:', err?.response?.headers)
+      console.error('- Config:', JSON.stringify(err?.config?.data, null, 2))
+      console.error('- Message:', err?.message)
+      
+      let errorMessage = 'Erro ao salvar produto.'
+      
+      if (err?.response?.status === 500) {
+        errorMessage = 'Erro interno do servidor. Verifique os dados enviados:\n\n' +
+                      `Nome: "${payload.prod_nome}"\n` +
+                      `Unidade: "${payload.prod_unme}"\n` +
+                      `NCM: "${payload.prod_ncm}"\n` +
+                      `Empresa: ${payload.prod_empr}`
+      } else if (err?.response?.status === 400) {
+        const errorData = err?.response?.data
+        if (typeof errorData === 'object') {
+          const errors = Object.entries(errorData)
+            .map(([field, messages]) => {
+              const msgs = Array.isArray(messages) ? messages.join(', ') : messages
+              return `${field}: ${msgs}`
+            })
+            .join('\n')
+          errorMessage = `Dados inválidos:\n${errors}`
+        } else {
+          errorMessage = errorData || 'Dados inválidos enviados.'
+        }
+      } else if (err?.response?.status === 401) {
+        errorMessage = 'Sessão expirada. Faça login novamente.'
+      } else if (err?.response?.status === 403) {
+        errorMessage = 'Você não tem permissão para realizar esta operação.'
+      } else if (err?.response?.status === 404) {
+        errorMessage = 'Produto não encontrado.'
+      }
+      
+      Alert.alert('Erro', errorMessage)
     } finally {
       setSalvando(false)
     }

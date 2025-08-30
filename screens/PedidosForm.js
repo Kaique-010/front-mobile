@@ -14,7 +14,7 @@ import ItensList from '../componentsPedidos/ItensLista'
 import ItensModal from '../componentsPedidos/ItensModal'
 import ResumoPedido from '../componentsPedidos/ResumoPedido'
 import ResumoPedidoComFinanceiro from '../componentsPedidos/ResumoPedidoComFinanceiro'
-import { apiGetComContexto } from '../utils/api'
+import { apiGetComContexto, safeSetItem } from '../utils/api'
 
 const PEDIDO_CACHE_ID = 'pedido-edicao-cache'
 
@@ -89,7 +89,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
 
           setPedido(pedidoMapeado)
 
-          await AsyncStorage.setItem(
+          await safeSetItem(
             PEDIDO_CACHE_ID,
             JSON.stringify(pedidoMapeado)
           )

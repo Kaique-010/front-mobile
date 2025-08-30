@@ -7,6 +7,7 @@ import {
   Linking,
   TouchableOpacity,
 } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation } from '@react-navigation/native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Button } from 'react-native-paper'
@@ -15,8 +16,14 @@ import ProdutosSelecionados from '../components/ProdutosSelecionados'
 import LeitorCodigoBarras from '../components/Leitor'
 import useItensListaCasamento from '../hooks/useItensListaCasamento'
 import ListaItens from '../components/ListaItens'
-import { apiGet } from '../utils/api'
+import { apiGet, safeSetItem } from '../utils/api'
 import { getStoredData } from '../services/storageService'
+
+// Cache para itens da lista e entidades
+const ITENS_LISTA_CACHE_KEY = 'itens_lista_cache'
+const ENTIDADES_CACHE_KEY = 'entidades_cache'
+const PRODUTOS_BUSCA_CACHE_KEY = 'produtos_busca_barras_cache'
+const CACHE_DURATION = 3 * 60 * 1000 // 3 minutos
 
 export default function ItensListaModal({ route }) {
   const navigation = useNavigation()
@@ -66,10 +73,46 @@ export default function ItensListaModal({ route }) {
   }, [navigation])
 
   const onProdutoLido = async (codigoBarras) => {
+    // Verificar cache primeiro
     try {
+      const cacheKey = `${PRODUTOS_BUSCA_CACHE_KEY}_${codigoBarras}`
+      const cacheData = await AsyncStorage.getItem(cacheKey)
+      
+      if (cacheData) {
+        const { produtos, timestamp } = JSON.parse(cacheData)
+        const now = Date.now()
+        
+        if ((now - timestamp) < CACHE_DURATION) {
+          console.log(`📦 [CACHE-BARRAS] Usando cache para código: ${codigoBarras}`)
+          if (produtos.length > 0) {
+            adicionarProduto(produtos[0])
+            return
+          }
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao ler cache de código de barras:', error)
+    }
+    
+    try {
+      console.log(`🔍 [BUSCA-BARRAS] Buscando produto para código: ${codigoBarras}`)
+      
       const produtos = await apiGet(`/api/${slug}/produtos/produtos/busca/`, {
         q: codigoBarras,
       })
+
+      // Salvar no cache
+      try {
+        const cacheKey = `${PRODUTOS_BUSCA_CACHE_KEY}_${codigoBarras}`
+        const cacheData = {
+          produtos,
+          timestamp: Date.now()
+        }
+        await safeSetItem(cacheKey, JSON.stringify(cacheData))
+        console.log(`💾 [CACHE-BARRAS] Produto salvo no cache`)
+      } catch (error) {
+        console.log('⚠️ Erro ao salvar cache de código de barras:', error)
+      }
 
       if (!produtos.length) {
         Alert.alert('Produto não encontrado')
@@ -89,10 +132,42 @@ export default function ItensListaModal({ route }) {
       return
     }
 
+    // Verificar cache da entidade primeiro
     try {
-      const entidade = await apiGet(
-        `/api/${slug}/entidades/entidades/${clienteId}/`
-      )
+      const cacheKey = `${ENTIDADES_CACHE_KEY}_${clienteId}`
+      const cacheData = await AsyncStorage.getItem(cacheKey)
+      
+      let entidade = null
+      
+      if (cacheData) {
+        const { data, timestamp } = JSON.parse(cacheData)
+        const now = Date.now()
+        
+        if ((now - timestamp) < CACHE_DURATION) {
+          console.log(`📦 [CACHE-ENTIDADE] Usando cache para cliente: ${clienteId}`)
+          entidade = data
+        }
+      }
+      
+      if (!entidade) {
+        console.log(`🔍 [BUSCA-ENTIDADE] Buscando dados do cliente: ${clienteId}`)
+        entidade = await apiGet(
+          `/api/${slug}/entidades/entidades/${clienteId}/`
+        )
+        
+        // Salvar no cache
+        try {
+          const cacheData = {
+            data: entidade,
+            timestamp: Date.now()
+          }
+          await safeSetItem(cacheKey, JSON.stringify(cacheData))
+          console.log(`💾 [CACHE-ENTIDADE] Cliente salvo no cache`)
+        } catch (error) {
+          console.log('⚠️ Erro ao salvar cache de entidade:', error)
+        }
+      }
+      
       console.log('📦 Dados da entidade:', entidade)
 
       const numeroRaw = entidade.enti_celu || entidade.enti_fone || ''

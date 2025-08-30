@@ -13,7 +13,7 @@ import OrcamentoHeader from '../componentsOrcamentos/OrcamentoHeader'
 import ItensList from '../componentsOrcamentos/ItensLista'
 import ItensModal from '../componentsOrcamentos/ItensModal'
 import ResumoOrcamento from '../componentsOrcamentos/ResumoOrcamento'
-import { apiGetComContexto } from '../utils/api'
+import { apiGetComContexto, safeSetItem } from '../utils/api'
 
 const ORCAMENTO_CACHE_ID = 'orcamento-edicao-cache'
 
@@ -76,7 +76,7 @@ export default function TelaOrcamento({ route, navigation }) {
             pedi_tota: calcularTotal(itens),
           })
 
-          await AsyncStorage.setItem(
+          await safeSetItem(
             ORCAMENTO_CACHE_ID,
             JSON.stringify({
               ...data,

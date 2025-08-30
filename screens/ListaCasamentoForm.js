@@ -105,7 +105,6 @@ export default function ListaCasamentoForm({ route, navigation }) {
       return
     }
 
-    // Adicionando o log para verificar o valor de list_noiv antes de enviar o payload
     console.log('📦 List Noiv:', form.list_noiv)
 
     try {
@@ -115,10 +114,18 @@ export default function ListaCasamentoForm({ route, navigation }) {
       if (lista) {
         await apiPutComContexto(
           `listacasamento/listas-casamento/${lista.list_codi}/`,
-
           payload
         )
         Alert.alert('Sucesso', 'Lista atualizada com sucesso!')
+        
+        // Limpar cache após atualização
+        try {
+          await AsyncStorage.removeItem('listas_casamento_cache')
+          console.log('🗑️ [CACHE-FORM] Cache de listas limpo após atualização')
+        } catch (error) {
+          console.log('⚠️ Erro ao limpar cache:', error)
+        }
+        
         navigation.navigate('ItensListaModal', {
           listaId: lista.list_codi,
           clienteId: lista.list_noiv,
@@ -132,6 +139,15 @@ export default function ListaCasamentoForm({ route, navigation }) {
           payload
         )
         Alert.alert('Sucesso', 'Lista criada com sucesso!')
+        
+        // Limpar cache após criação
+        try {
+          await AsyncStorage.removeItem('listas_casamento_cache')
+          console.log('🗑️ [CACHE-FORM] Cache de listas limpo após criação')
+        } catch (error) {
+          console.log('⚠️ Erro ao limpar cache:', error)
+        }
+        
         navigation.navigate('ItensListaModal', {
           listaId: novaLista.list_codi,
           clienteId: form.list_noiv,
