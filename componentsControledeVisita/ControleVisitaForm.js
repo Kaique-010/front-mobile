@@ -25,6 +25,7 @@ import AbaDadosBasicos from './AbaDadosBasicos'
 import AbaContato from './AbaContato'
 import AbaAtividades from './AbaAtividades'
 import AbaExtras from './AbaExtras'
+import AbaItens from './AbaItens'
 
 const { width } = Dimensions.get('window')
 
@@ -32,6 +33,8 @@ export default function ControleVisitaForm({ route, navigation }) {
   const { visitaId, mode = 'create', cliente, vendedor } = route.params || {}
   const isEdit = mode === 'edit' && visitaId
 
+  // Adicionar estado para visitaId
+  const [currentVisitaId, setCurrentVisitaId] = useState(visitaId)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
   const [showDatePicker, setShowDatePicker] = useState({
@@ -71,6 +74,7 @@ export default function ControleVisitaForm({ route, navigation }) {
   const [etapas, setEtapas] = useState([])
 
   // Configuração das abas
+  // Adicionar nova aba na configuração
   const tabs = [
     {
       id: 0,
@@ -95,6 +99,13 @@ export default function ControleVisitaForm({ route, navigation }) {
     },
     {
       id: 3,
+      title: 'Itens',
+      icon: 'list-outline',
+      color: '#27ae60',
+      component: AbaItens,
+    },
+    {
+      id: 4,
       title: 'Extras',
       icon: 'settings-outline',
       color: '#f39c12',
@@ -216,6 +227,10 @@ export default function ControleVisitaForm({ route, navigation }) {
         ctrl_prox_visi: formData.ctrl_prox_visi || null,
       }
 
+      // Incluir ctrl_id apenas em edições
+      if (isEdit && formData.ctrl_id) {
+        dataToSave.ctrl_id = formData.ctrl_id
+      }
       if (isEdit) {
         const dataWithContext = await addContextoControleVisita(dataToSave)
         await apiPutComContexto(
@@ -229,10 +244,16 @@ export default function ControleVisitaForm({ route, navigation }) {
         })
       } else {
         const dataWithContext = await addContextoControleVisita(dataToSave)
-        await apiPostComContexto(
+        const response = await apiPostComContexto(
           'controledevisitas/controle-visitas/',
           dataWithContext
         )
+
+        // Capturar o ID da visita criada
+        if (response && response.ctrl_numero) {
+          setCurrentVisitaId(response.ctrl_numero)
+        }
+
         Toast.show({
           type: 'success',
           text1: 'Sucesso',
@@ -370,6 +391,15 @@ export default function ControleVisitaForm({ route, navigation }) {
           />
         )
       case 3:
+        return (
+          <TabComponent
+            {...commonProps}
+            visitaId={currentVisitaId}
+            empresaId={formData.ctrl_empresa}
+            filialId={formData.ctrl_filial}
+          />
+        )
+      case 4:
         return <TabComponent {...commonProps} />
       default:
         return null
