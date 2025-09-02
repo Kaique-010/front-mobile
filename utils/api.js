@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
 // NetInfo removido - não está instalado
 
-export const BASE_URL = 'http://192.168.10.16:8000' //'http://168.75.73.117'//'https://mobile-sps.site' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'https://mobile-sps.site' //'http://168.75.73.117'//'https://mobile-sps.site' //'https://mobile-sps.onrender.com' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 import licencasLocal from '../licencas.json'
 
 // Função para renovar o token
@@ -51,21 +51,34 @@ const refreshToken = async () => {
   }
 }
 
-const getAuthHeaders = async () => {
-  const empresaId = await AsyncStorage.getItem('empresaId')
-  const filialId = await AsyncStorage.getItem('filialId')
-  const docu = await AsyncStorage.getItem('docu')
-  const usuario_id = await AsyncStorage.getItem('usuario_id')
-  const username = await AsyncStorage.getItem('username')
-  const cliente_id = await AsyncStorage.getItem('cliente_id')
+export const getAuthHeaders = async () => {
+  try {
+    const empresaId = await AsyncStorage.getItem('empresaId')
+    const filialId = await AsyncStorage.getItem('filialId')
+    const docu = await AsyncStorage.getItem('docu')
+    const usuario_id = await AsyncStorage.getItem('usuario_id')
+    const username = await AsyncStorage.getItem('username')
+    const cliente_id = await AsyncStorage.getItem('cliente_id')
 
-  return {
-    'X-Empresa': empresaId || '',
-    'X-Filial': filialId || '',
-    'X-Docu': docu || '',
-    'X-Usuario-Id': usuario_id || '',
-    'X-Username': username || '',
-    'X-Cliente-Id': cliente_id || '',
+    console.log('🔍 [AUTH-HEADERS] empresaId:', empresaId)
+    console.log('🔍 [AUTH-HEADERS] filialId:', filialId)
+
+    const headers = {
+      'X-Empresa': empresaId || '1',
+      'X-Filial': filialId || '1',
+      'X-Docu': docu || '',
+    }
+
+    console.log('🔍 [AUTH-HEADERS] Headers enviados:', headers)
+
+    return headers
+  } catch (error) {
+    console.error('Erro ao obter headers de autenticação:', error)
+    return {
+      'X-Empresa': '1',
+      'X-Filial': '1',
+      'X-Docu': '',
+    }
   }
 }
 

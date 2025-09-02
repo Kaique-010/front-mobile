@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { apiGet, safeSetItem } from '../utils/api'
+import { apiGetComContexto, safeSetItem } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/listaStyles'
@@ -91,7 +91,7 @@ export default function BuscaClienteInput({
       setShowResults(false)
 
       try {
-        const data = await apiGet(`/api/${slug}/entidades/entidades/`, {
+        const data = await apiGetComContexto('entidades/entidades/', {
           search: texto,
         })
 

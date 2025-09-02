@@ -232,6 +232,16 @@ export const screenConfigs = [
     component: Screens.ControleVisitaDetalhes,
     options: createHeaderOptions('Detalhes da Visita'),
   },
+  {
+    name: 'EtapasForm',
+    component: Screens.EtapasForm,
+    options: createHeaderOptions('Cadastro de Etapa'),
+  },
+  {
+    name: 'EtapasList',
+    component: Screens.EtapasList,
+    options: createHeaderOptions('Listagem de Etapas'),
+  },
 
   // Telas de ordem de serviço
   {

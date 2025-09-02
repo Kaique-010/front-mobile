@@ -123,7 +123,9 @@ export default function SelectEmpresa({ navigation }) {
             disabled={botaoDesabilitado}
             onPress={() => handleSelectEmpresa(item)}
             style={styles.button}>
-            <Text style={styles.buttonText}>{item.empr_nome}</Text>
+            <Text style={styles.buttonText}>
+              {item.empr_codi} - {item.empr_nome}
+            </Text>
           </TouchableOpacity>
         )}
       />

@@ -66,6 +66,7 @@ RefreshControl,
 Modal,
 StyleSheet,
 TextInput,
+Picker,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import { MaterialIcons, Feather } from '@expo/vector-icons'
@@ -74,6 +75,7 @@ import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 com esses imports já é possivel inserir as views que são necessarias para a tela, basicamente são conteiners que incluen os outros componentes
 Text - é o componente react de Texto
 TextInput - é o componente react de Input de Texto
+Picker - é o componente react de Picker
 FlatList - é o componente react de Lista
 TouchableOpacity - é o componente react de Botão
 Modal - é o componente react de Modal
@@ -110,10 +112,17 @@ Para rodar o apk da aplicação geramos o comando eas build -p android --profile
 
 eas build -p ios --profile preview
 
+e depois pra produção é
+
+eas build -p ios --profile production
+
+e enviar ele para o IPO em:
+eas submit -p ios --profile production
+
+
 ## Em caso de erros
 
 npx expo install --fix
-
 
 para verificar o usuario logado no eas
 eas login

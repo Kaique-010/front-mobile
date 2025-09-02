@@ -120,7 +120,9 @@ export default function SelectFilial({ route, navigation }) {
             disabled={botaoDesabilitado}
             onPress={() => handleSelectFilial(item.empr_codi, item.empr_nome)}
             style={[styles.button, botaoDesabilitado && styles.buttonDisabled]}>
-            <Text style={styles.buttonText}>{item.empr_nome}</Text>
+            <Text style={styles.buttonText}>
+              {item.empr_codi} - {item.empr_nome}
+            </Text>
           </TouchableOpacity>
         )}
       />

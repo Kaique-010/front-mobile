@@ -1,75 +1,70 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiGetComContexto } from './api'
-import axios from 'axios'
-import { BASE_URL } from './api'
 
 export const getModulosComPermissao = async () => {
+  console.log('🚀 [MODULOS] Iniciando getModulosComPermissao')
   try {
-    // Primeiro, tentar usar os módulos já salvos no AsyncStorage do login
-    const modulosSalvos = await AsyncStorage.getItem('modulos')
-
-    if (modulosSalvos) {
-      const modulosParsed = JSON.parse(modulosSalvos)
-
-      if (Array.isArray(modulosParsed) && modulosParsed.length > 0) {
-        return modulosParsed
-      }
-    }
-
-    const token = await AsyncStorage.getItem('access')
+    const token = await AsyncStorage.getItem('access') // Corrigido: era 'accessToken'
     const slug = await AsyncStorage.getItem('slug')
     const empresaId = await AsyncStorage.getItem('empresaId')
     const filialId = await AsyncStorage.getItem('filialId')
 
+    console.log('🔍 [DEBUG] Dados recuperados:', {
+      token: token ? 'Token encontrado' : 'Token não encontrado',
+      slug: slug || 'Slug não encontrado',
+      empresaId: empresaId || 'EmpresaId não encontrado',
+      filialId: filialId || 'FilialId não encontrado'
+    })
+
     if (!token || !slug) {
+      console.log('❌ Token ou slug não encontrado')
       return []
     }
 
     if (!empresaId || !filialId) {
+      console.log('❌ EmpresaId ou filialId não encontrado')
       return []
     }
 
-    const baseURL = `${BASE_URL}/api/${slug}/parametros-admin`
-
-    const responseLiberados = await axios.get(
-      `${baseURL}/modulos_liberados/?empr=${empresaId}&fili=${filialId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
+    console.log('📋 Fazendo requisição para modulos_liberados...')
+    // apiGetComContexto já retorna response.data, não precisa acessar .data novamente
+    const responseLiberados = await apiGetComContexto(
+      `parametros-admin/modulos_liberados/?empr=${empresaId}&fili=${filialId}`
     )
 
-    const { modulos_liberados: codigosLiberados } = responseLiberados.data
-    const responseGlobal = await axios.get(
-      `${baseURL}/permissoes-modulos/modulos_disponiveis/`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
+    console.log('🔍 [DEBUG] Resposta modulos_liberados:', responseLiberados)
+
+    // A API retorna { modulos_liberados: [...] } diretamente
+    const codigosLiberados = responseLiberados?.modulos_liberados || []
+
+    console.log('📋 Fazendo requisição para modulos_disponiveis...')
+    const responseGlobal = await apiGetComContexto(
+      'parametros-admin/permissoes-modulos/modulos_disponiveis/'
     )
 
-    // A API retorna um objeto com a propriedade 'modulos' que contém o array
-    let modulosGlobais = responseGlobal.data || []
+    console.log('🔍 [DEBUG] Resposta modulos_disponiveis:', responseGlobal)
 
-    // Se a resposta tem a propriedade 'modulos', usar ela
-    if (modulosGlobais.modulos && Array.isArray(modulosGlobais.modulos)) {
-      modulosGlobais = modulosGlobais.modulos
-    }
+    // A API retorna { modulos: [...] } diretamente
+    let modulosGlobais = responseGlobal?.modulos || []
 
-    // Se ainda não é um array, tentar converter ou usar array vazio
+    // Verificar se é um array válido
     if (!Array.isArray(modulosGlobais)) {
+      console.warn('⚠️ modulosGlobais não é um array:', modulosGlobais)
       modulosGlobais = []
     }
 
+    // Verificar se codigosLiberados é array
+    const codigosArray = Array.isArray(codigosLiberados) ? codigosLiberados : []
+
+    console.log('🔍 [DEBUG] Códigos liberados processados:', codigosArray)
+    console.log(
+      '🔍 [DEBUG] Módulos globais processados:',
+      modulosGlobais.length
+    )
+
     // Se não há módulos globais cadastrados, criar módulos básicos baseados nos códigos liberados
-    // Isso é um fallback temporário até que a tabela modulosmobile seja populada corretamente
-    if (modulosGlobais.length === 0 && codigosLiberados.length > 0) {
-      // Criar módulos básicos usando apenas os códigos liberados
-      modulosGlobais = codigosLiberados.map((codigo) => ({
+    if (modulosGlobais.length === 0 && codigosArray.length > 0) {
+      modulosGlobais = codigosArray.map((codigo) => ({
         modu_codi: codigo,
         modu_nome: `Modulo_${codigo}`,
         modu_desc: `Módulo ${codigo}`,
@@ -77,18 +72,20 @@ export const getModulosComPermissao = async () => {
         modu_ordem: codigo,
       }))
     } else if (modulosGlobais.length === 0) {
+      console.warn('⚠️ Nenhum módulo disponível encontrado')
       return []
     }
 
     // Filtrar módulos globais pelos códigos liberados
-    if (!Array.isArray(modulosGlobais)) {
-      console.error('❌ modulosGlobais não é um array:', modulosGlobais)
-      return []
-    }
-
     const modulosPermitidos = modulosGlobais.filter((modulo) =>
-      codigosLiberados.includes(modulo.modu_codi)
+      codigosArray.includes(modulo.modu_codi)
     )
+
+    console.log(
+      '✅ [DEBUG] Módulos permitidos encontrados:',
+      modulosPermitidos.length
+    )
+    console.log('✅ [DEBUG] Módulos permitidos:', modulosPermitidos)
 
     // Salvar os módulos no AsyncStorage para uso futuro
     if (modulosPermitidos.length > 0) {
@@ -98,6 +95,7 @@ export const getModulosComPermissao = async () => {
     return modulosPermitidos
   } catch (error) {
     console.error('❌ Erro ao carregar módulos permitidos:', error)
+    console.error('❌ Stack trace:', error.stack)
     return []
   }
 }

@@ -58,6 +58,8 @@ export { default as ControleVisitaDashboard } from '../screens/ControleVisitaDas
 export { default as ControleVisitas } from '../screens/ControleVisitasScreen'
 export { default as ControleVisitaForm } from '../screens/ControleVisitaFormScreen'
 export { default as ControleVisitaDetalhes } from '../screens/ControleVisitaDetalhesScreen'
+export { default as EtapasForm } from '../componentsControledeVisita/EtapasForm'
+export { default as EtapasList } from '../componentsControledeVisita/EtapasList'
 
 // Telas de ordem de serviço
 export { default as PainelAcompanhamento } from '../screens/PainelOs'

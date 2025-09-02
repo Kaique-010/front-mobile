@@ -133,6 +133,18 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'plus-circle',
           condition: hasModulo('Pedidos'),
         },
+        {
+          name: 'Etapas',
+          route: 'EtapasForm',
+          icon: 'plus-circle',
+          condition: hasModulo('Pedidos'),
+        },
+        {
+          name: 'Lista de Etapas',
+          route: 'EtapasList',
+          icon: 'plus-circle',
+          condition: hasModulo('Pedidos'),
+        },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     financeiro: {

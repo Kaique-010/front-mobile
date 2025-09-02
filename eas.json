@@ -15,7 +15,13 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "buildType": "app-store"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

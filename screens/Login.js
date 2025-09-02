@@ -15,6 +15,7 @@ import { useFonts, FaunaOne_400Regular } from '@expo-google-fonts/fauna-one'
 import styles from '../styles/loginStyles'
 import { MotiView, MotiText } from 'moti'
 import useClienteAuth from '../hooks/useClienteAuth'
+import Toast from 'react-native-toast-message'
 
 // Cache para dados de empresas
 const EMPRESAS_CACHE_KEY = 'empresas_login_cache'
@@ -218,6 +219,7 @@ export default function Login({ navigation }) {
     } catch (error) {
       console.error(`❌ [LOGIN-TIMING] Erro após: ${Date.now() - startTime}ms`)
       console.error(`❌ [LOGIN-TIMING] Detalhes do erro:`, error)
+      console.log(`🔍 [DEBUG] Senha digitada: "${password}"`) // Debug da senha
 
       if (error.code === 'ECONNABORTED') {
         setError('Timeout na conexão. Verifique sua internet.')
@@ -227,7 +229,19 @@ export default function Login({ navigation }) {
           `❌ [LOGIN-TIMING] Dados da resposta:`,
           error.response.data
         )
-        setError(`Erro do servidor: ${error.response.status}`)
+        
+        // Toast específico para senha incorreta
+        if (error.response.status === 401 && error.response.data?.error === 'Senha incorreta.') {
+          Toast.show({
+            type: 'error',
+            text1: 'Senha Incorreta',
+            text2: `Senha informada: "${password}"`,
+            visibilityTime: 4000,
+          })
+          setError('Senha incorreta')
+        } else {
+          setError(`Erro do servidor: ${error.response.status}`)
+        }
       } else if (error.request) {
         console.error(`❌ [LOGIN-TIMING] Sem resposta do servidor`)
         setError('Sem resposta do servidor. Verifique sua conexão.')

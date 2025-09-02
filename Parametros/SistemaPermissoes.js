@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Switch,
   ActivityIndicator,
+  Picker,
 } from 'react-native'
 import { Feather } from '@expo/vector-icons'
 import {
@@ -21,155 +22,148 @@ import { getStoredData } from '../services/storageService'
 import { parametrosStyles } from './styles/parametrosStyles'
 
 const SistemaPermissoes = ({ navigation }) => {
+  const [empresasFiliais, setEmpresasFiliais] = useState([])
+  const [empresaSelecionada, setEmpresaSelecionada] = useState(null)
+  const [filialSelecionada, setFilialSelecionada] = useState(null)
   const [modulos, setModulos] = useState([])
-  const [permissoes, setPermissoes] = useState({})
-  const [configuracao, setConfiguracao] = useState({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [empresaId, setEmpresaId] = useState('')
-  const [filialId, setFilialId] = useState('')
 
   useEffect(() => {
     carregarDados()
   }, [])
 
+  useEffect(() => {
+    if (empresaSelecionada && filialSelecionada) {
+      carregarModulosEmpresa()
+    }
+  }, [empresaSelecionada, filialSelecionada])
+
   const carregarDados = async () => {
     try {
       setLoading(true)
 
-      // Carregar dados da empresa/filial
-      const { empresaId, filialId } = await getStoredData()
-      setEmpresaId(empresaId)
-      setFilialId(filialId)
+      // Carregar empresas/filiais do usuário
+      const response = await getModulosLiberados()
+      setEmpresasFiliais(response)
 
-      // Carregar dados em paralelo
-      const [modulosResponse, permissoesResponse, configResponse] =
-        await Promise.all([
-          getModulosLiberados(),
-          getPermissoesUsuario(),
-          getConfiguracaoCompleta(),
-        ])
-
-      setModulos(modulosResponse?.data || [])
-      setPermissoes(permissoesResponse?.data || {})
-      setConfiguracao(configResponse?.data || {})
+      // Selecionar primeira empresa/filial por padrão
+      if (response.length > 0) {
+        setEmpresaSelecionada(response[0].empresa_id)
+        setFilialSelecionada(response[0].filial_id)
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
-      Alert.alert('Erro', 'Não foi possível carregar os dados do sistema')
+      Alert.alert('Erro', 'Falha ao carregar dados')
     } finally {
       setLoading(false)
-      setRefreshing(false)
     }
   }
 
-  const handleToggleModulo = async (moduloId, ativo) => {
+  const carregarModulosEmpresa = async () => {
     try {
-      await updatePermissaoModulo(moduloId, { perm_ativ: !ativo })
-
-      setModulos((prev) =>
-        prev.map((mod) =>
-          mod.modu_codi === moduloId ? { ...mod, perm_ativ: !ativo } : mod
-        )
+      const empresaFilial = empresasFiliais.find(
+        (ef) =>
+          ef.empresa_id === empresaSelecionada &&
+          ef.filial_id === filialSelecionada
       )
 
-      Alert.alert('Sucesso', 'Permissão atualizada com sucesso')
+      if (empresaFilial) {
+        setModulos(empresaFilial.modulos)
+      }
     } catch (error) {
-      console.error('Erro ao atualizar permissão:', error)
-      Alert.alert('Erro', 'Não foi possível atualizar a permissão')
+      console.error('Erro ao carregar módulos:', error)
     }
   }
 
-  const handleSincronizarLicenca = async () => {
-    Alert.alert(
-      'Sincronizar Licença',
-      'Deseja sincronizar as permissões com a licença do sistema?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sincronizar',
-          onPress: async () => {
-            try {
-              await sincronizarLicenca({})
-              Alert.alert('Sucesso', 'Licença sincronizada com sucesso')
-              carregarDados()
-            } catch (error) {
-              console.error('Erro ao sincronizar licença:', error)
-              Alert.alert('Erro', 'Não foi possível sincronizar a licença')
+  const alternarModulo = async (moduloCodigo) => {
+    try {
+      const modulosAtualizados = modulos.map((mod) =>
+        mod.codigo === moduloCodigo ? { ...mod, ativo: !mod.ativo } : mod
+      )
+
+      setModulos(modulosAtualizados)
+
+      // Salvar no backend
+      await updatePermissaoModulo({
+        empresa_id: empresaSelecionada,
+        filial_id: filialSelecionada,
+        modulos: modulosAtualizados,
+      })
+    } catch (error) {
+      console.error('Erro ao atualizar módulo:', error)
+      Alert.alert('Erro', 'Falha ao atualizar permissão')
+      // Reverter mudança em caso de erro
+      carregarModulosEmpresa()
+    }
+  }
+
+  const renderSeletorEmpresa = () => {
+    const empresasUnicas = [
+      ...new Set(empresasFiliais.map((ef) => ef.empresa_id)),
+    ].map((empresaId) => {
+      const empresa = empresasFiliais.find((ef) => ef.empresa_id === empresaId)
+      return { id: empresa.empresa_id, nome: empresa.empresa_nome }
+    })
+
+    return (
+      <View style={parametrosStyles.selectorContainer}>
+        <Text style={parametrosStyles.selectorLabel}>Empresa:</Text>
+        <Picker
+          selectedValue={empresaSelecionada}
+          onValueChange={(value) => {
+            setEmpresaSelecionada(value)
+            // Reset filial quando empresa muda
+            const filiaisEmpresa = empresasFiliais.filter(
+              (ef) => ef.empresa_id === value
+            )
+            if (filiaisEmpresa.length > 0) {
+              setFilialSelecionada(filiaisEmpresa[0].filial_id)
             }
-          },
-        },
-      ]
+          }}
+          style={parametrosStyles.picker}>
+          {empresasUnicas.map((empresa) => (
+            <Picker.Item
+              key={empresa.id}
+              label={empresa.nome}
+              value={empresa.id}
+            />
+          ))}
+        </Picker>
+      </View>
     )
   }
 
-  const renderModulo = (modulo) => (
-    <View key={modulo.modu_codi} style={parametrosStyles.moduloCard}>
-      <View style={parametrosStyles.moduloHeader}>
-        <View style={parametrosStyles.moduloInfo}>
-          <Text style={parametrosStyles.moduloNome}>{modulo.modu_nome}</Text>
-          <Text style={parametrosStyles.moduloDescricao}>
-            {modulo.modu_desc}
-          </Text>
-        </View>
-        <Switch
-          value={modulo.perm_ativ}
-          onValueChange={() =>
-            handleToggleModulo(modulo.modu_codi, modulo.perm_ativ)
-          }
-          trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={modulo.perm_ativ ? '#f5dd4b' : '#f4f3f4'}
-        />
-      </View>
+  const renderSeletorFilial = () => {
+    const filiaisEmpresa = empresasFiliais.filter(
+      (ef) => ef.empresa_id === empresaSelecionada
+    )
 
-      {modulo.perm_data_venc && (
-        <Text style={parametrosStyles.dataVencimento}>
-          Expira em:{' '}
-          {new Date(modulo.perm_data_venc).toLocaleDateString('pt-BR')}
-        </Text>
-      )}
-
-      {modulo.telas && modulo.telas.length > 0 && (
-        <View style={parametrosStyles.telasContainer}>
-          <Text style={parametrosStyles.telasTitulo}>Telas disponíveis:</Text>
-          {modulo.telas.map((tela) => (
-            <Text key={tela.tela_codi} style={parametrosStyles.telaItem}>
-              • {tela.tela_nome}
-            </Text>
+    return (
+      <View style={parametrosStyles.selectorContainer}>
+        <Text style={parametrosStyles.selectorLabel}>Filial:</Text>
+        <Picker
+          selectedValue={filialSelecionada}
+          onValueChange={setFilialSelecionada}
+          style={parametrosStyles.picker}>
+          {filiaisEmpresa.map((filial) => (
+            <Picker.Item
+              key={filial.filial_id}
+              label={filial.filial_nome}
+              value={filial.filial_id}
+            />
           ))}
-        </View>
-      )}
-    </View>
-  )
-
-  const renderResumoPermissoes = () => (
-    <View style={parametrosStyles.resumoCard}>
-      <Text style={parametrosStyles.resumoTitulo}>Resumo de Permissões</Text>
-
-      <View style={parametrosStyles.resumoItem}>
-        <Text style={parametrosStyles.resumoLabel}>Módulos Liberados:</Text>
-        <Text style={parametrosStyles.resumoValor}>
-          {modulos.filter((m) => m.perm_ativ).length} / {modulos.length}
-        </Text>
+        </Picker>
       </View>
-
-      <View style={parametrosStyles.resumoItem}>
-        <Text style={parametrosStyles.resumoLabel}>Empresa:</Text>
-        <Text style={parametrosStyles.resumoValor}>{empresaId}</Text>
-      </View>
-
-      <View style={parametrosStyles.resumoItem}>
-        <Text style={parametrosStyles.resumoLabel}>Filial:</Text>
-        <Text style={parametrosStyles.resumoValor}>{filialId}</Text>
-      </View>
-    </View>
-  )
+    )
+  }
 
   if (loading) {
     return (
       <View style={parametrosStyles.loadingContainer}>
         <ActivityIndicator size="large" color="#007bff" />
         <Text style={parametrosStyles.loadingText}>
-          Carregando sistema de permissões...
+          Carregando permissões...
         </Text>
       </View>
     )
@@ -179,27 +173,35 @@ const SistemaPermissoes = ({ navigation }) => {
     <View style={parametrosStyles.container}>
       <View style={parametrosStyles.header}>
         <Text style={parametrosStyles.headerTitle}>Sistema de Permissões</Text>
-        <TouchableOpacity
-          style={parametrosStyles.syncButton}
-          onPress={handleSincronizarLicenca}>
-          <Feather name="refresh-cw" size={20} color="#fff" />
-          <Text style={parametrosStyles.syncButtonText}>Sincronizar</Text>
-        </TouchableOpacity>
+        <Text style={parametrosStyles.headerSubtitle}>
+          Gerencie módulos por empresa e filial
+        </Text>
       </View>
 
+      {renderSeletorEmpresa()}
+      {renderSeletorFilial()}
+
       <ScrollView
+        style={parametrosStyles.modulosContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={carregarDados} />
-        }
-        showsVerticalScrollIndicator={false}>
-        {renderResumoPermissoes()}
-
-        <View style={parametrosStyles.modulosContainer}>
-          <Text style={parametrosStyles.secaoTitulo}>Módulos do Sistema</Text>
-          {modulos.map(renderModulo)}
-        </View>
-
-        <View style={parametrosStyles.acoesContainer}></View>
+        }>
+        {modulos.map((modulo) => (
+          <View key={modulo.codigo} style={parametrosStyles.moduloCard}>
+            <View style={parametrosStyles.moduloInfo}>
+              <Text style={parametrosStyles.moduloNome}>{modulo.nome}</Text>
+              <Text style={parametrosStyles.moduloDesc}>
+                {modulo.descricao}
+              </Text>
+            </View>
+            <Switch
+              value={modulo.ativo}
+              onValueChange={() => alternarModulo(modulo.codigo)}
+              trackColor={{ false: '#767577', true: '#81b0ff' }}
+              thumbColor={modulo.ativo ? '#007bff' : '#f4f3f4'}
+            />
+          </View>
+        ))}
       </ScrollView>
     </View>
   )
