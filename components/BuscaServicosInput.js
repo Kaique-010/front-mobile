@@ -53,8 +53,8 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
       setLoading(true)
       const response = await apiGetComContexto('produtos/produtos/busca/', {
         q: texto,
-        tipo: 'S', // Filtro para serviços
-      })
+        tipo: 'S',
+      }, 'prod_')
 
       const servicosArray = response?.results || response || []
       setServicos(servicosArray)

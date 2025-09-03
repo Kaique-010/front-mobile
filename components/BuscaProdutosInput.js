@@ -10,7 +10,8 @@ const BUSCA_PRODUTOS_CACHE_KEY = 'busca_produtos_cache'
 const BUSCA_PRODUTOS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
 
 // Hook de debounce otimizado
-function useDebounce(value, delay = 300) { // Reduzido de 400ms para 300ms
+function useDebounce(value, delay = 300) {
+  // Reduzido de 400ms para 300ms
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
@@ -33,25 +34,30 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   }, [initialValue])
 
   useEffect(() => {
-    if (debouncedSearchTerm.trim().length < 2 || debouncedSearchTerm === initialValue) {
+    if (
+      debouncedSearchTerm.trim().length < 2 ||
+      debouncedSearchTerm === initialValue
+    ) {
       setProdutos([])
       return
     }
 
     const buscar = async () => {
       setLoading(true)
-      
+
       // Verificar cache primeiro
       try {
         const cacheKey = `${BUSCA_PRODUTOS_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
         const cacheData = await AsyncStorage.getItem(cacheKey)
-        
+
         if (cacheData) {
           const { results, timestamp } = JSON.parse(cacheData)
           const now = Date.now()
-          
-          if ((now - timestamp) < BUSCA_PRODUTOS_CACHE_DURATION) {
-            console.log(`📦 [CACHE-BUSCA] Usando cache para: "${debouncedSearchTerm}"`)
+
+          if (now - timestamp < BUSCA_PRODUTOS_CACHE_DURATION) {
+            console.log(
+              `📦 [CACHE-BUSCA] Usando cache para: "${debouncedSearchTerm}"`
+            )
             const validos = results.filter(
               (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
             )
@@ -63,35 +69,44 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
       } catch (error) {
         console.log('⚠️ Erro ao ler cache de busca:', error)
       }
-      
+
       try {
-        console.log(`🔍 [BUSCA-OTIMIZADA] Buscando produtos para: "${debouncedSearchTerm}"`)
-        
-        const data = await apiGetComContexto('produtos/produtos/', {
-          search: debouncedSearchTerm,
-          limit: 5, // Limitado a 5 resultados para ser mais rápido
-        }, 'prod_')
+        console.log(
+          `🔍 [BUSCA-OTIMIZADA] Buscando produtos para: "${debouncedSearchTerm}"`
+        )
+
+        const data = await apiGetComContexto(
+          'produtos/produtos/',
+          {
+            search: debouncedSearchTerm,
+            limit: 5,
+          },
+          'prod_'
+        )
 
         const validos = data.results.filter(
           (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
         )
-        
-        console.log(`✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} produtos válidos`)
+
+        console.log(
+          `✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} produtos válidos`
+        )
         setProdutos(validos)
-        
+
         // Salvar no cache
         try {
           const cacheKey = `${BUSCA_PRODUTOS_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
           const cacheData = {
             results: data.results,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           }
           await safeSetItem(cacheKey, JSON.stringify(cacheData))
-          console.log(`💾 [CACHE-BUSCA] Salvos ${validos.length} produtos no cache`)
+          console.log(
+            `💾 [CACHE-BUSCA] Salvos ${validos.length} produtos no cache`
+          )
         } catch (error) {
           console.log('⚠️ Erro ao salvar cache de busca:', error)
         }
-        
       } catch (err) {
         console.error('❌ Erro ao buscar produtos:', err.message)
       } finally {
@@ -150,7 +165,9 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
       ) : (
         <FlatList
           data={produtos}
-          keyExtractor={(item) => `produto-${item.prod_codi}`}
+          keyExtractor={(item) =>
+            `produto-${item.prod_codi}-${item.prod_nome}-${item.prod_empr}`
+          }
           nestedScrollEnabled={true}
           maxToRenderPerBatch={5} // Otimização de renderização
           windowSize={10} // Otimização de memória

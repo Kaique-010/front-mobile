@@ -72,7 +72,7 @@ export default function BuscaVendedorInput({
         const data = await apiGetComContexto('entidades/entidades/', {
           search: texto,
           tipo: 'VE',
-        })
+        }, 'enti_')
 
         const resultados = data.results.filter(
           (e) => e.enti_tipo_enti === 'VE' || e.enti_tipo_enti === 'Ve'

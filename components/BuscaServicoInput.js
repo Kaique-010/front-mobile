@@ -35,9 +35,12 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
       if (cacheData) {
         const { results, timestamp } = JSON.parse(cacheData)
         const now = Date.now()
-        
-        if ((now - timestamp) < SERVICOS_CACHE_DURATION) {
-          console.log('📦 [CACHE-ASYNC] Usando dados em cache para serviços:', texto)
+
+        if (now - timestamp < SERVICOS_CACHE_DURATION) {
+          console.log(
+            '📦 [CACHE-ASYNC] Usando dados em cache para serviços:',
+            texto
+          )
           setServicos(results || [])
           return
         }
@@ -50,8 +53,8 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
       setLoading(true)
       const response = await apiGetComContexto('produtos/produtos/busca/', {
         q: texto,
-        tipo: 'S', // Filtro para serviços
-      })
+        tipo: 'S',
+      }, 'prod_')
 
       const servicosArray = response?.results || response || []
       setServicos(servicosArray)
@@ -60,7 +63,7 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
       try {
         const cacheData = {
           results: servicosArray,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         }
         await safeSetItem(cacheKey, JSON.stringify(cacheData))
         console.log('💾 [CACHE-ASYNC] Serviços salvos no cache:', texto)
@@ -109,7 +112,9 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
           ) : (
             <FlatList
               data={servicos}
-              keyExtractor={(item) => item.prod_codi.toString()}
+              keyExtractor={(item) =>
+                `servico-${item.prod_codi}-${item.prod_nome}-${item.prod_empr}`
+              }
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.itemResultado}

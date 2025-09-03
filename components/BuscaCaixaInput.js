@@ -38,9 +38,9 @@ export default function BuscaCaixa({
       setLoading(true)
 
       try {
-        const { results } = await apiGet(`/api/${slug}/entidades/entidades/`, {
+        const { results } = await apiGetComContexto('entidades/entidades/', {
           search: texto,
-        })
+        }, 'enti_')
 
         let resultadosFiltrados = results
         if (tipo === 'caixa') {

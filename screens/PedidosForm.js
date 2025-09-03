@@ -63,7 +63,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
 
         if (pedidoParam && pedidoParam.pedi_nume) {
           const data = await apiGetComContexto(
-            `pedidos/pedidos/${pedidoParam.pedi_nume}/`
+            `pedidos/pedidos/${pedidoParam.pedi_empr}/${pedidoParam.pedi_fili}/${pedidoParam.pedi_nume}/`
           )
           const itens = data.itens || []
 

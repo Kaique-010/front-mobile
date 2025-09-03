@@ -120,14 +120,19 @@ export default function Orcamentos({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
+           
               await apiDeleteComContexto(
-                `orcamentos/orcamentos/${orcamentos.pedi_nume}/`
+                `orcamentos/orcamentos/${orcamentos.pedi_empr}/${orcamentos.pedi_fili}/${orcamentos.pedi_nume}/`
               )
               setOrcamentos((prev) =>
                 prev.filter((o) => o.pedi_nume !== orcamentos.pedi_nume)
               )
+              // Limpar cache após exclusão
+              await AsyncStorage.removeItem(ORCAMENTOS_CACHE_KEY)
+              console.log('🗑️ [CACHE-ORCAMENTOS] Cache limpo após exclusão')
             } catch (error) {
               console.error('Erro ao excluir orcamento:', error.message)
+              Alert.alert('Erro', 'Não foi possível excluir o orçamento')
             }
           },
         },

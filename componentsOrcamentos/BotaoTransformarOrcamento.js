@@ -1,6 +1,7 @@
 // src/components/BotaoTransformarOrcamento.js
 import React, { useState } from 'react'
 import { TouchableOpacity, Text, ActivityIndicator, Alert } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiPostComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
 
@@ -15,10 +16,14 @@ export default function BotaoTransformarOrcamento({ orcamentoId, onSuccess }) {
     console.log('[DEBUG] ID do orçamento:', orcamentoId)
 
     try {
-      const endpoint = `orcamentos/orcamentos/${orcamentoId}/transformar-em-pedido/`
+      const empresaId = await AsyncStorage.getItem('empresaId')
+      const filialId = await AsyncStorage.getItem('filialId')
+
+      // Usar URL com chave composta
+      const endpoint = `orcamentos/orcamentos/${empresaId}/${filialId}/${orcamentoId}/transformar-em-pedido/`
       console.log('[DEBUG] Endpoint completo:', endpoint)
 
-      const data = await apiPostComContexto(endpoint)
+      const data = await apiPostComContexto(endpoint, {})
 
       console.log('[DEBUG] Resposta da API:', data)
 

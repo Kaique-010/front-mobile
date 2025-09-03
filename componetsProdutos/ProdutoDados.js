@@ -121,7 +121,7 @@ export default function ProdutoDados({
         console.log('🚀 [PRODUTO-UPDATE] Atualizando produto:', produto.prod_codi)
         
         const response = await apiPutComContextoSemFili(
-          `produtos/produtos/${produto.prod_codi}/`,
+          `produtos/produtos/${produto.prod_empr}/${produto.prod_codi}/`,
           payload,
           'prod_'
         )

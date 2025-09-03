@@ -93,7 +93,7 @@ export default function BuscaClienteInput({
       try {
         const data = await apiGetComContexto('entidades/entidades/', {
           search: texto,
-        })
+        }, 'enti_')
 
         let resultados = data.results || []
 

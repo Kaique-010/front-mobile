@@ -37,7 +37,7 @@ export default StyleSheet.create({
     color: '#deb887',
   },
   incluirButton: {
-    backgroundColor: '#2d4a5a',
+    backgroundColor: '#303942',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -78,7 +78,7 @@ export default StyleSheet.create({
     elevation: 2,
   },
   searchButton: {
-    backgroundColor: '#3d5a73',
+    backgroundColor: '#303942',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -98,7 +98,7 @@ export default StyleSheet.create({
     fontSize: 14,
   },
   card: {
-    backgroundColor: '#2d4a5a',
+    backgroundColor: '#303942',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -150,7 +150,7 @@ export default StyleSheet.create({
     borderTopColor: '#3d5a73',
   },
   botao: {
-    backgroundColor: '#3d5a73',
+    backgroundColor: '#303942',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -179,7 +179,7 @@ export default StyleSheet.create({
     color: '#deb887',
   },
   botaoSalvar: {
-    backgroundColor: '#3d5a73',
+    backgroundColor: '#303942',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
