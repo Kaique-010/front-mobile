@@ -84,22 +84,52 @@ export default function Produtos({ navigation }) {
   }, [])
 
   const buscarProdutos = useCallback(
-    async ({ reset = false }) => {
+    async ({ reset = false, forceRefresh = false }) => {
+      // ✨ 1. Adicione forceRefresh
       if (!slug || (isFetchingMore && !reset)) return
 
-      // Verificar cache persistente
-      const cacheKey = searchTerm ? PRODUTOS_BUSCA_CACHE_KEY : PRODUTOS_BASICOS_CACHE_KEY
-      const cacheDuration = searchTerm ? PRODUTOS_BUSCA_CACHE_DURATION : PRODUTOS_BASICOS_CACHE_DURATION
-      
-      if (reset) {
+      // Opcional, mas recomendado: invalidar o cache se for forçado
+      if (forceRefresh) {
+        const cacheKey = searchTerm
+          ? PRODUTOS_BUSCA_CACHE_KEY
+          : PRODUTOS_BASICOS_CACHE_KEY
         try {
-          const cacheData = await AsyncStorage.getItem(`${cacheKey}_${searchTerm || 'inicial'}`)
+          console.log(
+            `🗑️ Forçando atualização, invalidando cache para: "${
+              searchTerm || 'inicial'
+            }"`
+          )
+          await AsyncStorage.removeItem(
+            `${cacheKey}_${searchTerm || 'inicial'}`
+          )
+        } catch (e) {
+          console.log('⚠️ Erro ao invalidar o cache:', e)
+        }
+      }
+
+      const cacheKey = searchTerm
+        ? PRODUTOS_BUSCA_CACHE_KEY
+        : PRODUTOS_BASICOS_CACHE_KEY
+      const cacheDuration = searchTerm
+        ? PRODUTOS_BUSCA_CACHE_DURATION
+        : PRODUTOS_BASICOS_CACHE_DURATION
+
+      // ✨ 2. Altere a condição para não verificar o cache se forceRefresh for true
+      if (reset && !forceRefresh) {
+        try {
+          const cacheData = await AsyncStorage.getItem(
+            `${cacheKey}_${searchTerm || 'inicial'}`
+          )
           if (cacheData) {
             const { results, timestamp } = JSON.parse(cacheData)
             const now = Date.now()
-            
-            if ((now - timestamp) < cacheDuration) {
-              console.log(`📦 [CACHE-OTIMIZADO] Usando cache para: ${searchTerm || 'listagem inicial'}`)
+
+            if (now - timestamp < cacheDuration) {
+              console.log(
+                `📦 [CACHE-OTIMIZADO] Usando cache para: ${
+                  searchTerm || 'listagem inicial'
+                }`
+              )
               setProdutos(results || [])
               setInitialLoading(false)
               setIsSearching(false)
@@ -114,7 +144,7 @@ export default function Produtos({ navigation }) {
       const atualOffset = reset ? 0 : offset
       // Otimização: Menos itens para busca, mais para listagem inicial
       const limitePorRequisicao = searchTerm ? 5 : 20
-      
+
       if (reset) {
         setInitialLoading(produtos.length === 0)
         setIsSearching(true)
@@ -125,8 +155,12 @@ export default function Produtos({ navigation }) {
       }
 
       try {
-        console.log(`🚀 [BUSCA-OTIMIZADA] Buscando ${limitePorRequisicao} produtos${searchTerm ? ` para: "${searchTerm}"` : ''}`)
-        
+        console.log(
+          `🚀 [BUSCA-OTIMIZADA] Buscando ${limitePorRequisicao} produtos${
+            searchTerm ? ` para: "${searchTerm}"` : ''
+          }`
+        )
+
         const data = await apiGetComContextoSemFili(
           'produtos/produtos/',
           {
@@ -138,21 +172,30 @@ export default function Produtos({ navigation }) {
         )
 
         const novos = data.results || []
-        console.log(`✅ [BUSCA-OTIMIZADA] Recebidos ${novos.length} produtos em ${searchTerm ? 'busca' : 'listagem'}`)
-        
+        console.log(
+          `✅ [BUSCA-OTIMIZADA] Recebidos ${novos.length} produtos em ${
+            searchTerm ? 'busca' : 'listagem'
+          }`
+        )
+
         setProdutos(reset ? novos : [...produtos, ...novos])
         setOffset(atualOffset + limitePorRequisicao)
         setHasMore(data.next !== null)
-        
+
         // Salvar no cache otimizado
         if (reset) {
           try {
             const cacheData = {
               results: novos,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             }
-            await safeSetItem(`${cacheKey}_${searchTerm || 'inicial'}`, JSON.stringify(cacheData))
-            console.log(`💾 [CACHE-OTIMIZADO] Salvos ${novos.length} produtos no cache`)
+            await safeSetItem(
+              `${cacheKey}_${searchTerm || 'inicial'}`,
+              JSON.stringify(cacheData)
+            )
+            console.log(
+              `💾 [CACHE-OTIMIZADO] Salvos ${novos.length} produtos no cache`
+            )
           } catch (error) {
             console.log('⚠️ Erro ao salvar cache otimizado:', error)
           }
@@ -184,7 +227,8 @@ export default function Produtos({ navigation }) {
     return () => clearTimeout(delay)
   }, [searchTerm])
 
-  const handleSearchSubmit = () => buscarProdutos({ reset: true })
+  const handleSearchSubmit = () =>
+    buscarProdutos({ reset: true, forceRefresh: true })
 
   const renderItem = useCallback(
     ({ item }) => <ProdutoCard item={item} navigation={navigation} />,

@@ -89,10 +89,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
 
           setPedido(pedidoMapeado)
 
-          await safeSetItem(
-            PEDIDO_CACHE_ID,
-            JSON.stringify(pedidoMapeado)
-          )
+          await safeSetItem(PEDIDO_CACHE_ID, JSON.stringify(pedidoMapeado))
         } else {
           await AsyncStorage.removeItem(PEDIDO_CACHE_ID)
           setPedido({

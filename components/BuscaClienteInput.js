@@ -9,7 +9,11 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { apiGetComContexto, safeSetItem } from '../utils/api'
+import {
+  apiGetComContexto,
+  apiGetComContextoSemFili,
+  safeSetItem,
+} from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/listaStyles'
@@ -66,15 +70,20 @@ export default function BuscaClienteInput({
       }
 
       // Verificar cache persistente
-      const cacheKey = `${CLIENTES_CACHE_KEY}_${tipo || 'todos'}_${texto.toLowerCase()}`
+      const cacheKey = `${CLIENTES_CACHE_KEY}_${
+        tipo || 'todos'
+      }_${texto.toLowerCase()}`
       try {
         const cacheData = await AsyncStorage.getItem(cacheKey)
         if (cacheData) {
           const { results, timestamp } = JSON.parse(cacheData)
           const now = Date.now()
-          
-          if ((now - timestamp) < CLIENTES_CACHE_DURATION) {
-            console.log('📦 [CACHE-ASYNC] Usando dados em cache para clientes:', texto)
+
+          if (now - timestamp < CLIENTES_CACHE_DURATION) {
+            console.log(
+              '📦 [CACHE-ASYNC] Usando dados em cache para clientes:',
+              texto
+            )
             setClientes(results || [])
             if (results && results.length > 0) {
               setShowResults(true)
@@ -91,11 +100,15 @@ export default function BuscaClienteInput({
       setShowResults(false)
 
       try {
-        const data = await apiGetComContexto('entidades/entidades/', {
+        const empresaId = await AsyncStorage.getItem('empresaId')
+
+        const data = await apiGetComContextoSemFili('entidades/entidades/', {
           search: texto,
+          empresa: empresaId || '1',
         })
 
         let resultados = data.results || []
+        console.log('resultados', resultados)
 
         if (tipo === 'fornecedor') {
           resultados = resultados.filter((e) => e.enti_tipo_enti === 'FO')
@@ -114,7 +127,7 @@ export default function BuscaClienteInput({
         try {
           const cacheData = {
             results: resultados,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           }
           await safeSetItem(cacheKey, JSON.stringify(cacheData))
           console.log('💾 [CACHE-ASYNC] Clientes salvos no cache:', texto)
@@ -196,9 +209,7 @@ export default function BuscaClienteInput({
       {showResults && clientes.length > 0 && (
         <FlatList
           data={clientes}
-          keyExtractor={(item) =>
-            `${item.enti_clie}-${item.enti_fili}-${item.enti_empr}`
-          }
+          keyExtractor={(item) => `${item.enti_clie}-${item.enti_empr}`}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled={true}
           style={[styles.sugestaoLista, { maxHeight: 200 }]}

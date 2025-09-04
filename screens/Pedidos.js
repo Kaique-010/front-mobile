@@ -194,9 +194,8 @@ export default function Pedidos({ navigation }) {
   }
 
   const renderPedidos = ({ item }) => {
-    // Debug log para verificar os dados do item
-    console.log('[DEBUG] Dados do pedido:', item)
     console.log('[DEBUG] ID que será passado:', item.pedi_nume)
+    console.log('[DEBUG] Dados do pedido:', item)
 
     return (
       <View style={styles.card}>

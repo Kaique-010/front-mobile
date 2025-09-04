@@ -187,10 +187,7 @@ export default function ResumoOrcamento({ total, orcamento }) {
 
   const salvar = async () => {
     if (!orcamento.pedi_empr || !orcamento.pedi_fili) {
-      Alert.alert(
-        'Erro',
-        'Empresa e filial precisam estar definidas antes de salvar.'
-      )
+      Alert.alert('Erro', 'Empresa e filial precisam estar definidas antes de salvar.')
       return
     }
 
@@ -254,6 +251,8 @@ export default function ResumoOrcamento({ total, orcamento }) {
           descontoHabilitado && tipoDesconto === 'percentual' ? perc : 0,
         desconto_geral_valor: descontoHabilitado ? descontoGeralValor : 0,
       }
+
+      console.log('Payload enviado:', payload) // Adicionado para depuração
 
       if (orcamento.pedi_nume) {
         data = await apiPutComContexto(

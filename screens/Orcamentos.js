@@ -120,7 +120,6 @@ export default function Orcamentos({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-           
               await apiDeleteComContexto(
                 `orcamentos/orcamentos/${orcamentos.pedi_empr}/${orcamentos.pedi_fili}/${orcamentos.pedi_nume}/`
               )
@@ -152,8 +151,7 @@ export default function Orcamentos({ navigation }) {
         {
           text: 'OK',
           onPress: () => {
-            // Opcional: navegar para a tela de pedidos
-            // navigation.navigate('Pedidos')
+            navigation.navigate('Pedidos')
           },
         },
       ]
@@ -161,10 +159,7 @@ export default function Orcamentos({ navigation }) {
   }
 
   const renderOrcamentos = ({ item }) => {
-    // Debug log para verificar os dados do item
-    console.log('[DEBUG] Dados do orçamento:', item)
-    console.log('[DEBUG] ID que será passado:', item.pedi_nume)
-
+   
     return (
       <View style={styles.card}>
         <Text style={styles.numero}>Nº Orcamento: {item.pedi_nume}</Text>

@@ -66,12 +66,14 @@ export default function TelaOrcamento({ route, navigation }) {
 
         if (orcamentoParam && orcamentoParam.pedi_nume) {
           const data = await apiGetComContexto(
-            `orcamentos/orcamentos/${orcamentoParam.pedi_nume}/`
+            `orcamentos/orcamentos/${orcamentoParam.pedi_empr}/${orcamentoParam.pedi_fili}/${orcamentoParam.pedi_nume}/`
           )
           const itens = data.itens || []
 
           setOrcamento({
             ...data,
+            pedi_empr: data.pedi_empr || empresaId, // Garante que empresaId seja usado se data.pedi_empr for nulo
+            pedi_fili: data.pedi_fili || filialId, // Garante que filialId seja usado se data.pedi_fili for nulo
             itens_input: itens,
             pedi_tota: calcularTotal(itens),
           })
@@ -80,6 +82,8 @@ export default function TelaOrcamento({ route, navigation }) {
             ORCAMENTO_CACHE_ID,
             JSON.stringify({
               ...data,
+              pedi_empr: data.pedi_empr || empresaId,
+              pedi_fili: data.pedi_fili || filialId,
               itens_input: itens,
               pedi_tota: calcularTotal(itens),
             })

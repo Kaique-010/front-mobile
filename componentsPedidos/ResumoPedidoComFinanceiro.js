@@ -270,6 +270,7 @@ export default function ResumoPedidoComFinanceiro({
         text1: 'Erro',
         text2: 'Falha ao salvar pedido. Tente novamente.',
       })
+      navigation.navigate('Pedidos')
     }
   }
 
