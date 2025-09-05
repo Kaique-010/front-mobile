@@ -69,10 +69,9 @@ export default function BuscaClienteInput({
         return
       }
 
-      // Verificar cache persistente
-      const cacheKey = `${CLIENTES_CACHE_KEY}_${
-        tipo || 'todos'
-      }_${texto.toLowerCase()}`
+      const empresaId = await AsyncStorage.getItem('empresaId')
+      const cacheKey = `clientes_cache_${empresaId}_${tipo}_${texto.toLowerCase()}`
+
       try {
         const cacheData = await AsyncStorage.getItem(cacheKey)
         if (cacheData) {
@@ -100,15 +99,16 @@ export default function BuscaClienteInput({
       setShowResults(false)
 
       try {
-        const empresaId = await AsyncStorage.getItem('empresaId')
-
-        const data = await apiGetComContextoSemFili('entidades/entidades/', {
+        const data = await apiGetComContexto('entidades/entidades/', {
           search: texto,
           empresa: empresaId || '1',
         })
 
         let resultados = data.results || []
         console.log('resultados', resultados)
+
+        // Filtrar por empresa primeiro
+        resultados = resultados.filter((e) => e.enti_empr.toString() === (empresaId || '1').toString())
 
         if (tipo === 'fornecedor') {
           resultados = resultados.filter((e) => e.enti_tipo_enti === 'FO')

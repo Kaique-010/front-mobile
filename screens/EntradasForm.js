@@ -10,6 +10,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
 } from 'react-native'
+import Toast from 'react-native-toast-message'
 import {
   apiPostComContexto,
   apiPutComContexto,
@@ -23,6 +24,7 @@ import { getStoredData } from '../services/storageService'
 
 export default function EntradasForm({ route, navigation }) {
   const entrada = route.params?.entrada
+  const [carregando, setCarregando] = useState(false)
 
   const [form, setForm] = useState({
     entr_data: new Date().toISOString().split('T')[0],
@@ -118,38 +120,34 @@ export default function EntradasForm({ route, navigation }) {
     if (!validarEntrada()) return
 
     try {
-      const payload = {
-        ...form,
-        entr_quan: parseFloat(form.entr_quan),
-        entr_tota: parseFloat(form.entr_tota),
-      }
+      setCarregando(true)
 
-      if (entrada) {
+      if (form.entr_id) {
         await apiPutComContexto(
-          `entradas_estoque/entradas-estoque/${entrada.entr_sequ}/`,
-          payload,
-          'entr_'
+          'entradas_estoque/ntradas-estoque/',
+          form.entr_id,
+          form
         )
-        Alert.alert('Sucesso', 'Entrada atualizada com sucesso!')
-        navigation.goBack()
       } else {
-        await apiPostComContexto(
-          'entradas_estoque/entradas-estoque/',
-          payload,
-          'entr_'
-        )
-        Alert.alert('Sucesso', 'Entrada criada com sucesso!')
-        navigation.goBack()
+        await apiPostComContexto('entradas_estoque/entradas-estoque/', form)
       }
-    } catch (error) {
-      console.error('❌ Erro ao salvar entrada:', error.message)
-      console.log('🧨 Response:', error.response)
-      console.log('🧨 Dados do erro:', error.response?.data)
 
-      Alert.alert(
-        'Erro',
-        'Falha ao salvar a entrada. Verifique os dados e tente novamente.'
-      )
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso',
+        text2: 'Entrada salva com sucesso!',
+      })
+
+      navigation.goBack()
+    } catch (error) {
+      console.error('Erro ao salvar entrada:', error)
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Erro ao salvar entrada',
+      })
+    } finally {
+      setCarregando(false)
     }
   }
 
@@ -217,9 +215,14 @@ export default function EntradasForm({ route, navigation }) {
 
           <TouchableOpacity
             style={styles.incluirButton}
-            onPress={salvarEntrada}>
+            onPress={salvarEntrada}
+            disabled={carregando}>
             <Text style={styles.incluirButtonText}>
-              {entrada ? 'Salvar Alterações' : 'Criar Entrada'}
+              {carregando
+                ? 'Salvando...'
+                : entrada
+                ? 'Salvar Alterações'
+                : 'Criar Entrada'}
             </Text>
           </TouchableOpacity>
         </View>

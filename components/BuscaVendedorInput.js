@@ -12,6 +12,7 @@ import { apiGetComContexto } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import styles from '../styles/listaStyles'
 import debounce from 'lodash/debounce'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function BuscaVendedorInput({
   onSelect,
@@ -69,9 +70,12 @@ export default function BuscaVendedorInput({
       setLoading(true)
 
       try {
+        const empresaId = await AsyncStorage.getItem('empresaId')
+        
         const data = await apiGetComContexto('entidades/entidades/', {
           search: texto,
           tipo: 'VE',
+          empresa: empresaId || '1',
         }, 'enti_')
 
         const resultados = data.results.filter(

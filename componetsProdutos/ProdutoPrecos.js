@@ -12,20 +12,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 import { apiPutComContexto, apiPostComContexto } from '../utils/api'
 
-export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }) {
+export default function ProdutoPrecos({
+  atualizarProduto: propAtualizarProduto,
+}) {
   const navigation = useNavigation()
   const { params } = useRoute()
-  const { produto = {}, slug = {}, atualizarProduto: paramAtualizarProduto } = params || {}
-  
+  const {
+    produto = {},
+    slug = {},
+    atualizarProduto: paramAtualizarProduto,
+  } = params || {}
+
   // Use the function from params if available, otherwise use the prop
   const atualizarProduto = paramAtualizarProduto || propAtualizarProduto
-  
+
   const [precoCompra, setPrecoCompra] = useState('')
   const [percentualAVista, setPercentualAVista] = useState('10')
   const [percentualAPrazo, setPercentualAPrazo] = useState('20')
   const [precoCusto, setPrecoCusto] = useState('')
   const [aVista, setAVista] = useState('')
   const [aPrazo, setAPrazo] = useState('')
+  const [empresaId, setEmpresaId] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -58,14 +65,20 @@ export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }
           setPercentualAVista(String(tabela.percentual_avis))
         } else if (tabela.tabe_prco && tabela.tabe_avis) {
           // Senão, calcular a partir dos preços
-          const percAVista = ((tabela.tabe_avis / tabela.tabe_prco - 1) * 100).toFixed(2)
+          const percAVista = (
+            (tabela.tabe_avis / tabela.tabe_prco - 1) *
+            100
+          ).toFixed(2)
           setPercentualAVista(String(percAVista))
         }
 
         if (tabela.percentual_apra !== undefined) {
           setPercentualAPrazo(String(tabela.percentual_apra))
         } else if (tabela.tabe_prco && tabela.tabe_apra) {
-          const percAPrazo = ((tabela.tabe_apra / tabela.tabe_prco - 1) * 100).toFixed(2)
+          const percAPrazo = (
+            (tabela.tabe_apra / tabela.tabe_prco - 1) *
+            100
+          ).toFixed(2)
           setPercentualAPrazo(String(percAPrazo))
         }
       } catch (error) {
@@ -122,28 +135,48 @@ export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }
     return true
   }
 
+  useEffect(() => {
+    const carregarContexto = async () => {
+      try {
+        const empresaIdStorage = await AsyncStorage.getItem('empresaId')
+        setEmpresaId(empresaIdStorage || '1')
+      } catch (error) {
+        console.error('Erro ao carregar empresaId:', error)
+      }
+    }
+    carregarContexto()
+  }, [])
+
   const salvar = async () => {
     if (!validarCampos()) return
-    
+
     setLoading(true)
-  
+
+    // Buscar sempre do AsyncStorage
+    const empresaIdStorage = await AsyncStorage.getItem('empresaId')
+    const filialIdStorage = await AsyncStorage.getItem('filialId')
+
     const payload = {
-      tabe_empr: parseInt(slug?.empresa) || 1,
-      tabe_fili: parseInt(slug?.filial) || 1,
-      tabe_prod: String(produto.prod_codi), // Garantir que seja string
+      tabe_empr: parseInt(empresaIdStorage) || 1,
+      tabe_fili: parseInt(filialIdStorage) || 1,
+      tabe_prod: String(produto.prod_codi),
       tabe_prco: parseFloat(precoCompra.replace(',', '.')) || 0,
       tabe_cuge: parseFloat(precoCusto.replace(',', '.')) || 0,
       percentual_avis: parseFloat(percentualAVista.replace(',', '.')) || 0,
       percentual_apra: parseFloat(percentualAPrazo.replace(',', '.')) || 0,
     }
-  
+
     const chave = `${payload.tabe_empr}-${payload.tabe_fili}-${payload.tabe_prod}`
-  
+    console.log('chave', chave)
+
     try {
       let response
       // tenta PUT (atualizar)
       try {
-        response = await apiPutComContexto(`produtos/tabelapreco/${chave}/`, payload)
+        response = await apiPutComContexto(
+          `produtos/tabelapreco/${chave}/`,
+          payload
+        )
       } catch (error) {
         if (error?.response?.status === 404) {
           // se não existe, cria com POST
@@ -152,10 +185,10 @@ export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }
           throw error
         }
       }
-  
+
       // Atualizar o cache com os dados retornados da API
       const dadosAtualizados = response?.data || response || payload
-      
+
       // Verificar se dadosAtualizados não é undefined antes de armazenar
       if (dadosAtualizados) {
         await AsyncStorage.setItem(
@@ -163,13 +196,13 @@ export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }
           JSON.stringify(dadosAtualizados)
         )
       }
-  
+
       Toast.show({
         type: 'success',
         text1: 'Sucesso!',
         text2: 'Preços atualizados com sucesso',
       })
-  
+
       // Atualizar o produto com os preços calculados pelo backend
       atualizarProduto({ ...produto, precos: [dadosAtualizados] })
       setTimeout(() => navigation.goBack(), 1000)
@@ -178,7 +211,8 @@ export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: error?.response?.data?.detail || 'Não foi possível salvar os preços',
+        text2:
+          error?.response?.data?.detail || 'Não foi possível salvar os preços',
       })
     } finally {
       setLoading(false)
@@ -216,18 +250,18 @@ export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }
         onChange={(valor) => setPercentualAPrazo(formatarNumero(valor))}
         placeholder="0,00"
       />
-      <Campo 
-        label="Preço à Vista" 
-        value={aVista} 
-        editable={false} 
-        dark 
+      <Campo
+        label="Preço à Vista"
+        value={aVista}
+        editable={false}
+        dark
         placeholder="0,00"
       />
-      <Campo 
-        label="Preço a Prazo" 
-        value={aPrazo} 
-        editable={false} 
-        dark 
+      <Campo
+        label="Preço a Prazo"
+        value={aPrazo}
+        editable={false}
+        dark
         placeholder="0,00"
       />
 
@@ -245,7 +279,14 @@ export default function ProdutoPrecos({ atualizarProduto: propAtualizarProduto }
   )
 }
 
-function Campo({ label, value, onChange, editable = true, dark = false, placeholder }) {
+function Campo({
+  label,
+  value,
+  onChange,
+  editable = true,
+  dark = false,
+  placeholder,
+}) {
   return (
     <>
       <Text style={styles.label}>{label}</Text>
