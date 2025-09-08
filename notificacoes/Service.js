@@ -20,7 +20,7 @@ class NotificacaoService {
     try {
       const { slug } = await getStoredData()
       this.baseURL = `${BASE_URL}/api/${slug}/notificacoes/`
-      this.token = await AsyncStorage.getItem('access')
+      this.token = await getAccessToken()
       this.initialized = true
     } catch (e) {
       console.error('Erro na init:', e)
@@ -29,7 +29,7 @@ class NotificacaoService {
 
   async getHeaders() {
     await this.ensureInitialized()
-    if (!this.token) this.token = await AsyncStorage.getItem('access')
+    if (!this.token) this.token = await getAccessToken()
     return {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${this.token}`,

@@ -1,26 +1,44 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   Alert,
-  StyleSheet,
   TextInput,
   Modal,
   ScrollView,
   Linking,
 } from 'react-native'
-import { apiGetComContexto } from '../utils/api'
 import { useEnviarEmail } from '../hooks/useEnviarEmail'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import Toast from 'react-native-toast-message'
-import { Checkbox } from 'react-native-paper' // Adicione esta dependência
-import * as FileSystem from 'expo-file-system' // Adicionar esta dependência
-import * as Sharing from 'expo-sharing' // Adicionar esta dependência
+import { Checkbox } from 'react-native-paper'
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+import styles from '../styles/cobrancasStyles'
+
+// Import das funções de formatação
+import {
+  formatarData,
+  formatCurrency as formatarValor,
+} from '../utils/formatters'
+
+// Imports dos componentes corrigidos
+import { criarMensagemCobranca } from '../componentsEnvioCobranca/CriarMensagem'
+import buscarCobrancas from '../componentsEnvioCobranca/BuscarCobrancas'
+import FiltrosCobranca from '../componentsEnvioCobranca/FiltrosCobranca'
+import ItemCobranca from '../componentsEnvioCobranca/ItemCobranca'
+import ModalCobranca from '../componentsEnvioCobranca/ModalCobranca'
+import compartilharBoleto from '../componentsEnvioCobranca/compartilharBoleto'
+import enviarMultiplosEmails from '../componentsEnvioCobranca/EnviarMultiplosEmails'
+import processarEnviosMultiplos from '../componentsEnvioCobranca/ProcessarMultiplosEnvios'
+import enviarCobrancaWhatsApp from '../componentsEnvioCobranca/EnviarCobrancaWhatsUnica'
+import enviarMultiplosWhatsapps from '../componentsEnvioCobranca/EnviarMultiplosWhats'
 
 export default function CobrancasList() {
   const [cobrancas, setCobrancas] = useState([])
+  const [cobrancasOriginais, setCobrancasOriginais] = useState([])
   const [loading, setLoading] = useState(false)
   const [dataIni, setDataIni] = useState(new Date())
   const [dataFim, setDataFim] = useState(new Date())
@@ -33,10 +51,70 @@ export default function CobrancasList() {
   const [searchText, setSearchText] = useState('')
   const [loadingWhats, setLoadingWhats] = useState(false)
   const [selecionadas, setSelecionadas] = useState([])
-  const [boleto, setBoleto] = useState('')
-  const [incluirBoleto, setIncluirBoleto] = useState(false) // Novo estado
+  const [incluirBoleto, setIncluirBoleto] = useState(false)
+  const [filtroStatus, setFiltroStatus] = useState('todos')
+  const [filtroValorMin, setFiltroValorMin] = useState('')
+  const [filtroValorMax, setFiltroValorMax] = useState('')
+  const [enviandoLote, setEnviandoLote] = useState(false)
+  const [progressoEnvio, setProgressoEnvio] = useState({ atual: 0, total: 0 })
 
   const { enviarEmail, loading: loadingEmail } = useEnviarEmail()
+
+  // Lógica de filtragem com useMemo
+  const cobrancasFiltradas = useMemo(() => {
+    let resultado = [...cobrancas]
+
+    if (searchText.trim()) {
+      resultado = resultado.filter(
+        (item) =>
+          item.cliente_nome?.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.numero_titulo?.toString().includes(searchText)
+      )
+    }
+
+    if (filtroStatus !== 'todos') {
+      const hoje = new Date()
+      resultado = resultado.filter((item) => {
+        const vencimento = new Date(item.vencimento)
+        if (filtroStatus === 'vencidos') {
+          return vencimento < hoje
+        } else if (filtroStatus === 'a_vencer') {
+          return vencimento >= hoje
+        }
+        return true
+      })
+    }
+
+    if (filtroValorMin) {
+      const valorMin = parseFloat(filtroValorMin.replace(',', '.'))
+      if (!isNaN(valorMin)) {
+        resultado = resultado.filter(
+          (item) => parseFloat(item.valor) >= valorMin
+        )
+      }
+    }
+
+    if (filtroValorMax) {
+      const valorMax = parseFloat(filtroValorMax.replace(',', '.'))
+      if (!isNaN(valorMax)) {
+        resultado = resultado.filter(
+          (item) => parseFloat(item.valor) <= valorMax
+        )
+      }
+    }
+
+    return resultado
+  }, [cobrancas, searchText, filtroStatus, filtroValorMin, filtroValorMax])
+
+  const limparFiltros = () => {
+    setSearchText('')
+    setFiltroStatus('todos')
+    setFiltroValorMin('')
+    setFiltroValorMax('')
+    setDataIni(new Date())
+    setDataFim(new Date())
+    setSelecionadas([])
+  }
 
   const toggleSelecionada = (item) => {
     const chave = item.id || item.numero_titulo
@@ -49,762 +127,173 @@ export default function CobrancasList() {
     })
   }
 
-  const onDateChange = (event, selectedDate) => {
-    if (selectedDate) {
-      if (showDatePicker.type === 'ini') {
-        setDataIni(selectedDate)
-      } else {
-        setDataFim(selectedDate)
-      }
-    }
-    setShowDatePicker({ show: false, type: '' }) // sempre fecha após selecionar
-  }
-
-  const buscarCobrancas = async () => {
-    setLoading(true)
-    try {
-      const dataIniFormatted = dataIni.toISOString().split('T')[0]
-      const dataFimFormatted = dataFim.toISOString().split('T')[0]
-      const response = await apiGetComContexto(
-        `enviar-cobranca/enviar-cobranca/?data_ini=${dataIniFormatted}&data_fim=${dataFimFormatted}&search=${searchText}`
-      )
-      let cobrancasData = []
-
-      if (response.data && response.data.results) {
-        console.log('✅ Usando response.data.results:', response.data.results)
-        cobrancasData = response.data.results
-      } else if (Array.isArray(response.data)) {
-        console.log('✅ Usando response.data diretamente:', response.data)
-        cobrancasData = response.data
-      } else if (Array.isArray(response)) {
-        console.log('✅ Usando response diretamente:', response)
-        cobrancasData = response
-      } else {
-        console.log('❌ Formato de dados não reconhecido')
-        console.log('🔍 Tentando extrair dados...')
-        const possibleData =
-          response?.data?.data || response?.results || response || []
-        console.log('🎯 Dados extraídos:', possibleData)
-        cobrancasData = Array.isArray(possibleData) ? possibleData : []
-      }
-
-      console.log('🎯 Final cobrancasData:', cobrancasData)
-      console.log('📏 Final length:', cobrancasData.length)
-      setCobrancas(cobrancasData)
-    } catch (error) {
-      console.error('❌ Erro completo:', error)
-      console.error('📡 Error response:', error.response)
-      console.error('📊 Error response data:', error.response?.data)
-      console.error('📋 Error message:', error.message)
-      Alert.alert('Erro', 'Falha ao buscar cobranças: ' + error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    buscarCobrancas()
-  }, [])
-
-  const formatarData = (data) => {
-    return new Date(data).toLocaleDateString('pt-BR')
-  }
-
-  const formatarValor = (valor) => {
-    return parseFloat(valor).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    })
-  }
-
   const abrirModalCobranca = (cobranca) => {
     setSelectedCobranca(cobranca)
     setModalVisible(true)
   }
 
-  //Função de envio de whatsapp unitario
-  // Substituir a função enviarCobrancaWhatsApp
-  const enviarCobrancaWhatsApp = async () => {
-    try {
-      setLoadingWhats(true)
-
-      const numeroRaw =
-        selectedCobranca.cliente_celular?.trim() ||
-        selectedCobranca.cliente_telefone?.trim() ||
-        ''
-      const numeroLimpo = numeroRaw.replace(/\D/g, '')
-
-      if (!numeroLimpo || numeroLimpo.length < 10 || numeroLimpo.length > 11) {
-        Alert.alert('Erro', 'Cliente não possui número válido')
-        return
-      }
-
-      let numeroZap =
-        numeroLimpo.length === 10 ? `5511${numeroLimpo}` : `55${numeroLimpo}`
-
-      let mensagem = `*Prezado, segue Cobrança - ${
-        selectedCobranca.cliente_nome
-      }*
-  
-    *Título*: ${selectedCobranca.numero_titulo}
-    *Parcela*: ${selectedCobranca.parcela}
-  
-    *Vencimento*: ${formatarData(selectedCobranca.vencimento)}
-  
-    *Valor*: ${formatarValor(selectedCobranca.valor)}
-  
-      
-      ${
-        selectedCobranca.linha_digitavel
-          ? `Linha Digitável: ${selectedCobranca.linha_digitavel}\n`
-          : ''
-      }`
-
-      // Se incluir boleto e tiver base64
-      if (incluirBoleto && selectedCobranca.boleto_base64) {
-        try {
-          // PRIMEIRO: Enviar mensagem via WhatsApp
-          const urlTexto = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
-            mensagem + '\n\n📎 *Boleto será enviado em seguida...*'
-          )}`
-
-          const canOpenTexto = await Linking.canOpenURL(urlTexto)
-          if (canOpenTexto) {
-            await Linking.openURL(urlTexto)
-
-            setTimeout(async () => {
-              try {
-                const fileName = `boleto_${selectedCobranca.numero_titulo}_${selectedCobranca.parcela}.pdf`
-                const fileUri = FileSystem.documentDirectory + fileName
-
-                await FileSystem.writeAsStringAsync(
-                  fileUri,
-                  selectedCobranca.boleto_base64,
-                  {
-                    encoding: FileSystem.EncodingType.Base64,
-                  }
-                )
-
-                // Compartilhar arquivo
-                const isAvailable = await Sharing.isAvailableAsync()
-                if (isAvailable) {
-                  await Sharing.shareAsync(fileUri, {
-                    mimeType: 'application/pdf',
-                    dialogTitle: 'Enviar Boleto PDF',
-                    UTI: 'com.adobe.pdf',
-                  })
-                }
-              } catch (error) {
-                console.error('Erro ao compartilhar arquivo:', error)
-              }
-            }, 3000)
-
-            setModalVisible(false)
-            Toast.show({
-              type: 'success',
-              text1: 'Sucesso',
-              text2: 'Mensagem enviada! Boleto será compartilhado em seguida.',
-            })
-            return
-          }
-        } catch (error) {
-          console.error('Erro ao processar envio:', error)
-          Alert.alert('Erro', 'Falha ao processar envio')
-          return
-        }
-      }
-
-      // Envio normal via texto se não tiver boleto
-      const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
-        mensagem
-      )}`
-
-      const canOpen = await Linking.canOpenURL(url)
-      if (canOpen) {
-        await Linking.openURL(url)
-        setModalVisible(false)
-        Toast.show({
-          type: 'success',
-          text1: 'Sucesso',
-          text2: 'WhatsApp aberto com sucesso!',
-        })
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Erro',
-          text2: 'Falha ao abrir WhatsApp',
-        })
-      }
-    } catch (error) {
-      console.error('Erro ao enviar WhatsApp:', error)
-      Alert.alert('Erro', 'Falha ao abrir WhatsApp')
-    } finally {
-      setLoadingWhats(false)
-    }
-  }
-
-  //Enviar vários títulos pelo whatsapp
-  const enviarMultiplosWhatsapps = async () => {
-    const cobrancasSelecionadas = cobrancas.filter((c) =>
-      selecionadas.includes(c.id || c.numero_titulo)
-    )
-
-    for (let cobranca of cobrancasSelecionadas) {
-      const numeroRaw =
-        cobranca.cliente_celular || cobranca.cliente_telefone || ''
-      const numeroLimpo = numeroRaw.replace(/\D/g, '')
-
-      // Validação melhorada
-      if (!numeroLimpo || numeroLimpo.length < 10 || numeroLimpo.length > 11)
-        continue
-
-      // Formatação do número para WhatsApp
-      let numeroZap
-      if (numeroLimpo.length === 10) {
-        numeroZap = `5511${numeroLimpo}`
-      } else if (numeroLimpo.length === 11) {
-        numeroZap = `55${numeroLimpo}`
-      }
-
-      let mensagem = `* Prezado Cliente, Segue Cobrança - ${
-        cobranca.cliente_nome
-      }*\n\nTítulo: ${cobranca.numero_titulo}\nParcela: ${
-        cobranca.parcela
-      }\nVencimento: ${formatarData(
-        cobranca.vencimento
-      )}\nValor: ${formatarValor(cobranca.valor)}\n\n$`
-
-      // Adicionar boleto base64 se marcado e disponível
-      if (incluirBoleto && cobranca.boleto_base64) {
-        mensagem += `\n\nBoleto em anexo (pdf):
-        )}...`
-      }
-
-      const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
-        mensagem
-      )}`
-      const canOpen = await Linking.canOpenURL(url)
-      if (canOpen) await Linking.openURL(url)
-    }
-
-    Toast.show({
-      type: 'success',
-      text1: 'WhatsApp',
-      text2: 'Envios abertos com sucesso!',
+  // Função de busca usando o componente
+  const handleBuscarCobrancas = async () => {
+    await buscarCobrancas({
+      dataIni,
+      dataFim,
+      incluirBoleto,
+      setLoading,
+      setCobrancasOriginais,
+      setCobrancas,
     })
-
-    setSelecionadas([])
   }
 
-  const enviarMultiplosEmails = async () => {
-    const cobrancasSelecionadas = cobrancas.filter((c) =>
-      selecionadas.includes(c.id || c.numero_titulo)
-    )
-
-    let enviados = 0
-
-    for (let cobranca of cobrancasSelecionadas) {
-      const email = cobranca.cliente_email
-      if (!email) continue
-
-      let corpo = `
-Prezado(a) ${cobranca.cliente_nome},
-
-Segue cobrança referente ao título ${cobranca.numero_titulo}, parcela ${
-        cobranca.parcela
-      }, vencimento ${formatarData(cobranca.vencimento)}, valor ${formatarValor(
-        cobranca.valor
-      )}.
-      `
-
-      // Adicionar boleto base64 se marcado e disponível
-      if (incluirBoleto && cobranca.boleto_base64) {
-        corpo += `\n\nBoleto em anexo (base64).`
-      }
-
-      corpo += `\n\nAtt,\nEquipe Financeira`
-
-      const dadosEmail = {
-        assunto: `Cobrança - Título ${cobranca.numero_titulo}`,
-        corpo,
-        anexos: cobranca.url_boleto ? [cobranca.url_boleto] : [],
-        boletoBase64: incluirBoleto ? cobranca.boleto_base64 : null,
-      }
-
-      try {
-        await enviarEmail(email, dadosEmail)
-        enviados++
-      } catch (err) {
-        console.error('Erro ao enviar:', cobranca.numero_titulo, err.message)
-      }
-    }
-
-    Alert.alert('Envio Concluído', `${enviados} e-mails enviados com sucesso!`)
-    setSelecionadas([])
+  // Função de envio único WhatsApp
+  const handleEnviarCobrancaWhatsApp = async () => {
+    await enviarCobrancaWhatsApp({
+      selectedCobranca,
+      incluirBoleto,
+      setLoadingWhats,
+      setModalVisible,
+    })
   }
+
+  // Função de envios múltiplos WhatsApp
+  const handleEnviarMultiplosWhatsapps = () => {
+    enviarMultiplosWhatsapps({
+      cobrancas,
+      selecionadas,
+      incluirBoleto,
+      setEnviandoLote,
+      setProgressoEnvio,
+      setSelecionadas,
+    })
+  }
+
+  // Função de envios múltiplos Email
+  const handleEnviarMultiplosEmails = async () => {
+    await enviarMultiplosEmails({
+      cobrancas,
+      selecionadas,
+      incluirBoleto,
+      formatarData,
+      formatarValor,
+      enviarEmail,
+      setSelecionadas,
+    })
+  }
+
+  useEffect(() => {
+    handleBuscarCobrancas()
+  }, [])
 
   const renderCobranca = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.itemContainer,
-        selecionadas.includes(item.id || item.numero_titulo) && {
-          borderColor: '#4caf50',
-          borderWidth: 2,
-        },
-      ]}
-      onPress={() => toggleSelecionada(item)}
-      onLongPress={() => abrirModalCobranca(item)}>
-      <View style={styles.itemHeader}>
-        <Text style={styles.clienteNome}>{item.cliente_nome}</Text>
-        <Text style={styles.valor}>{formatarValor(item.valor)}</Text>
-      </View>
-      <View style={styles.itemDetails}>
-        <Text style={styles.detailText}>Título: {item.numero_titulo}</Text>
-        <Text style={styles.detailText}>
-          Vencimento: {formatarData(item.vencimento)}
-        </Text>
-      </View>
-      <View style={styles.itemFooter}>
-        <Text style={styles.formaRecebimento}>
-          {item.forma_recebimento_nome}
-        </Text>
-        <Text
-          style={[
-            styles.status,
-            new Date(item.vencimento) < new Date()
-              ? styles.vencido
-              : styles.aVencer,
-          ]}>
-          {new Date(item.vencimento) < new Date() ? 'VENCIDO' : 'A VENCER'}
-        </Text>
-      </View>
-    </TouchableOpacity>
+    <ItemCobranca
+      item={item}
+      selecionadas={selecionadas}
+      toggleSelecionada={toggleSelecionada}
+      abrirModalCobranca={abrirModalCobranca}
+      formatarData={formatarData}
+      formatarValor={formatarValor}
+    />
   )
 
   return (
     <View style={styles.container}>
-      {/* Filtros */}
-      <View style={styles.filtrosContainer}>
-        <View style={styles.dateContainer}>
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker({ show: true, type: 'ini' })}>
-            <Text style={styles.dateButtonText}>
-              Data Inicial: {formatarData(dataIni)}
-            </Text>
-          </TouchableOpacity>
+      <FiltrosCobranca
+        dataIni={dataIni}
+        setDataIni={setDataIni}
+        dataFim={dataFim}
+        setDataFim={setDataFim}
+        showDatePicker={showDatePicker}
+        setShowDatePicker={setShowDatePicker}
+        searchText={searchText}
+        setSearchText={setSearchText}
+        filtroStatus={filtroStatus}
+        setFiltroStatus={setFiltroStatus}
+        incluirBoleto={incluirBoleto}
+        setIncluirBoleto={setIncluirBoleto}
+        buscarCobrancas={handleBuscarCobrancas}
+        limparFiltros={limparFiltros}
+      />
 
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker({ show: true, type: 'fim' })}>
-            <Text style={styles.dateButtonText}>
-              Data Final: {formatarData(dataFim)}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por cliente ou título..."
-          placeholderTextColor="#1f6d7a"
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-
-        {/* Novo checkbox para incluir boleto */}
-        <View style={styles.checkboxContainer}>
-          <Checkbox
-            status={incluirBoleto ? 'checked' : 'unchecked'}
-            onPress={() => setIncluirBoleto(!incluirBoleto)}
-            color="#1f6d7a"
-          />
-          <Text style={styles.checkboxLabel}>
-            Incluir boleto convertido (quando disponível)
+      {/* Indicador de progresso durante envios em lote */}
+      {enviandoLote && (
+        <View style={styles.progressContainer}>
+          <Text style={styles.progressText}>
+            Enviando {progressoEnvio.atual} de {progressoEnvio.total}...
           </Text>
         </View>
-
-        <TouchableOpacity
-          style={styles.buscarButton}
-          onPress={buscarCobrancas}
-          disabled={loading}>
-          <Text style={styles.buscarButtonText}>
-            {loading ? 'Buscando...' : 'Buscar'}
+      )}
+      {selecionadas.length > 0 && (
+        <View style={styles.batchActionsContainer}>
+          <Text style={styles.selectedCount}>
+            {selecionadas.length} selecionada
+            {selecionadas.length > 1 ? 's' : ''}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.batchButtons}>
+            <TouchableOpacity
+              style={styles.whatsButton}
+              onPress={handleEnviarMultiplosWhatsapps}
+              disabled={enviandoLote}>
+              <Text style={styles.whatsButtonText}>
+                <MaterialCommunityIcons
+                  name="whatsapp"
+                  size={18}
+                  color="#fff"
+                />
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.emailButton}
+              onPress={handleEnviarMultiplosEmails}
+              disabled={loadingEmail}>
+              <Text style={styles.emailButtonText}>
+                <MaterialCommunityIcons
+                  name="email-sync"
+                  size={18}
+                  color="#fff"
+                />
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
-      {/* Lista - CHAVE CORRIGIDA */}
       <FlatList
-        data={cobrancas}
+        data={cobrancasFiltradas}
         renderItem={renderCobranca}
         keyExtractor={(item, index) => {
-          // Chave única melhorada com empresa, filial, cliente_id e vencimento
-          const chaveUnica = `${item.empresa || 'emp'}_${
-            item.filial || 'fil'
-          }_${item.cliente_id || item.id || 'cli'}_${
-            item.vencimento || 'venc'
-          }_${index}`
-          return chaveUnica
+          const empresa = item.empresa_id || item.empr_codi || 'emp'
+          const filial = item.filial_id || item.fili_codi || 'fil'
+          const cliente =
+            item.cliente_id ||
+            item.clie_codi ||
+            item.cliente_nome?.replace(/\s+/g, '') ||
+            'cli'
+          const vencimento = item.vencimento
+            ? item.vencimento.replace(/[^0-9]/g, '')
+            : 'venc'
+          const id = item.id || item.numero_titulo || 'titulo'
+          const timestamp = Date.now()
+
+          return `${empresa}-${filial}-${cliente}-${vencimento}-${id}-${index}-${timestamp}`
         }}
-        refreshing={loading}
-        onRefresh={buscarCobrancas}
         ListEmptyComponent={
-          <View style={{ padding: 20, alignItems: 'center' }}>
-            <Text style={styles.emptyText}>Nenhuma cobrança encontrada</Text>
-            <Text style={{ marginTop: 10, color: '#999', fontSize: 12 }}>
-              Total de itens: {cobrancas.length}
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {loading ? 'Carregando...' : 'Nenhuma cobrança encontrada'}
             </Text>
           </View>
         }
+        refreshing={loading}
+        onRefresh={buscarCobrancas}
       />
-
-      {/* Modal de Detalhes */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {selectedCobranca && (
-              <ScrollView>
-                <Text style={styles.modalTitle}>Detalhes da Cobrança</Text>
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>Cliente:</Text>
-                  <Text style={styles.modalValue}>
-                    {selectedCobranca.cliente_nome}
-                  </Text>
-                </View>
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>Título:</Text>
-                  <Text style={styles.modalValue}>
-                    {selectedCobranca.numero_titulo}
-                  </Text>
-                </View>
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>Vencimento:</Text>
-                  <Text style={styles.modalValue}>
-                    {formatarData(selectedCobranca.vencimento)}
-                  </Text>
-                </View>
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>Valor:</Text>
-                  <Text style={styles.modalValue}>
-                    {formatarValor(selectedCobranca.valor)}
-                  </Text>
-                </View>
-
-                {selectedCobranca.linha_digitavel && (
-                  <View style={styles.modalSection}>
-                    <Text style={styles.modalLabel}>Linha Digitável:</Text>
-                    <Text style={styles.modalValue}>
-                      {selectedCobranca.linha_digitavel}
-                    </Text>
-                  </View>
-                )}
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.whatsappButton]}
-                    onPress={enviarCobrancaWhatsApp}
-                    disabled={
-                      loadingWhats || !selectedCobranca.cliente_celular
-                    }>
-                    <Text style={styles.actionButtonText}>
-                      {loadingWhats ? 'Abrindo...' : 'Enviar WhatsApp'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.emailButton]}
-                    onPress={() => {
-                      if (selectedCobranca?.cliente_email) {
-                        enviarEmail(selectedCobranca.cliente_email, {
-                          assunto: `Cobrança - Título ${selectedCobranca.numero_titulo}`,
-                          corpo: `
-Caro(a) ${selectedCobranca.cliente_nome},
-
-Segue em anexo o boleto para pagamento:
-
-Título: ${selectedCobranca.numero_titulo}
-Parcela: ${selectedCobranca.parcela}
-Vencimento: ${formatarData(selectedCobranca.vencimento)}
-Valor: ${formatarValor(selectedCobranca.valor)}
-
-${
-  selectedCobranca.linha_digitavel
-    ? `Linha Digitável: ${selectedCobranca.linha_digitavel}`
-    : ''
-}
-
-
-Atenciosamente,
-Equipe Financeira
-      `,
-                        })
-                          .then(() => {
-                            Alert.alert('Sucesso', 'Email enviado com sucesso!')
-                            setModalVisible(false)
-                          })
-                          .catch((err) => {
-                            Alert.alert('Erro', 'Falha ao enviar email')
-                            console.error(err)
-                          })
-                      } else {
-                        Alert.alert('Erro', 'Cliente sem email cadastrado')
-                      }
-                    }}
-                    disabled={loadingEmail}>
-                    <Text style={styles.actionButtonText}>
-                      {loadingEmail ? 'Enviando...' : 'Enviar Email'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.cancelButton]}
-                    onPress={() => setModalVisible(false)}>
-                    <Text style={styles.actionButtonText}>Fechar</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
-      {selecionadas.length > 0 && (
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-around',
-            marginVertical: 10,
-          }}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.whatsappButton,
-              { flex: 1, marginRight: 5 },
-            ]}
-            onPress={enviarMultiplosWhatsapps}>
-            <Text style={styles.actionButtonText}>
-              WhatsApp ({selecionadas.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.emailButton,
-              { flex: 1, marginLeft: 5 },
-            ]}
-            onPress={enviarMultiplosEmails}>
-            <Text style={styles.actionButtonText}>
-              E-mail ({selecionadas.length})
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* DatePicker */}
-      {showDatePicker.show && (
-        <DateTimePicker
-          value={showDatePicker.type === 'ini' ? dataIni : dataFim}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-        />
-      )}
+      <ModalCobranca
+        modalVisible={modalVisible}
+        setModalVisible={setModalVisible}
+        selectedCobranca={selectedCobranca}
+        enviarCobrancaWhatsApp={handleEnviarCobrancaWhatsApp}
+        loadingWhats={loadingWhats}
+        formatarData={formatarData}
+        formatarValor={formatarValor}
+      />
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0c1c2c',
-    padding: 16,
-  },
-  filtrosContainer: {
-    backgroundColor: '#000',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#1f6d7a',
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  dateButton: {
-    flex: 0.48,
-    padding: 12,
-    backgroundColor: '#000',
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1f6d7a',
-  },
-  dateButtonText: {
-    color: '#1f6d7a',
-    fontWeight: 'bold',
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: '#1f6d7a',
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 12,
-    color: '#1f6d7a',
-    backgroundColor: '#000',
-  },
-  buscarButton: {
-    backgroundColor: '#243242',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1f6d7a',
-  },
-  buscarButtonText: {
-    color: '#1f6d7a',
-    fontWeight: 'bold',
-  },
-  itemContainer: {
-    backgroundColor: '#243242',
-    padding: 16,
-    marginBottom: 8,
-    borderRadius: 8,
-    elevation: 1,
-    color: '#1f6d7a',
-    borderColor: '#1f6d7a',
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    color: '#1f6d7a',
-    borderColor: '#1f6d7a',
-  },
-  clienteNome: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    flex: 1,
-    color: '#f0f8ff',
-  },
-  valor: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4caf50',
-  },
-  itemDetails: {
-    marginBottom: 8,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  formaRecebimento: {
-    fontSize: 12,
-    color: '#999',
-  },
-  status: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  vencido: {
-    backgroundColor: '#ffebee',
-    color: '#f44336',
-  },
-  aVencer: {
-    backgroundColor: '#e8f5e8',
-    color: '#4caf50',
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-    color: '#999',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    margin: 20,
-    borderRadius: 8,
-    padding: 20,
-    maxHeight: '80%',
-    width: '90%',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalSection: {
-    marginBottom: 12,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  modalValue: {
-    fontSize: 14,
-    color: '#666',
-  },
-  modalActions: {
-    marginTop: 20,
-  },
-  actionButton: {
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  whatsappButton: {
-    backgroundColor: '#25d366',
-    marginBottom: 150,
-  },
-  emailButton: {
-    backgroundColor: '#2196f3',
-    marginBottom: 150,
-  },
-  cancelButton: {
-    backgroundColor: '#757575',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#1f6d7a',
-    marginLeft: 40,
-    marginBottom: 50,
-    marginHorizontal: 25,
-    direction: 'ltr',
-    flexDirection: 'row',
-  },
-})
