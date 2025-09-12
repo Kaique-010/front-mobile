@@ -40,7 +40,7 @@ export default function LeitorCodigoBarras({ onProdutoLido }) {
           style={{ flex: 1 }}
           onBarcodeScanned={handleBarCodeScanned}
           barcodeScannerSettings={{
-            barcodeTypes: ['ean13', 'ean8', 'qr', 'upc_a', 'ean128c'],
+            barcodeTypes: ['ean13', 'ean8', 'code128', 'code39'],
           }}
         />
 

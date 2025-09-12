@@ -46,18 +46,52 @@ export default function ResumoPedido({ total, pedido }) {
   // Sincroniza controles com dados vindos do backend ao abrir/editar
   useEffect(() => {
     if (pedido) {
-      setDescontoHabilitado(!!pedido.desconto_geral_aplicado)
-      setTipoDesconto(pedido.desconto_geral_tipo || 'percentual')
-      setPercentualDesconto(
-        pedido.desconto_geral_percentual
-          ? String((Number(pedido.desconto_geral_percentual) || 0) * 100)
-          : ''
-      )
-      setValorDesconto(
-        pedido.desconto_geral_valor ? String(pedido.desconto_geral_valor) : ''
-      )
+      console.log('🎯 [ResumoPedido] Dados do pedido recebidos:', {
+        pedi_desc: pedido.pedi_desc,
+        desconto_geral_aplicado: pedido.desconto_geral_aplicado,
+        desconto_geral_tipo: pedido.desconto_geral_tipo,
+        desconto_geral_percentual: pedido.desconto_geral_percentual,
+        desconto_geral_valor: pedido.desconto_geral_valor,
+      })
+
+      // Verificar se há desconto aplicado
+      const temDesconto = !!pedido.desconto_geral_aplicado || (pedido.pedi_desc && Number(pedido.pedi_desc) > 0);
+      setDescontoHabilitado(temDesconto);
+      
+      // Definir tipo de desconto
+      setTipoDesconto(pedido.desconto_geral_tipo || 'percentual');
+
+      // Converter percentual de decimal para porcentagem
+      if (temDesconto && (pedido.desconto_geral_tipo === 'percentual' || !pedido.desconto_geral_tipo)) {
+        // Se temos percentual definido, usamos ele
+        if (pedido.desconto_geral_percentual) {
+          setPercentualDesconto(
+            String((Number(pedido.desconto_geral_percentual) * 100).toFixed(2))
+          );
+        } 
+        // Caso contrário, calculamos com base no desconto e subtotal
+        else if (pedido.pedi_desc && pedido.pedi_topr) {
+          const percentual = (Number(pedido.pedi_desc) / Number(pedido.pedi_topr)) * 100;
+          setPercentualDesconto(String(percentual.toFixed(2)));
+        } else {
+          setPercentualDesconto('');
+        }
+      } else {
+        setPercentualDesconto('');
+      }
+
+      // Converter valor para string
+      if (temDesconto && (pedido.desconto_geral_tipo === 'valor' || !pedido.desconto_geral_tipo)) {
+        // Prioridade: desconto_geral_valor > pedi_desc
+        const valorDesc = pedido.desconto_geral_valor || pedido.pedi_desc || 0;
+        setValorDesconto(String(valorDesc));
+      } else {
+        setValorDesconto('');
+      }
     }
   }, [
+    pedido?.pedi_desc,
+    pedido?.pedi_topr,
     pedido?.desconto_geral_aplicado,
     pedido?.desconto_geral_tipo,
     pedido?.desconto_geral_percentual,

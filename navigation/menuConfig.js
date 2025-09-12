@@ -69,7 +69,7 @@ export const getMenuConfig = (hasModulo) => {
         {
           name: 'Dashboard Pisos',
           route: 'DashPedidosPisos',
-          icon: 'dashboard',
+          icon: 'bar-chart-2',
           condition: hasModulo('Pisos'),
         },
         {
@@ -93,7 +93,7 @@ export const getMenuConfig = (hasModulo) => {
         {
           name: 'Lista de Casamento',
           route: 'ListaCasamento',
-          icon: 'ring',
+          icon: 'heart-multiple',
           iconType: 'MaterialCommunityIcons',
           condition: hasModulo('listacasamento'),
         },
@@ -235,7 +235,13 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'lock',
           condition: true,
         },
-
+        {
+          name: 'Coletor de Estoque',
+          route: 'ColetorEstoque',
+          icon: 'barcode-scan',
+          iconType: 'MaterialCommunityIcons',
+          condition: hasModulo('Produtos'),
+        },
         {
           name: 'Parâmetros do Sistema',
           route: 'ParametrosMenu',

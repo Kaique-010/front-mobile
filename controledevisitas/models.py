@@ -82,9 +82,9 @@ class Controlevisita(models.Model):
 class ItensVisita(models.Model):
     item_id = models.AutoField(primary_key=True)
     item_empr = models.ForeignKey(Empresas, on_delete=models.CASCADE, db_column='item_empr')
-    item_fili = models.IntegerField(db_column='item_fili')  # Mudança aqui
+    item_fili = models.IntegerField(db_column='item_fili')
     item_visita = models.ForeignKey(Controlevisita, on_delete=models.CASCADE, related_name="itens_visita")
-    item_prod = models.CharField(max_length=60, verbose_name='Produto/Serviço')
+    item_prod = models.CharField(max_length=60, verbose_name='Código do Produto')
     item_desc_prod = models.TextField(blank=True, null=True, verbose_name='Descrição do Produto')
     item_quan = models.DecimalField(max_digits=15, decimal_places=5, blank=True, null=True, verbose_name='Quantidade')
     item_unit = models.DecimalField(max_digits=15, decimal_places=5, blank=True, null=True, verbose_name='Valor Unitário')
@@ -93,6 +93,18 @@ class ItensVisita(models.Model):
     item_unli = models.CharField(max_length=10, blank=True, null=True, verbose_name='Unidade')
     item_data = models.DateField(auto_now_add=True, verbose_name='Data')
     item_obse = models.TextField(blank=True, null=True, verbose_name='Observações')
+    
+    # Campos específicos para pisos
+    item_m2 = models.DecimalField(max_digits=15, decimal_places=4, blank=True, null=True, verbose_name='Metragem (m²)')
+    item_nome_ambi = models.CharField(max_length=100, blank=True, null=True, verbose_name='Nome do Ambiente')
+    item_queb = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, verbose_name='% Quebra', default=10)
+    item_caix = models.IntegerField(blank=True, null=True, verbose_name='Caixas Necessárias')
+    item_tipo_calculo = models.CharField(
+        max_length=10, 
+        choices=[('normal', 'Normal'), ('pisos', 'Pisos')], 
+        default='normal', 
+        verbose_name='Tipo de Cálculo'
+    )
 
     class Meta:
         db_table = "itensvisita"

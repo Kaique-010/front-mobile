@@ -37,6 +37,7 @@ export { default as EntradasForm } from '../screens/EntradasForm'
 export { default as EntradasEstoque } from '../screens/EntradasEstoque'
 export { default as SaidasForm } from '../screens/SaidasForm'
 export { default as SaidasEstoque } from '../screens/SaidasEstoque'
+export { default as ColetorEstoqueScreen } from '../coletorEstoque/ColetorEstoqueScreen'
 
 // Telas financeiras
 export { default as ContasPagarList } from '../screens/ContasPagarList'

@@ -66,6 +66,15 @@ export default function TelaPedidoVenda({ route, navigation }) {
             `pedidos/pedidos/${pedidoParam.pedi_empr}/${pedidoParam.pedi_fili}/${pedidoParam.pedi_nume}/`
           )
           const itens = data.itens || []
+          
+          console.log('🔍 [DEBUG] Dados do pedido recebidos da API:', {
+            pedi_desc: data.pedi_desc,
+            valor_desconto: data.valor_desconto,
+            desconto_geral_aplicado: data.desconto_geral_aplicado,
+            desconto_geral_tipo: data.desconto_geral_tipo,
+            desconto_geral_percentual: data.desconto_geral_percentual,
+            desconto_geral_valor: data.desconto_geral_valor
+          })
 
           // Mapear corretamente os campos de desconto
           const pedidoMapeado = {
@@ -78,13 +87,13 @@ export default function TelaPedidoVenda({ route, navigation }) {
             })),
             pedi_tota: calcularTotal(itens),
             // Mapear campos de desconto geral
-            desconto_geral_aplicado: !!data.desconto_geral_aplicado,
+            desconto_geral_aplicado: data.pedi_desc && Number(data.pedi_desc) > 0 ? true : !!data.desconto_geral_aplicado,
             desconto_geral_tipo: data.desconto_geral_tipo || 'percentual',
             desconto_geral_percentual: Number(
-              data.desconto_geral_percentual || 0
+              data.desconto_geral_percentual || (data.pedi_desc && data.valor_subtotal ? Number(data.pedi_desc) / Number(data.valor_subtotal) : 0)
             ),
-            desconto_geral_valor: Number(data.desconto_geral_valor || 0),
-            pedi_desc: Number(data.pedi_desc || 0),
+            desconto_geral_valor: Number(data.desconto_geral_valor || data.pedi_desc || data.valor_desconto || 0),
+            pedi_desc: Number(data.pedi_desc || data.valor_desconto || 0),
           }
 
           setPedido(pedidoMapeado)

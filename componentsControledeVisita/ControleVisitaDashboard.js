@@ -447,7 +447,7 @@ export default function ControleVisitaDashboard({ navigation }) {
           {/* Legenda customizada embaixo */}
           <View style={styles.customLegend}>
             {dashboardData.etapasData.slice(0, 10).map((item, index) => (
-              <View key={index} style={styles.legendItem}>
+              <View key={`legend_${item.name}_${index}`} style={styles.legendItem}>
                 <View
                   style={[styles.legendColor, { backgroundColor: item.color }]}
                 />
@@ -492,7 +492,7 @@ export default function ControleVisitaDashboard({ navigation }) {
                   const visitas =
                     dashboardData.vendedoresData.datasets[0].data[index]
                   return (
-                    <Text key={index} style={styles.vendedorLegendText}>
+                    <Text key={`vendedor_${index}`} style={styles.vendedorLegendText}>
                       {nomeCompleto}: {visitas} visitas
                     </Text>
                   )
@@ -537,7 +537,7 @@ export default function ControleVisitaDashboard({ navigation }) {
         {dashboardData.proximasVisitas.length > 0 ? (
           dashboardData.proximasVisitas.map((visita, index) => (
             <TouchableOpacity
-              key={index}
+              key={`visita_${visita.ctrl_id}_${index}`}
               style={styles.proximaVisitaCard}
               onPress={() =>
                 navigation.navigate('ControleVisitaDetalhes', {

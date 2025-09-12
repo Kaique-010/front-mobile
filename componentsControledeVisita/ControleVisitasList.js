@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, onRefresh } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 
 import {
@@ -78,7 +78,7 @@ export default function ControleVisitasList({ navigation }) {
 
           const proximasVisitas = response?.proximas_visitas || []
 
-          const data = proximasVisitas.map((visita) => ({
+          let data = proximasVisitas.map((visita) => ({
             ctrl_id: visita.ctrl_id,
             ctrl_numero: visita.ctrl_numero,
             ctrl_data: visita.ctrl_data_original,
@@ -96,20 +96,29 @@ export default function ControleVisitasList({ navigation }) {
             urgencia: visita.urgencia,
           }))
 
-          setVisitas(data)
+          // Filtrar duplicatas por ID (solução temporária para problema no backend)
+          const visitasUnicas = data.filter((visita, index, array) => 
+            array.findIndex(v => v.ctrl_id === visita.ctrl_id) === index
+          )
+          
+          if (visitasUnicas.length !== data.length) {
+            console.warn(`Removidas ${data.length - visitasUnicas.length} próximas visitas duplicadas`)
+          }
+
+          setVisitas(visitasUnicas)
 
           // Extrair etapas
-          const etapasExtraidas = extrairEtapasDasVisitas(data)
+          const etapasExtraidas = extrairEtapasDasVisitas(visitasUnicas)
           setEtapas(etapasExtraidas)
 
           // Calcular stats
-          const total = data.length
-          const estatisticasCalculadas = etapasExtraidas.map((etapa) => {
-            const visitasEtapa = data.filter(
+          const total = visitasUnicas.length
+          const estatisticasCalculadas = etapasExtraidas.map((etapa, index) => {
+            const visitasEtapa = visitasUnicas.filter(
               (v) => v.ctrl_etapa === etapa.etap_id
             )
             return {
-              id: etapa.etap_id,
+              id: etapa.etap_id, // ID único da etapa
               label: etapa.etap_descricao,
               value: etapa.etap_id,
               color: etapa.etap_cor,
@@ -164,14 +173,23 @@ export default function ControleVisitasList({ navigation }) {
         )
 
         // Garantir que data seja um array
-        const data = response?.results || response || []
+        let data = response?.results || response || []
         if (!Array.isArray(data)) {
           console.warn('API retornou dados em formato inesperado:', data)
           setVisitas([])
           return
         }
 
-        setVisitas(data)
+        // Filtrar duplicatas por ID (solução temporária para problema no backend)
+        const visitasUnicas = data.filter((visita, index, array) => 
+          array.findIndex(v => v.ctrl_id === visita.ctrl_id) === index
+        )
+        
+        if (visitasUnicas.length !== data.length) {
+          console.warn(`Removidas ${data.length - visitasUnicas.length} visitas duplicadas`)
+        }
+
+        setVisitas(visitasUnicas)
 
         // Extrair etapas
         const etapasExtraidas = extrairEtapasDasVisitas(data)
@@ -216,16 +234,9 @@ export default function ControleVisitasList({ navigation }) {
     [searchText]
   )
 
-  // useEffect para carregar visitas inicialmente
-  useEffect(() => {
-    carregarVisitas(filters)
-  }, [])
-
   // useEffect para aplicar filtros quando mudarem
   useEffect(() => {
-    if (Object.values(filters).some((f) => f)) {
-      carregarVisitas(filters)
-    }
+    carregarVisitas(filters)
   }, [filters, carregarVisitas])
 
   // useEffect para busca por texto
@@ -237,10 +248,11 @@ export default function ControleVisitasList({ navigation }) {
     return () => clearTimeout(timeoutId)
   }, [searchText, carregarVisitas])
 
+  // Carregar apenas quando a tela ganhar foco
   useFocusEffect(
     useCallback(() => {
       carregarVisitas(filters)
-    }, [filters, carregarVisitas])
+    }, [])
   )
 
   const handleEdit = (visita) => {
@@ -310,6 +322,13 @@ export default function ControleVisitasList({ navigation }) {
     setShowFilters(false)
     // carregarVisitas será chamado automaticamente pelo useEffect
   }
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true)
+    carregarVisitas(filters).finally(() => {
+      setRefreshing(false)
+    })
+  }, [filters, carregarVisitas])
   useFocusEffect(
     useCallback(() => {
       carregarVisitas(filters)
@@ -339,9 +358,9 @@ export default function ControleVisitasList({ navigation }) {
       <View style={styles.statsContainer}>
         <Text style={styles.statsTitle}>Funil de Vendas</Text>
         <View style={styles.statsGrid}>
-          {stats.map((etapa) => (
+          {stats.map((etapa, index) => (
             <TouchableOpacity
-              key={etapa.id}
+              key={`stat_${index}_${etapa.id || 'no-id'}`}
               style={[styles.statCard, { borderLeftColor: etapa.color }]}
               onPress={() => setFilters({ ...filters, etapa: etapa.value })}>
               <Text style={styles.statNumber}>{etapa.count}</Text>
@@ -434,9 +453,21 @@ export default function ControleVisitasList({ navigation }) {
         data={visitas}
         renderItem={renderVisita}
         keyExtractor={(item, index) => {
-          if (item.ctrl_id) return item.ctrl_id.toString()
-          if (item.id) return item.id.toString()
-          return index.toString()
+          // Sempre incluir index para garantir unicidade
+          if (item.ctrl_id && item.ctrl_empresa && item.ctrl_filial && item.ctrl_numero) {
+            return `ctrl_${item.ctrl_id}_${item.ctrl_empresa}_${item.ctrl_filial}_${item.ctrl_numero}_${index}`
+          }
+          if (item.ctrl_id && item.ctrl_empresa && item.ctrl_filial) {
+            return `ctrl_${item.ctrl_id}_${item.ctrl_empresa}_${item.ctrl_filial}_${index}`
+          }
+          if (item.ctrl_id) {
+            return `ctrl_${item.ctrl_id}_${index}`
+          }
+          if (item.ctrl_empresa && item.ctrl_filial && item.ctrl_numero) {
+            return `${item.ctrl_empresa}_${item.ctrl_filial}_${item.ctrl_numero}_${index}`
+          }
+          if (item.id) return `id_${item.id}_${index}`
+          return `index_${index}`
         }}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={!loading ? renderEmpty : null}

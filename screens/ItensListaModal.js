@@ -39,6 +39,7 @@ export default function ItensListaModal({ route }) {
     adicionarProduto,
     removerProduto,
     alterarQuantidade,
+    alterarQuantidadeItem,
     remocoesPendentes,
     marcarParaRemocao,
     salvarItens,
@@ -73,46 +74,24 @@ export default function ItensListaModal({ route }) {
   }, [navigation])
 
   const onProdutoLido = async (codigoBarras) => {
-    // Verificar cache primeiro
-    try {
-      const cacheKey = `${PRODUTOS_BUSCA_CACHE_KEY}_${codigoBarras}`
-      const cacheData = await AsyncStorage.getItem(cacheKey)
-      
-      if (cacheData) {
-        const { produtos, timestamp } = JSON.parse(cacheData)
-        const now = Date.now()
-        
-        if ((now - timestamp) < CACHE_DURATION) {
-          console.log(`📦 [CACHE-BARRAS] Usando cache para código: ${codigoBarras}`)
-          if (produtos.length > 0) {
-            adicionarProduto(produtos[0])
-            return
-          }
-        }
-      }
-    } catch (error) {
-      console.log('⚠️ Erro ao ler cache de código de barras:', error)
-    }
+    console.log(`🔍 [DEBUG-LISTA] Código recebido do scanner: ${codigoBarras}`)
+    console.log(`🔍 [DEBUG-LISTA] Tipo do código: ${typeof codigoBarras}`)
+    console.log(`🔍 [DEBUG-LISTA] Comprimento do código: ${codigoBarras.length}`)
+    
+    // Cache desabilitado - sempre buscar dados atualizados
+    console.log(`🚫 [CACHE-DISABLED] Cache desabilitado para busca de produtos`)
     
     try {
       console.log(`🔍 [BUSCA-BARRAS] Buscando produto para código: ${codigoBarras}`)
+      console.log(`🔍 [DEBUG-LISTA] Parâmetro q enviado: ${codigoBarras}`)
+      console.log(`🔍 [DEBUG-LISTA] URL completa: /api/${slug}/produtos/produtos/busca/?q=${codigoBarras}`)
       
       const produtos = await apiGet(`/api/${slug}/produtos/produtos/busca/`, {
         q: codigoBarras,
       })
-
-      // Salvar no cache
-      try {
-        const cacheKey = `${PRODUTOS_BUSCA_CACHE_KEY}_${codigoBarras}`
-        const cacheData = {
-          produtos,
-          timestamp: Date.now()
-        }
-        await safeSetItem(cacheKey, JSON.stringify(cacheData))
-        console.log(`💾 [CACHE-BARRAS] Produto salvo no cache`)
-      } catch (error) {
-        console.log('⚠️ Erro ao salvar cache de código de barras:', error)
-      }
+      
+      console.log(`🔍 [DEBUG-LISTA] Produtos retornados:`, produtos)
+      console.log(`🔍 [DEBUG-LISTA] Primeiro produto:`, produtos[0])
 
       if (!produtos.length) {
         Alert.alert('Produto não encontrado')
@@ -183,18 +162,41 @@ export default function ItensListaModal({ route }) {
       const numeroZap = `55${numeroLimpo}`
       const nomeNoiva = cliente || entidade.enti_nome || 'Noiva'
 
+      // Calcular totais
+      const totalItens = itens.length
+      const totalValor = itens.reduce((total, item) => {
+        return total + (item.item_quan || 1) * (item.prod_preco_vista || item.item_prec || 0)
+      }, 0)
+
       const corpo = itens
         .map((item, idx) => {
           const nome = item.produto_nome || 'Sem nome'
           const codigo = item.item_prod || 'N/A'
-          return `${idx + 1}. ${nome} (Cód: ${codigo})`
+          const quantidade = item.item_quan || 1
+          const preco = item.prod_preco_vista || item.item_prec || 0
+          const subtotal = quantidade * preco
+          
+          return (
+            `${idx + 1}. *${nome}*\n` +
+            `   📦 Qtd: ${quantidade}\n` +
+            `   💰 Preço: R$ ${preco.toFixed(2)}\n` +
+            `   🔸 Subtotal: R$ ${subtotal.toFixed(2)}\n` +
+            `   🏷️ Código: ${codigo}\n`
+          )
         })
         .join('\n')
 
       const mensagem =
-        `💍 *Lista de Presentes - ${nomeNoiva}*\n` +
-        `🆔 Lista Nº ${listaId}\n\n` +
-        `${corpo}`
+        `💍 *LISTA DE PRESENTES*\n` +
+        `👰 ${nomeNoiva}\n` +
+        `🆔 Lista Nº ${listaId}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `${corpo}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📊 *RESUMO DA LISTA*\n` +
+        `🔢 Total de itens: ${totalItens}\n` +
+        `💵 Valor total: R$ ${totalValor.toFixed(2)}\n\n` +
+        `_Mensagem gerada automaticamente pelo sistema_`
 
       const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(
         mensagem
@@ -268,6 +270,7 @@ export default function ItensListaModal({ route }) {
               marcarParaRemocao={marcarParaRemocao}
               removidos={remocoesPendentes}
               listaId={listaId}
+              onQuantidadeChange={alterarQuantidadeItem}
             />
           </>
         }

@@ -49,7 +49,7 @@ const MenuCategory = ({ categoria, navigation, styles }) => {
                   <IconComponent
                     name={item.icon}
                     size={16}
-                    color="#666"
+                    color="#ccc"
                     style={{ marginRight: 8 }}
                   />
                   <Text style={styles.subMenuText}>{item.name}</Text>

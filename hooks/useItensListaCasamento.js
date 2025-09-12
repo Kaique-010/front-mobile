@@ -59,7 +59,11 @@ export default function useItensListaCasamento({
 
   const adicionarProduto = (produto) => {
     if (!selecionados.find((p) => p.prod_codi === produto.prod_codi)) {
-      setSelecionados((prev) => [...prev, produto])
+      const produtoComQuantidade = {
+        ...produto,
+        item_quan: 1, // Quantidade padrão
+      }
+      setSelecionados((prev) => [...prev, produtoComQuantidade])
     }
   }
 
@@ -88,6 +92,27 @@ export default function useItensListaCasamento({
     )
   }
 
+  const alterarQuantidadeItem = (item, novaQuantidade) => {
+    // Para itens já salvos, atualizar diretamente
+    setItensSalvos((prev) =>
+      prev.map((i) =>
+        i.item_empr === item.item_empr &&
+        i.item_fili === item.item_fili &&
+        i.item_list === item.item_list &&
+        i.item_item === item.item_item
+          ? { ...i, item_quan: novaQuantidade }
+          : i
+      )
+    )
+
+    // Para itens selecionados, também atualizar
+    setSelecionados((prev) =>
+      prev.map((i) =>
+        i.prod_codi === item.prod_codi ? { ...i, item_quan: novaQuantidade } : i
+      )
+    )
+  }
+
   const salvarItens = async () => {
     setSalvando(true)
     try {
@@ -104,6 +129,9 @@ export default function useItensListaCasamento({
           item_quan: Number.isFinite(Number(item.item_quan))
             ? Number(item.item_quan)
             : 0,
+          item_prec: item.prod_preco_vista || 0, // Preço à vista
+          item_total:
+            Number(item.item_quan || 1) * Number(item.prod_preco_vista || 0), // Total calculado
         })),
       }
 
@@ -111,6 +139,7 @@ export default function useItensListaCasamento({
         `/api/${slug}/listacasamento/itens-lista-casamento/update-lista/`,
         payload
       )
+      console.log('Payload para salvar itens :', payload)
 
       Alert.alert('Sucesso', 'Alterações salvas com sucesso!')
       setSelecionados([])
@@ -118,7 +147,10 @@ export default function useItensListaCasamento({
       await carregarItens()
     } catch (err) {
       console.error('Erro ao salvar:', err)
-      Alert.alert('Erro', err.response?.data?.detail || 'Erro ao salvar alterações')
+      Alert.alert(
+        'Erro',
+        err.response?.data?.detail || 'Erro ao salvar alterações'
+      )
     } finally {
       setSalvando(false)
     }
@@ -133,6 +165,7 @@ export default function useItensListaCasamento({
     marcarParaRemocao,
     salvarItens,
     alterarQuantidade,
+    alterarQuantidadeItem,
     carregando,
     salvando,
     remocoesPendentes,

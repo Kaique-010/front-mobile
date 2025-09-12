@@ -151,6 +151,11 @@ export const screenConfigs = [
     component: Screens.SaidasForm,
     options: createHeaderOptions('Saidas de Estoque'),
   },
+  {
+    name: 'ColetorEstoque',
+    component: Screens.ColetorEstoqueScreen,
+    options: createHeaderOptions('Coletor de Estoque'),
+  },
 
   // Telas financeiras
   {
@@ -248,11 +253,12 @@ export const screenConfigs = [
     name: 'PainelAcompanhamento',
     component: Screens.PainelAcompanhamento,
     options: { title: 'Painel OS' },
+    options: createHeaderOptions('Painel Acompanhamento de Ordens de Serviço'),
   },
   {
     name: 'Painel Os',
     component: Screens.PainelOrdens,
-    options: { title: 'Painel Ordens de serviço' },
+    options: createHeaderOptions('Painel Ordens de serviço'),
   },
   {
     name: 'OrdemDetalhe',

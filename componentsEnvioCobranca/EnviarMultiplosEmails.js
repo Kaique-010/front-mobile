@@ -1,5 +1,4 @@
 import { Alert } from 'react-native'
-import styles from '../styles/cobrancasStyles'
 
 export default async function enviarMultiplosEmails({
   cobrancas,

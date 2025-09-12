@@ -77,9 +77,9 @@ export default function AbaAtividades({ formData, setFormData, scrollX, activeTa
     <View style={styles.tabContent}>
       <Text style={styles.tabTitle}>Atividades Realizadas</Text>
       
-      {atividades.map((atividade) => (
+      {atividades.map((atividade, index) => (
         <SwitchField
-          key={atividade.field}
+          key={`${atividade.field}_${index}`}
           label={atividade.label}
           field={atividade.field}
           description={atividade.description}

@@ -58,38 +58,51 @@ export default function ResumoPedidoComFinanceiro({
   useEffect(() => {
     if (pedido) {
       console.log('🎯 [ResumoPedidoComFinanceiro] Dados do pedido recebidos:', {
+        pedi_desc: pedido.pedi_desc,
         desconto_geral_aplicado: pedido.desconto_geral_aplicado,
         desconto_geral_tipo: pedido.desconto_geral_tipo,
         desconto_geral_percentual: pedido.desconto_geral_percentual,
         desconto_geral_valor: pedido.desconto_geral_valor,
       })
 
-      setDescontoHabilitado(!!pedido.desconto_geral_aplicado)
-      setTipoDesconto(pedido.desconto_geral_tipo || 'percentual')
+      // Verificar se há desconto aplicado
+      const temDesconto = !!pedido.desconto_geral_aplicado || (pedido.pedi_desc && Number(pedido.pedi_desc) > 0);
+      setDescontoHabilitado(temDesconto);
+      
+      // Definir tipo de desconto
+      setTipoDesconto(pedido.desconto_geral_tipo || 'percentual');
 
       // Converter percentual de decimal para porcentagem
-      if (
-        pedido.desconto_geral_percentual &&
-        pedido.desconto_geral_tipo === 'percentual'
-      ) {
-        setPercentualDesconto(
-          String((Number(pedido.desconto_geral_percentual) * 100).toFixed(2))
-        )
+      if (temDesconto && (pedido.desconto_geral_tipo === 'percentual' || !pedido.desconto_geral_tipo)) {
+        // Se temos percentual definido, usamos ele
+        if (pedido.desconto_geral_percentual) {
+          setPercentualDesconto(
+            String((Number(pedido.desconto_geral_percentual) * 100).toFixed(2))
+          );
+        } 
+        // Caso contrário, calculamos com base no desconto e subtotal
+        else if (pedido.pedi_desc && pedido.pedi_topr) {
+          const percentual = (Number(pedido.pedi_desc) / Number(pedido.pedi_topr)) * 100;
+          setPercentualDesconto(String(percentual.toFixed(2)));
+        } else {
+          setPercentualDesconto('');
+        }
       } else {
-        setPercentualDesconto('')
+        setPercentualDesconto('');
       }
 
       // Converter valor para string
-      if (
-        pedido.desconto_geral_valor &&
-        pedido.desconto_geral_tipo === 'valor'
-      ) {
-        setValorDesconto(String(pedido.desconto_geral_valor))
+      if (temDesconto && (pedido.desconto_geral_tipo === 'valor' || !pedido.desconto_geral_tipo)) {
+        // Prioridade: desconto_geral_valor > pedi_desc
+        const valorDesc = pedido.desconto_geral_valor || pedido.pedi_desc || 0;
+        setValorDesconto(String(valorDesc));
       } else {
-        setValorDesconto('')
+        setValorDesconto('');
       }
     }
   }, [
+    pedido?.pedi_desc,
+    pedido?.pedi_topr,
     pedido?.desconto_geral_aplicado,
     pedido?.desconto_geral_tipo,
     pedido?.desconto_geral_percentual,
@@ -224,6 +237,9 @@ export default function ResumoPedidoComFinanceiro({
             : 0,
         desconto_geral_valor: descontoHabilitado ? Number(descGeral) : 0,
         pedi_desc: descontoHabilitado ? Number(descGeral) : 0,
+        valor_desconto: descontoHabilitado ? Number(descGeral) : 0,
+        valor_subtotal: Number(pedi_topr.toFixed(2)),
+        valor_total: Number((pedi_topr - (descontoHabilitado ? Number(descGeral) : 0)).toFixed(2)),
         itens_input: (pedido.itens_input || []).map((item) => ({
           iped_prod: Number(item.iped_prod),
           iped_quan: Number(item.iped_quan),

@@ -1,6 +1,18 @@
 from django.shortcuts import render
+from django.db.models import Q, Count, Avg, Max
 from .models import Controlevisita, Etapavisita, ItensVisita
+from Orcamentos.models import Orcamentos, ItensOrcamento
+from Entidades.models import Entidades
+from Licencas.models import Liberar
+from django.shortcuts import get_object_or_404
 from .serializers import ControleVisitaSerializer, EtapaVisitaSerializer, ExportarVisitaParaOrcamentoSerializer, ItensVisitaSerializer
+from .services import (
+    exportar_visita_para_orcamento, 
+    exportar_visita_para_orcamento_pisos, 
+    verificar_modulo_pisos_liberado
+)
+from core.serializers import BancoContextMixin
+from Pisos.views import BaseMultiDBModelViewSet
 from rest_framework import viewsets, status
 from core.utils import get_licenca_db_config
 from core.decorator import ModuloRequeridoMixin
@@ -10,14 +22,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.db.models import Q, Count, Avg
 from datetime import datetime, date, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class ControleVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
+class ControleVisitaViewSet(BancoContextMixin, ModuloRequeridoMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     modulo_requerido = 'Pedidos'
     serializer_class = ControleVisitaSerializer
@@ -42,9 +53,27 @@ class ControleVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
     ordering = ['-ctrl_data', 'ctrl_numero']
     lookup_field = 'ctrl_id'
 
-    def get_queryset(self, slug=None):
+    
+    def get_entidade_vendedor(self, user, banco):
+        try:
+            empresa_id = self.request.headers.get("X-Empresa")
+            liberar = Liberar.objects.using(banco).get(libe_usua=user.usua_codi)
+            vendedor = Entidades.objects.using(banco).get(
+                enti_clie=liberar.libe_codi_vend,
+                enti_empr=empresa_id
+            )
+            print(f"🔍 DEBUG: Vendedor encontrado: {vendedor.enti_clie} - {vendedor.enti_nome}")
+            return vendedor
+        except (Liberar.DoesNotExist, Entidades.DoesNotExist):
+            return None
+
+
+    
+    def get_queryset(self):
 
         banco = get_licenca_db_config(self.request)
+        print(f"🔍 DEBUG: Banco de dados configurado para licença: {banco}")
+        
         if not banco:
             logger.error("Banco de dados não encontrado.")
             raise NotFound("Banco de dados não encontrado.")
@@ -56,9 +85,27 @@ class ControleVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
         queryset = Controlevisita.objects.using(banco).select_related(
             'ctrl_cliente',
             'ctrl_vendedor', 
-            'ctrl_empresa'
+            'ctrl_empresa',
+            'ctrl_etapa'
         ).all()
 
+        user = self.request.user
+        
+        # Verificar se usuário é vendedor e filtrar suas visitas
+        print(f"🔍 DEBUG: Iniciando verificação de vendedor para usuário {user.usua_nome} (ID: {user.usua_codi})")
+        entidade_vendedor = self.get_entidade_vendedor(user, banco)
+        print(f"🔍 DEBUG: Resultado _get_entidade_vendedor: {entidade_vendedor}")
+        
+        if entidade_vendedor:
+            print(f"✅ Usuário {user.usua_nome} é vendedor. Filtrando visitas para entidade {entidade_vendedor.enti_clie}.")
+            queryset_antes = queryset.count()
+            queryset = queryset.filter(ctrl_vendedor=entidade_vendedor.enti_clie)
+            queryset_depois = queryset.count()
+            print(f"🎯 Queryset filtrado aplicado: ctrl_vendedor={entidade_vendedor.enti_clie}")
+            print(f"📊 DEBUG: Registros antes do filtro: {queryset_antes}, depois: {queryset_depois}")
+        else:
+            print(f"❌ Usuário {user.usua_nome} não é vendedor. Acesso total permitido.")
+        
         
         # Filtros por headers
         if empresa_id:
@@ -88,12 +135,34 @@ class ControleVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
         if etapa:
             queryset = queryset.filter(ctrl_etapa=etapa)
         
+        queryset = queryset.distinct()
+        
         return queryset.order_by('-ctrl_data', 'ctrl_numero')
+
 
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['banco'] = get_licenca_db_config(self.request)
+        try:
+            context['banco'] = get_licenca_db_config(self.request)
+        except Exception:
+            context['banco'] = 'default'
+        
+        # Pegar empresa_id do header X-Empresa (prioridade)
+        empresa_id = self.request.headers.get("X-Empresa")
+        
+        # Fallback: pegar do usuário logado
+        if not empresa_id and hasattr(self.request.user, 'empresa_id'):
+            empresa_id = self.request.user.empresa_id
+        
+        # Fallback: pegar dos dados da requisição
+        if not empresa_id and self.request.data.get('ctrl_empresa'):
+            empresa_id = self.request.data.get('ctrl_empresa')
+        
+        if empresa_id:
+            context['empresa_id'] = int(empresa_id)
+        
+        print(f"🔍 CONTEXTO EMPRESA_ID: {context.get('empresa_id')}")
         return context
 
     def destroy(self, request, *args, **kwargs):
@@ -302,40 +371,87 @@ class ControleVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ItensVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-
+class ItensVisitaViewSet(BaseMultiDBModelViewSet):
+    modulo_necessario = 'Controle de Visitas'
     serializer_class = ItensVisitaSerializer
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['item_visita', 'item_empr', 'item_fili']
-    search_fields = ['item_prod', 'item_desc_prod']
-    ordering = ['item_data']
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['item_empr', 'item_fili', 'item_visita', 'item_prod']
     
     def get_queryset(self):
-        banco = get_licenca_db_config(self.request)
-        if not banco:
-            raise NotFound("Banco de dados não encontrado.")
-        
-        empresa_id = self.request.headers.get("X-Empresa")
-        filial_id = self.request.headers.get("X-Filial")
-        
-        queryset = ItensVisita.objects.using(banco).select_related('item_visita')
-        
-        if empresa_id:
-            queryset = queryset.filter(item_empr=empresa_id)
-        if filial_id:
-            queryset = queryset.filter(item_fili=filial_id)
-            
-        return queryset
+        banco = self.get_banco()
+        return ItensVisita.objects.using(banco).all().order_by('-item_data')
     
+    @action(detail=False, methods=['post'], url_path='calcular-metragem-pisos')
+    def calcular_metragem_pisos(self, request, slug=None):
+        """Calcula metragem para produtos de pisos"""
+        try:
+            banco = self.get_banco()
+            
+            produto_id = request.data.get('produto_id')
+            tamanho_m2 = request.data.get('tamanho_m2')
+            percentual_quebra = request.data.get('percentual_quebra', 10)
+            condicao = request.data.get('condicao', '0')
+            
+            if not produto_id or not tamanho_m2:
+                return Response({
+                    'error': 'produto_id e tamanho_m2 são obrigatórios'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Importar modelo de produtos
+            from Produtos.models import Produtos
+            
+            # Verificar se produto existe no banco correto
+            try:
+                produto = Produtos.objects.using(banco).get(prod_codi=produto_id)
+            except Produtos.DoesNotExist:
+                return Response({
+                    'error': f'Produto {produto_id} não encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Usar a função de cálculo do módulo Pisos
+            from Pisos.views import ProdutosPisosViewSet
+            
+            pisos_viewset = ProdutosPisosViewSet()
+            pisos_viewset.request = request
+            
+            # Preparar dados para o cálculo
+            dados_calculo = {
+                'produto_id': int(produto_id),
+                'tamanho_m2': float(tamanho_m2),
+                'percentual_quebra': float(percentual_quebra),
+                'condicao': str(condicao)
+            }
+            
+            # Simular request
+            class MockRequest:
+                def __init__(self, data, headers):
+                    self.data = data
+                    self.headers = headers
+            
+            mock_request = MockRequest(dados_calculo, request.headers)
+            
+            # Chamar função de cálculo
+            response = pisos_viewset.calcular_metragem(mock_request)
+            
+            return response
+            
+        except ValueError as ve:
+            return Response({
+                'error': f'Dados inválidos: {str(ve)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Erro no cálculo de metragem: {e}")
+            return Response({
+                'error': f'Erro interno: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['banco'] = get_licenca_db_config(self.request)
         return context
 
     @action(detail=False, methods=['post'], url_path='exportar-para-orcamento')
-    def exportar_para_orcamento(self, request):
-        """Exporta itens de uma visita para um novo orçamento"""
+    def exportar_para_orcamento(self, request, slug=None):
+        """Exporta itens de uma visita para um novo orçamento (normal ou pisos)"""
         try:
             banco = get_licenca_db_config(request)
             serializer = ExportarVisitaParaOrcamentoSerializer(data=request.data, context={'banco': banco})
@@ -344,63 +460,45 @@ class ItensVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
             visita_id = serializer.validated_data['visita_id']
-            observacoes = serializer.validated_data.get('observacoes_orcamento', '')
             
-            # Buscar visita e itens
+            # Buscar visita
             visita = Controlevisita.objects.using(banco).get(ctrl_id=visita_id)
-            itens_visita = ItensVisita.objects.using(banco).filter(item_visita=visita)
             
-            if not itens_visita.exists():
-                return Response(
-                    {'detail': 'Nenhum item encontrado para esta visita'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Verificar se há itens com cálculo de pisos na visita
+            tem_itens_pisos = ItensVisita.objects.using(banco).filter(
+                item_visita=visita_id,
+                item_tipo_calculo='pisos'
+            ).exists()
             
-            # Criar orçamento
-            max_numero = Orcamentos.objects.using(banco).filter(
-                pedi_empr=visita.ctrl_empresa,
-                pedi_fili=visita.ctrl_filial
-            ).aggregate(Max('pedi_nume'))['pedi_nume__max'] or 0
+            # Verificar se o módulo de Pisos está liberado
+            tem_modulo_pisos = verificar_modulo_pisos_liberado(request)
             
-            total_orcamento = sum(item.item_tota or 0 for item in itens_visita)
-            
-            orcamento = Orcamentos.objects.using(banco).create(
-                pedi_empr=visita.ctrl_empresa,
-                pedi_fili=visita.ctrl_filial,
-                pedi_nume=max_numero + 1,
-                pedi_forn=visita.ctrl_cliente.enti_clie if visita.ctrl_cliente else '',
-                pedi_data=visita.ctrl_data,
-                pedi_tota=total_orcamento,
-                pedi_vend=visita.ctrl_vendedor.enti_clie if visita.ctrl_vendedor else '',
-                pedi_obse=f"Orçamento gerado da visita {visita.ctrl_numero}. {observacoes}".strip()
-            )
-            
-            # Criar itens do orçamento
-            for idx, item_visita in enumerate(itens_visita, 1):
-                ItensOrcamento.objects.using(banco).create(
-                    iped_empr=visita.ctrl_empresa,
-                    iped_fili=visita.ctrl_filial,
-                    iped_pedi=str(orcamento.pedi_nume),
-                    iped_item=idx,
-                    iped_prod=item_visita.item_prod,
-                    iped_quan=item_visita.item_quan,
-                    iped_unit=item_visita.item_unit,
-                    iped_tota=item_visita.item_tota,
-                    iped_desc=item_visita.item_desc,
-                    iped_data=visita.ctrl_data
-                )
-            
-            # Atualizar visita com número do orçamento
-            visita.ctrl_nume_orca = orcamento.pedi_nume
-            visita.save()
+            # Só gera orçamento de pisos se tiver itens de pisos E módulo liberado
+            if tem_itens_pisos and tem_modulo_pisos:
+                # Gerar orçamento de pisos
+                orcamento = exportar_visita_para_orcamento_pisos(visita, banco)
+                tipo_orcamento = "pisos"
+                numero_orcamento = orcamento.orca_nume
+                valor_total = orcamento.orca_tota
+            else:
+                # Gerar orçamento normal
+                orcamento = exportar_visita_para_orcamento(visita, banco)
+                tipo_orcamento = "normal"
+                numero_orcamento = orcamento.pedi_nume
+                valor_total = orcamento.pedi_tota
             
             return Response({
-                'detail': 'Orçamento criado com sucesso',
-                'orcamento_numero': orcamento.pedi_nume,
-                'total_itens': itens_visita.count(),
-                'valor_total': total_orcamento
+                'detail': f'Orçamento de {tipo_orcamento} criado com sucesso',
+                'tipo_orcamento': tipo_orcamento,
+                'orcamento_numero': numero_orcamento,
+                'valor_total': valor_total
             }, status=status.HTTP_201_CREATED)
             
+        except ValueError as e:
+            return Response(
+                {'detail': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             logger.error(f"Erro ao exportar visita para orçamento: {e}")
             return Response(
@@ -439,6 +537,20 @@ class EtapaVisitaViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['banco'] = get_licenca_db_config(self.request)
         return context
+
+    def create(self, request, *args, **kwargs):
+        print(f"🔍 VIEW - DADOS RECEBIDOS: {request.data}")
+        print(f"🔍 VIEW - MÉTODO: {request.method}")
+        print(f"🔍 VIEW - CONTENT TYPE: {request.content_type}")
+        
+        try:
+            response = super().create(request, *args, **kwargs)
+            print(f"✅ VIEW - SUCESSO: {response.status_code}")
+            return response
+        except Exception as e:
+            print(f"🚨 VIEW - ERRO: {e}")
+            print(f"🚨 VIEW - TIPO DO ERRO: {type(e)}")
+            raise
 
 
 

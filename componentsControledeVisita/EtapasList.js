@@ -178,7 +178,7 @@ export default function EtapasList({ navigation }) {
 
   const handleEdit = (etapa) => {
     navigation.navigate('EtapasForm', {
-      etapaId: etapa.etap_id, 
+      etapaId: etapa.etap_id,
       etapa: etapa,
       mode: 'edit',
     })
@@ -201,7 +201,9 @@ export default function EtapasList({ navigation }) {
 
   const confirmarExclusao = async (etapa) => {
     try {
-      await apiDeleteComContexto(`controledevisitas/etapas-visita/${etapa.etap_id}/`) // Corrigido: usar etap_id
+      await apiDeleteComContexto(
+        `controledevisitas/etapas-visita/${etapa.etap_id}/`
+      ) // Corrigido: usar etap_id
 
       // Remover do estado local
       setEtapas((prev) => prev.filter((item) => item.etap_id !== etapa.etap_id)) // Corrigido: usar etap_id
@@ -295,7 +297,8 @@ export default function EtapasList({ navigation }) {
           data={etapas}
           renderItem={renderEtapa}
           keyExtractor={(item) =>
-            item.id?.toString() || Math.random().toString()
+            item.id?.toString() ||
+            `${item.etap_empr || 'no-empr'}-${item.etap_nume || 'no-nume'}-${Math.random().toString(36).substr(2, 9)}`
           }
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}

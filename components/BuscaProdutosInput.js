@@ -79,7 +79,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
           'produtos/produtos/',
           {
             search: debouncedSearchTerm,
-            limit: 5,
+            limit: 10,
           },
           'prod_'
         )
@@ -169,7 +169,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
             `produto-${item.prod_codi}-${item.prod_nome}-${item.prod_empr}`
           }
           nestedScrollEnabled={true}
-          maxToRenderPerBatch={5} // Otimização de renderização
+          maxToRenderPerBatch={10} // Otimização de renderização
           windowSize={10} // Otimização de memória
           renderItem={({ item }) => (
             <Card

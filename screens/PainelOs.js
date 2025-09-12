@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View,
   Text,
@@ -6,26 +6,28 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Image,
+  ScrollView,
 } from 'react-native'
-import { Picker } from '@react-native-picker/picker'
 import { apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 
 const STATUS_OPTIONS = [
   { label: 'Todas', value: null },
   { label: 'Aberta', value: 0 },
-  { label: 'Em Orçamento gerado', value: 1 },
+  { label: 'Orçamento gerado', value: 1 },
   { label: 'Aguardando Liberação', value: 2 },
   { label: 'Liberada', value: 3 },
   { label: 'Finalizada', value: 4 },
   { label: 'Reprovada', value: 5 },
   { label: 'Faturada parcial', value: 20 },
+  { label: 'Em atraso', value: 21 },
 ]
 
 const statusColors = {
   0: '#d1ecf1',
   1: '#fff3cd',
-  2: '#f5c6cb',
+  21: '#f5c6cb',
   3: '#d1ecf1',
   4: '#d4edda',
   5: '#f5c6cb',
@@ -33,16 +35,16 @@ const statusColors = {
 }
 
 const PRIORIDADE_OPTIONS = [
-  { label: 'Todas', value: '' },
-  { label: 'Normal', value: 1 },
-  { label: 'Alerta', value: 2 },
-  { label: 'Urgente', value: 3 },
+  { label: 'Todas', value: null },
+  { label: 'Normal', value: 'normal' },
+  { label: 'Alerta', value: 'alerta' },
+  { label: 'Urgente', value: 'urgente' },
 ]
 
 const prioridadeColors = {
-  1: '#d1ecf1',
-  2: '#ffc107',
-  3: '#dc3545',
+  normal: '#d1ecf1',
+  alerta: '#ffc107',
+  urgente: '#dc3545',
 }
 
 const PainelAcompanhamento = ({ navigation }) => {
@@ -62,7 +64,7 @@ const PainelAcompanhamento = ({ navigation }) => {
 
     const abertas = ordensData.filter((o) => o.orde_stat_orde === 0).length
     const concluidas = ordensData.filter((o) => o.orde_stat_orde === 4).length
-    const atrasadas = ordensData.filter((o) => o.orde_stat_orde === 2).length
+    const atrasadas = ordensData.filter((o) => o.orde_stat_orde === 21).length
 
     return { abertas, atrasadas, concluidas, total: ordensData.length }
   }
@@ -70,17 +72,13 @@ const PainelAcompanhamento = ({ navigation }) => {
   const fetchOrdens = async () => {
     setLoading(true)
     try {
-      const params = {}
-      if (filtroStatus !== null) params.orde_stat_orde = filtroStatus
-      if (filtroPrioridade !== null) params.orde_prio = filtroPrioridade
-
-      const response = await apiGetComContextoos('ordemdeservico/ordens/', {
-        params,
-      })
+      const response = await apiGetComContextoos('ordemdeservico/ordens/')
 
       const ordensData = Array.isArray(response)
         ? response
         : response.results || []
+
+      console.log('Dados retornados pela API:', ordensData.length, 'registros')
 
       setOrdens(ordensData)
       setContadores(calcularContadores(ordensData))
@@ -92,9 +90,38 @@ const PainelAcompanhamento = ({ navigation }) => {
     }
   }
 
+  const ordensFiltradasLocalmente = useMemo(() => {
+    let ordensFiltradasLocalmente = [...ordens]
+
+    // Filtro por status - converter string para number se necessário
+    if (filtroStatus !== null && filtroStatus !== 'Todas') {
+      const statusNumerico =
+        typeof filtroStatus === 'string'
+          ? parseInt(filtroStatus, 10)
+          : filtroStatus
+      ordensFiltradasLocalmente = ordensFiltradasLocalmente.filter(
+        (ordem) => ordem.orde_stat_orde === statusNumerico
+      )
+    }
+
+    // Filtro por prioridade - manter como string
+    if (filtroPrioridade !== null) {
+      ordensFiltradasLocalmente = ordensFiltradasLocalmente.filter(
+        (ordem) => ordem.orde_prio === filtroPrioridade
+      )
+    }
+
+    return ordensFiltradasLocalmente
+  }, [ordens, filtroStatus, filtroPrioridade])
+
   useEffect(() => {
     fetchOrdens()
-  }, [filtroStatus, filtroPrioridade])
+  }, [])
+
+  useEffect(() => {
+    // Contadores sempre mostram dados totais, não filtrados
+    setContadores(calcularContadores(ordens))
+  }, [ordens])
 
   const getStatusText = (status) => {
     const option = STATUS_OPTIONS.find((opt) => opt.value === status)
@@ -120,14 +147,14 @@ const PainelAcompanhamento = ({ navigation }) => {
         <View
           style={[
             styles.prioridadeContainer,
-            { backgroundColor: prioridadeColors[item.orde_prio] },
+            { backgroundColor: prioridadeColors[item.orde_prio] || '#aaa' },
           ]}>
           <Text style={styles.prioridade}>
-            {item.orde_prio === 1
+            {item.orde_prio === 'normal'
               ? 'Normal'
-              : item.orde_prio === 2
+              : item.orde_prio === 'alerta'
               ? 'Alerta'
-              : item.orde_prio === 3
+              : item.orde_prio === 'urgente'
               ? 'Urgente'
               : '-'}
           </Text>
@@ -165,6 +192,20 @@ const PainelAcompanhamento = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Header com Logo e Refresh */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}></Text>
+        <View style={styles.headerRight}>
+          <Image source={require('../assets/eletro.png')} style={styles.logo} />
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={fetchOrdens}
+            activeOpacity={0.7}>
+            <Ionicons name="refresh" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={styles.indicadores}>
         <TouchableOpacity
           style={styles.botaoCriar}
@@ -180,28 +221,78 @@ const PainelAcompanhamento = ({ navigation }) => {
       </View>
 
       <View style={styles.filtros}>
-        <View style={styles.pickerContainer}>
-          <Text style={styles.pickerLabel}>Status</Text>
-          <Picker
-            selectedValue={filtroStatus}
-            onValueChange={setFiltroStatus}
-            style={styles.picker}>
+        <View style={styles.filtroSection}>
+          <Text style={styles.filtroLabel}>Status</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtroScroll}>
             {STATUS_OPTIONS.map(({ label, value }) => (
-              <Picker.Item key={label} label={label} value={value} />
+              <TouchableOpacity
+                key={label}
+                style={[
+                  styles.filtroButton,
+                  {
+                    backgroundColor:
+                      value !== null
+                        ? statusColors[value] || '#f0f0f0'
+                        : '#f0f0f0',
+                    borderColor:
+                      filtroStatus === value ? '#284665' : 'transparent',
+                    borderWidth: filtroStatus === value ? 3 : 1,
+                  },
+                ]}
+                onPress={() => setFiltroStatus(value)}
+                activeOpacity={0.7}>
+                <Text
+                  style={[
+                    styles.filtroButtonText,
+                    { fontWeight: filtroStatus === value ? 'bold' : 'normal' },
+                  ]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
             ))}
-          </Picker>
+          </ScrollView>
         </View>
 
-        <View style={styles.pickerContainer}>
-          <Text style={styles.pickerLabel}>Prioridade</Text>
-          <Picker
-            selectedValue={filtroPrioridade}
-            onValueChange={setFiltroPrioridade}
-            style={styles.picker}>
+        <View style={styles.filtroSection}>
+          <Text style={styles.filtroLabel}>Prioridade</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtroScroll}>
             {PRIORIDADE_OPTIONS.map(({ label, value }) => (
-              <Picker.Item key={label} label={label} value={value} />
+              <TouchableOpacity
+                key={label}
+                style={[
+                  styles.filtroButton,
+                  {
+                    backgroundColor:
+                      value !== null
+                        ? prioridadeColors[value] || '#f0f0f0'
+                        : '#f0f0f0',
+                    borderColor:
+                      filtroPrioridade === value ? '#284665' : 'transparent',
+                    borderWidth: filtroPrioridade === value ? 3 : 1,
+                  },
+                ]}
+                onPress={() => setFiltroPrioridade(value)}
+                activeOpacity={0.7}>
+                <Text
+                  style={[
+                    styles.filtroButtonText,
+                    {
+                      fontWeight:
+                        filtroPrioridade === value ? 'bold' : 'normal',
+                      color: value === 'urgente' ? '#fff' : '#333',
+                    },
+                  ]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
             ))}
-          </Picker>
+          </ScrollView>
         </View>
       </View>
 
@@ -212,7 +303,7 @@ const PainelAcompanhamento = ({ navigation }) => {
         </View>
       ) : (
         <FlatList
-          data={ordens}
+          data={ordensFiltradasLocalmente}
           keyExtractor={(item) => item.orde_nume.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
@@ -237,7 +328,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 12,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: '#232935',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingVertical: 10,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
+  },
+  refreshButton: {
+    backgroundColor: '#284665',
+    padding: 8,
+    borderRadius: 20,
+    elevation: 2,
   },
   indicadores: {
     flexDirection: 'row',
@@ -264,25 +383,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   filtros: {
+    marginBottom: 5,
+    backgroundColor: '#000',
+    padding: 30,
+    borderRadius: 10,
+    elevation: 4,
+  },
+  filtroSection: {
+    marginBottom: 5,
+  },
+  filtroLabel: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  filtroScroll: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
+  },
+  filtroButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginRight: 10,
+    borderRadius: 20,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  pickerContainer: {
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  pickerLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  picker: {
-    backgroundColor: '#fff',
+  filtroButtonText: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
   },
   card: {
     flex: 1,

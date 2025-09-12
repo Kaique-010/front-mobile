@@ -250,6 +250,9 @@ export default function ResumoOrcamento({ total, orcamento }) {
         desconto_geral_percentual:
           descontoHabilitado && tipoDesconto === 'percentual' ? perc : 0,
         desconto_geral_valor: descontoHabilitado ? descontoGeralValor : 0,
+        valor_desconto: descontoHabilitado ? descontoGeralValor : 0,
+        valor_subtotal: Number(pedi_topr.toFixed(2)),
+        valor_total: Number((pedi_topr - pedi_desc).toFixed(2)),
       }
 
       console.log('Payload enviado:', payload) // Adicionado para depuração

@@ -70,12 +70,29 @@ export default function TelaOrcamento({ route, navigation }) {
           )
           const itens = data.itens || []
 
+          console.log('Dados de desconto recebidos da API:', {
+            pedi_desc: data.pedi_desc,
+            valor_desconto: data.valor_desconto,
+            desconto_geral_aplicado: data.desconto_geral_aplicado,
+            desconto_geral_tipo: data.desconto_geral_tipo,
+            desconto_geral_percentual: data.desconto_geral_percentual,
+            desconto_geral_valor: data.desconto_geral_valor,
+            pedi_topr: data.pedi_topr,
+            pedi_tota: data.pedi_tota
+          });
+          
           setOrcamento({
             ...data,
             pedi_empr: data.pedi_empr || empresaId, // Garante que empresaId seja usado se data.pedi_empr for nulo
             pedi_fili: data.pedi_fili || filialId, // Garante que filialId seja usado se data.pedi_fili for nulo
             itens_input: itens,
             pedi_tota: calcularTotal(itens),
+            // Garantir que os campos de desconto sejam mapeados corretamente
+            pedi_desc: data.pedi_desc || data.valor_desconto || 0,
+            desconto_geral_aplicado: data.desconto_geral_aplicado || (data.pedi_desc > 0),
+            desconto_geral_tipo: data.desconto_geral_tipo || 'percentual',
+            desconto_geral_percentual: data.desconto_geral_percentual || 0,
+            desconto_geral_valor: data.desconto_geral_valor || data.pedi_desc || 0
           })
 
           await safeSetItem(

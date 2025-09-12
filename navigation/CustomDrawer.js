@@ -185,6 +185,7 @@ export default function CustomDrawer(props) {
           name={item.name}
           route={item.route}
           icon={item.icon}
+          iconType={item.iconType}
           navigation={props.navigation}
           styles={styles}
         />
