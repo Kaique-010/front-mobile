@@ -239,7 +239,6 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Coletor de Estoque',
           route: 'ColetorEstoque',
           icon: 'barcode-scan',
-          iconType: 'MaterialCommunityIcons',
           condition: hasModulo('Produtos'),
         },
         {
@@ -335,6 +334,21 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
+    Floresta: {
+      name: 'Floresta',
+      iconType: 'MaterialCommunityIcons',
+      icon: 'command',
+      items: [
+        {
+          name: 'Propriedade',
+          route: 'PropriedadeList',
+          icon: 'home-group',
+          iconType: 'MaterialCommunityIcons',
+          condition: hasModulo('Pedidos'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
+
     consulta: {
       name: 'Consulta Inteligente',
       icon: 'check-circle',

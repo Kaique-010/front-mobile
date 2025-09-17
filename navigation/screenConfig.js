@@ -248,6 +248,17 @@ export const screenConfigs = [
     options: createHeaderOptions('Listagem de Etapas'),
   },
 
+  // Telas de Propriedade
+  {
+    name: 'PropriedadeList',
+    component: Screens.PropriedadeList,
+    options: createHeaderOptions('Propriedades'),
+  },
+  {
+    name: 'PropriedadeForm',
+    component: Screens.PropriedadeForm,
+    options: createHeaderOptions('Propriedade'),
+  },
   // Telas de ordem de serviço
   {
     name: 'PainelAcompanhamento',

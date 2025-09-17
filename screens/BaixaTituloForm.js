@@ -12,6 +12,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import { Platform } from 'react-native'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import styles from '../styles/formBaixaStyles'
+import BuscaBanco from '../components/BuscaBancoInput'
 
 const formatarMoeda = (valor) => {
   if (!valor) return 'R$ 0,00'
@@ -47,6 +48,7 @@ export default function BaixaTituloForm({ route, navigation }) {
   const [cheque, setCheque] = useState('')
   const [tipoBaixa, setTipoBaixa] = useState('T')
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [formaPagamento, setFormaPagamento] = useState('B') // B - Banco (padrão)
 
   // Cálculos automáticos
   const valorTotalCalculado = () => {
@@ -112,7 +114,16 @@ export default function BaixaTituloForm({ route, navigation }) {
         }
 
         const totalJaBaixado = dadosHistorico.reduce((total, baixa) => {
-          const valorBaixa = parseFloat(baixa.bare_pago || baixa.bapa_pago || 0)
+          // Priorizar bapa_valo_pago/bare_valo_pago, depois bapa_sub_tota/bare_sub_tota
+          const valorBaixa = parseFloat(
+            baixa.bare_valo_pago ||
+              baixa.bapa_valo_pago ||
+              baixa.bare_sub_tota ||
+              baixa.bapa_sub_tota ||
+              baixa.bare_pago ||
+              baixa.bapa_pago ||
+              0
+          )
           return total + valorBaixa
         }, 0)
         setValorJaBaixado(totalJaBaixado)
@@ -184,6 +195,7 @@ export default function BaixaTituloForm({ route, navigation }) {
         banco: banco ? parseInt(banco) : null,
         cheque: cheque ? parseInt(cheque) : null,
         tipo_baixa: tipoBaixa,
+        forma_pagamento: formaPagamento,
       }
 
       const response = await apiPostComContexto(endpoint, payload)
@@ -340,12 +352,12 @@ export default function BaixaTituloForm({ route, navigation }) {
         />
 
         <Text style={styles.label}>Banco</Text>
-        <TextInput
-          style={styles.input}
+        <BuscaBanco
           value={banco}
-          onChangeText={setBanco}
-          placeholder="Código do banco"
-          keyboardType="numeric"
+          onSelect={(bancoSelecionado) => {
+            setBanco(bancoSelecionado.codigo)
+          }}
+          placeholder="Buscar banco..."
         />
 
         <Text style={styles.label}>Cheque</Text>
@@ -356,6 +368,27 @@ export default function BaixaTituloForm({ route, navigation }) {
           placeholder="Número do cheque"
           keyboardType="numeric"
         />
+
+        <Text style={styles.label}>Forma de Pagamento:</Text>
+        <View style={styles.checkboxContainer}>
+          {[
+            { value: 'B', label: 'Banco' },
+            { value: 'O', label: 'Outros' },
+            { value: 'C', label: 'Cheque' },
+            { value: 'D', label: 'Devolução' },
+            { value: 'A', label: 'Adiantamento' },
+          ].map((opcao) => (
+            <TouchableOpacity
+              key={opcao.value}
+              style={[
+                styles.checkbox,
+                formaPagamento === opcao.value && styles.checkboxSelected,
+              ]}
+              onPress={() => setFormaPagamento(opcao.value)}>
+              <Text style={styles.checkboxText}>{opcao.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Valor Total:</Text>

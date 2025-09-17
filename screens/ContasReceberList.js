@@ -141,28 +141,59 @@ export default function ContasPagarList({ navigation }) {
       const historico = await apiGetComContexto(endpoint)
 
       if (historico && historico.length > 0) {
-        // Se há apenas uma baixa, excluir diretamente
-        if (historico.length === 1) {
-          excluirBaixa(item, historico[0].bare_sequ)
-        } else {
-          // Se há múltiplas baixas, mostrar opções
-          const opcoes = historico.map((baixa, index) => ({
-            text: `Baixa ${baixa.bare_sequ} - ${formatarMoeda(
-              baixa.bare_pago
-            )} (${new Date(baixa.bare_dpag).toLocaleDateString('pt-BR')})`,
-            onPress: () => excluirBaixa(item, baixa.bare_sequ),
-          }))
+        // Se título está parcialmente pago, mostrar opções
+        if (item.titu_aber === 'P') {
+          const opcoes = [
+            {
+              text: '💵 Receber Restante',
+              onPress: () =>
+                navigation.navigate('BaixaTituloForm', {
+                  titulo: item,
+                  tipo: 'receber',
+                }),
+            },
+          ]
+
+          // Adicionar opções de excluir baixas
+          historico.forEach((baixa) => {
+            opcoes.push({
+              text: `🗑️ Excluir Baixa ${baixa.bare_sequ} - ${formatarMoeda(
+                baixa.bare_pago
+              )} (${new Date(baixa.bare_dpag).toLocaleDateString('pt-BR')})`,
+              onPress: () => excluirBaixa(item, baixa.bare_sequ),
+            })
+          })
 
           opcoes.push({
             text: 'Cancelar',
             style: 'cancel',
           })
 
-          Alert.alert(
-            'Selecionar Baixa',
-            'Escolha qual baixa deseja excluir:',
-            opcoes
-          )
+          Alert.alert('Gerenciar Título Parcial', 'Escolha uma opção:', opcoes)
+        } else {
+          // Se há apenas uma baixa, excluir diretamente
+          if (historico.length === 1) {
+            excluirBaixa(item, historico[0].bare_sequ)
+          } else {
+            // Se há múltiplas baixas, mostrar opções
+            const opcoes = historico.map((baixa, index) => ({
+              text: `Baixa ${baixa.bare_sequ} - ${formatarMoeda(
+                baixa.bare_pago
+              )} (${new Date(baixa.bare_dpag).toLocaleDateString('pt-BR')})`,
+              onPress: () => excluirBaixa(item, baixa.bare_sequ),
+            }))
+
+            opcoes.push({
+              text: 'Cancelar',
+              style: 'cancel',
+            })
+
+            Alert.alert(
+              'Selecionar Baixa',
+              'Escolha qual baixa deseja excluir:',
+              opcoes
+            )
+          }
         }
       } else {
         Alert.alert('Aviso', 'Nenhuma baixa encontrada para este título')
@@ -284,7 +315,7 @@ export default function ContasPagarList({ navigation }) {
           <TouchableOpacity
             style={[styles.botao, { backgroundColor: '#ff6b35' }]}
             onPress={() => buscarHistoricoBaixas(item)}>
-            <Text style={styles.botaoTexto}>🔄 Excluir Baixa</Text>
+            <Text style={styles.botaoTexto}>🔄 Reabrir/Liquidar</Text>
           </TouchableOpacity>
         )}
 

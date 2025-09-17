@@ -104,4 +104,33 @@ export default StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  checkboxContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+  },
+  checkbox: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#007bff',
+    borderColor: '#007bff',
+  },
+  checkboxText: {
+    fontSize: 14,
+    color: '#495057',
+    fontWeight: '500',
+  },
+  checkboxTextSelected: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
 })
