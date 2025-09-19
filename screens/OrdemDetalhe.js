@@ -10,6 +10,7 @@ import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
 import AbaFotos from '../componentsOs/AbaForos'
 import AbaTotais from '../componentsOs/AbaTotais'
+import WorkflowButton from '../componentsOs/WorkflowButton'
 import { apiGetComContexto } from '../utils/api'
 import useContextoApp from '../hooks/useContextoApp'
 
@@ -19,6 +20,7 @@ const OrdemDetalhe = ({ route }) => {
   const [abaAtiva, setAbaAtiva] = useState('detalhes')
   const [pecas, setPecas] = useState([])
   const [servicos, setServicos] = useState([])
+  const [ordemAtual, setOrdemAtual] = useState(ordem)
 
   useEffect(() => {
     carregarPecas()
@@ -35,9 +37,9 @@ const OrdemDetalhe = ({ route }) => {
   const carregarPecas = async () => {
     try {
       const response = await apiGetComContexto('ordemdeservico/pecas/', {
-        peca_orde: ordem.orde_nume,
-        peca_empr: ordem.orde_empr,
-        peca_fili: ordem.orde_fili,
+        peca_orde: ordemAtual.orde_nume,
+        peca_empr: ordemAtual.orde_empr,
+        peca_fili: ordemAtual.orde_fili,
       })
       setPecas(response?.results || [])
     } catch (error) {
@@ -48,14 +50,18 @@ const OrdemDetalhe = ({ route }) => {
   const carregarServicos = async () => {
     try {
       const response = await apiGetComContexto('ordemdeservico/servicos/', {
-        serv_orde: ordem.orde_nume,
-        serv_empr: ordem.orde_empr,
-        serv_fili: ordem.orde_fili,
+        serv_orde: ordemAtual.orde_nume,
+        serv_empr: ordemAtual.orde_empr,
+        serv_fili: ordemAtual.orde_fili,
       })
       setServicos(response?.results || [])
     } catch (error) {
       console.error('Erro ao carregar serviços:', error)
     }
+  }
+
+  const handleOrdemAtualizada = (ordemAtualizada) => {
+    setOrdemAtual(ordemAtualizada)
   }
 
   const renderDetalhes = () => (
@@ -70,18 +76,18 @@ const OrdemDetalhe = ({ route }) => {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{ordem.orde_stat || '-'}</Text>
+          <Text style={styles.value}>{ordemAtual.orde_stat || '-'}</Text>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Prioridade:</Text>
-          <Text style={styles.value}>{ordem.orde_prio || '-'}</Text>
+          <Text style={styles.value}>{ordemAtual.orde_prio || '-'}</Text>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Total:</Text>
           <Text style={[styles.value, styles.totalValue]}>
-            R$ {Number(ordem.orde_tota || 0).toFixed(2)}
+            R$ {Number(ordemAtual.orde_tota || 0).toFixed(2)}
           </Text>
         </View>
       </View>
@@ -91,12 +97,12 @@ const OrdemDetalhe = ({ route }) => {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Abertura:</Text>
-          <Text style={styles.value}>{ordem.orde_data_aber || '-'}</Text>
+          <Text style={styles.value}>{ordemAtual.orde_data_aber || '-'}</Text>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Fechamento:</Text>
-          <Text style={styles.value}>{ordem.orde_data_fech || '-'}</Text>
+          <Text style={styles.value}>{ordemAtual.orde_data_fech || '-'}</Text>
         </View>
       </View>
 
@@ -105,27 +111,37 @@ const OrdemDetalhe = ({ route }) => {
 
         <View style={styles.descriptionRow}>
           <Text style={styles.label}>Problema:</Text>
-          <Text style={styles.value}>{ordem.orde_prob || '-'}</Text>
+          <Text style={styles.value}>{ordemAtual.orde_prob || '-'}</Text>
         </View>
 
         <View style={styles.descriptionRow}>
           <Text style={styles.label}>Defeito:</Text>
-          <Text style={styles.value}>{ordem.orde_defe_desc || '-'}</Text>
+          <Text style={styles.value}>{ordemAtual.orde_defe_desc || '-'}</Text>
         </View>
 
         <View style={styles.descriptionRow}>
           <Text style={styles.label}>Observações:</Text>
-          <Text style={styles.value}>{ordem.orde_obse || '-'}</Text>
+          <Text style={styles.value}>{ordemAtual.orde_obse || '-'}</Text>
+        </View>
+        <View style={styles.descriptionRow}>
+          <Text style={styles.label}>Setor:</Text>
+          <Text style={styles.value}>{ordemAtual.setor_nome || '-'}</Text>
         </View>
       </View>
+
+      <WorkflowButton
+        style={styles.workflowButton}
+        ordem={ordemAtual}
+        onOrdemAtualizada={handleOrdemAtualizada}
+      />
     </ScrollView>
   )
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>OS #{ordem.orde_nume}</Text>
-        <Text style={styles.subtitle}>Cliente: {ordem.cliente_nome}</Text>
+        <Text style={styles.title}>OS #{ordemAtual.orde_nume}</Text>
+        <Text style={styles.subtitle}>Cliente: {ordemAtual.cliente_nome}</Text>
       </View>
 
       <View style={styles.tabs}>
@@ -151,21 +167,21 @@ const OrdemDetalhe = ({ route }) => {
           <AbaPecas
             pecas={pecas}
             setPecas={setPecas}
-            orde_nume={ordem.orde_nume}
+            orde_nume={ordemAtual.orde_nume}
           />
         )}
         {abaAtiva === 'servicos' && (
           <AbaServicos
             servicos={servicos}
             setServicos={setServicos}
-            orde_nume={ordem.orde_nume}
+            orde_nume={ordemAtual.orde_nume}
           />
         )}
         {abaAtiva === 'fotos' && (
           <AbaFotos
             fotos={[]}
             setFotos={() => {}}
-            orde_nume={ordem.orde_nume}
+            orde_nume={ordemAtual.orde_nume}
             codTecnico={usuarioId}
           />
         )}
@@ -173,10 +189,10 @@ const OrdemDetalhe = ({ route }) => {
           <AbaTotais
             pecas={pecas}
             servicos={servicos}
-            orde_nume={ordem.orde_nume}
-            orde_clie={ordem.orde_enti}
-            orde_empr={ordem.orde_empr}
-            orde_fili={ordem.orde_fili}
+            orde_nume={ordemAtual.orde_nume}
+            orde_clie={ordemAtual.orde_enti}
+            orde_empr={ordemAtual.orde_empr}
+            orde_fili={ordemAtual.orde_fili}
           />
         )}
       </View>
@@ -233,6 +249,8 @@ const styles = StyleSheet.create({
   },
   detalhesContainer: {
     padding: 15,
+    paddingBottom: 100,
+    marginBottom: 50,
   },
   infoCard: {
     backgroundColor: '#232935',
@@ -272,6 +290,13 @@ const styles = StyleSheet.create({
     color: '#10a2a7',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  workflowButton: {
+    marginBottom: 0,
+    marginTop: 20,
+    paddingHorizontal: 15,
+    
+    alignSelf: 'flex-end',
   },
 })
 

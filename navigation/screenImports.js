@@ -73,6 +73,7 @@ export { default as CriarOrdemServico } from '../componentsOrdemServico/OrdemCri
 export { default as OrdemServicoGeral } from '../dashboards/DashOs'
 export { default as DashOsGrafico } from '../dashboards/DasOsGrafico'
 export { default as DashOs } from '../dashboards/DashOs'
+export { default as WorkflowConfig } from '../screens/WorkflowConfig'
 
 // Telas de implantação
 export { default as ImplantacaoForm } from '../screens/ImplantacaoForm'

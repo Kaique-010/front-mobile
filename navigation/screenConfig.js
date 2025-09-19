@@ -301,6 +301,11 @@ export const screenConfigs = [
     component: Screens.DashOsGrafico,
     options: createHeaderOptions('Gráficos de OS'),
   },
+  {
+    name: 'WorkflowConfig',
+    component: Screens.WorkflowConfig,
+    options: createHeaderOptions('Configuração de Workflows'),
+  },
 
   // Telas de Ordem de Produção
   {

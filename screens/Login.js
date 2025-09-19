@@ -56,6 +56,7 @@ export default function Login({ navigation }) {
   const [documento, setDocumento] = useState('') // Para login de cliente
   const [usuario, setUsuario] = useState('') // Para login de cliente
   const [senha, setSenha] = useState('') // Para login de cliente
+  const [setor, setSetor] = useState('') // Setor do usuário
   const {
     login: clienteLogin,
     loading: clienteAuthLoading,
@@ -70,12 +71,14 @@ export default function Login({ navigation }) {
         const documentoSalvo = await AsyncStorage.getItem('documento')
         const usuarioSalvo = await AsyncStorage.getItem('usuario')
         const senhaSalvo = await AsyncStorage.getItem('senha')
+        const setorSalvo = await AsyncStorage.getItem('setor')
 
         if (docuSalvo) setDocu(docuSalvo)
         if (usernameSalvo) setUsername(usernameSalvo)
         if (documentoSalvo) setDocumento(documentoSalvo)
         if (usuarioSalvo) setUsuario(usuarioSalvo)
         if (senhaSalvo) setSenha(senhaSalvo)
+        if (setorSalvo) setSetor(setorSalvo)
       } catch (e) {
         console.error('Erro ao carregar dados salvos do AsyncStorage', e)
       }
@@ -122,6 +125,7 @@ export default function Login({ navigation }) {
       await AsyncStorage.multiSet([
         ['docu', docu],
         ['username', username],
+        ['setor', setor],
       ])
 
       console.log(
@@ -168,6 +172,7 @@ export default function Login({ navigation }) {
           username,
           password,
           docu,
+          setor,
         },
         {
           headers: {
@@ -201,6 +206,7 @@ export default function Login({ navigation }) {
         ['usuario', JSON.stringify(usuario)],
         ['usuario_id', usuario.usuario_id.toString()],
         ['username', usuario.username],
+        ['setor', setor],
         ['docu', docu],
         ['slug', slug],
         ['modulos', JSON.stringify(response.data.modulos)],
@@ -229,9 +235,12 @@ export default function Login({ navigation }) {
           `❌ [LOGIN-TIMING] Dados da resposta:`,
           error.response.data
         )
-        
+
         // Toast específico para senha incorreta
-        if (error.response.status === 401 && error.response.data?.error === 'Senha incorreta.') {
+        if (
+          error.response.status === 401 &&
+          error.response.data?.error === 'Senha incorreta.'
+        ) {
           Toast.show({
             type: 'error',
             text1: 'Senha Incorreta',

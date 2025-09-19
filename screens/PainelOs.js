@@ -1,3 +1,5 @@
+//Ordem de Serviço da Eltrocometa
+
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View,
@@ -176,6 +178,13 @@ const PainelAcompanhamento = ({ navigation }) => {
           <Text style={styles.data}>{item.orde_data_aber || '-'}</Text>
         </View>
 
+        <View style={styles.setorRow}>
+          <Text style={styles.setorLabel}>Setor: </Text>
+          <Text style={styles.setor} numberOfLines={1}>
+            {item.setor_nome || item.orde_seto || '-'}
+          </Text>
+        </View>
+
         <Text style={styles.problema} numberOfLines={2}>
           {item.orde_prob || 'Sem descrição do problema'}
         </Text>
@@ -327,15 +336,15 @@ const PainelAcompanhamento = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 12,
+    padding: 30,
     backgroundColor: '#232935',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingVertical: 10,
+    marginBottom: 8,
+    paddingVertical: 15,
   },
   headerTitle: {
     fontSize: 24,
@@ -356,13 +365,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#284665',
     padding: 8,
     borderRadius: 20,
-    elevation: 2,
+    elevation: 4,
   },
   indicadores: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 10,
-    paddingVertical: 8,
+    marginBottom: 8,
+    paddingVertical: 10,
   },
   indicador: {
     flex: 1,
@@ -370,7 +379,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
-    elevation: 2,
+    elevation: 4,
   },
   indicadorLabel: {
     fontWeight: 'bold',
@@ -379,7 +388,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   indicadorValor: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   filtros: {
@@ -492,6 +501,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#555',
     fontStyle: 'italic',
+  },
+  setorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  setorLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  setor: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#333',
+    flex: 1,
   },
   botaoCriar: {
     backgroundColor: '#284665',

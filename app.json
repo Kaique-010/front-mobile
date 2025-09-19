@@ -3,8 +3,7 @@
     "name": "SpsMobile",
     "slug": "front-mobile-sps",
     "owner": "leokaique10",
-    "version": "1.0.2",
-
+    "version": "1.0.3",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
@@ -15,6 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.leokaique.SpsMobile",
+      "buildNumber": "5",
       "infoPlist": {
         "NSCameraUsageDescription": "Este aplicativo precisa de permissão para usar a câmera para capturar fotos das ordens de serviço.",
         "NSLocationWhenInUseUsageDescription": "Este aplicativo precisa de permissão para acessar sua localização para geolocalizar as fotos das ordens de serviço.",
@@ -27,6 +27,7 @@
     },
     "android": {
       "package": "com.leokaique.SpsMobile",
+      "versionCode": 5,
       "usesCleartextTraffic": true,
       "networkSecurityConfig": "@xml/network_security_config"
     },
@@ -48,6 +49,12 @@
       "eas": {
         "projectId": "6da51109-274a-4c0f-b576-6d58f471d972"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6da51109-274a-4c0f-b576-6d58f471d972"
     }
   },
   "web": {

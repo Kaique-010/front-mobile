@@ -223,6 +223,12 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'tool',
           condition: hasModulo('OrdemdeServico'),
         },
+        {
+          name: 'Configuração de Workflows',
+          route: 'WorkflowConfig',
+          icon: 'settings',
+          condition: hasModulo('OrdemdeServico'),
+        },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     utilitarios: {
