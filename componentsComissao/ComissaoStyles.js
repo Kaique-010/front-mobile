@@ -333,6 +333,22 @@ export default StyleSheet.create({
     height: 50,
     color: 'white',
   },
+  iosPickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0c1c2c',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    justifyContent: 'space-between',
+  },
+  iosPickerText: {
+    flex: 1,
+    fontSize: 14,
+    color: 'white',
+  },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',

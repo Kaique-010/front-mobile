@@ -1,4 +1,4 @@
-//Ordem de Serviço da Eltrocometa
+//Ordem de Serviço da Eletrocometa
 
 import React, { useEffect, useState, useMemo } from 'react'
 import {
@@ -54,6 +54,7 @@ const PainelAcompanhamento = ({ navigation }) => {
   const [loading, setLoading] = useState(false)
   const [filtroStatus, setFiltroStatus] = useState(null)
   const [filtroPrioridade, setFiltroPrioridade] = useState(null)
+  const [modoMobile, setModoMobile] = useState(false) // Novo estado para controlar layout
   const [contadores, setContadores] = useState({
     abertas: 0,
     atrasadas: 0,
@@ -200,12 +201,31 @@ const PainelAcompanhamento = ({ navigation }) => {
   )
 
   return (
-    <View style={styles.container}>
+    <View style={modoMobile ? styles.containerMobile : styles.container}>
       {/* Header com Logo e Refresh */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}></Text>
         <View style={styles.headerRight}>
-          <Image source={require('../assets/eletro.png')} style={styles.logo} />
+          <Image
+            source={require('../assets/eletro.png')}
+            style={modoMobile ? styles.logoMobile : styles.logo}
+          />
+
+          {/* Botão para alternar modo */}
+          <TouchableOpacity
+            style={styles.modeButton}
+            onPress={() => setModoMobile(!modoMobile)}
+            activeOpacity={0.7}>
+            <Ionicons
+              name={modoMobile ? 'tv' : 'phone-portrait'}
+              size={20}
+              color="#fff"
+            />
+            <Text style={styles.modeButtonText}>
+              {modoMobile ? 'TV' : 'Mobile'}
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.refreshButton}
             onPress={fetchOrdens}
@@ -229,7 +249,7 @@ const PainelAcompanhamento = ({ navigation }) => {
         {renderIndicador('Total', contadores.total, '#eee')}
       </View>
 
-      <View style={styles.filtros}>
+      <View style={modoMobile ? styles.filtrosMobile : styles.filtros}>
         <View style={styles.filtroSection}>
           <Text style={styles.filtroLabel}>Status</Text>
           <ScrollView
@@ -240,7 +260,7 @@ const PainelAcompanhamento = ({ navigation }) => {
               <TouchableOpacity
                 key={label}
                 style={[
-                  styles.filtroButton,
+                  modoMobile ? styles.filtroButtonMobile : styles.filtroButton,
                   {
                     backgroundColor:
                       value !== null
@@ -255,7 +275,9 @@ const PainelAcompanhamento = ({ navigation }) => {
                 activeOpacity={0.7}>
                 <Text
                   style={[
-                    styles.filtroButtonText,
+                    modoMobile
+                      ? styles.filtroButtonTextMobile
+                      : styles.filtroButtonText,
                     { fontWeight: filtroStatus === value ? 'bold' : 'normal' },
                   ]}>
                   {label}
@@ -275,7 +297,7 @@ const PainelAcompanhamento = ({ navigation }) => {
               <TouchableOpacity
                 key={label}
                 style={[
-                  styles.filtroButton,
+                  modoMobile ? styles.filtroButtonMobile : styles.filtroButton,
                   {
                     backgroundColor:
                       value !== null
@@ -290,7 +312,9 @@ const PainelAcompanhamento = ({ navigation }) => {
                 activeOpacity={0.7}>
                 <Text
                   style={[
-                    styles.filtroButtonText,
+                    modoMobile
+                      ? styles.filtroButtonTextMobile
+                      : styles.filtroButtonText,
                     {
                       fontWeight:
                         filtroPrioridade === value ? 'bold' : 'normal',
@@ -312,17 +336,19 @@ const PainelAcompanhamento = ({ navigation }) => {
         </View>
       ) : (
         <FlatList
-          data={ordensFiltradasLocalmente}
-          keyExtractor={(item) => item.orde_nume.toString()}
+          key={modoMobile ? 'mobile' : 'desktop'}
+          data={ordens}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContainer}
+          keyExtractor={(item) =>
+            item.orde_nume?.toString() ||
+            item.id?.toString() ||
+            Math.random().toString()
+          }
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.flatListContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="document-text-outline" size={48} color="#666" />
-              <Text style={styles.emptyText}>Nenhuma OS encontrada</Text>
-              <Text style={styles.emptySubtext}>
-                Ajuste os filtros ou crie uma nova O.S.
-              </Text>
+              <Text style={styles.emptyText}>Nenhuma ordem encontrada</Text>
             </View>
           }
           numColumns={2}
@@ -337,6 +363,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 30,
+    backgroundColor: '#232935',
+  },
+  containerMobile: {
+    flex: 1,
+    padding: 12,
     backgroundColor: '#232935',
   },
   header: {
@@ -361,6 +392,26 @@ const styles = StyleSheet.create({
     height: 200,
     resizeMode: 'contain',
   },
+  logoMobile: {
+    width: 220,
+    height: 80,
+    resizeMode: 'contain',
+  },
+  modeButton: {
+    backgroundColor: '#28a745',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    elevation: 4,
+  },
+  modeButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   refreshButton: {
     backgroundColor: '#284665',
     padding: 8,
@@ -370,6 +421,12 @@ const styles = StyleSheet.create({
   indicadores: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    marginBottom: 8,
+    paddingVertical: 10,
+  },
+  indicadoresMobile: {
+    flexDirection: 'column',
+    gap: 8,
     marginBottom: 8,
     paddingVertical: 10,
   },
@@ -395,6 +452,13 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     backgroundColor: '#000',
     padding: 30,
+    borderRadius: 10,
+    elevation: 4,
+  },
+  filtrosMobile: {
+    marginBottom: 5,
+    backgroundColor: '#000',
+    padding: 15,
     borderRadius: 10,
     elevation: 4,
   },
@@ -424,8 +488,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  filtroButtonMobile: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderRadius: 15,
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   filtroButtonText: {
     fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
+  },
+  filtroButtonTextMobile: {
+    fontSize: 11,
     color: '#333',
     textAlign: 'center',
   },
@@ -526,6 +609,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
     elevation: 2,
+  },
+  botaoCriarMobile: {
+    backgroundColor: '#284665',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 6,
+    elevation: 2,
+    marginBottom: 8,
   },
   botaoCriarTexto: {
     color: '#fff',

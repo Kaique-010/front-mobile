@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
+  ActionSheetIOS,
 } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -70,6 +71,42 @@ export default function ComissaoForm({ navigation, route }) {
   useEffect(() => {
     calcularCampos()
   }, [valorTotal, impostos, categoria, parcelas])
+
+  const mostrarSeletorCategoria = () => {
+    if (Platform.OS === 'ios') {
+      const options = ['Cancelar', ...categorias.map(cat => `${cat.label} (${cat.percentual}%)`)]
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 0,
+          title: 'Selecione uma categoria',
+        },
+        (buttonIndex) => {
+          if (buttonIndex > 0) {
+            setCategoria(categorias[buttonIndex - 1].value)
+          }
+        }
+      )
+    }
+  }
+
+  const mostrarSeletorFormaPagamento = () => {
+    if (Platform.OS === 'ios') {
+      const options = ['Cancelar', ...formasPagamento]
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 0,
+          title: 'Selecione a forma de pagamento',
+        },
+        (buttonIndex) => {
+          if (buttonIndex > 0) {
+            setFormaPagamento(formasPagamento[buttonIndex - 1])
+          }
+        }
+      )
+    }
+  }
 
   const obterContexto = async () => {
     try {
@@ -255,20 +292,35 @@ export default function ComissaoForm({ navigation, route }) {
           {/* Categoria - linha inteira */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Categoria *</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={categoria}
-                onValueChange={setCategoria}
-                style={styles.picker}>
-                {categorias.map((cat) => (
-                  <Picker.Item
-                    key={cat.value}
-                    label={`${cat.label} (${cat.percentual}%)`}
-                    value={cat.value}
-                  />
-                ))}
-              </Picker>
-            </View>
+            {Platform.OS === 'ios' ? (
+              <TouchableOpacity
+                style={styles.iosPickerButton}
+                onPress={mostrarSeletorCategoria}>
+                <Text style={styles.iosPickerText}>
+                  {categoria ? 
+                    categorias.find(cat => cat.value === categoria)?.label + 
+                    ` (${categorias.find(cat => cat.value === categoria)?.percentual}%)` 
+                    : 'Selecione uma categoria'
+                  }
+                </Text>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color="#666" />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={categoria}
+                  onValueChange={setCategoria}
+                  style={styles.picker}>
+                  {categorias.map((cat) => (
+                    <Picker.Item
+                      key={cat.value}
+                      label={`${cat.label} (${cat.percentual}%)`}
+                      value={cat.value}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            )}
           </View>
 
           {/* Valor Total e Impostos na mesma linha */}
@@ -319,17 +371,28 @@ export default function ComissaoForm({ navigation, route }) {
           {/* Forma de Pagamento - linha inteira */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Forma de Pagamento *</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={formaPagamento}
-                onValueChange={setFormaPagamento}
-                style={styles.picker}>
-                <Picker.Item label="Selecione..." value="" />
-                {formasPagamento.map((forma) => (
-                  <Picker.Item key={forma} label={forma} value={forma} />
-                ))}
-              </Picker>
-            </View>
+            {Platform.OS === 'ios' ? (
+              <TouchableOpacity
+                style={styles.iosPickerButton}
+                onPress={mostrarSeletorFormaPagamento}>
+                <Text style={styles.iosPickerText}>
+                  {formaPagamento || 'Selecione a forma de pagamento'}
+                </Text>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color="#666" />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formaPagamento}
+                  onValueChange={setFormaPagamento}
+                  style={styles.picker}>
+                  <Picker.Item label="Selecione..." value="" />
+                  {formasPagamento.map((forma) => (
+                    <Picker.Item key={forma} label={forma} value={forma} />
+                  ))}
+                </Picker>
+              </View>
+            )}
           </View>
 
           {/* Parcelas e Comissão por Parcela na mesma linha */}
