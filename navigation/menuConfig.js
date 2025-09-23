@@ -50,64 +50,15 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
-    pisos: {
-      name: 'Pisos',
-      icon: 'folder',
+    consulta: {
+      name: 'Consulta Inteligente',
+      icon: 'check-circle',
       items: [
         {
-          name: 'Pedidos de Pisos',
-          route: 'PedidosPisos',
-          icon: 'file-text',
-          condition: hasModulo('Pisos'),
-        },
-        {
-          name: 'Pedidos de Pisos',
-          route: 'PedidosPisosForm',
-          icon: 'file-text',
-          condition: hasModulo('Pisos'),
-        },
-        {
-          name: 'Dashboard Pisos',
-          route: 'DashPedidosPisos',
-          icon: 'bar-chart-2',
-          condition: hasModulo('Pisos'),
-        },
-        {
-          name: 'Gráfico Pisos',
-          route: 'DashPedidosPisosGrafico',
-          icon: 'bar-chart',
-          condition: hasModulo('Pisos'),
-        },
-      ].sort((a, b) => a.name.localeCompare(b.name)),
-    },
-    vendas: {
-      name: 'Vendas',
-      icon: 'shopping-cart',
-      items: [
-        {
-          name: 'Contratos',
-          route: 'Contratos',
-          icon: 'file-text',
-          condition: hasModulo('contratos'),
-        },
-        {
-          name: 'Lista de Casamento',
-          route: 'ListaCasamento',
-          icon: 'heart-multiple',
-          iconType: 'MaterialCommunityIcons',
-          condition: hasModulo('listacasamento'),
-        },
-        {
-          name: 'Orçamentos',
-          route: 'Orcamentos',
-          icon: 'shopping-bag',
-          condition: hasModulo('Orcamentos'),
-        },
-        {
-          name: 'Pedidos',
-          route: 'Pedidos',
-          icon: 'package',
-          condition: hasModulo('Pedidos'),
+          name: 'Consulta Inteligente',
+          route: 'ConsultaScreen',
+          icon: 'check-circle',
+          condition: hasModulo('Financeiro'),
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
@@ -143,6 +94,61 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Lista de Etapas',
           route: 'EtapasList',
           icon: 'plus-circle',
+          condition: hasModulo('Pedidos'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
+    dashboards: {
+      name: 'Dashboards',
+      icon: 'bar-chart-2',
+      items: [
+        {
+          name: 'Dashboard CRM',
+          route: 'ControleVisitaDashboard',
+          icon: 'users',
+          condition: hasModulo('Pedidos'),
+        },
+        {
+          name: 'Dashboard de Comissões',
+          route: 'DashComissao',
+          icon: 'percent',
+          condition: hasModulo('SpsComissoes'),
+        },
+        {
+          name: 'Dashboard de Contratos',
+          route: 'DashContratos',
+          icon: 'file-text',
+          condition: hasModulo('contratos'),
+        },
+
+        {
+          name: 'Dashboard Geral',
+          route: 'DashboardFinanceiro',
+          icon: 'bar-chart-2',
+          condition: hasModulo('dash'),
+        },
+        {
+          name: 'Dashboard Realizado',
+          route: 'DashRealizado',
+          icon: 'trending-up',
+          condition: hasModulo('dash'),
+        },
+        {
+          name: 'Balancete de Estoque',
+          route: 'DashBalanceteEstoque',
+          icon: 'package',
+          condition: hasModulo('Produtos'),
+        },
+        {
+          name: 'Notas Fiscais',
+          route: 'DashNotasFiscais',
+          icon: 'file-text',
+          condition: hasModulo('Pedidos'),
+        },
+        {
+          name: 'Pedidos de Venda',
+          route: 'DashPedidosVenda',
+          icon: 'shopping-cart',
           condition: hasModulo('Pedidos'),
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
@@ -201,6 +207,56 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
+    floresta: {
+      name: 'Floresta',
+      iconType: 'MaterialCommunityIcons',
+      icon: 'command',
+      items: [
+        {
+          name: 'Propriedade',
+          route: 'PropriedadeList',
+          icon: 'home-group',
+          iconType: 'MaterialCommunityIcons',
+          condition: hasModulo('Pedidos'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
+    gerencial: {
+      name: 'Gerencial',
+      icon: 'trending-up',
+      items: [
+        {
+          name: 'Despesas Previstas',
+          route: 'Despesas Previstas', // Corrigido para corresponder ao screenConfig
+          icon: 'trending-down',
+          condition: hasModulo('Gerencial'),
+        },
+        {
+          name: 'Previsão de Lucro',
+          route: 'Lucro Previsto',
+          icon: 'dollar-sign',
+          condition: hasModulo('Gerencial'),
+        },
+        {
+          name: 'Fluxo de Caixa Previsto',
+          route: 'Fluxo Caixa Previsto',
+          icon: 'activity',
+          condition: hasModulo('Gerencial'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
+    notas: {
+      name: 'Notas Fiscais',
+      icon: 'file-text',
+      items: [
+        {
+          name: 'Notas Fiscais',
+          route: 'NotasFiscaisList',
+          icon: 'file-text',
+          condition: hasModulo('Financeiro'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
     os: {
       name: 'O.S',
       icon: 'tool',
@@ -228,6 +284,48 @@ export const getMenuConfig = (hasModulo) => {
           route: 'WorkflowConfig',
           icon: 'settings',
           condition: hasModulo('OrdemdeServico'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
+    pisos: {
+      name: 'Pisos',
+      icon: 'folder',
+      items: [
+        {
+          name: 'Pedidos de Pisos',
+          route: 'PedidosPisos',
+          icon: 'file-text',
+          condition: hasModulo('Pisos'),
+        },
+        {
+          name: 'Pedidos de Pisos',
+          route: 'PedidosPisosForm',
+          icon: 'file-text',
+          condition: hasModulo('Pisos'),
+        },
+        {
+          name: 'Dashboard Pisos',
+          route: 'DashPedidosPisos',
+          icon: 'bar-chart-2',
+          condition: hasModulo('Pisos'),
+        },
+        {
+          name: 'Gráfico Pisos',
+          route: 'DashPedidosPisosGrafico',
+          icon: 'bar-chart',
+          condition: hasModulo('Pisos'),
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
+    producao: {
+      name: 'Ordem de Produção',
+      icon: 'codepen',
+      items: [
+        {
+          name: 'Ordens de Produção',
+          route: 'ListagemOrdensProducao',
+          icon: 'codepen',
+          condition: hasModulo('OrdemProducao'),
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
@@ -267,115 +365,34 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
-    dashboards: {
-      name: 'Dashboards',
-      icon: 'bar-chart-2',
+    vendas: {
+      name: 'Vendas',
+      icon: 'shopping-cart',
       items: [
         {
-          name: 'Dashboard CRM',
-          route: 'ControleVisitaDashboard',
-          icon: 'users',
-          condition: hasModulo('Pedidos'),
-        },
-        {
-          name: 'Dashboard de Comissões',
-          route: 'DashComissao',
-          icon: 'percent',
-          condition: hasModulo('SpsComissoes'),
-        },
-        {
-          name: 'Dashboard de Contratos',
-          route: 'DashContratos',
+          name: 'Contratos',
+          route: 'Contratos',
           icon: 'file-text',
           condition: hasModulo('contratos'),
         },
-
         {
-          name: 'Dashboard Geral',
-          route: 'DashboardFinanceiro',
-          icon: 'bar-chart-2',
-          condition: hasModulo('dash'),
-        },
-        {
-          name: 'Dashboard Realizado',
-          route: 'DashRealizado',
-          icon: 'trending-up',
-          condition: hasModulo('dash'),
-        },
-        {
-          name: 'Balancete de Estoque',
-          route: 'DashBalanceteEstoque',
-          icon: 'package',
-          condition: hasModulo('Produtos'),
-        },
-        {
-          name: 'Pedidos de Venda',
-          route: 'DashPedidosVenda',
-          icon: 'shopping-cart',
-          condition: hasModulo('Pedidos'),
-        },
-      ].sort((a, b) => a.name.localeCompare(b.name)),
-    },
-    gerencial: {
-      name: 'Gerencial',
-      icon: 'trending-up',
-      items: [
-        {
-          name: 'Despesas Previstas',
-          route: 'Despesas Previstas', // Corrigido para corresponder ao screenConfig
-          icon: 'trending-down',
-          condition: hasModulo('Gerencial'),
-        },
-        {
-          name: 'Previsão de Lucro',
-          route: 'Lucro Previsto',
-          icon: 'dollar-sign',
-          condition: hasModulo('Gerencial'),
-        },
-        {
-          name: 'Fluxo de Caixa Previsto',
-          route: 'Fluxo Caixa Previsto',
-          icon: 'activity',
-          condition: hasModulo('Gerencial'),
-        },
-      ].sort((a, b) => a.name.localeCompare(b.name)),
-    },
-    Floresta: {
-      name: 'Floresta',
-      iconType: 'MaterialCommunityIcons',
-      icon: 'command',
-      items: [
-        {
-          name: 'Propriedade',
-          route: 'PropriedadeList',
-          icon: 'home-group',
+          name: 'Lista de Casamento',
+          route: 'ListaCasamento',
+          icon: 'heart-multiple',
           iconType: 'MaterialCommunityIcons',
+          condition: hasModulo('listacasamento'),
+        },
+        {
+          name: 'Orçamentos',
+          route: 'Orcamentos',
+          icon: 'shopping-bag',
+          condition: hasModulo('Orcamentos'),
+        },
+        {
+          name: 'Pedidos',
+          route: 'Pedidos',
+          icon: 'package',
           condition: hasModulo('Pedidos'),
-        },
-      ].sort((a, b) => a.name.localeCompare(b.name)),
-    },
-
-    consulta: {
-      name: 'Consulta Inteligente',
-      icon: 'check-circle',
-      items: [
-        {
-          name: 'Consulta Inteligente',
-          route: 'ConsultaScreen',
-          icon: 'check-circle',
-          condition: hasModulo('Financeiro'),
-        },
-      ].sort((a, b) => a.name.localeCompare(b.name)),
-    },
-    producao: {
-      name: 'Ordem de Produção',
-      icon: 'codepen',
-      items: [
-        {
-          name: 'Ordens de Produção',
-          route: 'ListagemOrdensProducao',
-          icon: 'codepen',
-          condition: hasModulo('OrdemProducao'),
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },

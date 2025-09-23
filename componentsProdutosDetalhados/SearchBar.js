@@ -59,45 +59,53 @@ const SearchBar = ({
       {/* Filtros */}
       <HStack space={2} justifyContent="space-between">
         {/* Filtro de Marca */}
-        <Select
-          selectedValue={marcaSelecionada}
-          onValueChange={onMarcaChange}
-          minWidth="48%"
-          placeholder="Filtrar por marca"
-          fontSize="md"
-          borderRadius={10}
-          bg="#f9f9f9"
-          _selectedItem={{
-            bg: 'amber.100',
-            endIcon: <CheckIcon size={4} />,
-          }}>
-          <Select.Item label="Todas" value="" />
-          {marcas.map((marca) => (
-            <Select.Item
-              key={marca}
-              label={marca}
-              value={marca === 'Sem marca' ? '__sem_marca__' : marca}
-            />
-          ))}
-        </Select>
+        <VStack flex={1} space={1}>
+          <Text style={{ fontSize: 14, color: '#333', fontWeight: '600' }}>
+            Filtrar por marca:
+          </Text>
+          <Select
+            selectedValue={marcaSelecionada}
+            onValueChange={onMarcaChange}
+            placeholder="Filtrar por marca"
+            fontSize="md"
+            borderRadius={10}
+            bg="#f9f9f9"
+            _selectedItem={{
+              bg: 'amber.100',
+              endIcon: <CheckIcon size={4} />,
+            }}>
+            <Select.Item label="Todas" value="" />
+            {marcas.map((marca) => (
+              <Select.Item
+                key={marca}
+                label={marca}
+                value={marca === 'Sem marca' ? '__sem_marca__' : marca}
+              />
+            ))}
+          </Select>
+        </VStack>
 
         {/* Filtro de Estoque */}
-        <Select
-          selectedValue={saldoFiltro}
-          onValueChange={onSaldoChange}
-          minWidth="48%"
-          placeholder="Filtrar estoque"
-          fontSize="md"
-          borderRadius={10}
-          bg="#f9f9f9"
-          _selectedItem={{
-            bg: 'amber.100',
-            endIcon: <CheckIcon size={4} />,
-          }}>
-          <Select.Item label="Todos" value="todos" />
-          <Select.Item label="Com saldo" value="com" />
-          <Select.Item label="Sem saldo" value="sem" />
-        </Select>
+        <VStack flex={1} space={1}>
+          <Text style={{ fontSize: 14, color: '#333', fontWeight: '600' }}>
+            Filtrar por estoque:
+          </Text>
+          <Select
+            selectedValue={saldoFiltro}
+            onValueChange={onSaldoChange}
+            placeholder="Filtrar estoque"
+            fontSize="md"
+            borderRadius={10}
+            bg="#f9f9f9"
+            _selectedItem={{
+              bg: 'amber.100',
+              endIcon: <CheckIcon size={4} />,
+            }}>
+            <Select.Item label="Todos" value="todos" />
+            <Select.Item label="Com saldo" value="com" />
+            <Select.Item label="Sem saldo" value="sem" />
+          </Select>
+        </VStack>
       </HStack>
     </VStack>
   </Box>

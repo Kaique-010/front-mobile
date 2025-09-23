@@ -28,20 +28,6 @@ export default StyleSheet.create({
     fontSize: 14,
     color: '#bdc3c7',
   },
-  botaoGrafico: {
-    backgroundColor: '#3498db',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8, // Adicionado para alinhar melhor
-  },
-  botaoGraficoTexto: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
   filtrosContainer: {
     backgroundColor: '#fff',
     padding: 16,
@@ -81,23 +67,10 @@ export default StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  inputBusca: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 14,
-    backgroundColor: '#f8f9fa',
-  },
-  resumoContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
   filtrosBuscaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8, // Espaçamento entre os inputs
+    gap: 8,
   },
   inputBuscaGroup: {
     flex: 1,
@@ -114,10 +87,14 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 10, // Padding menor
-    fontSize: 13, // Fonte menor
+    padding: 10,
+    fontSize: 13,
     backgroundColor: '#f8f9fa',
     marginHorizontal: 2,
+  },
+  resumoContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   resumoCard: {
     backgroundColor: '#fff',
@@ -141,13 +118,13 @@ export default StyleSheet.create({
     marginBottom: 15,
   },
   resumoTitulo: {
-    fontSize: 11, // Reduzido de 12 para 11
+    fontSize: 11,
     color: '#666',
     fontWeight: '500',
     flex: 1,
   },
   resumoValor: {
-    fontSize: 16, // Reduzido de 18 para 16
+    fontSize: 16,
     fontWeight: 'bold',
     marginTop: 2,
   },
@@ -178,12 +155,25 @@ export default StyleSheet.create({
   },
   itemInfo: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  itemPedido: {
+  itemNumero: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2c3e50',
-    marginBottom: 4,
+    marginRight: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   itemData: {
     fontSize: 12,
@@ -199,62 +189,37 @@ export default StyleSheet.create({
     fontWeight: '500',
     marginBottom: 6,
   },
+  itemChave: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+  },
   itemDetalhes: {
     marginBottom: 12,
     marginTop: 8,
   },
-  itemProdutosLabel: {
+  itemObservacaoLabel: {
     fontSize: 13,
     color: '#34495e',
     fontWeight: '600',
     marginBottom: 4,
-    marginTop: 8,
   },
-  itemVendedor: {
-    fontSize: 14,
-    color: '#3498db',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  itemDescricao: {
+  itemObservacao: {
     fontSize: 12,
     color: '#666',
     marginBottom: 8,
     lineHeight: 16,
-  },
-  itemTipoFinanceiroLabel: {
-    fontSize: 13,
-    color: '#34495e',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  itemTipoFinanceiro: {
-    fontSize: 12,
-    color: '#e67e22',
     fontStyle: 'italic',
   },
   itemFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#ecf0f1',
-  },
-  itemQuantidadeContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  itemQuantidadeLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  itemQuantidadeValor: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#3498db',
   },
   itemTotalContainer: {
     alignItems: 'flex-end',
@@ -315,41 +280,5 @@ export default StyleSheet.create({
     fontSize: 16,
     color: '#bdc3c7',
     marginTop: 16,
-  },
-  // Adicionar ao final do arquivo, antes do fechamento do StyleSheet.create:
-
-  // Estilos para Pisos
-  pisosInfo: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#333',
-  },
-  pisosDetalhe: {
-    fontSize: 12,
-    color: '#18b7df',
-    marginBottom: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  vendedor: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
-  },
-  valor: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#27ae60',
-  },
-  observacao: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 4,
   },
 })

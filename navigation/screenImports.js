@@ -49,6 +49,12 @@ export { default as MoviCaixaScreen } from '../screens/MoviCaixa'
 export { default as CaixaGeralScreen } from '../screens/CaixaGeral'
 export { default as CobrancasList } from '../screens/CobrancasList'
 
+// Telas de notas fiscais
+export { default as NotasFiscaisList } from '../screens/NotasFiscaisList'
+export { default as NotaFiscalDetalhe } from '../screens/NotaFiscalDetalhe'
+export { default as NotaFiscalXml } from '../screens/NotaFiscalXml'
+export { default as EmissaoNFe } from '../componentsNotasFiscais/EmissaoNFe'
+
 // Telas de comissão
 export { default as ComissaoForm } from '../componentsComissao/ComissaoForm'
 export { default as ComissaoList } from '../componentsComissao/ComissaoList'
@@ -92,6 +98,7 @@ export { default as DashExtratoCaixa } from '../dashsVendas/DashExtratoCaixa'
 export { default as DashContratos } from '../dashsVendas/DashContratos'
 export { default as DashPedidosVenda } from '../dashsVendas/DashPedidosVenda'
 export { default as DashPedidosVendaGrafico } from '../dashsVendas/DashPedidosVendaGrafico'
+export { default as DashNotasFiscais } from '../dashsVendas/DashNotasFiscais'
 export { default as Dashvendas } from '../screens/Dashvendas'
 
 // Painéis

@@ -199,6 +199,28 @@ export const screenConfigs = [
     options: createHeaderOptions('Cobranças a Receber'),
   },
 
+  // Telas de notas fiscais
+  {
+    name: 'NotasFiscaisList',
+    component: Screens.NotasFiscaisList,
+    options: createHeaderOptions('Notas Fiscais'),
+  },
+  {
+    name: 'NotaFiscalDetalhe',
+    component: Screens.NotaFiscalDetalhe,
+    options: createHeaderOptions('Detalhes da Nota Fiscal'),
+  },
+  {
+    name: 'NotaFiscalXml',
+    component: Screens.NotaFiscalXml,
+    options: createHeaderOptions('XML da Nota Fiscal'),
+  },
+  {
+    name: 'EmissaoNFe',
+    component: Screens.EmissaoNFe,
+    options: createHeaderOptions('Emissão de NFe'),
+  },
+
   // Telas de comissão
   {
     name: 'ComissaoForm',
@@ -411,6 +433,11 @@ export const screenConfigs = [
     name: 'DashPedidosVendaGrafico',
     component: Screens.DashPedidosVendaGrafico,
     options: createHeaderOptions('Gráficos de Vendas'),
+  },
+  {
+    name: 'DashNotasFiscais',
+    component: Screens.DashNotasFiscais,
+    options: createHeaderOptions('Dashboard de Notas Fiscais'),
   },
   {
     name: 'Dashvendas',

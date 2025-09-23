@@ -59,7 +59,7 @@ export default function ItensModalPisos({
     setAreaM2('')
     setObservacoes('')
     setDadosCalculo(null)
-    setQuebra('5')
+    setQuebra('')
     setCondicaoPagamento('0')
   }
 
@@ -74,7 +74,7 @@ export default function ItensModalPisos({
         {
           produto_id: produtoSelecionado.prod_codi,
           tamanho_m2: parseFloat(areaM2) || 0,
-          percentual_quebra: parseFloat(quebra) || 5,
+          percentual_quebra: parseFloat(quebra) || 0,
           cliente_id: pedido.pedi_clie,
           condicao: condicaoPagamento,
         }
@@ -118,7 +118,7 @@ export default function ItensModalPisos({
         {
           produto_id: produto.prod_codi,
           tamanho_m2: parseFloat(areaM2),
-          percentual_quebra: parseFloat(quebra) || 5,
+          percentual_quebra: parseFloat(quebra) || 0,
           cliente_id: pedido.pedi_clie,
           condicao: condicaoPagamento,
         }
