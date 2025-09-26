@@ -301,9 +301,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  produtoInput: {
-    flex: 1,
-  },
   produtoNome: {
     color: '#ccc',
     textAlign: 'center',

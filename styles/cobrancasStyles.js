@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   },
 
   // Status buttons menores
-  statusButton: {
+  statusButtonSmall: {
     flex: 1,
     paddingVertical: 6,
     paddingHorizontal: 8,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     alignItems: 'center',
   },
-  statusButtonText: {
+  statusButtonSmallText: {
     fontSize: 11,
     color: '#666',
     fontWeight: '500',
