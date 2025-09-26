@@ -1,6 +1,6 @@
 //Ordem de Serviço da Eletrocometa
 
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   View,
   Text,
@@ -10,9 +10,14 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
+  TextInput,
 } from 'react-native'
 import { apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
+import commonStyles from '../styles/painelOsCommon'
+import desktopStyles from '../styles/painelOsDesktop'
+import mobileStyles from '../styles/painelOsMobile'
+import debounce from 'lodash.debounce'
 
 const STATUS_OPTIONS = [
   { label: 'Todas', value: null },
@@ -54,13 +59,31 @@ const PainelAcompanhamento = ({ navigation }) => {
   const [loading, setLoading] = useState(false)
   const [filtroStatus, setFiltroStatus] = useState(null)
   const [filtroPrioridade, setFiltroPrioridade] = useState(null)
-  const [modoMobile, setModoMobile] = useState(false) // Novo estado para controlar layout
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchValue, setSearchValue] = useState('')
+  const [modoMobile, setModoMobile] = useState(false)
+  const [ordenacao, setOrdenacao] = useState({ campo: null, direcao: 'asc' })
   const [contadores, setContadores] = useState({
     abertas: 0,
     atrasadas: 0,
     concluidas: 0,
     total: 0,
   })
+
+  // Função para combinar estilos baseado no modo
+  const getStyles = () => {
+    return {
+      ...commonStyles,
+      ...(modoMobile ? mobileStyles : desktopStyles),
+    }
+  }
+
+  const styles = getStyles()
+
+  const getStatusText = (status) => {
+    const option = STATUS_OPTIONS.find((opt) => opt.value === status)
+    return option ? option.label : '-'
+  }
 
   const calcularContadores = (ordensData) => {
     const hoje = new Date()
@@ -72,21 +95,80 @@ const PainelAcompanhamento = ({ navigation }) => {
     return { abertas, atrasadas, concluidas, total: ordensData.length }
   }
 
-  const fetchOrdens = async () => {
+  const debouncedSetSearchValue = useCallback(
+    debounce((val) => {
+      setSearchValue(val)
+    }, 600),
+    []
+  )
+
+  const fetchOrdens = async (filtros = {}) => {
     setLoading(true)
     try {
-      const response = await apiGetComContextoos('ordemdeservico/ordens/')
+      const params = new URLSearchParams()
 
-      const ordensData = Array.isArray(response)
-        ? response
-        : response.results || []
+      // Usar cliente_nome para busca específica por nome do cliente
+      if (filtros.cliente_nome || searchValue) {
+        params.append('cliente_nome', filtros.cliente_nome || searchValue)
+      }
 
-      console.log('Dados retornados pela API:', ordensData.length, 'registros')
+      const queryString = params.toString()
+      const url = `ordemdeservico/ordens/${
+        queryString ? `?${queryString}` : ''
+      }`
+
+      console.log('🔍 FRONTEND - URL da requisição:', url)
+      console.log('🔍 FRONTEND - Filtros aplicados:', {
+        cliente_nome: filtros.cliente_nome || searchValue,
+      })
+
+      const response = await apiGetComContextoos(url)
+
+      console.log(
+        '📡 FRONTEND - Status da resposta:',
+        response?.status || 'N/A'
+      )
+      console.log('📡 FRONTEND - Response completa:', response)
+
+      // Processar diferentes estruturas de resposta
+      let ordensData = []
+
+      if (Array.isArray(response)) {
+        ordensData = response
+      } else if (response && response.data && Array.isArray(response.data)) {
+        ordensData = response.data
+      } else if (
+        response &&
+        response.results &&
+        Array.isArray(response.results)
+      ) {
+        ordensData = response.results
+      } else if (response && typeof response === 'object') {
+        const possibleArrays = Object.values(response).filter(Array.isArray)
+        if (possibleArrays.length > 0) {
+          ordensData = possibleArrays[0]
+        }
+      }
+
+      console.log(
+        '📊 FRONTEND - Total de registros recebidos:',
+        ordensData.length
+      )
+      console.log(
+        '📊 FRONTEND - Primeiros 3 registros:',
+        ordensData.slice(0, 3)
+      )
 
       setOrdens(ordensData)
       setContadores(calcularContadores(ordensData))
+
+      console.log(
+        '💾 FRONTEND - Dados salvos no estado:',
+        ordensData.length,
+        'registros'
+      )
     } catch (error) {
-      console.error('Erro ao buscar ordens:', error.message)
+      console.error('❌ FRONTEND - Erro ao buscar ordens:', error)
       setOrdens([])
     } finally {
       setLoading(false)
@@ -114,22 +196,246 @@ const PainelAcompanhamento = ({ navigation }) => {
       )
     }
 
+    // Filtro por cliente agora é feito no backend, não precisa filtrar localmente
+
+    // Ordenação
+    if (ordenacao.campo) {
+      ordensFiltradasLocalmente.sort((a, b) => {
+        let valorA, valorB
+
+        switch (ordenacao.campo) {
+          case 'os':
+            valorA = a.orde_nume
+            valorB = b.orde_nume
+            break
+          case 'cliente':
+            valorA = a.cliente_nome || ''
+            valorB = b.cliente_nome || ''
+            break
+          case 'status':
+            valorA = getStatusText(a.orde_stat_orde)
+            valorB = getStatusText(b.orde_stat_orde)
+            break
+          case 'setor':
+            valorA = a.setor_nome || a.orde_seto || ''
+            valorB = b.setor_nome || b.orde_seto || ''
+            break
+          default:
+            return 0
+        }
+
+        if (typeof valorA === 'string' && typeof valorB === 'string') {
+          valorA = valorA.toLowerCase()
+          valorB = valorB.toLowerCase()
+        }
+
+        if (valorA < valorB) return ordenacao.direcao === 'asc' ? -1 : 1
+        if (valorA > valorB) return ordenacao.direcao === 'asc' ? 1 : -1
+        return 0
+      })
+    }
+
     return ordensFiltradasLocalmente
-  }, [ordens, filtroStatus, filtroPrioridade])
+  }, [ordens, filtroStatus, filtroPrioridade, ordenacao])
 
   useEffect(() => {
     fetchOrdens()
   }, [])
 
   useEffect(() => {
-    // Contadores sempre mostram dados totais, não filtrados
     setContadores(calcularContadores(ordens))
   }, [ordens])
 
-  const getStatusText = (status) => {
-    const option = STATUS_OPTIONS.find((opt) => opt.value === status)
-    return option ? option.label : '-'
+  useEffect(() => {
+    if (searchValue) {
+      fetchOrdens({ cliente_nome: searchValue })
+    } else {
+      fetchOrdens()
+    }
+  }, [searchValue])
+
+  const handleOrdenacao = (campo) => {
+    if (ordenacao.campo === campo) {
+      // Se já está ordenando por este campo, inverte a direção
+      setOrdenacao({
+        campo,
+        direcao: ordenacao.direcao === 'asc' ? 'desc' : 'asc',
+      })
+    } else {
+      // Se é um novo campo, ordena em ordem crescente
+      setOrdenacao({
+        campo,
+        direcao: 'asc',
+      })
+    }
   }
+
+  const renderTableHeader = () => (
+    <View style={styles.tableHeader}>
+      <TouchableOpacity
+        style={[
+          styles.tableHeaderButton,
+          modoMobile ? styles.colOSMobile : styles.colOS,
+        ]}
+        onPress={() => modoMobile && handleOrdenacao('os')}>
+        <Text style={styles.tableHeaderText}>OS</Text>
+        {modoMobile && ordenacao.campo === 'os' && (
+          <Ionicons
+            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+            size={12}
+            color="#fff"
+          />
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.tableHeaderButton,
+          modoMobile ? styles.colClienteMobile : styles.colCliente,
+        ]}
+        onPress={() => modoMobile && handleOrdenacao('cliente')}>
+        <Text style={styles.tableHeaderText}>Cliente</Text>
+        {modoMobile && ordenacao.campo === 'cliente' && (
+          <Ionicons
+            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+            size={12}
+            color="#fff"
+          />
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.tableHeaderButton,
+          modoMobile ? styles.colStatusMobile : styles.colStatus,
+        ]}
+        onPress={() => modoMobile && handleOrdenacao('status')}>
+        <Text style={styles.tableHeaderText}>Status</Text>
+        {modoMobile && ordenacao.campo === 'status' && (
+          <Ionicons
+            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+            size={12}
+            color="#fff"
+          />
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.tableHeaderButton,
+          modoMobile ? styles.colSetorMobile : styles.colPrioridade,
+        ]}
+        onPress={() => modoMobile && handleOrdenacao('setor')}>
+        <Text style={styles.tableHeaderText}>
+          {modoMobile ? 'Setor' : 'Prioridade'}
+        </Text>
+        {modoMobile && ordenacao.campo === 'setor' && (
+          <Ionicons
+            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+            size={12}
+            color="#fff"
+          />
+        )}
+      </TouchableOpacity>
+
+      {!modoMobile && (
+        <Text style={[styles.tableHeaderText, styles.colSetor]}>Setor</Text>
+      )}
+      {!modoMobile && (
+        <Text style={[styles.tableHeaderText, styles.colData]}>Data</Text>
+      )}
+      {!modoMobile && (
+        <Text style={[styles.tableHeaderText, styles.colProblema]}>
+          Problema
+        </Text>
+      )}
+    </View>
+  )
+
+  const renderTableRow = ({ item }) => (
+    <TouchableOpacity
+      style={[
+        styles.tableRow,
+        {
+          backgroundColor: statusColors[item.orde_stat_orde] || '#fff',
+          borderLeftColor: prioridadeColors[item.orde_prio] || '#aaa',
+        },
+      ]}
+      activeOpacity={0.7}
+      onPress={() => navigation.navigate('OrdemDetalhe', { ordem: item })}>
+      <Text
+        style={[
+          styles.tableCellText,
+          modoMobile ? styles.colOSMobile : styles.colOS,
+          styles.osNumber,
+        ]}>
+        #{item.orde_nume}
+      </Text>
+
+      <Text
+        style={[
+          styles.tableCellText,
+          modoMobile ? styles.colClienteMobile : styles.colCliente,
+        ]}
+        numberOfLines={2}>
+        {item.cliente_nome || 'Cliente não informado'}
+      </Text>
+
+      <Text
+        style={[
+          styles.tableCellText,
+          modoMobile ? styles.colStatusMobile : styles.colStatus,
+        ]}
+        numberOfLines={1}>
+        {getStatusText(item.orde_stat_orde)}
+      </Text>
+
+      {modoMobile ? (
+        <Text
+          style={[styles.tableCellText, styles.colSetorMobile]}
+          numberOfLines={1}>
+          {item.setor_nome || item.orde_seto || '-'}
+        </Text>
+      ) : (
+        <View style={[styles.colPrioridade, styles.prioridadeCellContainer]}>
+          <View
+            style={[
+              styles.prioridadeBadge,
+              { backgroundColor: prioridadeColors[item.orde_prio] || '#aaa' },
+            ]}>
+            <Text style={styles.prioridadeBadgeText}>
+              {item.orde_prio === 'normal'
+                ? 'Normal'
+                : item.orde_prio === 'alerta'
+                ? 'Alerta'
+                : item.orde_prio === 'urgente'
+                ? 'Urgente'
+                : '-'}
+            </Text>
+          </View>
+        </View>
+      )}
+      {!modoMobile && (
+        <Text style={[styles.tableCellText, styles.colSetor]} numberOfLines={1}>
+          {item.setor_nome || item.orde_seto || '-'}
+        </Text>
+      )}
+
+      {!modoMobile && (
+        <Text style={[styles.tableCellText, styles.colData]}>
+          {item.orde_data_aber || '-'}
+        </Text>
+      )}
+
+      {!modoMobile && (
+        <Text
+          style={[styles.tableCellText, styles.colProblema]}
+          numberOfLines={2}>
+          {item.orde_prob || 'Sem descrição do problema'}
+        </Text>
+      )}
+    </TouchableOpacity>
+  )
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -194,9 +500,23 @@ const PainelAcompanhamento = ({ navigation }) => {
   )
 
   const renderIndicador = (label, valor, bgColor) => (
-    <View style={[styles.indicador, { backgroundColor: bgColor }]}>
-      <Text style={styles.indicadorLabel}>{label}</Text>
-      <Text style={styles.indicadorValor}>{valor}</Text>
+    <View
+      style={[
+        modoMobile ? styles.indicadorMobile : styles.indicador,
+        { backgroundColor: bgColor },
+      ]}>
+      <Text
+        style={
+          modoMobile ? styles.indicadorLabelMobile : styles.indicadorLabel
+        }>
+        {label}
+      </Text>
+      <Text
+        style={
+          modoMobile ? styles.indicadorValorMobile : styles.indicadorValor
+        }>
+        {valor}
+      </Text>
     </View>
   )
 
@@ -235,18 +555,23 @@ const PainelAcompanhamento = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={styles.indicadores}>
-        <TouchableOpacity
-          style={styles.botaoCriar}
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate('OsCriacao')}>
-          <Ionicons name="add-circle" size={20} color="#fff" />
-          <Text style={styles.botaoCriarTexto}>Nova O.S.</Text>
-        </TouchableOpacity>
+      <View style={modoMobile ? styles.indicadoresMobile : styles.indicadores}>
         {renderIndicador('Abertas', contadores.abertas, '#d1ecf1')}
         {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
         {renderIndicador('Concluídas', contadores.concluidas, '#d4edda')}
         {renderIndicador('Total', contadores.total, '#eee')}
+        <TouchableOpacity
+          style={modoMobile ? styles.botaoCriarMobile : styles.botaoCriar}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('OsCriacao')}>
+          <Ionicons name="add-circle" size={20} color="#fff" />
+          <Text
+            style={
+              modoMobile ? styles.botaoCriarTextMobile : styles.botaoCriarTexto
+            }>
+            Nova O.S.
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={modoMobile ? styles.filtrosMobile : styles.filtros}>
@@ -327,336 +652,60 @@ const PainelAcompanhamento = ({ navigation }) => {
             ))}
           </ScrollView>
         </View>
+        <Text style={modoMobile ? styles.filtrosMobileFiltro : styles.titulo}>
+          Filtragem por Cliente
+        </Text>
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Buscar por nome do cliente..."
+            placeholderTextColor="#777"
+            style={styles.input}
+            value={searchTerm}
+            onChangeText={(text) => {
+              setSearchTerm(text)
+              debouncedSetSearchValue(text)
+            }}
+            returnKeyType="search"
+            onSubmitEditing={() => setSearchValue(searchTerm)}
+          />
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => setSearchValue(searchTerm)}>
+            <Text style={styles.searchButtonText}>Buscar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-
+      <View></View>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#284665" />
           <Text style={styles.loadingText}>Carregando ordens...</Text>
         </View>
       ) : (
-        <FlatList
-          key={modoMobile ? 'mobile' : 'desktop'}
-          data={ordens}
-          renderItem={renderItem}
-          keyExtractor={(item) =>
-            item.orde_nume?.toString() ||
-            item.id?.toString() ||
-            Math.random().toString()
-          }
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.flatListContent}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Nenhuma ordem encontrada</Text>
-            </View>
-          }
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-        />
+        <View style={styles.tableContainer}>
+          {renderTableHeader()}
+          <ScrollView
+            style={styles.tableScrollView}
+            showsVerticalScrollIndicator={false}>
+            {ordensFiltradasLocalmente.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Nenhuma ordem encontrada</Text>
+              </View>
+            ) : (
+              ordensFiltradasLocalmente.map((item, index) => (
+                <View
+                  key={`${item.orde_empr || 'emp'}-${item.orde_fili || 'fil'}-${
+                    item.orde_nume || 'num'
+                  }-${item.cliente_codigo || 'cli'}-${index}`}>
+                  {renderTableRow({ item })}
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
       )}
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 30,
-    backgroundColor: '#232935',
-  },
-  containerMobile: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#232935',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingVertical: 15,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  logo: {
-    width: 200,
-    height: 200,
-    resizeMode: 'contain',
-  },
-  logoMobile: {
-    width: 220,
-    height: 80,
-    resizeMode: 'contain',
-  },
-  modeButton: {
-    backgroundColor: '#28a745',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-    elevation: 4,
-  },
-  modeButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  refreshButton: {
-    backgroundColor: '#284665',
-    padding: 8,
-    borderRadius: 20,
-    elevation: 4,
-  },
-  indicadores: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 8,
-    paddingVertical: 10,
-  },
-  indicadoresMobile: {
-    flexDirection: 'column',
-    gap: 8,
-    marginBottom: 8,
-    paddingVertical: 10,
-  },
-  indicador: {
-    flex: 1,
-    marginHorizontal: 4,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    elevation: 4,
-  },
-  indicadorLabel: {
-    fontWeight: 'bold',
-    fontSize: 10,
-    marginBottom: 4,
-    opacity: 0.7,
-  },
-  indicadorValor: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  filtros: {
-    marginBottom: 5,
-    backgroundColor: '#000',
-    padding: 30,
-    borderRadius: 10,
-    elevation: 4,
-  },
-  filtrosMobile: {
-    marginBottom: 5,
-    backgroundColor: '#000',
-    padding: 15,
-    borderRadius: 10,
-    elevation: 4,
-  },
-  filtroSection: {
-    marginBottom: 5,
-  },
-  filtroLabel: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  filtroScroll: {
-    flexDirection: 'row',
-  },
-  filtroButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginRight: 10,
-    borderRadius: 20,
-    minWidth: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  filtroButtonMobile: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 15,
-    minWidth: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  filtroButtonText: {
-    fontSize: 14,
-    color: '#333',
-    textAlign: 'center',
-  },
-  filtroButtonTextMobile: {
-    fontSize: 11,
-    color: '#333',
-    textAlign: 'center',
-  },
-  card: {
-    flex: 1,
-    margin: 5,
-    padding: 14,
-    borderRadius: 8,
-    borderLeftWidth: 6,
-    elevation: 3,
-    maxWidth: '48%',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  numeroContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  numeroLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginRight: 4,
-  },
-  numero: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  prioridadeContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  prioridade: {
-    fontSize: 11,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  cardBody: {
-    gap: 8,
-  },
-  clienteNome: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  status: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  data: {
-    fontSize: 11,
-    color: '#666',
-  },
-  problema: {
-    fontSize: 12,
-    color: '#555',
-    fontStyle: 'italic',
-  },
-  setorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  setorLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  setor: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#333',
-    flex: 1,
-  },
-  botaoCriar: {
-    backgroundColor: '#284665',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-    borderRadius: 8,
-    gap: 6,
-    elevation: 2,
-  },
-  botaoCriarMobile: {
-    backgroundColor: '#284665',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    gap: 6,
-    elevation: 2,
-    marginBottom: 8,
-  },
-  botaoCriarTexto: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  listContainer: {
-    paddingBottom: 30,
-  },
-  columnWrapper: {
-    justifyContent: 'space-between',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 5,
-  },
-})
 
 export default PainelAcompanhamento

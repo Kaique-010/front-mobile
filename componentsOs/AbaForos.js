@@ -14,6 +14,7 @@ import {
   fetchFotos,
 } from '../services/fotosApi'
 import { BASE_URL } from '../utils/api'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const etapas = [
   { key: 'antes', label: 'Antes' },
@@ -27,12 +28,21 @@ export default function AbaForos({ orde_nume, codTecnico }) {
   const [modalVisible, setModalVisible] = useState(false)
   const [imagemSelecionada, setImagemSelecionada] = useState([])
   const [isUploading, setIsUploading] = useState(false)
+  const [slug, setSlug] = useState('')
 
   useEffect(() => {
-    if (orde_nume) {
+    const getSlug = async () => {
+      const storedSlug = await AsyncStorage.getItem('slug')
+      setSlug(storedSlug || '')
+    }
+    getSlug()
+  }, [])
+
+  useEffect(() => {
+    if (orde_nume && slug) {
       loadFotos()
     }
-  }, [subAba, orde_nume])
+  }, [subAba, orde_nume, slug])
 
   const loadFotos = async () => {
     try {
@@ -88,7 +98,7 @@ export default function AbaForos({ orde_nume, codTecnico }) {
     if (item.imagem_base64) {
       uri = `data:image/jpeg;base64,${item.imagem_base64}`
     } else {
-      uri = `${BASE_URL}/api/ordemdeservico/imagens/${subAba}/${imageId}/bin/`
+      uri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${imageId}/bin/`
     }
 
     setImagemSelecionada([{ uri }, item])
@@ -101,7 +111,7 @@ export default function AbaForos({ orde_nume, codTecnico }) {
     if (item.imagem_base64) {
       imageSource = { uri: `data:image/jpeg;base64,${item.imagem_base64}` }
     } else {
-      const imageUri = `${BASE_URL}/api/ordemdeservico/imagens/${subAba}/${imageId}/bin/`
+      const imageUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${imageId}/bin/`
       imageSource = { uri: imageUri }
     }
 

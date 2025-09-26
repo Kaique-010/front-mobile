@@ -97,14 +97,15 @@ export default StyleSheet.create({
   filtrosBuscaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8, // Espaçamento entre os inputs
+    gap: 8,
+    padding: 4,
   },
   inputBuscaGroup: {
     flex: 1,
     marginHorizontal: 2,
   },
   labelBusca: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666',
     marginBottom: 4,
     fontWeight: '500',
@@ -114,7 +115,8 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    padding: 10, // Padding menor
+    paddingHorizontal: 26,
+    paddingVertical: 20,
     fontSize: 13, // Fonte menor
     backgroundColor: '#f8f9fa',
     marginHorizontal: 2,
