@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { BackHandler, Platform } from 'react-native'
+import { BackHandler, Platform, StatusBar } from 'react-native'
 import { LogBox } from 'react-native'
 LogBox.ignoreLogs(['Warning: ...'])
 LogBox.ignoreAllLogs()

@@ -6,6 +6,9 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
 } from 'react-native'
 import { FontAwesome } from '@expo/vector-icons'
 import axios from 'axios'
