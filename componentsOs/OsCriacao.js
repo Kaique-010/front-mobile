@@ -514,7 +514,12 @@ export default function CriarOrdemServico() {
                 }}
               />
               <Text style={styles.label}>Tipo de Ordem:</Text>
-              <View style={[styles.pickerContainer, Platform.OS === 'android' && { overflow: 'hidden' }]}>
+              <View
+                style={[
+                  styles.pickerContainer,
+                  Platform.OS === 'android' && { overflow: 'hidden' },
+                  Platform.OS === 'ios' && { paddingVertical: 5 },
+                ]}>
                 <Picker
                   selectedValue={ordemServico.orde_tipo}
                   onValueChange={(value) =>
@@ -522,22 +527,36 @@ export default function CriarOrdemServico() {
                   }
                   style={[
                     styles.picker,
-                    Platform.OS === 'android' && { 
+                    Platform.OS === 'android' && {
                       backgroundColor: '#1a2f3d',
-                      marginHorizontal: -15,
-                      marginVertical: -5
-                    }
+                      marginHorizontal: -5,
+                      marginVertical: -3,
+                    },
+                    Platform.OS === 'ios' && {
+                      backgroundColor: 'transparent',
+                      height: undefined,
+                      minHeight: 44,
+                    },
                   ]}
                   dropdownIconColor="#fff"
-                  itemStyle={Platform.OS === 'ios' ? { color: '#fff', backgroundColor: '#1a2f3d' } : undefined}
-                  mode={Platform.OS === 'android' ? 'dropdown' : 'dialog'}
+                  itemStyle={
+                    Platform.OS === 'ios'
+                      ? {
+                          color: '#fff',
+                          backgroundColor: 'transparent',
+                          fontSize: 18,
+                          height: 44,
+                          textAlign: 'center',
+                        }
+                      : undefined
+                  }
+                  mode={Platform.OS === 'android' ? 'dropdown' : 'compact'}
                   dropdownIconRippleColor="#10a2a7"
                   prompt="Selecione o tipo de ordem">
                   <Picker.Item
                     label="Selecione o tipo de ordem..."
                     value=""
-                    color={Platform.OS === 'android' ? '#666' : '#666'}
-                    style={Platform.OS === 'android' ? { backgroundColor: '#1a2f3d' } : undefined}
+                    color={Platform.OS === 'android' ? '#666' : '#999'}
                   />
                   {TIPOS_ORDEM.map((tipo) => (
                     <Picker.Item
@@ -545,7 +564,11 @@ export default function CriarOrdemServico() {
                       label={tipo.label}
                       value={tipo.value}
                       color={Platform.OS === 'android' ? '#fff' : '#fff'}
-                      style={Platform.OS === 'android' ? { backgroundColor: '#1a2f3d' } : undefined}
+                      style={
+                        Platform.OS === 'android'
+                          ? { backgroundColor: '#1a2f3d' }
+                          : undefined
+                      }
                     />
                   ))}
                 </Picker>
@@ -675,41 +698,44 @@ const styles = StyleSheet.create({
   },
   datePickerButton: {
     backgroundColor: '#1a2f3d',
-    padding: 15,
+    padding: 10,
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   pickerContainer: {
     backgroundColor: '#1a2f3d',
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 25,
   },
   picker: {
     backgroundColor: Platform.OS === 'android' ? '#0f1f2a' : 'transparent',
     color: '#fff',
-    height: 50,
+    height: Platform.OS === 'ios' ? undefined : 50,
+    minHeight: Platform.OS === 'ios' ? 44 : undefined,
+    paddingHorizontal: 15,
+    fontSize: 18,
   },
   divider: {
     backgroundColor: '#1a2f3d',
     padding: 10,
     borderRadius: 8,
-    marginVertical: 15,
+    marginVertical: 20,
     alignItems: 'center',
   },
   dividerText: {
     color: '#10a2a7',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   fieldContainer: {
-    marginBottom: 15,
+    marginBottom: 25,
   },
   input: {
     backgroundColor: '#1a2f3d',
     color: '#fff',
     padding: 15,
     borderRadius: 8,
-    fontSize: 16,
+    fontSize: 18,
   },
   textarea: {
     height: 100,
