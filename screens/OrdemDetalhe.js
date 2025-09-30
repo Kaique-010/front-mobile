@@ -22,6 +22,18 @@ const OrdemDetalhe = ({ route }) => {
   const [servicos, setServicos] = useState([])
   const [ordemAtual, setOrdemAtual] = useState(ordem)
 
+  const STATUS_OPTIONS = [
+    { label: 'Todas', value: null },
+    { label: 'Aberta', value: 0 },
+    { label: 'Orçamento gerado', value: 1 },
+    { label: 'Aguardando Liberação', value: 2 },
+    { label: 'Liberada', value: 3 },
+    { label: 'Finalizada', value: 4 },
+    { label: 'Reprovada', value: 5 },
+    { label: 'Faturada parcial', value: 20 },
+    { label: 'Em atraso', value: 21 },
+  ]
+
   useEffect(() => {
     carregarPecas()
     carregarServicos()
@@ -76,7 +88,11 @@ const OrdemDetalhe = ({ route }) => {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{ordemAtual.orde_stat || '-'}</Text>
+          <Text style={styles.value}>
+            {STATUS_OPTIONS.find(
+              (item) => item.value === ordemAtual.orde_stat_orde
+            )?.label || '-'}
+          </Text>
         </View>
 
         <View style={styles.infoRow}>
@@ -295,7 +311,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     marginTop: 20,
     paddingHorizontal: 15,
-    
+
     alignSelf: 'flex-end',
   },
 })

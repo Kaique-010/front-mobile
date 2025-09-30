@@ -33,7 +33,7 @@ export default StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   filtroButtonText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 12,
     fontWeight: 'bold',
   },

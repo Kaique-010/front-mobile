@@ -12,7 +12,7 @@ import ItensModalOs from './ItensModalOs'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 
-export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
+export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
   const [itemEditando, setItemEditando] = useState(null)
@@ -33,7 +33,7 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
       console.log('Carregando peças para OS:', orde_nume)
 
       const response = await apiGetComContexto('ordemdeservico/pecas/', {
-        peca_orde: orde_nume,
+        peca_orde: orde_nume || '',
         peca_empr: 1,
         peca_fili: 1,
       })
@@ -53,11 +53,15 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
 
         console.log('Peças formatadas:', pecasFormatadas)
         setProdutos(pecasFormatadas)
-        setPecas(pecasFormatadas)
+        if (onPecasChange) {
+          onPecasChange(pecasFormatadas)
+        }
       } else {
         console.log('Nenhuma peça encontrada')
         setProdutos([])
-        setPecas([])
+        if (onPecasChange) {
+          onPecasChange([])
+        }
       }
     } catch (error) {
       console.error(
@@ -78,7 +82,9 @@ export default function AbaPecas({ pecas = [], setPecas, orde_nume }) {
 
   const sincronizarComPai = (novos) => {
     setProdutos(novos)
-    setPecas(novos)
+    if (onPecasChange) {
+      onPecasChange(novos)
+    }
   }
 
   const validarProduto = (novoItem) => {
