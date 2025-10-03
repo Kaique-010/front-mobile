@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    direction: 'row',
+    flexDirection: 'row',
   },
   whatsappButton: {
     backgroundColor: '#25d366',

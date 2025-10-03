@@ -36,6 +36,8 @@ export default function SaldosChart({ data, chartConfig }) {
         height={220}
         chartConfig={{
           ...chartConfig,
+          fillShadowGradient: 'rgba(137, 35, 155, 0.35)',
+          fillShadowGradientOpacity: 1,
           propsForLabels: {
             fontSize: 10,
             fill: '#fff',

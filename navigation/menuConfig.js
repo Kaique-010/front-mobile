@@ -265,7 +265,7 @@ export const getMenuConfig = (hasModulo) => {
           name: ' Painel Os',
           route: 'Painel Os',
           icon: 'settings',
-          condition: hasModulo('OrdemdeServico'),
+          condition: hasModulo('O_S'),
         },
         {
           name: "Painel de O'S",
@@ -277,12 +277,24 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Relação de O.S',
           route: 'Ordem de Serviço Geral',
           icon: 'tool',
+          condition: hasModulo('O_S'),
+        },
+        {
+          name: 'Relação de Ordens  ',
+          route: 'DashOrdensEletro',
+          icon: 'tool',
           condition: hasModulo('OrdemdeServico'),
         },
         {
           name: 'Configuração de Workflows',
           route: 'WorkflowConfig',
           icon: 'settings',
+          condition: hasModulo('OrdemdeServico'),
+        },
+        {
+          name: 'Histórico Workflow',
+          route: 'HistoricoWorkflow',
+          icon: 'bar-chart',
           condition: hasModulo('OrdemdeServico'),
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),

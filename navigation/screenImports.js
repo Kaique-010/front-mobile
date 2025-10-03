@@ -80,6 +80,9 @@ export { default as OrdemServicoGeral } from '../dashboards/DashOs'
 export { default as DashOsGrafico } from '../dashboards/DasOsGrafico'
 export { default as DashOs } from '../dashboards/DashOs'
 export { default as WorkflowConfig } from '../screens/WorkflowConfig'
+export { default as OrdensEletroGrafico } from '../componentsRelatoriosEletro/OrdensEletroGrafico'
+export { default as DashOrdensEletro } from '../componentsRelatoriosEletro/DashOrdensEletro'
+export { default as HistoricoWorkflow } from '../componentsRelatoriosEletro/HistoricoWorkflow'
 
 // Telas de implantação
 export { default as ImplantacaoForm } from '../screens/ImplantacaoForm'

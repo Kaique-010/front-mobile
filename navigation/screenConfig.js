@@ -328,6 +328,21 @@ export const screenConfigs = [
     component: Screens.WorkflowConfig,
     options: createHeaderOptions('Configuração de Workflows'),
   },
+  {
+    name: 'OrdensEletroGrafico',
+    component: Screens.OrdensEletroGrafico,
+    options: createHeaderOptions('Gráficos de O.E'),
+  },
+  {
+    name: 'DashOrdensEletro',
+    component: Screens.DashOrdensEletro,
+    options: createHeaderOptions('Relação de Ordens'),
+  },
+  {
+    name: 'HistoricoWorkflow',
+    component: Screens.HistoricoWorkflow,
+    options: createHeaderOptions('Histórico Workflow'),
+  },
 
   // Telas de Ordem de Produção
   {

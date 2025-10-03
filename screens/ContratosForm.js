@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { apiPostComContexto, apiPutComContexto } from '../utils/api'
+import { apiPostComContexto, apiPutComContexto, apiPatchComContexto } from '../utils/api'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaProdutosInput from '../components/BuscaProdutosInput'
 import styles from '../styles/ContratoStyles'
@@ -127,10 +127,14 @@ export default function ContratosForm({ route, navigation }) {
 
     try {
       const payload = { ...form }
+      // Inclui o identificador do contrato no payload ao atualizar
+      if (contratos?.cont_cont) {
+        payload.cont_cont = contratos.cont_cont
+      }
       console.log('📦 Payload enviado:', payload)
 
       if (contratos?.cont_cont) {
-        await apiPutComContexto(
+        await apiPatchComContexto(
           `contratos/contratos-vendas/${contratos.cont_cont}/`,
           payload
         )
