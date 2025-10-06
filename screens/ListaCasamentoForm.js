@@ -9,6 +9,7 @@ import {
   Keyboard,
   Platform,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Picker } from '@react-native-picker/picker'
@@ -25,6 +26,9 @@ export default function ListaCasamentoForm({ route, navigation }) {
   )
   const [form, setForm] = useState({
     list_data: new Date().toISOString().split('T')[0],
+    list_data_casa: new Date().toISOString().split('T')[0],
+    list_nome: '',
+    list_cade: '',
     list_noiv: '',
     list_stat: '0',
     list_usua: null,
@@ -80,6 +84,8 @@ export default function ListaCasamentoForm({ route, navigation }) {
           list_data: lista.list_data || prev.list_data,
           list_noiv: lista.list_noiv || prev.list_noiv,
           list_stat: String(lista.list_stat),
+          list_nome: lista.list_nome || prev.list_nome,
+          list_cade: lista.list_cade || prev.list_cade,
         }))
         setClienteSelecionadoTexto(`${lista.list_noiv} - ${cliente_nome || ''}`)
       } else {
@@ -87,8 +93,12 @@ export default function ListaCasamentoForm({ route, navigation }) {
         setClienteSelecionadoTexto('')
         setForm((prev) => ({
           ...prev,
+          list_data: new Date().toISOString().split('T')[0],
+          list_data_casa: new Date().toISOString().split('T')[0],
           list_noiv: '',
           list_stat: '0',
+          list_nome: '',
+          list_cade: '',
         }))
       }
     }
@@ -99,9 +109,14 @@ export default function ListaCasamentoForm({ route, navigation }) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const [estaSalvando, setEstaSalvando] = useState(false)
+
   const salvarLista = async () => {
+    if (estaSalvando) return
+    setEstaSalvando(true)
     if (!form.list_noiv || !form.list_data) {
       Alert.alert('Erro', 'Preencha os campos obrigatórios.')
+      setEstaSalvando(false)
       return
     }
 
@@ -117,7 +132,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
           payload
         )
         Alert.alert('Sucesso', 'Lista atualizada com sucesso!')
-        
+
         // Limpar cache após atualização
         try {
           await AsyncStorage.removeItem('listas_casamento_cache')
@@ -125,7 +140,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
         } catch (error) {
           console.log('⚠️ Erro ao limpar cache:', error)
         }
-        
+
         navigation.navigate('ItensListaModal', {
           listaId: lista.list_codi,
           clienteId: lista.list_noiv,
@@ -139,7 +154,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
           payload
         )
         Alert.alert('Sucesso', 'Lista criada com sucesso!')
-        
+
         // Limpar cache após criação
         try {
           await AsyncStorage.removeItem('listas_casamento_cache')
@@ -147,7 +162,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
         } catch (error) {
           console.log('⚠️ Erro ao limpar cache:', error)
         }
-        
+
         navigation.navigate('ItensListaModal', {
           listaId: novaLista.list_codi,
           clienteId: form.list_noiv,
@@ -162,6 +177,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
         error.response?.data
       )
       Alert.alert('Erro', 'Falha ao salvar a lista.')
+      setEstaSalvando(false)
     }
   }
 
@@ -171,6 +187,20 @@ export default function ListaCasamentoForm({ route, navigation }) {
       style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
+          <Text style={styles.label}>Data de criação</Text>
+          <TextInput
+            style={styles.forminput}
+            value={form.list_data}
+            onChangeText={(text) => handleChange('list_data', text)}
+            placeholder="YYYY-MM-DD"
+          />
+          <Text style={styles.label}>Data do Casamento</Text>
+          <TextInput
+            style={styles.forminput}
+            value={form.list_data_casa}
+            onChangeText={(text) => handleChange('list_data_casa', text)}
+            placeholder="YYYY-MM-DD"
+          />
           <Text style={styles.label}>Cliente</Text>
 
           <BuscaClienteInput
@@ -182,14 +212,21 @@ export default function ListaCasamentoForm({ route, navigation }) {
               }))
             }}
           />
-
-          <Text style={styles.label}>Data</Text>
+          <Text style={styles.label}>Nome do Casal/Lista</Text>
           <TextInput
             style={styles.forminput}
-            value={form.list_data}
-            onChangeText={(text) => handleChange('list_data', text)}
-            placeholder="YYYY-MM-DD"
+            value={form.list_nome}
+            onChangeText={(text) => handleChange('list_nome', text)}
+            placeholder="Nome do Casal"
           />
+          <Text style={styles.label}>Cadeiras Por Mesa</Text>
+          <TextInput
+            style={styles.forminput}
+            value={form.list_cade}
+            onChangeText={(text) => handleChange('list_cade', text)}
+            placeholder="Cadeira"
+          />
+
           <Text style={styles.label}>Status</Text>
           <Picker
             selectedValue={form.list_stat}
@@ -206,10 +243,17 @@ export default function ListaCasamentoForm({ route, navigation }) {
             <Picker.Item label="Finalizada" value="2" />
             <Picker.Item label="Cancelada" value="3" />
           </Picker>
-          <TouchableOpacity style={styles.incluirButton} onPress={salvarLista}>
-            <Text style={styles.incluirButtonText}>
-              {lista ? 'Salvar Alterações' : 'Criar Lista'}
-            </Text>
+          <TouchableOpacity
+            style={[styles.incluirButton, estaSalvando && { opacity: 0.6 }]}
+            onPress={salvarLista}
+            disabled={estaSalvando}>
+            {estaSalvando ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.incluirButtonText}>
+                {lista ? 'Salvar Alterações' : 'Criar Lista'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>

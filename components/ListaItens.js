@@ -50,7 +50,9 @@ export default function ListaItens({
   )
 
   // Calcular totais
-  const totalItens = itensFiltrados.length
+  const totalItens = itensFiltrados.reduce((sum, item) => {
+    return sum + (parseFloat(item.item_quan || 0) || 1)
+  }, 0)
   console.log('🔍 [DEBUG-TOTAL] Total de itens:', totalItens)
   const totalValor = itensFiltrados.reduce((total, item) => {
     return (
