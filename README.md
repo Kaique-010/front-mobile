@@ -108,12 +108,8 @@ eas build -p android --profile preview
 
 Para rodar o apk da aplicação geramos o comando eas build -p android --profile preview
 
-
-
-
 ## deploy na apple com o eas
 
-eas build -p ios --profile preview
 
 e depois pra produção é
 
@@ -121,9 +117,6 @@ eas build -p ios --profile production
 
 e enviar ele para o IPO em:
 eas submit -p ios --profile production
-
-
-
 
 ## Em caso de erros
 

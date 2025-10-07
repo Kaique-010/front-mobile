@@ -25,7 +25,6 @@ const STATUS_OPTIONS = [
   { label: 'Orçamento gerado', value: 1 },
   { label: 'Aguardando Liberação', value: 2 },
   { label: 'Liberada', value: 3 },
-  { label: 'Finalizada', value: 4 },
   { label: 'Reprovada', value: 5 },
   { label: 'Faturada parcial', value: 20 },
   { label: 'Em atraso', value: 21 },
@@ -35,8 +34,7 @@ const statusColors = {
   0: '#d1ecf1',
   1: '#fff3cd',
   21: '#f5c6cb',
-  3: '#d1ecf1',
-  4: '#d4edda',
+  3: '#d4edda',
   5: '#f5c6cb',
   20: '#bee5eb',
 }
@@ -66,7 +64,7 @@ const PainelAcompanhamento = ({ navigation }) => {
   const [contadores, setContadores] = useState({
     abertas: 0,
     atrasadas: 0,
-    concluidas: 0,
+    liberadas: 0,
     total: 0,
   })
 
@@ -89,10 +87,10 @@ const PainelAcompanhamento = ({ navigation }) => {
     const hoje = new Date()
 
     const abertas = ordensData.filter((o) => o.orde_stat_orde === 0).length
-    const concluidas = ordensData.filter((o) => o.orde_stat_orde === 4).length
+    const liberadas = ordensData.filter((o) => o.orde_stat_orde === 3).length
     const atrasadas = ordensData.filter((o) => o.orde_stat_orde === 21).length
 
-    return { abertas, atrasadas, concluidas, total: ordensData.length }
+    return { abertas, atrasadas, liberadas, total: ordensData.length }
   }
 
   const debouncedSetSearchValue = useCallback(
@@ -558,7 +556,7 @@ const PainelAcompanhamento = ({ navigation }) => {
       <View style={modoMobile ? styles.indicadoresMobile : styles.indicadores}>
         {renderIndicador('Abertas', contadores.abertas, '#d1ecf1')}
         {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
-        {renderIndicador('Concluídas', contadores.concluidas, '#d4edda')}
+        {renderIndicador('Liberadas', contadores.liberadas, '#d4edda')}
         {renderIndicador('Total', contadores.total, '#eee')}
         <TouchableOpacity
           style={modoMobile ? styles.botaoCriarMobile : styles.botaoCriar}

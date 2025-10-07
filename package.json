@@ -64,7 +64,6 @@
     "react-native-toast-message": "^2.3.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-view-shot": "^4.0.3",
-    "react-native-voice": "^0.3.0",
     "react-native-web": "^0.20.0"
   },
   "devDependencies": {
