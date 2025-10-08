@@ -41,15 +41,15 @@ const statusColors = {
 
 const PRIORIDADE_OPTIONS = [
   { label: 'Todas', value: null },
-  { label: 'Normal', value: 'normal' },
-  { label: 'Alerta', value: 'alerta' },
-  { label: 'Urgente', value: 'urgente' },
+  { label: 'Normal', value: '0' },
+  { label: 'Alerta', value: '1' },
+  { label: 'Urgente', value: '2' },
 ]
 
 const prioridadeColors = {
-  normal: '#d1ecf1',
-  alerta: '#ffc107',
-  urgente: '#dc3545',
+  0: '#d1ecf1',
+  1: '#ffc107',
+  2: '#dc3545',
 }
 
 const PainelAcompanhamento = ({ navigation }) => {
@@ -402,11 +402,11 @@ const PainelAcompanhamento = ({ navigation }) => {
               { backgroundColor: prioridadeColors[item.orde_prio] || '#aaa' },
             ]}>
             <Text style={styles.prioridadeBadgeText}>
-              {item.orde_prio === 'normal'
+              {item.orde_prio === '0'
                 ? 'Normal'
-                : item.orde_prio === 'alerta'
+                : item.orde_prio === '1'
                 ? 'Alerta'
-                : item.orde_prio === 'urgente'
+                : item.orde_prio === '2'
                 ? 'Urgente'
                 : '-'}
             </Text>

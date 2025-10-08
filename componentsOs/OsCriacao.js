@@ -38,6 +38,7 @@ export default function CriarOrdemServico() {
   const [financeiroGerado, setFinanceiroGerado] = useState(false)
 
   const [ordemServico, setOrdemServico] = useState({
+    orde_nume: '',
     orde_tipo: '',
     orde_enti: null,
     orde_enti_nome: '',
@@ -157,6 +158,15 @@ export default function CriarOrdemServico() {
 
   const validarOrdemServico = () => {
     console.log('🔍 Iniciando validação da ordem de serviço...')
+    if (!ordemServico.orde_nume || ordemServico.orde_nume.trim() === '') {
+      console.log('❌ Validação falhou: Número da O.S não informado')
+      Toast.show({
+        type: 'error',
+        text1: 'Número da O.S ausente',
+        text2: 'Por favor, informe o número da O.S antes de salvar',
+      })
+      return false
+    }
     console.log('📋 Dados para validação:', {
       orde_enti: ordemServico.orde_enti,
       orde_data_aber: ordemServico.orde_data_aber,
@@ -284,6 +294,7 @@ export default function CriarOrdemServico() {
 
       // Cria payload apenas com campos preenchidos
       const payload = {
+        orde_nume: ordemServico.orde_nume,
         orde_enti: ordemServico.orde_enti,
         orde_data_aber: ordemServico.orde_data_aber,
         orde_tipo: ordemServico.orde_tipo,
@@ -433,7 +444,7 @@ export default function CriarOrdemServico() {
     <KeyboardAwareScrollView style={{ backgroundColor: '#0f1f2a' }}>
       <View style={{ padding: 20, backgroundColor: '#0f1f2a' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          {['cliente', 'pecas', 'servicos', 'fotos', 'totais'].map((aba) => (
+          {['cliente', 'pecas', 'servicos', 'fotos'].map((aba) => (
             <TouchableOpacity
               key={aba}
               onPress={() => {
@@ -464,12 +475,24 @@ export default function CriarOrdemServico() {
         <View style={{ flex: 1 }}>
           {abaAtiva === 'cliente' && (
             <>
-              {orde_nume && (
-                <View style={styles.osNumeroContainer}>
-                  <Text style={styles.osNumeroLabel}>Nº O.S:</Text>
-                  <Text style={styles.osNumero}>{orde_nume}</Text>
-                </View>
-              )}
+              <Text style={styles.label}>
+                Nº da O.S
+                <Text style={styles.required}> *</Text>
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  !ordemServico.orde_nume && {
+                    borderColor: '#1a2f3d',
+                    borderWidth: 1,
+                  },
+                ]}
+                value={ordemServico.orde_nume}
+                onChangeText={(value) => handleInputChange('orde_nume', value)}
+                placeholder="Digite o número da O.S"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+              />
 
               <Text style={styles.label}>Data de Abertura:</Text>
               <TouchableOpacity

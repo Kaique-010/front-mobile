@@ -11,7 +11,7 @@ import AbaServicos from '../componentsOs/AbaServicos'
 import AbaFotos from '../componentsOs/AbaForos'
 import AbaTotais from '../componentsOs/AbaTotais'
 import WorkflowButton from '../componentsOs/WorkflowButton'
-import { apiGetComContexto } from '../utils/api'
+import { apiGetComContexto, apiPatchComContexto } from '../utils/api'
 import useContextoApp from '../hooks/useContextoApp'
 
 const OrdemDetalhe = ({ route }) => {
@@ -21,6 +21,7 @@ const OrdemDetalhe = ({ route }) => {
   const [pecas, setPecas] = useState([])
   const [servicos, setServicos] = useState([])
   const [ordemAtual, setOrdemAtual] = useState(ordem)
+  const [prioridade, setPrioridade] = useState(ordemAtual.orde_prio)
 
   const STATUS_OPTIONS = [
     { label: 'Todas', value: null },
@@ -33,6 +34,28 @@ const OrdemDetalhe = ({ route }) => {
     { label: 'Faturada parcial', value: 20 },
     { label: 'Em atraso', value: 21 },
   ]
+
+  const prioridadeLabel =
+    prioridade === '0'
+      ? 'Normal'
+      : prioridade === '1'
+      ? 'Alerta'
+      : prioridade === '2'
+      ? 'Urgente'
+      : '-'
+
+  const alterarPrioridade = async (nova) => {
+    setPrioridade(nova)
+    try {
+      const resp = await apiPatchComContexto(
+        `ordemdeservico/${ordemAtual.orde_nume}/atualizar-prioridade/`,
+        { orde_prio: nova }
+      )
+      console.log('✅ Prioridade atualizada:', resp.mensagem)
+    } catch (err) {
+      console.error('❌ Erro ao atualizar prioridade', err)
+    }
+  }
 
   useEffect(() => {
     carregarPecas()
@@ -97,7 +120,10 @@ const OrdemDetalhe = ({ route }) => {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Prioridade:</Text>
-          <Text style={styles.value}>{ordemAtual.orde_prio || '-'}</Text>
+          <TouchableOpacity
+            onPress={() => alterarPrioridade((prioridade + 1) % 3)}>
+            <Text style={styles.value}>{prioridadeLabel}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.infoRow}>
@@ -161,7 +187,7 @@ const OrdemDetalhe = ({ route }) => {
       </View>
 
       <View style={styles.tabs}>
-        {['detalhes', 'pecas', 'servicos', 'fotos', 'totais'].map((aba) => (
+        {['detalhes', 'pecas', 'servicos', 'fotos'].map((aba) => (
           <TouchableOpacity
             key={aba}
             onPress={() => setAbaAtiva(aba)}
