@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Modal,
 } from 'react-native'
 import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
@@ -35,12 +36,14 @@ const OrdemDetalhe = ({ route }) => {
     { label: 'Em atraso', value: 21 },
   ]
 
+  const prioridadeValor =
+    typeof prioridade === 'string' ? parseInt(prioridade, 10) : prioridade
   const prioridadeLabel =
-    prioridade === '0'
+    prioridadeValor === 0
       ? 'Normal'
-      : prioridade === '1'
+      : prioridadeValor === 1
       ? 'Alerta'
-      : prioridade === '2'
+      : prioridadeValor === 2
       ? 'Urgente'
       : '-'
 
@@ -48,7 +51,7 @@ const OrdemDetalhe = ({ route }) => {
     setPrioridade(nova)
     try {
       const resp = await apiPatchComContexto(
-        `ordemdeservico/${ordemAtual.orde_nume}/atualizar-prioridade/`,
+        `ordemdeservico/ordens/${ordemAtual.orde_nume}/atualizar-prioridade/`,
         { orde_prio: nova }
       )
       console.log('✅ Prioridade atualizada:', resp.mensagem)
@@ -56,6 +59,12 @@ const OrdemDetalhe = ({ route }) => {
       console.error('❌ Erro ao atualizar prioridade', err)
     }
   }
+
+  const modalAlterarPrioridade = () => {
+    setModalVisible(true)
+  }
+
+  const [modalVisible, setModalVisible] = useState(false)
 
   useEffect(() => {
     carregarPecas()
@@ -121,7 +130,24 @@ const OrdemDetalhe = ({ route }) => {
         <View style={styles.infoRow}>
           <Text style={styles.label}>Prioridade:</Text>
           <TouchableOpacity
-            onPress={() => alterarPrioridade((prioridade + 1) % 3)}>
+            onPress={modalAlterarPrioridade}
+            style={styles.valueRow}>
+            <View
+              style={[
+                styles.priorityDot,
+                styles.priorityDotInline,
+                prioridadeValor === 0
+                  ? styles.priorityDotBaixa
+                  : prioridadeValor === 1
+                  ? styles.priorityDotMedia
+                  : prioridadeValor === 2
+                  ? styles.priorityDotAlta
+                  : null,
+              ]}>
+              <Text style={styles.priorityDotInlineText}>
+                {Number.isFinite(prioridadeValor) ? prioridadeValor : '-'}
+              </Text>
+            </View>
             <Text style={styles.value}>{prioridadeLabel}</Text>
           </TouchableOpacity>
         </View>
@@ -178,6 +204,7 @@ const OrdemDetalhe = ({ route }) => {
       />
     </ScrollView>
   )
+
 
   return (
     <View style={styles.container}>
@@ -238,9 +265,63 @@ const OrdemDetalhe = ({ route }) => {
           />
         )}
       </View>
+      {modalVisible && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Alterar Prioridade</Text>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  alterarPrioridade(0)
+                  setModalVisible(false)
+                }}>
+                <View style={styles.modalButtonContent}>
+                  <View style={[styles.priorityDot, styles.priorityDotBaixa]}>
+                    <Text style={styles.priorityDotText}>0</Text>
+                  </View>
+                  <Text style={styles.modalButtonText}>Normal</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  alterarPrioridade(1)
+                  setModalVisible(false)
+                }}>
+                <View style={styles.modalButtonContent}>
+                  <View style={[styles.priorityDot, styles.priorityDotMedia]}>
+                    <Text style={styles.priorityDotText}>1</Text>
+                  </View>
+                  <Text style={styles.modalButtonText}>Alerta</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  alterarPrioridade(2)
+                  setModalVisible(false)
+                }}>
+                <View style={styles.modalButtonContent}>
+                  <View style={[styles.priorityDot, styles.priorityDotAlta]}>
+                    <Text style={styles.priorityDotText}>2</Text>
+                  </View>
+                  <Text style={styles.modalButtonText}>Alta</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   )
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -288,6 +369,82 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#232935',
+    borderRadius: 8,
+    padding: 20,
+    width: '90%',
+  },
+  modalTitle: {
+    color: '#10a2a7',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#10a2a7',
+    paddingVertical: 12,
+    borderRadius: 6,
+    marginTop: 10,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  priorityDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#10a2a7',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  priorityDotBaixa: {
+    backgroundColor: 'rgba(16, 162, 167, 0.25)',
+  },
+  priorityDotMedia: {
+    backgroundColor: 'rgba(16, 162, 167, 0.55)',
+  },
+  priorityDotAlta: {
+    backgroundColor: '#10a2a7',
+  },
+  priorityDotText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  valueRow: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  priorityDotInline: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    marginRight: 8,
+  },
+  priorityDotInlineText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   detalhesContainer: {
     padding: 15,

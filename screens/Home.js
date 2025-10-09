@@ -222,7 +222,7 @@ export default function Home() {
             <View style={styles.modalHeader}>
               <PulsingLogo active={pensando} />
               <Text style={styles.modalTitle}>
-                Kronos — IA Estratégica Spartacus
+                Kronos — Agente I.A Spartacus
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeButtonText}>✖</Text>
@@ -240,7 +240,7 @@ export default function Home() {
               <TouchableOpacity
                 style={styles.clearButton}
                 onPress={() => setHistorico([])}>
-                <Text style={styles.clearButtonText}>🗑 Limpar conversa</Text>
+                <Text style={styles.clearButtonText}>🗑 Limpar</Text>
               </TouchableOpacity>
             </View>
 
@@ -469,10 +469,10 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: '#121212',
-    width: '90%',
-    height: '80%',
+    width: '87%',
+    height: '60%',
     borderRadius: 16,
-    padding: 70,
+    padding: 30,
     borderColor: '#00bfff',
     borderWidth: 1,
   },
@@ -481,14 +481,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  logomodal: { width: 40, height: 40, resizeMode: 'contain' },
+  logomodal: { width: 30, height: 30, resizeMode: 'contain', marginBottom:15, marginRight:10 },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#00bfff',
-    marginBottom: 10,
+    marginBottom:1,
   },
-  closeButtonText: { fontSize: 18, color: '#ff5555' },
+  closeButtonText: { fontSize: 25, color: '#ff5555', marginLeft:7, marginBottom:35 },
   chatBox: { flex: 1, marginBottom: 15 },
   userMsg: {
     alignSelf: 'flex-end',
