@@ -3,6 +3,8 @@
 Primeiro de tudo Instalar o node.js com o version manager, para facilitar a instalação e o gerenciamento de versões
 Node.js: https://nodejs.org/en/download
 Version Manager: https://github.com/coreybutler/nvm-windows
+
+tem que ser a versão 22 do node.js
 Instalar o version manager:
 nvm install 18.16.0
 nvm use 18.16.0
