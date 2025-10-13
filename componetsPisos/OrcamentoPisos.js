@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import {    
+import {
   View,
   Text,
-  FlatList,
+  FlatList, 
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -13,18 +13,18 @@ import { MaterialIcons } from '@expo/vector-icons'
 import { useContextoApp } from '../hooks/useContextoApp'
 import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import { formatarData } from '../utils/formatters'
-import styles from '../componetsPisos/Styles/PedidosStyles'
+import styles from '../componetsPisos/Styles/orcamentoStyles'
 
-const PedidoPisosItem = ({ item, onEdit, onDelete }) => (
+const OrcamentoPisosItem = ({ item, onEdit, onDelete }) => (
   <View style={styles.card}>
     <View style={styles.cardContent}>
       <View style={styles.cardHeader}>
         <View style={styles.numeroContainer}>
-          <Text style={styles.numeroLabel}>Pedido</Text>
-          <Text style={styles.numero}>#{item.pedi_nume}</Text>
+          <Text style={styles.numeroLabel}>Orcamento</Text>
+          <Text style={styles.numero}>#{item.orca_nume}</Text>
         </View>
         <View style={styles.dataContainer}>
-          <Text style={styles.data}>{formatarData(item.pedi_data)}</Text>
+          <Text style={styles.data}>{formatarData(item.orca_data)}</Text>
         </View>
       </View>
 
@@ -33,7 +33,7 @@ const PedidoPisosItem = ({ item, onEdit, onDelete }) => (
         <Text style={styles.cliente}>
           {item.cliente_nome || 'Cliente não informado'}
         </Text>
-        <Text style={styles.clienteCodigo}>Cód: {item.pedi_clie}</Text>
+        <Text style={styles.clienteCodigo}>Cód: {item.orca_clie}</Text>
       </View>
 
       <View style={styles.infoRow}>
@@ -47,7 +47,7 @@ const PedidoPisosItem = ({ item, onEdit, onDelete }) => (
         <View style={styles.valorSection}>
           <Text style={styles.sectionLabel}>Total</Text>
           <Text style={styles.valor}>
-            {parseFloat(item.pedi_tota || 0).toLocaleString('pt-BR', {
+            {parseFloat(item.orca_tota || 0).toLocaleString('pt-BR', {
               style: 'currency',
               currency: 'BRL',
             })}
@@ -55,34 +55,34 @@ const PedidoPisosItem = ({ item, onEdit, onDelete }) => (
         </View>
       </View>
 
-      {item.pedi_obse && (
+      {item.orca_obse && (
         <View style={styles.observacaoSection}>
           <Text style={styles.sectionLabel}>Observações</Text>
-          <Text style={styles.observacao}>{item.pedi_obse}</Text>
+          <Text style={styles.observacao}>{item.orca_obse}</Text>
         </View>
       )}
 
       {/* Informações específicas de pisos */}
-      {(item.pedi_mode_piso || item.pedi_sent_piso || item.pedi_obra_habi) && (
+      {(item.orca_mode_piso || item.orca_sent_piso || item.orca_obra_habi) && (
         <View style={styles.pisosInfo}>
           <Text style={styles.pisosTitle}>Detalhes do Piso</Text>
-          {item.pedi_mode_piso && (
+          {item.orca_mode_piso && (
             <View style={styles.pisosItem}>
               <Text style={styles.pisosLabel}>Modelo:</Text>
-              <Text style={styles.pisosValue}>{item.pedi_mode_piso}</Text>
+              <Text style={styles.pisosValue}>{item.orca_mode_piso}</Text>
             </View>
           )}
-          {item.pedi_sent_piso && (
+          {item.orca_sent_piso && (
             <View style={styles.pisosItem}>
               <Text style={styles.pisosLabel}>Sentido:</Text>
-              <Text style={styles.pisosValue}>{item.pedi_sent_piso}</Text>
+              <Text style={styles.pisosValue}>{item.orca_sent_piso}</Text>
             </View>
           )}
-          {item.pedi_obra_habi !== undefined && (
+          {item.orca_obra_habi !== undefined && (
             <View style={styles.pisosItem}>
               <Text style={styles.pisosLabel}>Obra Habitada:</Text>
               <Text style={styles.pisosValue}>
-                {item.pedi_obra_habi ? 'Sim' : 'Não'}
+                {item.orca_obra_habi ? 'Sim' : 'Não'}
               </Text>
             </View>
           )}
@@ -105,10 +105,10 @@ const PedidoPisosItem = ({ item, onEdit, onDelete }) => (
   </View>
 )
 
-export default function PedidosPisos({ navigation }) {
+export default function OrcamentosPisos({ navigation }) {  
   const { empresaId, filialId } = useContextoApp()
-  const [pedidos, setPedidos] = useState([])
-  const [searchCliente, setSearchCliente] = useState('')
+  const [orcamentos, setOrcamentos] = useState([])
+  const [searchCliente, setSearchCliente] = useState('')    
   const [searchNumero, setSearchNumero] = useState('')
   const [initialLoading, setInitialLoading] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
@@ -117,11 +117,11 @@ export default function PedidosPisos({ navigation }) {
 
   useEffect(() => {
     if (empresaId && filialId) {
-      buscarPedidos(false, true)
+      buscarOrcamentos(false, true)
     }
   }, [empresaId, filialId])
 
-  const buscarPedidos = async (loadMore = false, isInitial = false) => {
+  const buscarOrcamentos = async (loadMore = false, isInitial = false) => {
     if (loadMore && isFetchingMore) return
     if (loadMore && !hasMore) return
 
@@ -132,7 +132,7 @@ export default function PedidosPisos({ navigation }) {
         setInitialLoading(true)
       }
       setPage(1)
-      setPedidos([])
+      setOrcamentos([])
       setHasMore(true)
     }
 
@@ -141,42 +141,42 @@ export default function PedidosPisos({ navigation }) {
       const params = {
         page: currentPage,
         page_size: 20,
-        pedi_empr: empresaId,
-        pedi_fili: filialId,
+        orca_empr: empresaId,
+        orca_fili: filialId,
       }
 
       if (searchCliente) {
         params.cliente_nome__icontains = searchCliente
       }
       if (searchNumero) {
-        params.pedi_nume = searchNumero
+        params.orca_nume = searchNumero
       }
 
-      const response = await apiGetComContexto('pisos/pedidos-pisos/', params)
-      const novosPedidos = response.results || []
+      const response = await apiGetComContexto('pisos/orcamentos-pisos/', params)
+      const novosorcamentos = response.results || []
 
       if (loadMore) {
-        setPedidos((prev) => [...prev, ...novosPedidos])
+        setOrcamentos((prev) => [...prev, ...novosorcamentos])
         setPage(currentPage)
       } else {
-        setPedidos(novosPedidos)
+        setOrcamentos(novosorcamentos)
         setPage(1)
       }
 
-      setHasMore(novosPedidos.length === 20)
+      setHasMore(novosorcamentos.length === 20)
     } catch (error) {
-      console.error('Erro ao buscar pedidos de pisos:', error)
-      Alert.alert('Erro', 'Não foi possível carregar os pedidos de pisos')
+      console.error('Erro ao buscar orcamentos de pisos:', error)
+      Alert.alert('Erro', 'Não foi possível carregar os orcamentos de pisos')
     } finally {
       setInitialLoading(false)
       setIsFetchingMore(false)
     }
   }
 
-  const deletarPedido = (pedido) => {
+  const deletarOrcamento = async (orcamento) => {
     Alert.alert(
       'Confirmar Exclusão',
-      `Deseja realmente excluir o pedido ${pedido.pedi_nume}?`,
+      `Deseja realmente excluir o orcamento ${orcamento.orca_nume}?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -185,15 +185,15 @@ export default function PedidosPisos({ navigation }) {
           onPress: async () => {
             try {
               await apiDeleteComContexto(
-                `pisos/pedidos-pisos/${pedido.pedi_nume}/`
+                `pisos/orcamentos-pisos/${orcamento.orca_nume}/`
               )
-              setPedidos((prev) =>
-                prev.filter((p) => p.pedi_nume !== pedido.pedi_nume)
+              setOrcamentos((prev) =>
+                prev.filter((p) => p.orca_nume !== orcamento.orca_nume)
               )
-              Alert.alert('Sucesso', 'Pedido excluído com sucesso')
+              Alert.alert('Sucesso', 'Orçamento excluído com sucesso')
             } catch (error) {
-              console.error('Erro ao excluir pedido:', error)
-              Alert.alert('Erro', 'Não foi possível excluir o pedido')
+              console.error('Erro ao excluir orcamento:', error)
+              Alert.alert('Erro', 'Não foi possível excluir o orçamento')
             }
           },
         },
@@ -203,18 +203,18 @@ export default function PedidosPisos({ navigation }) {
 
   const handleEdit = useCallback(
     (item) => {
-      navigation.navigate('PedidosPisosForm', { pedido: item })
+      navigation.navigate('OrcamentosPisosForm', { orcamento: item })
     },
     [navigation]
   )
 
   const handleDelete = useCallback((item) => {
-    deletarPedido(item)
+    deletarOrcamento(item)
   }, [])
 
-  const renderPedidos = useCallback(
+  const renderOrcamentos = useCallback(
     ({ item }) => (
-      <PedidoPisosItem
+      <OrcamentoPisosItem
         item={item}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -227,7 +227,7 @@ export default function PedidosPisos({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Carregando pedidos...</Text>
+        <Text style={styles.loadingText}>Carregando orçamentos...</Text>
       </View>
     )
   }
@@ -236,9 +236,9 @@ export default function PedidosPisos({ navigation }) {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.incluirButton}
-        onPress={() => navigation.navigate('PedidosPisosForm')}>
+        onPress={() => navigation.navigate('OrcamentosPisosForm')}>
         <MaterialIcons name="add" size={20} color="#ffffff" />
-        <Text style={styles.incluirButtonText}>Novo Pedido</Text>
+        <Text style={styles.incluirButtonText}>Novo orçamento</Text>
       </TouchableOpacity>
 
       <View style={styles.searchContainer}>
@@ -265,7 +265,7 @@ export default function PedidosPisos({ navigation }) {
             style={styles.inputIcon}
           />
           <TextInput
-            placeholder="Nº Pedido"
+            placeholder="Nº orcamento"
             placeholderTextColor="#9ca3af"
             style={styles.input}
             keyboardType="numeric"
@@ -275,19 +275,19 @@ export default function PedidosPisos({ navigation }) {
         </View>
         <TouchableOpacity
           style={styles.searchButton}
-          onPress={() => buscarPedidos(false, false)}>
+          onPress={() => buscarOrcamentos(false, false)}>
           <MaterialIcons name="search" size={20} color="#6366f1" />
         </TouchableOpacity>
       </View>
 
       <FlatList
-        data={pedidos}
-        renderItem={renderPedidos}
+        data={orcamentos}
+        renderItem={renderOrcamentos}
         keyExtractor={(item, index) =>
-          `${item.pedi_nume}-${item.pedi_empr}-${item.pedi_clie}-${index}`
+          `${item.orca_nume}-${item.orca_empr}-${item.orca_clie}-${index}`
         }
         onEndReached={() => {
-          if (hasMore && !isFetchingMore) buscarPedidos(true)
+          if (hasMore && !isFetchingMore) buscarOrcamentos(true)
         }}
         onEndReachedThreshold={0.2}
         initialNumToRender={10}
@@ -315,10 +315,10 @@ export default function PedidosPisos({ navigation }) {
 
       <View style={styles.footerContainer}>
         <Text style={styles.footerText}>
-          {pedidos.length} pedido{pedidos.length !== 1 ? 's' : ''} encontrado
-          {pedidos.length !== 1 ? 's' : ''}
+          {orcamentos.length} orcamento{orcamentos.length !== 1 ? 's' : ''} encontrado
+          {orcamentos.length !== 1 ? 's' : ''}
         </Text>
       </View>
-    </View>
+    </View> 
   )
 }

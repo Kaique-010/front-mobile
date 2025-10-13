@@ -136,6 +136,11 @@ export { default as DashPedidosPisos } from '../componetsPisos/DashPedidosPisos'
 export { default as DashPedidosPisosGrafico } from '../componetsPisos/DashPedidosPisosGrafico'
 export { default as PedidosPisos } from '../componetsPisos/PedidosPisos'
 export { default as PedidosPisosForm } from '../componetsPisos/PedidosPisosForm'
+export { default as OrcamentosPisos } from '../componetsPisos/OrcamentoPisos'
+export { default as OrcamentosPisosForm } from '../componetsPisos/OrcamentosPisosForm'
+export { default as ResumoOrcamentoPisos } from '../componetsPisos/ResumoOrcamentoPisos'
+
+
 
 // Telas de Cliente
 export { default as ClientePedidosList } from '../componentsClients/ClientePedidosList'

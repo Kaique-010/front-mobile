@@ -21,7 +21,7 @@ export default function ItensModalPisos({
   onClose,
   onSave,
   item = null,
-  pedido = {},
+  orcamento = {},
 }) {
   const [produto, setProduto] = useState(null)
   const [quantidade, setQuantidade] = useState('')
@@ -75,7 +75,7 @@ export default function ItensModalPisos({
           produto_id: produtoSelecionado.prod_codi,
           tamanho_m2: parseFloat(areaM2) || 0,
           percentual_quebra: parseFloat(quebra) || 0,
-          cliente_id: pedido.pedi_clie,
+          cliente_id: orcamento.pedi_clie,
           condicao: condicaoPagamento,
         }
       )
@@ -102,7 +102,7 @@ export default function ItensModalPisos({
   }
 
   const calcularMetragem = async () => {
-    if (!produto?.prod_codi || !areaM2 || !pedido?.pedi_clie) {
+    if (!produto?.prod_codi || !areaM2 || !orcamento?.pedi_clie) {
       Alert.alert(
         'Atenção',
         'Selecione um produto, informe a área e certifique-se de que há um cliente selecionado'
@@ -119,7 +119,7 @@ export default function ItensModalPisos({
           produto_id: produto.prod_codi,
           tamanho_m2: parseFloat(areaM2),
           percentual_quebra: parseFloat(quebra) || 0,
-          cliente_id: pedido.pedi_clie,
+          cliente_id: orcamento.pedi_clie,
           condicao: condicaoPagamento,
         }
       )
@@ -188,9 +188,9 @@ export default function ItensModalPisos({
 
     const itemData = {
       // Campos obrigatórios do modelo
-      item_empr: pedido.pedi_empr,
-      item_fili: pedido.pedi_fili,
-      item_pedi: pedido.pedi_nume || '0', // Usar '0' em vez de null
+      item_empr: orcamento.pedi_empr,
+      item_fili: orcamento.pedi_fili,
+      item_pedi: orcamento.pedi_nume || '0', // Usar '0' em vez de null
       item_prod: produto.prod_codi,
 
       // Campos existentes (mantendo compatibilidade)

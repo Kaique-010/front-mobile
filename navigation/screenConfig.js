@@ -488,6 +488,21 @@ export const screenConfigs = [
     component: Screens.PedidosPisosForm,
     options: createHeaderOptions('Formulário de Pedidos de Pisos'),
   },
+  {
+    name: 'OrcamentosPisos',
+    component: Screens.OrcamentosPisos,
+    options: createHeaderOptions('Orçamentos de Pisos'),
+  },
+  {
+    name: 'OrcamentosPisosForm',
+    component: Screens.OrcamentosPisosForm,
+    options: createHeaderOptions('Formulário de Orçamentos de Pisos'),
+  },
+  {
+    name: 'ResumoOrcamentoPisos',
+    component: Screens.ResumoOrcamentoPisos,
+    options: createHeaderOptions('Resumo Orçamento Pisos'),
+  },
 
   // Telas de parâmetros
   {

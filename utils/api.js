@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
 // NetInfo removido - não está instalado
 
-export const BASE_URL = 'https://mobile-sps.site' //'http://168.75.73.117'//'https://mobile-sps.site' //'http://192.168.10.16:8000' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
+export const BASE_URL = 'http://192.168.2.193:8000' //'http://168.75.73.117'//'https://mobile-sps.site' //'http://192.168.10.16:8000' //'http://192.168.0.39:8000' //http://192.168.10.59:8000
 const refreshToken = async () => {
   const refresh = await AsyncStorage.getItem('refresh')
 

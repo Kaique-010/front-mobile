@@ -309,12 +309,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'file-text',
           condition: hasModulo('Pisos'),
         },
-        {
-          name: 'Pedidos de Pisos',
-          route: 'PedidosPisosForm',
-          icon: 'file-text',
-          condition: hasModulo('Pisos'),
-        },
+        
         {
           name: 'Dashboard Pisos',
           route: 'DashPedidosPisos',
@@ -325,6 +320,19 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Gráfico Pisos',
           route: 'DashPedidosPisosGrafico',
           icon: 'bar-chart',
+          condition: hasModulo('Pisos'),
+        },
+        {
+          name: 'Orçamentos de Pisos',
+          route: 'OrcamentosPisos',
+          icon: 'file-text',
+          condition: hasModulo('Pisos'),
+        },
+        
+        {
+          name: 'Resumo Orçamento Pisos',
+          route: 'ResumoOrcamentoPisos',
+          icon: 'file-text',
           condition: hasModulo('Pisos'),
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),

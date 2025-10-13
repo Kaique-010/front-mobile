@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from django.http import Http404
 from django.db.models import Sum
 from rest_framework.generics import ListAPIView
-from django.db.models import Q, Subquery, OuterRef, DecimalField, Value as V, CharField
+from django.db.models import Q, Subquery, OuterRef, DecimalField, Value as V, CharField, IntegerField
 from django.db.models.functions import Coalesce, Cast
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -19,11 +19,31 @@ from rest_framework.filters import SearchFilter
 from core.decorator import modulo_necessario, ModuloRequeridoMixin
 from core.middleware import get_licenca_slug
 from core.registry import get_licenca_db_config
-from .models import Produtos, SaldoProduto, Tabelaprecos, UnidadeMedida, Tabelaprecoshist, ProdutosDetalhados
-from .serializers import ProdutoSerializer, TabelaPrecoSerializer, UnidadeMedidaSerializer, ProdutoDetalhadoSerializer
+from .models import Produtos, SaldoProduto, Tabelaprecos, UnidadeMedida, Tabelaprecoshist, ProdutosDetalhados, Marca
+from .serializers import ProdutoSerializer, TabelaPrecoSerializer, UnidadeMedidaSerializer, ProdutoDetalhadoSerializer, MarcaSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.core.cache import cache
+
+
+
+class MarcaListView(ModuloRequeridoMixin, ListAPIView):
+    modulo_necessario = 'Produtos'
+    serializer_class = MarcaSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['nome']
+    
+    def get_queryset(self):
+        banco = get_licenca_db_config(self.request)
+        if banco:
+            return Marca.objects.using(banco).all().order_by('nome')
+        return Marca.objects.none()
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['banco'] = get_licenca_db_config(self.request)
+        return context
+ 
 
 
 class UnidadeMedidaListView(ModuloRequeridoMixin, ListAPIView):
@@ -133,10 +153,15 @@ class ProdutoViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
         if not banco:
             return Produtos.objects.none()
 
-        # Otimizar subqueries
+        # Otimizar subqueries - CORRIGIDO com empresa e filial
+        empresa_id = self.request.query_params.get('prod_empr') or self.request.META.get('HTTP_X_EMPRESA', 1)
+        filial_id = self.request.query_params.get('prod_fili') or self.request.META.get('HTTP_X_FILIAL', 1)
+        
         saldo_subquery = Subquery(
             SaldoProduto.objects.using(banco).filter(
-                produto_codigo=OuterRef('pk')
+                produto_codigo=OuterRef('pk'),
+                empresa=empresa_id,
+                filial=filial_id
             ).values('saldo_estoque')[:1],
             output_field=DecimalField()
         )
@@ -168,7 +193,8 @@ class ProdutoViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
         queryset = Produtos.objects.using(banco).annotate(
             saldo_estoque=Coalesce(saldo_subquery, V(0), output_field=DecimalField()),
             prod_preco_vista=Coalesce(preco_vista_subquery, V(0), output_field=DecimalField()),
-            prod_preco_normal=Coalesce(preco_normal_subquery, V(0), output_field=DecimalField())
+            prod_preco_normal=Coalesce(preco_normal_subquery, V(0), output_field=DecimalField()),
+            prod_codi_int=Cast('prod_codi', output_field=IntegerField())
         )
         
         # Aplicar filtros de forma otimizada
@@ -176,7 +202,7 @@ class ProdutoViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
         if empresa_id:
             queryset = queryset.filter(prod_empr=empresa_id)
             
-        return queryset.order_by('prod_empr', 'prod_codi')
+        return queryset.order_by('prod_empr', 'prod_codi_int')
 
     @action(detail=False, methods=["get"])
     def busca(self, request, slug=None):
@@ -236,12 +262,13 @@ class ProdutoViewSet(ModuloRequeridoMixin, viewsets.ModelViewSet):
                 saldo_estoque=Coalesce(saldo_subquery, V(0), output_field=DecimalField()),
                 prod_preco_vista=Coalesce(preco_vista_subquery, V(0), output_field=DecimalField()),
                 prod_preco_normal=Coalesce(preco_normal_subquery, V(0), output_field=DecimalField()),
-                prod_coba_str=Coalesce(Cast('prod_coba', CharField()), V(''))
+                prod_coba_str=Coalesce(Cast('prod_coba', CharField()), V('')),
+                prod_codi_int=Cast('prod_codi', IntegerField())
             ).filter(
                 Q(prod_nome__icontains=q) |
-                Q(prod_coba_str__icontains=q) |
-                Q(prod_codi__icontains=q.lstrip("0"))  
-            )[:50]  # Limitar resultados
+                Q(prod_coba_str__exact=q) |
+                Q(prod_codi__exact=q.lstrip("0"))
+            ).order_by('prod_empr', 'prod_codi_int')[:50]  # Limitar resultados
 
             serializer = self.get_serializer(produtos, many=True)
             result_data = serializer.data

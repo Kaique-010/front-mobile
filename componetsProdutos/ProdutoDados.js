@@ -7,7 +7,9 @@ import {
   Alert,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
 import { Picker } from '@react-native-picker/picker'
@@ -30,6 +32,9 @@ export default function ProdutoDados({
   const [loadingUnidades, setLoadingUnidades] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [slug, setSlug] = useState('')
+  const [fotoBase64, setFotoBase64] = useState('')
+  const [fotoUri, setFotoUri] = useState('')
+  const [permissoesImagemOk, setPermissoesImagemOk] = useState(false)
 
   useEffect(() => {
     const carregarContexto = async () => {
@@ -67,6 +72,62 @@ export default function ProdutoDados({
     carregarUnidades()
   }, [slug])
 
+  useEffect(() => {
+    const solicitarPermissoesImagem = async () => {
+      try {
+        const cam = await ImagePicker.requestCameraPermissionsAsync()
+        const lib = await ImagePicker.requestMediaLibraryPermissionsAsync()
+        const granted = cam.status === 'granted' && lib.status === 'granted'
+        setPermissoesImagemOk(granted)
+        if (!granted) {
+          console.warn('Permissões de câmera/galeria não concedidas')
+        }
+      } catch (e) {
+        console.warn('Erro ao solicitar permissões de imagem:', e?.message)
+      }
+    }
+    solicitarPermissoesImagem()
+  }, [])
+
+  const tirarFoto = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        base64: true,
+        quality: 0.6,
+      })
+      if (!result.canceled) {
+        const asset = result.assets?.[0]
+        setFotoBase64(asset?.base64 || '')
+        setFotoUri(asset?.uri || '')
+      }
+    } catch (e) {
+      console.error('Erro ao abrir câmera:', e)
+      Alert.alert('Erro', 'Não foi possível abrir a câmera.')
+    }
+  }
+
+  const escolherImagem = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        base64: true,
+        quality: 0.6,
+      })
+      if (!result.canceled) {
+        const asset = result.assets?.[0]
+        setFotoBase64(asset?.base64 || '')
+        setFotoUri(asset?.uri || '')
+      }
+    } catch (e) {
+      console.error('Erro ao abrir galeria:', e)
+      Alert.alert('Erro', 'Não foi possível abrir a galeria.')
+    }
+  }
+
+  const removerImagem = () => {
+    setFotoBase64('')
+    setFotoUri('')
+  }
+
   const salvar = async () => {
     // Validação rigorosa de dados
     if (!nome || nome.trim() === '') {
@@ -87,6 +148,11 @@ export default function ProdutoDados({
       prod_unme: unidade ? String(unidade).trim() : 'UN',
       prod_ncm: ncm ? String(ncm).trim() : '',
       prod_empr: parseInt(empresa, 10),
+    }
+
+    if (fotoBase64 && typeof fotoBase64 === 'string' && fotoBase64.trim().length > 0) {
+      // Enviar no formato data URL para máxima compatibilidade
+      payload.prod_foto = `data:image/jpeg;base64,${fotoBase64.trim()}`
     }
 
     // Validação adicional
@@ -115,6 +181,8 @@ export default function ProdutoDados({
     console.log('- NCM:', `"${payload.prod_ncm}" (${typeof payload.prod_ncm})`)
     console.log('- Empresa ID:', `${payload.prod_empr} (${typeof payload.prod_empr})`)
     console.log('- Produto código:', produto?.prod_codi)
+    console.log('- prod_foto presente:', !!payload.prod_foto)
+    console.log('- prod_foto tamanho:', payload.prod_foto ? payload.prod_foto.length : 0)
 
     try {
       if (produto?.prod_codi) {
@@ -232,6 +300,30 @@ export default function ProdutoDados({
         keyboardType="number-pad"
       />
 
+      <Text style={styles.labelImagemProduto}>Imagem do Produto</Text>
+      {fotoUri ? (
+        <View style={styles.previewRow}>
+          <Image source={{ uri: fotoUri }} style={styles.imagePreview} />
+          <TouchableOpacity onPress={removerImagem} style={[styles.smallButton, { backgroundColor: '#A20000' }]}>
+            <Text style={styles.smallButtonText}>Remover</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          onPress={tirarFoto}
+          style={[styles.smallButton, { opacity: permissoesImagemOk ? 1 : 0.6 }]}>
+          <Text style={styles.smallButtonText}>Tirar Foto</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={escolherImagem}
+          style={[styles.smallButton, { opacity: permissoesImagemOk ? 1 : 0.6 }]}
+        >
+          <Text style={styles.smallButtonText}>Escolher da Galeria</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         onPress={salvar}
         style={[styles.button, salvando && { opacity: 0.6 }]}
@@ -258,6 +350,8 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   label: { marginBottom: 4, fontWeight: 'bold', fontSize: 14, color: '#fff' },
+
+  labelImagemProduto: { marginBottom: 10,marginTop: 20, fontWeight: 'bold', fontSize: 14, textAlign: 'center', color: '#fff' },
   button: {
     backgroundColor: '#0058A2',
     padding: 12,
@@ -268,4 +362,40 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   buttonText: { color: 'white', fontWeight: 'bold' },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20,
+    marginBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallButton: {
+    backgroundColor: '#0058A2',
+    paddingVertical: 12,
+    paddingHorizontal: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  smallButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  imagePreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 12,
+    marginLeft: 12,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
 })
