@@ -265,6 +265,8 @@ export default function ResumoPedidoComFinanceiro({
           text1: 'Sucesso',
           text2: 'Pedido atualizado com sucesso!',
         })
+        // Após salvar, navegar para a lista de pedidos
+        navigation.navigate('Pedidos')
       } else {
         // Criar novo pedido
         const response = await apiPostComContexto('pedidos/pedidos/', payload)
@@ -278,6 +280,8 @@ export default function ResumoPedidoComFinanceiro({
           ...prev,
           pedi_nume: response.pedi_nume,
         }))
+        // Após criar, navegar para a lista de pedidos
+        navigation.navigate('Pedidos')
       }
     } catch (error) {
       console.error('❌ Erro ao salvar pedido:', error)
@@ -286,7 +290,6 @@ export default function ResumoPedidoComFinanceiro({
         text1: 'Erro',
         text2: 'Falha ao salvar pedido. Tente novamente.',
       })
-      navigation.navigate('Pedidos')
     }
   }
 

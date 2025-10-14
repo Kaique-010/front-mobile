@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Image,
 } from 'react-native'
@@ -263,7 +264,7 @@ export default function ProdutoDados({
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.label}>Descrição do Produto</Text>
       <TextInput
         placeholder="Nome do Produto"
@@ -334,7 +335,7 @@ export default function ProdutoDados({
           <Text style={styles.buttonText}>Salvar</Text>
         )}
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   )
 }
 

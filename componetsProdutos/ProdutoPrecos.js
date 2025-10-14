@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
 } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
@@ -231,7 +232,7 @@ export default function ProdutoPrecos({
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Campo
         label="Preço de Compra"
         value={precoCompra}
@@ -275,7 +276,7 @@ export default function ProdutoPrecos({
           <Text style={styles.buttonText}>Salvar</Text>
         )}
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   )
 }
 
