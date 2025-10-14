@@ -68,6 +68,18 @@ export default function ItensModal({
     }
   }, [itemEditando, visivel])
 
+  // Aceita números com vírgula (pt-BR) ou ponto como separador decimal
+  const parseNumberBR = (value) => {
+    if (value === null || value === undefined) return 0
+    if (typeof value === 'number') return isNaN(value) ? 0 : value
+    const str = String(value).trim()
+    if (str === '') return 0
+    // Remove pontos de milhar e converte vírgula para ponto
+    const normalized = str.replace(/\./g, '').replace(/,/, '.')
+    const num = Number(normalized)
+    return isNaN(num) ? 0 : num
+  }
+
   const onChange = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }))
   }
@@ -130,8 +142,8 @@ export default function ItensModal({
   }
 
   const adicionar = () => {
-    const quantidadeNum = parseFloat(form.quantidade)
-    const precoNum = parseFloat(form.preco)
+    const quantidadeNum = parseNumberBR(form.quantidade)
+    const precoNum = parseNumberBR(form.preco)
 
     if (!form.produtoId || quantidadeNum <= 0 || precoNum <= 0) {
       Toast.show({
@@ -147,11 +159,11 @@ export default function ItensModal({
       if (form.tipoDesconto === 'percentual') {
         const perc = Math.max(
           0,
-          Math.min(100, parseFloat(form.percentualDesconto) || 0)
+          Math.min(100, parseNumberBR(form.percentualDesconto) || 0)
         )
         descontoValor = (totalBruto * perc) / 100
       } else {
-        descontoValor = Math.max(0, parseFloat(form.valorDesconto) || 0)
+        descontoValor = Math.max(0, parseNumberBR(form.valorDesconto) || 0)
         descontoValor = Math.min(descontoValor, totalBruto)
       }
     }
@@ -168,7 +180,7 @@ export default function ItensModal({
         ? form.tipoDesconto === 'percentual'
           ? Math.max(
               0,
-              Math.min(100, parseFloat(form.percentualDesconto) || 0)
+              Math.min(100, parseNumberBR(form.percentualDesconto) || 0)
             ) / 100
           : totalBruto > 0
           ? descontoValor / totalBruto
@@ -245,7 +257,7 @@ export default function ItensModal({
 
             <Text style={styles.label}>Quantidade:</Text>
             <TextInput
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               value={form.quantidade}
               onChangeText={(v) => onChange('quantidade', v)}
               style={styles.input}
@@ -253,7 +265,7 @@ export default function ItensModal({
 
             <Text style={styles.label}>Preço Unitário:</Text>
             <TextInput
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               value={form.preco}
               onChangeText={(v) => onChange('preco', v)}
               style={styles.input}
@@ -293,7 +305,7 @@ export default function ItensModal({
                   <TextInput
                     placeholder="% Desconto"
                     placeholderTextColor="#9aa"
-                    keyboardType="numeric"
+                    keyboardType="decimal-pad"
                     value={form.percentualDesconto}
                     onChangeText={(v) => onChange('percentualDesconto', v)}
                     style={styles.input}
@@ -302,7 +314,7 @@ export default function ItensModal({
                   <TextInput
                     placeholder="Valor do Desconto"
                     placeholderTextColor="#9aa"
-                    keyboardType="numeric"
+                    keyboardType="decimal-pad"
                     value={form.valorDesconto}
                     onChangeText={(v) => onChange('valorDesconto', v)}
                     style={styles.input}
@@ -313,26 +325,26 @@ export default function ItensModal({
 
             <Text style={styles.total}>
               {(() => {
-                const q = parseFloat(form.quantidade) || 0
-                const pu = parseFloat(form.preco) || 0
+                const q = parseNumberBR(form.quantidade) || 0
+                const pu = parseNumberBR(form.preco) || 0
                 const bruto = q * pu
                 let desc = 0
                 if (form.descontoHabilitado) {
                   if (form.tipoDesconto === 'percentual') {
                     const perc = Math.max(
                       0,
-                      Math.min(100, parseFloat(form.percentualDesconto) || 0)
+                      Math.min(100, parseNumberBR(form.percentualDesconto) || 0)
                     )
                     desc = (bruto * perc) / 100
                   } else {
-                    desc = Math.max(0, parseFloat(form.valorDesconto) || 0)
+                    desc = Math.max(0, parseNumberBR(form.valorDesconto) || 0)
                     desc = Math.min(desc, bruto)
                   }
                 }
                 const liquido = bruto - desc
-                return `Total: R$ ${liquido.toFixed(2)}${
-                  desc > 0 ? ` (desc.: R$ ${desc.toFixed(2)})` : ''
-                }`
+                const liquidoFmt = liquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                const descFmt = desc.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                return `Total: ${liquidoFmt}${desc > 0 ? ` (desc.: ${descFmt})` : ''}`
               })()}
             </Text>
 
