@@ -1,22 +1,21 @@
-//Ordem de Serviço da Eletrocometa
-
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Image,
   ScrollView,
   TextInput,
+  Dimensions,
+  Platform,
 } from 'react-native'
 import { apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import commonStyles from '../styles/painelOsCommon'
 import desktopStyles from '../styles/painelOsDesktop'
 import mobileStyles from '../styles/painelOsMobile'
+import tvStyles from '../styles/PainelTvOsStyles'
 import debounce from 'lodash.debounce'
 
 const STATUS_OPTIONS = [
@@ -59,7 +58,7 @@ const PainelAcompanhamento = ({ navigation }) => {
   const [filtroPrioridade, setFiltroPrioridade] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchValue, setSearchValue] = useState('')
-  const [modoMobile, setModoMobile] = useState(false)
+  const [modoExibicao, setModoExibicao] = useState('auto') // 'auto', 'mobile', 'desktop', 'tv'
   const [ordenacao, setOrdenacao] = useState({ campo: null, direcao: 'asc' })
   const [contadores, setContadores] = useState({
     abertas: 0,
@@ -68,11 +67,34 @@ const PainelAcompanhamento = ({ navigation }) => {
     total: 0,
   })
 
+  // Detecta o tipo de dispositivo e modo de exibição
+  const detectarModoExibicao = () => {
+    const { width, height } = Dimensions.get('window')
+    const isLandscape = width > height
+    const isTV = Platform.isTV || width > 1200
+
+    if (modoExibicao === 'auto') {
+      if (isTV && isLandscape) return 'tv'
+      if (width < 768) return 'mobile'
+      return 'desktop'
+    }
+    return modoExibicao
+  }
+
+  const modoAtual = detectarModoExibicao()
+
   // Função para combinar estilos baseado no modo
   const getStyles = () => {
-    return {
-      ...commonStyles,
-      ...(modoMobile ? mobileStyles : desktopStyles),
+    const base = commonStyles
+
+    switch (modoAtual) {
+      case 'tv':
+        return { ...base, ...tvStyles }
+      case 'mobile':
+        return { ...base, ...mobileStyles }
+      case 'desktop':
+      default:
+        return { ...base, ...desktopStyles }
     }
   }
 
@@ -84,12 +106,9 @@ const PainelAcompanhamento = ({ navigation }) => {
   }
 
   const calcularContadores = (ordensData) => {
-    const hoje = new Date()
-
     const abertas = ordensData.filter((o) => o.orde_stat_orde === 0).length
     const liberadas = ordensData.filter((o) => o.orde_stat_orde === 3).length
     const atrasadas = ordensData.filter((o) => o.orde_stat_orde === 21).length
-
     return { abertas, atrasadas, liberadas, total: ordensData.length }
   }
 
@@ -104,33 +123,19 @@ const PainelAcompanhamento = ({ navigation }) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-
-      // Usar cliente_nome para busca específica por nome do cliente
       if (filtros.cliente_nome || searchValue) {
         params.append('cliente_nome', filtros.cliente_nome || searchValue)
       }
-
       const queryString = params.toString()
       const url = `ordemdeservico/ordens/${
         queryString ? `?${queryString}` : ''
       }`
 
       console.log('🔍 FRONTEND - URL da requisição:', url)
-      console.log('🔍 FRONTEND - Filtros aplicados:', {
-        cliente_nome: filtros.cliente_nome || searchValue,
-      })
 
       const response = await apiGetComContextoos(url)
 
-      console.log(
-        '📡 FRONTEND - Status da resposta:',
-        response?.status || 'N/A'
-      )
-      console.log('📡 FRONTEND - Response completa:', response)
-
-      // Processar diferentes estruturas de resposta
       let ordensData = []
-
       if (Array.isArray(response)) {
         ordensData = response
       } else if (response && response.data && Array.isArray(response.data)) {
@@ -148,23 +153,10 @@ const PainelAcompanhamento = ({ navigation }) => {
         }
       }
 
-      console.log(
-        '📊 FRONTEND - Total de registros recebidos:',
-        ordensData.length
-      )
-      console.log(
-        '📊 FRONTEND - Primeiros 3 registros:',
-        ordensData.slice(0, 3)
-      )
+      console.log('📊 FRONTEND - Total de registros:', ordensData.length)
 
       setOrdens(ordensData)
       setContadores(calcularContadores(ordensData))
-
-      console.log(
-        '💾 FRONTEND - Dados salvos no estado:',
-        ordensData.length,
-        'registros'
-      )
     } catch (error) {
       console.error('❌ FRONTEND - Erro ao buscar ordens:', error)
       setOrdens([])
@@ -174,33 +166,27 @@ const PainelAcompanhamento = ({ navigation }) => {
   }
 
   const ordensFiltradasLocalmente = useMemo(() => {
-    let ordensFiltradasLocalmente = [...ordens]
+    let resultado = [...ordens]
 
-    // Filtro por status - converter string para number se necessário
     if (filtroStatus !== null && filtroStatus !== 'Todas') {
       const statusNumerico =
         typeof filtroStatus === 'string'
           ? parseInt(filtroStatus, 10)
           : filtroStatus
-      ordensFiltradasLocalmente = ordensFiltradasLocalmente.filter(
+      resultado = resultado.filter(
         (ordem) => ordem.orde_stat_orde === statusNumerico
       )
     }
 
-    // Filtro por prioridade - manter como string
     if (filtroPrioridade !== null) {
-      ordensFiltradasLocalmente = ordensFiltradasLocalmente.filter(
+      resultado = resultado.filter(
         (ordem) => ordem.orde_prio === filtroPrioridade
       )
     }
 
-    // Filtro por cliente agora é feito no backend, não precisa filtrar localmente
-
-    // Ordenação
     if (ordenacao.campo) {
-      ordensFiltradasLocalmente.sort((a, b) => {
+      resultado.sort((a, b) => {
         let valorA, valorB
-
         switch (ordenacao.campo) {
           case 'os':
             valorA = a.orde_nume
@@ -221,28 +207,22 @@ const PainelAcompanhamento = ({ navigation }) => {
           default:
             return 0
         }
-
         if (typeof valorA === 'string' && typeof valorB === 'string') {
           valorA = valorA.toLowerCase()
           valorB = valorB.toLowerCase()
         }
-
         if (valorA < valorB) return ordenacao.direcao === 'asc' ? -1 : 1
         if (valorA > valorB) return ordenacao.direcao === 'asc' ? 1 : -1
         return 0
       })
     }
 
-    return ordensFiltradasLocalmente
+    return resultado
   }, [ordens, filtroStatus, filtroPrioridade, ordenacao])
 
   useEffect(() => {
     fetchOrdens()
   }, [])
-
-  useEffect(() => {
-    setContadores(calcularContadores(ordens))
-  }, [ordens])
 
   useEffect(() => {
     if (searchValue) {
@@ -254,293 +234,310 @@ const PainelAcompanhamento = ({ navigation }) => {
 
   const handleOrdenacao = (campo) => {
     if (ordenacao.campo === campo) {
-      // Se já está ordenando por este campo, inverte a direção
       setOrdenacao({
         campo,
         direcao: ordenacao.direcao === 'asc' ? 'desc' : 'asc',
       })
     } else {
-      // Se é um novo campo, ordena em ordem crescente
-      setOrdenacao({
-        campo,
-        direcao: 'asc',
-      })
+      setOrdenacao({ campo, direcao: 'asc' })
     }
   }
 
-  const renderTableHeader = () => (
-    <View style={styles.tableHeader}>
-      <TouchableOpacity
-        style={[
-          styles.tableHeaderButton,
-          modoMobile ? styles.colOSMobile : styles.colOS,
-        ]}
-        onPress={() => modoMobile && handleOrdenacao('os')}>
-        <Text style={styles.tableHeaderText}>OS</Text>
-        {modoMobile && ordenacao.campo === 'os' && (
-          <Ionicons
-            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
-            size={12}
-            color="#fff"
-          />
+  const alternarModo = () => {
+    const modos = ['auto', 'mobile', 'desktop', 'tv']
+    const indiceAtual = modos.indexOf(modoExibicao)
+    const proximoIndice = (indiceAtual + 1) % modos.length
+    setModoExibicao(modos[proximoIndice])
+  }
+
+  const getModoIcone = () => {
+    switch (modoAtual) {
+      case 'tv':
+        return 'tv'
+      case 'mobile':
+        return 'phone-portrait'
+      case 'desktop':
+        return 'desktop'
+      default:
+        return 'refresh'
+    }
+  }
+
+  const renderTableHeader = () => {
+    const isMobile = modoAtual === 'mobile'
+    const isTV = modoAtual === 'tv'
+
+    const colStyles = isTV
+      ? {
+          os: styles.colOSTV,
+          cliente: styles.colClienteTV,
+          status: styles.colStatusTV,
+          prioridade: styles.colPrioridadeTV,
+          setor: styles.colSetorTV,
+          data: styles.colDataTV,
+          problema: styles.colProblemaTV,
+        }
+      : isMobile
+      ? {
+          os: styles.colOSMobile,
+          cliente: styles.colClienteMobile,
+          status: styles.colStatusMobile,
+          setor: styles.colSetorMobile,
+        }
+      : {
+          os: styles.colOS,
+          cliente: styles.colCliente,
+          status: styles.colStatus,
+          prioridade: styles.colPrioridade,
+          setor: styles.colSetor,
+          data: styles.colData,
+          problema: styles.colProblema,
+        }
+
+    const headerStyle = isTV ? styles.tableHeaderTV : styles.tableHeader
+    const textStyle = isTV ? styles.tableHeaderTextTV : styles.tableHeaderText
+
+    return (
+      <View style={headerStyle}>
+        <TouchableOpacity
+          style={[styles.tableHeaderButton, colStyles.os]}
+          onPress={() => handleOrdenacao('os')}>
+          <Text style={textStyle}>OS</Text>
+          {ordenacao.campo === 'os' && (
+            <Ionicons
+              name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color="#fff"
+            />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tableHeaderButton, colStyles.cliente]}
+          onPress={() => handleOrdenacao('cliente')}>
+          <Text style={textStyle}>Cliente</Text>
+          {ordenacao.campo === 'cliente' && (
+            <Ionicons
+              name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color="#fff"
+            />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tableHeaderButton, colStyles.status]}
+          onPress={() => handleOrdenacao('status')}>
+          <Text style={textStyle}>Status</Text>
+          {ordenacao.campo === 'status' && (
+            <Ionicons
+              name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color="#fff"
+            />
+          )}
+        </TouchableOpacity>
+
+        {!isMobile && (
+          <Text style={[textStyle, colStyles.prioridade]}>Prioridade</Text>
         )}
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.tableHeaderButton,
-          modoMobile ? styles.colClienteMobile : styles.colCliente,
-        ]}
-        onPress={() => modoMobile && handleOrdenacao('cliente')}>
-        <Text style={styles.tableHeaderText}>Cliente</Text>
-        {modoMobile && ordenacao.campo === 'cliente' && (
-          <Ionicons
-            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
-            size={12}
-            color="#fff"
-          />
+        <TouchableOpacity
+          style={[styles.tableHeaderButton, colStyles.setor]}
+          onPress={() => handleOrdenacao('setor')}>
+          <Text style={textStyle}>Setor</Text>
+          {ordenacao.campo === 'setor' && (
+            <Ionicons
+              name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color="#fff"
+            />
+          )}
+        </TouchableOpacity>
+
+        {!isMobile && <Text style={[textStyle, colStyles.data]}>Data</Text>}
+        {!isMobile && (
+          <Text style={[textStyle, colStyles.problema]}>Problema</Text>
         )}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.tableHeaderButton,
-          modoMobile ? styles.colStatusMobile : styles.colStatus,
-        ]}
-        onPress={() => modoMobile && handleOrdenacao('status')}>
-        <Text style={styles.tableHeaderText}>Status</Text>
-        {modoMobile && ordenacao.campo === 'status' && (
-          <Ionicons
-            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
-            size={12}
-            color="#fff"
-          />
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.tableHeaderButton,
-          modoMobile ? styles.colSetorMobile : styles.colPrioridade,
-        ]}
-        onPress={() => modoMobile && handleOrdenacao('setor')}>
-        <Text style={styles.tableHeaderText}>
-          {modoMobile ? 'Setor' : 'Prioridade'}
-        </Text>
-        {modoMobile && ordenacao.campo === 'setor' && (
-          <Ionicons
-            name={ordenacao.direcao === 'asc' ? 'chevron-up' : 'chevron-down'}
-            size={12}
-            color="#fff"
-          />
-        )}
-      </TouchableOpacity>
-
-      {!modoMobile && (
-        <Text style={[styles.tableHeaderText, styles.colSetor]}>Setor</Text>
-      )}
-      {!modoMobile && (
-        <Text style={[styles.tableHeaderText, styles.colData]}>Data</Text>
-      )}
-      {!modoMobile && (
-        <Text style={[styles.tableHeaderText, styles.colProblema]}>
-          Problema
-        </Text>
-      )}
-    </View>
-  )
-
-  const renderTableRow = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.tableRow,
-        {
-          backgroundColor: statusColors[item.orde_stat_orde] || '#fff',
-          borderLeftColor: prioridadeColors[item.orde_prio] || '#aaa',
-        },
-      ]}
-      activeOpacity={0.7}
-      onPress={() => navigation.navigate('OrdemDetalhe', { ordem: item })}>
-      <Text
-        style={[
-          styles.tableCellText,
-          modoMobile ? styles.colOSMobile : styles.colOS,
-          styles.osNumber,
-        ]}>
-        #{item.orde_nume}
-      </Text>
-
-      <Text
-        style={[
-          styles.tableCellText,
-          modoMobile ? styles.colClienteMobile : styles.colCliente,
-        ]}
-        numberOfLines={2}>
-        {item.cliente_nome || 'Cliente não informado'}
-      </Text>
-
-      <Text
-        style={[
-          styles.tableCellText,
-          modoMobile ? styles.colStatusMobile : styles.colStatus,
-        ]}
-        numberOfLines={1}>
-        {getStatusText(item.orde_stat_orde)}
-      </Text>
-
-      {modoMobile ? (
-        <Text
-          style={[styles.tableCellText, styles.colSetorMobile]}
-          numberOfLines={1}>
-          {item.setor_nome || item.orde_seto || '-'}
-        </Text>
-      ) : (
-        <View style={[styles.colPrioridade, styles.prioridadeCellContainer]}>
-          <View
-            style={[
-              styles.prioridadeBadge,
-              { backgroundColor: prioridadeColors[item.orde_prio] || '#aaa' },
-            ]}>
-            <Text style={styles.prioridadeBadgeText}>
-              {item.orde_prio === '0'
-                ? 'Normal'
-                : item.orde_prio === '1'
-                ? 'Alerta'
-                : item.orde_prio === '2'
-                ? 'Urgente'
-                : '-'}
-            </Text>
-          </View>
-        </View>
-      )}
-      {!modoMobile && (
-        <Text style={[styles.tableCellText, styles.colSetor]} numberOfLines={1}>
-          {item.setor_nome || item.orde_seto || '-'}
-        </Text>
-      )}
-
-      {!modoMobile && (
-        <Text style={[styles.tableCellText, styles.colData]}>
-          {item.orde_data_aber || '-'}
-        </Text>
-      )}
-
-      {!modoMobile && (
-        <Text
-          style={[styles.tableCellText, styles.colProblema]}
-          numberOfLines={2}>
-          {item.orde_prob || 'Sem descrição do problema'}
-        </Text>
-      )}
-    </TouchableOpacity>
-  )
-
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.card,
-        {
-          backgroundColor: statusColors[item.orde_stat_orde] || '#eee',
-          borderLeftColor: prioridadeColors[item.orde_prio] || '#aaa',
-        },
-      ]}
-      activeOpacity={0.7}
-      onPress={() => navigation.navigate('OrdemDetalhe', { ordem: item })}>
-      <View style={styles.cardHeader}>
-        <View style={styles.numeroContainer}>
-          <Text style={styles.numeroLabel}>OS</Text>
-          <Text style={styles.numero}>#{item.orde_nume}</Text>
-        </View>
-        <View
-          style={[
-            styles.prioridadeContainer,
-            { backgroundColor: prioridadeColors[item.orde_prio] || '#aaa' },
-          ]}>
-          <Text style={styles.prioridade}>
-            {item.orde_prio === 'normal'
-              ? 'Normal'
-              : item.orde_prio === 'alerta'
-              ? 'Alerta'
-              : item.orde_prio === 'urgente'
-              ? 'Urgente'
-              : '-'}
-          </Text>
-        </View>
       </View>
+    )
+  }
 
-      <View style={styles.cardBody}>
-        <Text style={styles.clienteNome} numberOfLines={1}>
+  const renderTableRow = ({ item }) => {
+    const isMobile = modoAtual === 'mobile'
+    const isTV = modoAtual === 'tv'
+
+    const colStyles = isTV
+      ? {
+          os: styles.colOSTV,
+          cliente: styles.colClienteTV,
+          status: styles.colStatusTV,
+          prioridade: styles.colPrioridadeTV,
+          setor: styles.colSetorTV,
+          data: styles.colDataTV,
+          problema: styles.colProblemaTV,
+        }
+      : isMobile
+      ? {
+          os: styles.colOSMobile,
+          cliente: styles.colClienteMobile,
+          status: styles.colStatusMobile,
+          setor: styles.colSetorMobile,
+        }
+      : {
+          os: styles.colOS,
+          cliente: styles.colCliente,
+          status: styles.colStatus,
+          prioridade: styles.colPrioridade,
+          setor: styles.colSetor,
+          data: styles.colData,
+          problema: styles.colProblema,
+        }
+
+    const rowStyle = isTV ? styles.tableRowTV : styles.tableRow
+    const textStyle = isTV ? styles.tableCellTextTV : styles.tableCellText
+    const osStyle = isTV ? styles.osNumberTV : styles.osNumber
+    const badgeStyle = isTV ? styles.prioridadeBadgeTV : styles.prioridadeBadge
+    const badgeTextStyle = isTV
+      ? styles.prioridadeBadgeTextTV
+      : styles.prioridadeBadgeText
+
+    return (
+      <TouchableOpacity
+        style={[
+          rowStyle,
+          {
+            backgroundColor: statusColors[item.orde_stat_orde] || '#fff',
+            borderLeftColor: prioridadeColors[item.orde_prio] || '#aaa',
+          },
+        ]}
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('OrdemDetalhe', { ordem: item })}>
+        <Text style={[textStyle, colStyles.os, osStyle]}>
+          #{item.orde_nume}
+        </Text>
+
+        <Text style={[textStyle, colStyles.cliente]} numberOfLines={2}>
           {item.cliente_nome || 'Cliente não informado'}
         </Text>
 
-        <View style={styles.infoRow}>
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusLabel}>Status:</Text>
-            <Text style={styles.status}>
-              {getStatusText(item.orde_stat_orde)}
-            </Text>
-          </View>
-          <Text style={styles.data}>{item.orde_data_aber || '-'}</Text>
-        </View>
-
-        <View style={styles.setorRow}>
-          <Text style={styles.setorLabel}>Setor: </Text>
-          <Text style={styles.setor} numberOfLines={1}>
-            {item.setor_nome || item.orde_seto || '-'}
-          </Text>
-        </View>
-
-        <Text style={styles.problema} numberOfLines={2}>
-          {item.orde_prob || 'Sem descrição do problema'}
+        <Text style={[textStyle, colStyles.status]} numberOfLines={1}>
+          {getStatusText(item.orde_stat_orde)}
         </Text>
-      </View>
-    </TouchableOpacity>
-  )
 
-  const renderIndicador = (label, valor, bgColor) => (
-    <View
-      style={[
-        modoMobile ? styles.indicadorMobile : styles.indicador,
-        { backgroundColor: bgColor },
-      ]}>
-      <Text
-        style={
-          modoMobile ? styles.indicadorLabelMobile : styles.indicadorLabel
-        }>
-        {label}
-      </Text>
-      <Text
-        style={
-          modoMobile ? styles.indicadorValorMobile : styles.indicadorValor
-        }>
-        {valor}
-      </Text>
-    </View>
-  )
+        {!isMobile && (
+          <View style={[colStyles.prioridade, styles.prioridadeCellContainer]}>
+            <View
+              style={[
+                badgeStyle,
+                { backgroundColor: prioridadeColors[item.orde_prio] || '#aaa' },
+              ]}>
+              <Text style={badgeTextStyle}>
+                {item.orde_prio === '0'
+                  ? 'Normal'
+                  : item.orde_prio === '1'
+                  ? 'Alerta'
+                  : item.orde_prio === '2'
+                  ? 'Urgente'
+                  : '-'}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <Text style={[textStyle, colStyles.setor]} numberOfLines={1}>
+          {item.setor_nome || item.orde_seto || '-'}
+        </Text>
+
+        {!isMobile && (
+          <Text style={[textStyle, colStyles.data]}>
+            {item.orde_data_aber || '-'}
+          </Text>
+        )}
+
+        {!isMobile && (
+          <Text style={[textStyle, colStyles.problema]} numberOfLines={2}>
+            {item.orde_prob || 'Sem descrição do problema'}
+          </Text>
+        )}
+      </TouchableOpacity>
+    )
+  }
+
+  const renderIndicador = (label, valor, bgColor) => {
+    const isTV = modoAtual === 'tv'
+    const isMobile = modoAtual === 'mobile'
+
+    const containerStyle = isTV
+      ? styles.indicadorTV
+      : isMobile
+      ? styles.indicadorMobile
+      : styles.indicador
+    const labelStyle = isTV
+      ? styles.indicadorLabelTV
+      : isMobile
+      ? styles.indicadorLabelMobile
+      : styles.indicadorLabel
+    const valorStyle = isTV
+      ? styles.indicadorValorTV
+      : isMobile
+      ? styles.indicadorValorMobile
+      : styles.indicadorValor
+
+    return (
+      <View style={[containerStyle, { backgroundColor: bgColor }]}>
+        <Text style={labelStyle}>{label}</Text>
+        <Text style={valorStyle}>{valor}</Text>
+      </View>
+    )
+  }
+
+  const containerStyle =
+    modoAtual === 'tv'
+      ? styles.containerTV
+      : modoAtual === 'mobile'
+      ? styles.containerMobile
+      : styles.container
+  const logoStyle =
+    modoAtual === 'tv'
+      ? styles.logoTV
+      : modoAtual === 'mobile'
+      ? styles.logoMobile
+      : styles.logo
+  const indicadoresStyle =
+    modoAtual === 'tv'
+      ? styles.indicadoresTV
+      : modoAtual === 'mobile'
+      ? styles.indicadoresMobile
+      : styles.indicadores
+  const filtrosStyle =
+    modoAtual === 'tv'
+      ? styles.filtrosTV
+      : modoAtual === 'mobile'
+      ? styles.filtrosMobile
+      : styles.filtros
 
   return (
-    <View style={modoMobile ? styles.containerMobile : styles.container}>
-      {/* Header com Logo e Refresh */}
+    <View style={containerStyle}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}></Text>
         <View style={styles.headerRight}>
-          <Image
-            source={require('../assets/eletro.png')}
-            style={modoMobile ? styles.logoMobile : styles.logo}
-          />
+          <Image source={require('../assets/eletro.png')} style={logoStyle} />
 
-          {/* Botão para alternar modo */}
           <TouchableOpacity
             style={styles.modeButton}
-            onPress={() => setModoMobile(!modoMobile)}
+            onPress={alternarModo}
             activeOpacity={0.7}>
-            <Ionicons
-              name={modoMobile ? 'tv' : 'phone-portrait'}
-              size={20}
-              color="#fff"
-            />
+            <Ionicons name={getModoIcone()} size={20} color="#fff" />
             <Text style={styles.modeButtonText}>
-              {modoMobile ? 'TV' : 'Mobile'}
+              {modoAtual === 'auto'
+                ? 'Auto'
+                : modoAtual === 'tv'
+                ? 'TV'
+                : modoAtual === 'mobile'
+                ? 'Mobile'
+                : 'Desktop'}
             </Text>
           </TouchableOpacity>
 
@@ -553,28 +550,45 @@ const PainelAcompanhamento = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={modoMobile ? styles.indicadoresMobile : styles.indicadores}>
+      {/* Indicadores */}
+      <View style={indicadoresStyle}>
         {renderIndicador('Abertas', contadores.abertas, '#d1ecf1')}
         {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
         {renderIndicador('Liberadas', contadores.liberadas, '#d4edda')}
         {renderIndicador('Total', contadores.total, '#eee')}
         <TouchableOpacity
-          style={modoMobile ? styles.botaoCriarMobile : styles.botaoCriar}
+          style={
+            modoAtual === 'tv'
+              ? styles.botaoCriarTV
+              : modoAtual === 'mobile'
+              ? styles.botaoCriarMobile
+              : styles.botaoCriar
+          }
           activeOpacity={0.7}
           onPress={() => navigation.navigate('OsCriacao')}>
           <Ionicons name="add-circle" size={20} color="#fff" />
           <Text
             style={
-              modoMobile ? styles.botaoCriarTextMobile : styles.botaoCriarTexto
+              modoAtual === 'tv'
+                ? styles.botaoCriarTextTV
+                : modoAtual === 'mobile'
+                ? styles.botaoCriarTextMobile
+                : styles.botaoCriarTexto
             }>
             Nova O.S.
           </Text>
         </TouchableOpacity>
       </View>
 
-      <View style={modoMobile ? styles.filtrosMobile : styles.filtros}>
+      {/* Filtros */}
+      <View style={filtrosStyle}>
         <View style={styles.filtroSection}>
-          <Text style={styles.filtroLabel}>Status</Text>
+          <Text
+            style={
+              modoAtual === 'tv' ? styles.filtroLabelTV : styles.filtroLabel
+            }>
+            Status
+          </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -583,7 +597,11 @@ const PainelAcompanhamento = ({ navigation }) => {
               <TouchableOpacity
                 key={label}
                 style={[
-                  modoMobile ? styles.filtroButtonMobile : styles.filtroButton,
+                  modoAtual === 'tv'
+                    ? styles.filtroButtonTV
+                    : modoAtual === 'mobile'
+                    ? styles.filtroButtonMobile
+                    : styles.filtroButton,
                   {
                     backgroundColor:
                       value !== null
@@ -591,14 +609,16 @@ const PainelAcompanhamento = ({ navigation }) => {
                         : '#f0f0f0',
                     borderColor:
                       filtroStatus === value ? '#284665' : 'transparent',
-                    borderWidth: filtroStatus === value ? 3 : 1,
+                    borderWidth: filtroStatus === value ? 3 : 2,
                   },
                 ]}
                 onPress={() => setFiltroStatus(value)}
                 activeOpacity={0.7}>
                 <Text
                   style={[
-                    modoMobile
+                    modoAtual === 'tv'
+                      ? styles.filtroButtonTextTV
+                      : modoAtual === 'mobile'
                       ? styles.filtroButtonTextMobile
                       : styles.filtroButtonText,
                     { fontWeight: filtroStatus === value ? 'bold' : 'normal' },
@@ -611,7 +631,12 @@ const PainelAcompanhamento = ({ navigation }) => {
         </View>
 
         <View style={styles.filtroSection}>
-          <Text style={styles.filtroLabel}>Prioridade</Text>
+          <Text
+            style={
+              modoAtual === 'tv' ? styles.filtroLabelTV : styles.filtroLabel
+            }>
+            Prioridade
+          </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -620,7 +645,11 @@ const PainelAcompanhamento = ({ navigation }) => {
               <TouchableOpacity
                 key={label}
                 style={[
-                  modoMobile ? styles.filtroButtonMobile : styles.filtroButton,
+                  modoAtual === 'tv'
+                    ? styles.filtroButtonTV
+                    : modoAtual === 'mobile'
+                    ? styles.filtroButtonMobile
+                    : styles.filtroButton,
                   {
                     backgroundColor:
                       value !== null
@@ -628,20 +657,22 @@ const PainelAcompanhamento = ({ navigation }) => {
                         : '#f0f0f0',
                     borderColor:
                       filtroPrioridade === value ? '#284665' : 'transparent',
-                    borderWidth: filtroPrioridade === value ? 3 : 1,
+                    borderWidth: filtroPrioridade === value ? 3 : 2,
                   },
                 ]}
                 onPress={() => setFiltroPrioridade(value)}
                 activeOpacity={0.7}>
                 <Text
                   style={[
-                    modoMobile
+                    modoAtual === 'tv'
+                      ? styles.filtroButtonTextTV
+                      : modoAtual === 'mobile'
                       ? styles.filtroButtonTextMobile
                       : styles.filtroButtonText,
                     {
                       fontWeight:
                         filtroPrioridade === value ? 'bold' : 'normal',
-                      color: value === 'urgente' ? '#fff' : '#333',
+                      color: value === '2' ? '#fff' : '#333',
                     },
                   ]}>
                   {label}
@@ -650,14 +681,23 @@ const PainelAcompanhamento = ({ navigation }) => {
             ))}
           </ScrollView>
         </View>
-        <Text style={modoMobile ? styles.filtrosMobileFiltro : styles.titulo}>
+
+        <Text
+          style={
+            modoAtual === 'mobile' ? styles.filtrosMobileFiltro : styles.titulo
+          }>
           Filtragem por Cliente
         </Text>
-        <View style={styles.searchContainer}>
+        <View
+          style={
+            modoAtual === 'tv'
+              ? styles.searchContainerTV
+              : styles.searchContainer
+          }>
           <TextInput
             placeholder="Buscar por nome do cliente..."
             placeholderTextColor="#777"
-            style={styles.input}
+            style={modoAtual === 'tv' ? styles.inputTV : styles.input}
             value={searchTerm}
             onChangeText={(text) => {
               setSearchTerm(text)
@@ -667,27 +707,60 @@ const PainelAcompanhamento = ({ navigation }) => {
             onSubmitEditing={() => setSearchValue(searchTerm)}
           />
           <TouchableOpacity
-            style={styles.searchButton}
+            style={
+              modoAtual === 'tv' ? styles.searchButtonTV : styles.searchButton
+            }
             onPress={() => setSearchValue(searchTerm)}>
-            <Text style={styles.searchButtonText}>Buscar</Text>
+            <Text
+              style={
+                modoAtual === 'tv'
+                  ? styles.searchButtonTextTV
+                  : styles.searchButtonText
+              }>
+              Buscar
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
-      <View></View>
+
+      {/* Tabela */}
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <View
+          style={
+            modoAtual === 'tv'
+              ? styles.loadingContainerTV
+              : styles.loadingContainer
+          }>
           <ActivityIndicator size="large" color="#284665" />
-          <Text style={styles.loadingText}>Carregando ordens...</Text>
+          <Text
+            style={
+              modoAtual === 'tv' ? styles.loadingTextTV : styles.loadingText
+            }>
+            Carregando ordens...
+          </Text>
         </View>
       ) : (
-        <View style={styles.tableContainer}>
+        <View
+          style={
+            modoAtual === 'tv' ? styles.tableContainerTV : styles.tableContainer
+          }>
           {renderTableHeader()}
           <ScrollView
             style={styles.tableScrollView}
             showsVerticalScrollIndicator={false}>
             {ordensFiltradasLocalmente.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Nenhuma ordem encontrada</Text>
+              <View
+                style={
+                  modoAtual === 'tv'
+                    ? styles.emptyContainerTV
+                    : styles.emptyContainer
+                }>
+                <Text
+                  style={
+                    modoAtual === 'tv' ? styles.emptyTextTV : styles.emptyText
+                  }>
+                  Nenhuma ordem encontrada
+                </Text>
               </View>
             ) : (
               ordensFiltradasLocalmente.map((item, index) => (

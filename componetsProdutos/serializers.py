@@ -139,6 +139,7 @@ class ProdutoSerializer(BancoContextMixin, serializers.ModelSerializer):
     prod_preco_vista = serializers.SerializerMethodField()
     prod_preco_normal = serializers.SerializerMethodField()
     saldo_estoque = serializers.SerializerMethodField()
+    prod_foto = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     imagem_base64 = serializers.SerializerMethodField()
     preco_principal = serializers.SerializerMethodField()
     # Sobrescrever campos decimais problemáticos
@@ -216,7 +217,8 @@ class ProdutoSerializer(BancoContextMixin, serializers.ModelSerializer):
 
     def get_imagem_base64(self, obj):
         if obj.prod_foto:
-            return base64.b64encode(obj.prod_foto).decode('utf-8')
+            data = obj.prod_foto.tobytes() if isinstance(obj.prod_foto, memoryview) else obj.prod_foto
+            return base64.b64encode(data).decode('utf-8')
         return None
 
     def get_preco_principal(self, obj):

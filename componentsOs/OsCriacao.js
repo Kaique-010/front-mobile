@@ -70,6 +70,12 @@ export default function CriarOrdemServico() {
     orde_esta_liga: '',
     orde_esta_mate: '',
     orde_esta_quan_mate: '',
+    orde_grau_ip: '',
+    orde_isol: '',
+    orde_tens_camp: '',
+    orde_corr_camp: '',
+    orde_tens_arma: '',
+    orde_corr_arma: '',
     orde_obse: '',
   })
 
@@ -117,6 +123,12 @@ export default function CriarOrdemServico() {
       'orde_esta_liga',
       'orde_esta_mate',
       'orde_esta_quan_mate',
+      'orde_grau_ip',
+      'orde_isol',
+      'orde_tens_camp',
+      'orde_corr_camp',
+      'orde_tens_arma',
+      'orde_corr_arma',
       'orde_obse',
     ]
 

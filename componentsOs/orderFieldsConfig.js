@@ -58,6 +58,18 @@ export const ORDER_FIELDS_CONFIG = {
         required: false,
       },
       {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
+        tipo: 'text',
+        required: false,
+      },
+      {
         key: 'orde_obse',
         label: 'Observações',
         tipo: 'textarea',
@@ -70,15 +82,28 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Motor C.C',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
+
       {
-        key: 'orde_volt',
+        key: 'orde_tens_camp',
         label: 'Tensão de Campo',
-        tipo: 'number',
+        tipo: 'text',
         required: true,
       },
       {
-        key: 'orde_ampe',
+        key: 'orde_corr_camp',
         label: 'Corrente de Campo',
+        tipo: 'text',
+        required: true,
+      },
+      {
+        key: 'orde_tens_arma',
+        label: 'Tensão de Armadura',
+        tipo: 'text',
+        required: true,
+      },
+      {
+        key: 'orde_corr_arma',
+        label: 'Corrente da Armadura',
         tipo: 'text',
         required: true,
       },
@@ -112,6 +137,30 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_esta_liga',
         label: 'Status Caixa de Ligação',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
         tipo: 'text',
         required: false,
       },
@@ -156,6 +205,18 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_esta_liga',
         label: 'Status Caixa de Ligação',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
         tipo: 'text',
         required: false,
       },
@@ -212,6 +273,18 @@ export const ORDER_FIELDS_CONFIG = {
         required: false,
       },
       {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
+        tipo: 'text',
+        required: false,
+      },
+      {
         key: 'orde_obse',
         label: 'Observações',
         tipo: 'textarea',
@@ -252,6 +325,18 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_esta_liga',
         label: 'Status Caixa de Ligação',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
         tipo: 'text',
         required: false,
       },
@@ -322,6 +407,18 @@ export const ORDER_FIELDS_CONFIG = {
       { key: 'orde_mode', label: 'Modelo', tipo: 'text', required: false },
       { key: 'orde_patr', label: 'TAG', tipo: 'text', required: false },
       {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
+        tipo: 'text',
+        required: false,
+      },
+      {
         key: 'orde_obse',
         label: 'Observações',
         tipo: 'textarea',
@@ -371,6 +468,18 @@ export const ORDER_FIELDS_CONFIG = {
       },
       { key: 'orde_seri', label: 'N° de série', tipo: 'text', required: false },
       { key: 'orde_mode', label: 'Modelo', tipo: 'text', required: false },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
+        tipo: 'text',
+        required: false,
+      },
     ],
   },
   10: {
@@ -403,6 +512,18 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_esta_liga',
         label: 'Ligação',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
         tipo: 'text',
         required: false,
       },
@@ -484,6 +605,18 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_esta_liga',
         label: 'Status Caixa de Ligação',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
         tipo: 'text',
         required: false,
       },
@@ -583,6 +716,18 @@ export const ORDER_FIELDS_CONFIG = {
         required: false,
       },
       {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
+        tipo: 'text',
+        required: false,
+      },
+      {
         key: 'orde_obse',
         label: 'Observações',
         tipo: 'textarea',
@@ -629,6 +774,18 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_esta_liga',
         label: 'Status Caixa de Ligação',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_grau_ip',
+        label: 'Grau de IP',
+        tipo: 'text',
+        required: false,
+      },
+      {
+        key: 'orde_isol',
+        label: 'Isolamento',
         tipo: 'text',
         required: false,
       },

@@ -10,7 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
-import { apiPutComContexto, apiPostComContexto } from '../utils/api'
+import { apiPatchComContexto } from '../utils/api'
 
 export default function ProdutoPisos({
   produto = {},
@@ -69,6 +69,34 @@ export default function ProdutoPisos({
     carregarContexto()
   }, [])
 
+  // Pré-preenche os campos com valores atuais do produto quando disponíveis
+  useEffect(() => {
+    try {
+      if (produto) {
+        if (
+          produto.prod_cera_m2cx !== undefined &&
+          produto.prod_cera_m2cx !== null
+        ) {
+          setM2PPorCaixa(String(produto.prod_cera_m2cx).replace('.', ','))
+        }
+        if (
+          produto.prod_cera_pccx !== undefined &&
+          produto.prod_cera_pccx !== null
+        ) {
+          setPcPorCaixa(String(produto.prod_cera_pccx).replace('.', ','))
+        }
+        if (
+          produto.prod_cera_kgcx !== undefined &&
+          produto.prod_cera_kgcx !== null
+        ) {
+          setKgPorCaixa(String(produto.prod_cera_kgcx).replace('.', ','))
+        }
+      }
+    } catch (error) {
+      console.warn('Falha ao pré-preencher campos de pisos:', error)
+    }
+  }, [produto])
+
   const salvar = async () => {
     if (!validarCampos()) return
 
@@ -91,34 +119,23 @@ export default function ProdutoPisos({
       prod_empr: parseInt(empresaIdStorage) || 1,
       prod_fili: parseInt(filialIdStorage) || 1,
       prod_codi: String(produto.prod_codi),
-      prod_cera_m2pc: parseFloat(m2PPorCaixa.replace(',', '.')) || 0,
-      prod_cera_pcpc: parseFloat(pcPorCaixa.replace(',', '.')) || 0,
-      prod_cera_kgpc: parseFloat(kgPorCaixa.replace(',', '.')) || 0,
+      // Alinha com campos do backend (Produtos.models): prod_cera_m2cx e prod_cera_pccx
+      prod_cera_m2cx: parseFloat(m2PPorCaixa.replace(',', '.')) || 0,
+      prod_cera_pccx: parseFloat(pcPorCaixa.replace(',', '.')) || 0,
+      prod_cera_kgcx: parseFloat(kgPorCaixa.replace(',', '.')) || 0,
     }
     console.log('payload', payload)
 
-    const chave = `${payload.prod_empr}-${payload.prod_fili}-${payload.prod_codi}`
-    console.log('chave', chave)
+    const empresa = produto?.prod_empr || payload.prod_empr
+    const codigo = String(produto.prod_codi)
+    const endpoint = `produtos/produtos/${empresa}/${codigo}/`
+    console.log('endpoint', endpoint)
 
     try {
-      let response
-      // tenta PUT (atualizar)
-      try {
-        response = await apiPutComContexto(
-          `produtos/produtos/${chave}/`,
-          payload
-        )
-      } catch (error) {
-        if (error?.response?.status === 404) {
-          // se não existe, cria com POST
-          response = await apiPostComContexto(`produtos/produtos/`, payload)
-        } else {
-          throw error
-        }
-      }
+      const response = await apiPatchComContexto(endpoint, payload, 'prod_')
 
       // Atualizar o cache com os dados retornados da API
-      const dadosAtualizados = response?.data || response || payload
+      const dadosAtualizados = response?.data || response || {}
 
       // Verificar se dadosAtualizados não é undefined antes de armazenar
       if (dadosAtualizados) {
@@ -134,18 +151,41 @@ export default function ProdutoPisos({
         text2: 'Dados de Pisos atualizados com sucesso',
       })
 
-      // Atualizar o produto com os preços calculados pelo backend
-      atualizarProduto({ ...produto, precos: [dadosAtualizados] })
+      // Atualizar o produto localmente com os campos salvos
+      const novosCampos = {
+        prod_cera_m2cx: payload.prod_cera_m2cx,
+        prod_cera_pccx: payload.prod_cera_pccx,
+        prod_cera_kgcx: payload.prod_cera_kgcx,
+      }
+      atualizarProduto({
+        ...produto,
+        ...novosCampos,
+        ...(dadosAtualizados || {}),
+      })
       setTimeout(() => navigation.goBack(), 1000)
     } catch (error) {
       console.error('Erro ao salvar produtos:', error)
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2:
-          error?.response?.data?.detail ||
-          'Não foi possível salvar os produtos',
-      })
+      const status = error?.response?.status
+      const data = error?.response?.data
+      let mensagem = 'Não foi possível salvar os dados de Pisos.'
+
+      if (status === 404) {
+        mensagem = 'Produto não encontrado para atualização.'
+      } else if (status === 400) {
+        if (data && typeof data === 'object') {
+          const detalhes = Object.entries(data)
+            .map(
+              ([campo, msgs]) =>
+                `${campo}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`
+            )
+            .join('\n')
+          mensagem = `Dados inválidos:\n${detalhes}`
+        } else {
+          mensagem = data || mensagem
+        }
+      }
+
+      Toast.show({ type: 'error', text1: 'Erro', text2: mensagem })
     } finally {
       setLoading(false)
     }

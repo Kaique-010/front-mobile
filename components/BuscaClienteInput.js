@@ -108,7 +108,9 @@ export default function BuscaClienteInput({
         console.log('resultados', resultados)
 
         // Filtrar por empresa primeiro
-        resultados = resultados.filter((e) => e.enti_empr.toString() === (empresaId || '1').toString())
+        resultados = resultados.filter(
+          (e) => e.enti_empr.toString() === (empresaId || '1').toString()
+        )
 
         if (tipo === 'fornecedor') {
           resultados = resultados.filter((e) => e.enti_tipo_enti === 'FO')
@@ -146,7 +148,7 @@ export default function BuscaClienteInput({
   )
 
   const selecionar = (item) => {
-    const texto = `${item.enti_clie} - ${item.enti_nome}`
+    const texto = `${item.enti_clie} - ${item.enti_nome} - ${item.enti_cida}`
     setTermo(texto)
     onSelect(item)
     setClientes([])
@@ -219,7 +221,7 @@ export default function BuscaClienteInput({
               style={styles.sugestaoItem}>
               <Text style={styles.sugestaoTexto}>
                 {item.enti_clie} - {item.enti_nome} —{' '}
-                {item.enti_cpf || item.enti_cnpj}
+                {item.enti_cpf || item.enti_cnpj} — {item.enti_cida}
               </Text>
             </TouchableOpacity>
           )}
