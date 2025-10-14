@@ -49,7 +49,7 @@ export default function ProdutoPisos({
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: 'Kg por caixa deve ser maior ou igual a ze
+        text2: 'Kg por caixa deve ser maior ou igual a zero',
       })
       return false
     }
