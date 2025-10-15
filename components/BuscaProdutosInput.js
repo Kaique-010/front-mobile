@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { FlatList, View, ActivityIndicator } from 'react-native'
 import { TextInput, Card, Snackbar } from 'react-native-paper'
-import { getStoredData } from '../services/storageService'
-import { apiGetComContexto, safeSetItem } from '../utils/api'
+import { apiGetComContexto } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
-// Cache para busca de produtos
-const BUSCA_PRODUTOS_CACHE_KEY = 'busca_produtos_cache'
-const BUSCA_PRODUTOS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
 
 // Hook de debounce otimizado
 function useDebounce(value, delay = 300) {
-  // Reduzido de 400ms para 300ms
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
@@ -24,10 +18,27 @@ function useDebounce(value, delay = 300) {
 
 export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   const [searchTerm, setSearchTerm] = useState(initialValue)
-  const debouncedSearchTerm = useDebounce(searchTerm, 300) // Mais responsivo
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [produtos, setProdutos] = useState([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
+
+  // ✅ CORRIGIDO: Verificar setor do usuário
+  useEffect(() => {
+    const verificarSetor = async () => {
+      try {
+        const setor = await AsyncStorage.getItem('setor')
+        const temSetor = setor && setor !== '0' && setor !== 'null'
+        setUsuarioTemSetor(temSetor)
+        console.log('👤 [BuscaProduto] Usuário tem setor:', temSetor)
+      } catch (error) {
+        console.error('Erro ao verificar setor:', error)
+        setUsuarioTemSetor(false)
+      }
+    }
+    verificarSetor()
+  }, [])
 
   useEffect(() => {
     if (initialValue) setSearchTerm(initialValue)
@@ -44,31 +55,6 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
 
     const buscar = async () => {
       setLoading(true)
-
-      // Verificar cache primeiro
-      try {
-        const cacheKey = `${BUSCA_PRODUTOS_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-        const cacheData = await AsyncStorage.getItem(cacheKey)
-
-        if (cacheData) {
-          const { results, timestamp } = JSON.parse(cacheData)
-          const now = Date.now()
-
-          if (now - timestamp < BUSCA_PRODUTOS_CACHE_DURATION) {
-            console.log(
-              `📦 [CACHE-BUSCA] Usando cache para: "${debouncedSearchTerm}"`
-            )
-            const validos = results.filter(
-              (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
-            )
-            setProdutos(validos)
-            setLoading(false)
-            return
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Erro ao ler cache de busca:', error)
-      }
 
       try {
         console.log(
@@ -93,20 +79,6 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
         )
         setProdutos(validos)
 
-        // Salvar no cache
-        try {
-          const cacheKey = `${BUSCA_PRODUTOS_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-          const cacheData = {
-            results: data.results,
-            timestamp: Date.now(),
-          }
-          await safeSetItem(cacheKey, JSON.stringify(cacheData))
-          console.log(
-            `💾 [CACHE-BUSCA] Salvos ${validos.length} produtos no cache`
-          )
-        } catch (error) {
-          console.log('⚠️ Erro ao salvar cache de busca:', error)
-        }
       } catch (err) {
         console.error('❌ Erro ao buscar produtos:', err.message)
       } finally {
@@ -169,25 +141,34 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
             `produto-${item.prod_codi}-${item.prod_nome}-${item.prod_empr}`
           }
           nestedScrollEnabled={true}
-          maxToRenderPerBatch={10} // Otimização de renderização
-          windowSize={10} // Otimização de memória
-          renderItem={({ item }) => (
-            <Card
-              onPress={() => handleSelecionarProduto(item)}
-              style={{
-                marginVertical: 4,
-                backgroundColor: '#1c1c1c',
-                borderRadius: 8,
-                elevation: 3,
-              }}>
-              <Card.Title
-                title={item.prod_nome}
-                subtitle={`Código: ${item.prod_codi} | Saldo: ${item.saldo_estoque}`}
-                titleStyle={{ color: 'white', fontWeight: 'bold' }}
-                subtitleStyle={{ color: '#A1A1A1' }}
-              />
-            </Card>
-          )}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          renderItem={({ item }) => {
+            // ✅ CORRIGIDO: Ocultar preço quando usuário tem setor
+            const mostrarPreco = !usuarioTemSetor && (item.prod_preco_vista > 0 || item.prod_preco_normal > 0)
+            
+            const subtitle = mostrarPreco
+              ? `Código: ${item.prod_codi} | Saldo: ${item.saldo_estoque} | Preço: R$ ${(item.prod_preco_vista || item.prod_preco_normal || 0).toFixed(2)}`
+              : `Código: ${item.prod_codi} | Saldo: ${item.saldo_estoque}`
+
+            return (
+              <Card
+                onPress={() => handleSelecionarProduto(item)}
+                style={{
+                  marginVertical: 4,
+                  backgroundColor: '#1c1c1c',
+                  borderRadius: 8,
+                  elevation: 3,
+                }}>
+                <Card.Title
+                  title={item.prod_nome}
+                  subtitle={subtitle}
+                  titleStyle={{ color: 'white', fontWeight: 'bold' }}
+                  subtitleStyle={{ color: '#A1A1A1' }}
+                />
+              </Card>
+            )
+          }}
         />
       )}
 

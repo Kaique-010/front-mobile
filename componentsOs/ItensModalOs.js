@@ -1,36 +1,83 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  Modal,
   View,
-  TextInput,
   Text,
-  StyleSheet,
+  TextInput,
   TouchableOpacity,
+  Modal,
+  StyleSheet,
   Vibration,
 } from 'react-native'
 import { LogBox } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import LeitorCodigoBarras from '../components/Leitor'
-import { Ionicons } from '@expo/vector-icons'
 import BuscaProdutoInput from '../components/BuscaProdutosInput'
+import { Ionicons } from '@expo/vector-icons'
 import { apiGetComContexto } from '../utils/api'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 
 export default function ItensModalOs({
   visivel,
   onFechar,
   onAdicionar,
-  itemEditando,
+  itemEditando = null,
 }) {
   const [form, setForm] = useState({
     produtoId: '',
     produtoNome: '',
     quantidade: '',
     preco: '',
+    precoReal: '',
   })
   const [isScanningModal, setIsScanningModal] = useState(false)
-  const [highlight, setHighlight] = useState(false)
+  const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
   const scrollRef = useRef()
+
+  // ✅ VERIFICAÇÃO COMPLETA DE SETOR COM DEBUG
+  useEffect(() => {
+    const verificarSetor = async () => {
+      try {
+        console.log('🔍 [MODAL] Verificando setor do usuário...')
+        
+        // Buscar todas as chaves possíveis
+        const setor = await AsyncStorage.getItem('setor')
+        const userInfo = await AsyncStorage.getItem('userInfo')
+        const userData = await AsyncStorage.getItem('userData')
+        
+        console.log('📦 [MODAL] Setor direto:', setor)
+        console.log('📦 [MODAL] UserInfo:', userInfo)
+        console.log('📦 [MODAL] UserData:', userData)
+        
+        // Tentar parsear userInfo
+        let setorFinal = null
+        if (setor && setor !== '0' && setor !== 'null') {
+          setorFinal = setor
+        } else if (userInfo) {
+          try {
+            const parsed = JSON.parse(userInfo)
+            setorFinal = parsed?.setor || parsed?.usua_seto
+          } catch (e) {}
+        } else if (userData) {
+          try {
+            const parsed = JSON.parse(userData)
+            setorFinal = parsed?.setor || parsed?.usua_seto
+          } catch (e) {}
+        }
+        
+        const temSetor = setorFinal && setorFinal !== '0' && setorFinal !== 'null'
+        
+        console.log('✅ [MODAL] Setor final:', setorFinal)
+        console.log('✅ [MODAL] Usuário TEM setor?', temSetor)
+        
+        setUsuarioTemSetor(temSetor)
+      } catch (error) {
+        console.error('❌ [MODAL] Erro ao verificar setor:', error)
+        setUsuarioTemSetor(false)
+      }
+    }
+    verificarSetor()
+  }, [])
 
   useEffect(() => {
     if (itemEditando) {
@@ -38,8 +85,8 @@ export default function ItensModalOs({
         produtoId: itemEditando.peca_codi?.toString() || '',
         quantidade: itemEditando.peca_quan?.toString() || '',
         preco: itemEditando.peca_unit?.toString() || '',
+        precoReal: itemEditando.peca_unit_real?.toString() || itemEditando.peca_unit?.toString() || '',
         produtoNome: itemEditando.produto_nome || '',
-        idExistente: !!itemEditando.id,
       })
     } else {
       setForm({
@@ -47,6 +94,7 @@ export default function ItensModalOs({
         produtoNome: '',
         quantidade: '',
         preco: '',
+        precoReal: '',
       })
     }
   }, [itemEditando, visivel])
@@ -73,18 +121,19 @@ export default function ItensModalOs({
       }
 
       const produtoDetalhado = await apiGetComContexto(
-        `produtos/produtos/${produto.prod_codi}/`
+        `produtos/produtos/${produto.prod_empr}-${produto.prod_codi}/`
       )
 
       Vibration.vibrate(100)
-      setHighlight(true)
-      setTimeout(() => setHighlight(false), 1000)
+
+      const precoVista = produtoDetalhado.prod_preco_vista || 0
 
       setForm((f) => ({
         ...f,
         produtoId: produtoDetalhado.prod_codi.toString(),
         produtoNome: produtoDetalhado.prod_nome,
-        preco: produtoDetalhado.prod_preco_vista?.toString() || '',
+        preco: precoVista.toString(),
+        precoReal: precoVista.toString(),
         quantidade: '1',
       }))
 
@@ -95,7 +144,9 @@ export default function ItensModalOs({
       })
 
       scrollRef.current?.scrollTo({ y: 0, animated: true })
-    } catch (err) {}
+    } catch (err) {
+      console.error('Erro ao buscar produto:', err)
+    }
 
     setIsScanningModal(false)
   }
@@ -103,8 +154,15 @@ export default function ItensModalOs({
   const adicionar = () => {
     const quantidadeNum = parseFloat(form.quantidade)
     const precoNum = parseFloat(form.preco)
+    const precoRealNum = parseFloat(form.precoReal)
 
-    if (!form.produtoId || quantidadeNum <= 0 || precoNum <= 0) {
+    console.log('➕ [MODAL] Adicionando produto...')
+    console.log('   Usuário tem setor?', usuarioTemSetor)
+    console.log('   Preço do form:', precoNum)
+    console.log('   Preço real:', precoRealNum)
+
+    // Validações
+    if (!form.produtoId || quantidadeNum <= 0) {
       Toast.show({
         type: 'error',
         text1: 'Preencha todos os campos corretamente',
@@ -112,21 +170,37 @@ export default function ItensModalOs({
       return
     }
 
-    const total = quantidadeNum * precoNum
+    // ✅ CORRIGIDO: Se usuário tem setor, usa precoReal, senão usa o que está no form
+    const precoParaCalculo = usuarioTemSetor ? precoRealNum : precoNum
+
+    console.log('💰 [MODAL] Preço para cálculo:', precoParaCalculo)
+
+    if (precoParaCalculo <= 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Preço inválido',
+        text2: 'O preço deve ser maior que zero',
+      })
+      return
+    }
+
+    const total = quantidadeNum * precoParaCalculo
 
     const novoItem = {
-      id: itemEditando?.id || Date.now().toString(),
+      peca_id: itemEditando?.peca_id,
       peca_codi: parseInt(form.produtoId),
       peca_quan: quantidadeNum,
-      peca_unit: precoNum,
+      peca_unit: precoParaCalculo,
+      peca_unit_real: precoRealNum,
       peca_tota: total,
       produto_nome: form.produtoNome,
     }
+    
+    console.log('✅ [MODAL] Item criado:', novoItem)
     onAdicionar(novoItem, itemEditando)
-    console.log('Item enviado para a aba:', novoItem)
 
     if (!itemEditando) {
-      setForm({ produtoId: '', produtoNome: '', quantidade: '', preco: '' })
+      setForm({ produtoId: '', produtoNome: '', quantidade: '', preco: '', precoReal: '' })
     }
 
     onFechar()
@@ -136,13 +210,14 @@ export default function ItensModalOs({
     'VirtualizedLists should never be nested inside plain ScrollViews',
   ])
 
+  // ✅ LOG DE DEBUG NA RENDERIZAÇÃO
+  console.log('🎨 [MODAL] Renderizando... Usuário tem setor?', usuarioTemSetor)
+
   return (
     <Modal visible={visivel} animationType="slide">
       <KeyboardAwareScrollView
         style={styles.container}
-        ref={(ref) => {
-          scrollRef.current = ref
-        }}
+        ref={scrollRef}
         enableOnAndroid
         extraScrollHeight={100}
         keyboardShouldPersistTaps="handled">
@@ -161,11 +236,13 @@ export default function ItensModalOs({
                 <BuscaProdutoInput
                   valorAtual={form.produtoNome}
                   onSelect={(produto) => {
+                    const precoVista = produto.prod_preco_vista || 0
                     setForm((f) => ({
                       ...f,
                       produtoId: produto.prod_codi.toString(),
                       produtoNome: produto.prod_nome,
-                      preco: produto.prod_preco_vista?.toString() || '',
+                      preco: precoVista.toString(),
+                      precoReal: precoVista.toString(),
                       quantidade: '1',
                     }))
                     Toast.show({
@@ -180,8 +257,7 @@ export default function ItensModalOs({
               <TouchableOpacity
                 style={styles.iconeLeitorInline}
                 onPress={() => setIsScanningModal(true)}
-                activeOpacity={0.6} // 👈
-              >
+                activeOpacity={0.6}>
                 <Ionicons name="barcode-outline" size={24} color="white" />
               </TouchableOpacity>
             </View>
@@ -198,21 +274,29 @@ export default function ItensModalOs({
               style={styles.input}
             />
 
-            <Text style={styles.label}>Preço Unitário:</Text>
-            <TextInput
-              keyboardType="numeric"
-              value={form.preco}
-              onChangeText={(v) => onChange('preco', v)}
-              style={styles.input}
-            />
+            {/* ✅ CORRIGIDO: Ocultar preço quando usuário tem setor */}
+            {!usuarioTemSetor && (
+              <>
+                <Text style={styles.label}>Preço Unitário:</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={form.preco}
+                  onChangeText={(v) => onChange('preco', v)}
+                  style={styles.input}
+                />
+              </>
+            )}
 
-            <Text style={styles.total}>
-              Total: R${' '}
-              {(
-                (parseFloat(form.quantidade) || 0) *
-                (parseFloat(form.preco) || 0)
-              ).toFixed(2)}
-            </Text>
+            {/* ✅ CORRIGIDO: Mostrar total apenas quando não tem setor */}
+            {!usuarioTemSetor && (
+              <Text style={styles.total}>
+                Total: R${' '}
+                {(
+                  (parseFloat(form.quantidade) || 0) *
+                  (parseFloat(form.preco) || 0)
+                ).toFixed(2)}
+              </Text>
+            )}
 
             <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>
               <Text style={styles.textoBotao}>
@@ -255,10 +339,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
-  highlight: {
-    borderColor: '#10a2a7',
-    borderWidth: 2,
-  },
   total: {
     color: 'white',
     marginTop: 40,
@@ -271,6 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10a2a7',
     borderRadius: 8,
     alignItems: 'center',
+    marginTop: 40,
   },
   botaoCancelar: {
     padding: 12,
@@ -288,19 +369,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 10,
-    gap: 8, // espaçamento entre input e botão (React Native >= 0.71)
+    gap: 8,
   },
-
   produtoInput: {
     flex: 1,
   },
-
   iconeLeitorInline: {
     padding: 10,
     backgroundColor: '#10a2a7',
     borderRadius: 8,
   },
-
   produtoNome: {
     color: '#ccc',
     textAlign: 'center',

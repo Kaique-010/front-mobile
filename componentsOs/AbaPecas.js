@@ -11,6 +11,7 @@ import Toast from 'react-native-toast-message'
 import ItensModalOs from './ItensModalOs'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
   const [removidos, setRemovidos] = useState([])
@@ -19,6 +20,21 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [produtos, setProdutos] = useState(pecas)
+  const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
+
+  // Verifica se o usuário tem setor
+  useEffect(() => {
+    const verificarSetor = async () => {
+      try {
+        const setor = await AsyncStorage.getItem('setor')
+        setUsuarioTemSetor(setor && setor !== '0' && setor !== 'null')
+      } catch (error) {
+        console.error('Erro ao verificar setor:', error)
+        setUsuarioTemSetor(false)
+      }
+    }
+    verificarSetor()
+  }, [])
 
   // Carrega as peças existentes quando o componente monta ou quando o orde_nume muda
   useEffect(() => {
@@ -38,42 +54,27 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
         peca_fili: 1,
       })
 
-      // Verifica se a resposta tem a estrutura paginada
-      const pecasArray = response?.results || response || []
-
-      if (Array.isArray(pecasArray) && pecasArray.length > 0) {
-        const pecasFormatadas = pecasArray.map((peca) => ({
-          peca_id: peca.peca_id,
-          peca_codi: peca.peca_codi,
-          peca_quan: parseFloat(peca.peca_quan),
-          peca_unit: parseFloat(peca.peca_unit),
-          peca_tota: parseFloat(peca.peca_tota),
-          produto_nome: peca.produto_nome || 'Produto',
+      if (response.data && Array.isArray(response.data)) {
+        const produtosFormatados = response.data.map((item) => ({
+          ...item,
+          peca_quan: parseFloat(item.peca_quan || 0),
+          peca_unit: parseFloat(item.peca_unit || 0),
+          peca_tota: parseFloat(item.peca_tota || 0),
+          // Sempre preservar o preço real do produto
+          peca_unit_real: parseFloat(item.peca_unit_real || item.peca_unit || 0)
         }))
 
-        console.log('Peças formatadas:', pecasFormatadas)
-        setProdutos(pecasFormatadas)
+        setProdutos(produtosFormatados)
         if (onPecasChange) {
-          onPecasChange(pecasFormatadas)
-        }
-      } else {
-        console.log('Nenhuma peça encontrada')
-        setProdutos([])
-        if (onPecasChange) {
-          onPecasChange([])
+          onPecasChange(produtosFormatados)
         }
       }
     } catch (error) {
-      console.error(
-        'Erro detalhado ao carregar peças:',
-        error.response?.data || error.message
-      )
+      console.error('Erro ao carregar peças:', error)
       Toast.show({
         type: 'error',
-        text1: 'Erro ao carregar peças',
-        text2: Array.isArray(error.response?.data)
-          ? error.response.data[0]
-          : 'Não foi possível carregar as peças existentes',
+        text1: 'Erro',
+        text2: 'Falha ao carregar peças da ordem de serviço',
       })
     } finally {
       setIsLoading(false)
@@ -106,14 +107,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
       return false
     }
 
-    if (!novoItem.peca_unit || novoItem.peca_unit <= 0) {
-      Toast.show({
-        type: 'error',
-        text1: 'Preço inválido',
-        text2: 'O preço unitário deve ser maior que zero',
-      })
-      return false
-    }
+   
 
     return true
   }
@@ -186,32 +180,55 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
     setIsSubmitting(true)
 
     try {
+      // Função para validar e formatar valores numéricos
+      const formatarValorNumerico = (valor) => {
+        const num = parseFloat(valor) || 0
+        // Limita a 15 dígitos totais com 4 casas decimais (conforme serializer)
+        return Math.min(Math.max(num, 0), 99999999999.9999)
+      }
+
       const adicionar = produtos
         .filter((p) => !p.peca_id)
-        .map((p) => ({
-          peca_orde: orde_nume,
-          peca_codi: p.peca_codi,
-          peca_quan: p.peca_quan,
-          peca_unit: p.peca_unit,
-          peca_tota: p.peca_quan * p.peca_unit, // Calculando o total
-          peca_empr: 1,
-          peca_fili: 1,
-        }))
+        .map((p) => {
+          const quan = formatarValorNumerico(p.peca_quan)
+          // Usar o preço real se disponível, senão usar peca_unit
+          const precoReal = p.peca_unit_real || p.peca_unit
+          const unit = formatarValorNumerico(precoReal)
+          const tota = formatarValorNumerico(quan * unit)
+          
+          return {
+            peca_orde: orde_nume,
+            peca_codi: p.peca_codi,
+            peca_quan: quan,
+            peca_unit: unit,
+            peca_tota: tota,
+            peca_empr: 1,
+            peca_fili: 1,
+          }
+        })
 
       const editar = produtos
         .filter(
           (p) => p.peca_id && !removidos.find((r) => r.peca_id === p.peca_id)
         )
-        .map((p) => ({
-          peca_id: p.peca_id,
-          peca_orde: orde_nume,
-          peca_codi: p.peca_codi,
-          peca_quan: p.peca_quan,
-          peca_unit: p.peca_unit,
-          peca_tota: p.peca_quan * p.peca_unit, // Calculando o total
-          peca_empr: 1,
-          peca_fili: 1,
-        }))
+        .map((p) => {
+          const quan = formatarValorNumerico(p.peca_quan)
+          // Usar o preço real se disponível, senão usar peca_unit
+          const precoReal = p.peca_unit_real || p.peca_unit
+          const unit = formatarValorNumerico(precoReal)
+          const tota = formatarValorNumerico(quan * unit)
+          
+          return {
+            peca_id: p.peca_id,
+            peca_orde: orde_nume,
+            peca_codi: p.peca_codi,
+            peca_quan: quan,
+            peca_unit: unit,
+            peca_tota: tota,
+            peca_empr: 1,
+            peca_fili: 1,
+          }
+        })
 
       const remover = removidos
         .filter((r) => r.peca_id)
@@ -260,40 +277,52 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
     }
   }
 
-  const renderItem = ({ item }) => (
-    <View style={styles.produto}>
-      <View style={styles.produtoHeader}>
-        <Text style={styles.prodNome}>{item.produto_nome || 'Sem nome'}</Text>
-        <View style={styles.botoesContainer}>
-          <TouchableOpacity
-            style={[styles.botaoAcao, styles.botaoEditar]}
-            onPress={() => abrirModalParaEditar(item)}>
-            <Ionicons name="pencil" size={18} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.botaoAcao, styles.botaoRemover]}
-            onPress={() => removerProduto(item)}>
-            <Ionicons name="trash" size={18} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
+  const renderItem = ({ item }) => {
+    // Ocultar preços quando usuário tem setor
+    const precoOculto = usuarioTemSetor
+    const precoReal = item.peca_unit_real || item.peca_unit || 0
+    const quantidadeNum = parseFloat(item.peca_quan) || 0
+    const totalReal = quantidadeNum * precoReal
 
-      <View style={styles.produtoInfo}>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Quantidade:</Text>
-          <Text style={styles.infoValor}>{item.peca_quan.toFixed(4)}</Text>
+    return (
+      <View style={styles.produto}>
+        <View style={styles.produtoHeader}>
+          <Text style={styles.prodNome}>{item.produto_nome || 'Sem nome'}</Text>
+          <View style={styles.botoesContainer}>
+            <TouchableOpacity
+              style={[styles.botaoAcao, styles.botaoEditar]}
+              onPress={() => abrirModalParaEditar(item)}>
+              <Ionicons name="pencil" size={18} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.botaoAcao, styles.botaoRemover]}
+              onPress={() => removerProduto(item)}>
+              <Ionicons name="trash" size={18} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Preço Unit.:</Text>
-          <Text style={styles.infoValor}>R$ {item.peca_unit.toFixed(4)}</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Total:</Text>
-          <Text style={styles.infoValor}>R$ {item.peca_tota.toFixed(4)}</Text>
+
+        <View style={styles.produtoInfo}>
+          <View style={styles.infoItem}>
+            <Text style={styles.infoLabel}>Quantidade:</Text>
+            <Text style={styles.infoValor}>{quantidadeNum.toFixed(2)}</Text>
+          </View>
+          {!precoOculto && (
+            <>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Preço Unit.:</Text>
+                <Text style={styles.infoValor}>R$ {parseFloat(precoReal).toFixed(2)}</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Total:</Text>
+                <Text style={styles.infoValor}>R$ {totalReal.toFixed(2)}</Text>
+              </View>
+            </>
+          )}
         </View>
       </View>
-    </View>
-  )
+    )
+  }
 
   if (isLoading) {
     return (
