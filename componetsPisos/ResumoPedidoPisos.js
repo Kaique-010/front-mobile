@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native'
 import { MaterialIcons } from '@expo/vector-icons'
 
+
 export default function ResumoPedidoPisos({ pedido = {}, itens = [], onUpdatePedido }) {
   const [descontoGeral, setDescontoGeral] = useState(0)
   const [frete, setFrete] = useState(0)

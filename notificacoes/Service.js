@@ -1,79 +1,44 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { getStoredData } from '../services/storageService'
-import { BASE_URL } from '../utils/api'
-
-export const getAccessToken = async () => {
-  try {
-    const accessToken = await AsyncStorage.getItem('access')
-    if (!accessToken) throw new Error('Access token não encontrado')
-    return accessToken
-  } catch (error) {
-    console.error('Erro ao buscar access token:', error)
-    throw error
-  }
-}
+import { 
+  apiGetComContexto, 
+  apiPostComContexto, 
+  apiPatchComContexto 
+} from '../utils/api'
 
 class NotificacaoService {
-  async ensureInitialized() {
-    if (this.initialized) return
-
-    try {
-      const { slug } = await getStoredData()
-      this.baseURL = `${BASE_URL}/api/${slug}/notificacoes/`
-      this.token = await getAccessToken()
-      this.initialized = true
-    } catch (e) {
-      console.error('Erro na init:', e)
-    }
-  }
-
-  async getHeaders() {
-    await this.ensureInitialized()
-    if (!this.token) this.token = await getAccessToken()
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${this.token}`,
-    }
+  constructor() {
+    console.log('✅ [DEBUG] Serviço de notificações inicializado usando funções padronizadas da API')
   }
 
   async listarNotificacoes() {
-    await this.ensureInitialized()
     try {
-      // Verificar se há token antes de fazer a requisição
-      if (!this.token) {
-        throw new Error('Token de acesso não encontrado')
-      }
-
-      const headers = await this.getHeaders()
-      const response = await fetch(`${this.baseURL}listar/`, {
-        method: 'GET',
-        headers,
-      })
-
-      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
-      const json = await response.json()
-      return json.notificacoes || []
+      console.log('🔍 [DEBUG] Listando notificações usando apiGetComContexto')
+      
+      const response = await apiGetComContexto('notificacoes/listar/')
+      return response.notificacoes || []
     } catch (error) {
-      // Só logar erro se não for problema de autenticação
-      if (
-        !error.message.includes('Token de acesso') &&
-        !error.message.includes('401')
-      ) {
-        console.error('Erro listar:', error)
+      if (error.response?.status === 404) {
+        console.error('❌ [DEBUG] Endpoint de notificações não encontrado (404)')
+        throw new Error('Endpoint de notificações não encontrado. Verifique se o serviço está disponível.')
       }
+      if (error.response?.status === 401) {
+        throw new Error('Não autorizado - verifique suas credenciais')
+      }
+      
+      console.error('Erro ao listar notificações:', error)
       throw error
     }
   }
 
   async marcarComoLida(id) {
-    await this.ensureInitialized()
-    const headers = await this.getHeaders()
-    const response = await fetch(`${this.baseURL}marcar-lida/${id}/`, {
-      method: 'PATCH',
-      headers,
-    })
-    if (!response.ok) throw new Error('Erro ao marcar como lida')
-    return await response.json()
+    try {
+      console.log('🔍 [DEBUG] Marcando notificação como lida:', id)
+      
+      const response = await apiPatchComContexto(`notificacoes/marcar-lida/${id}/`)
+      return response
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error)
+      throw error
+    }
   }
 
   async buscarNaoLidas() {
@@ -86,79 +51,54 @@ class NotificacaoService {
     return naoLidas.length
   }
 
-  // Gerar notificações de estoque baixo
   async gerarNotificacoesEstoque() {
-    await this.ensureInitialized()
     try {
-      const headers = await this.getHeaders()
-      const response = await fetch(`${this.baseURL}estoque/`, {
-        method: 'POST',
-        headers,
-      })
-
-      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
-      return await response.json()
+      console.log('🔍 [DEBUG] Gerando notificações de estoque')
+      
+      const response = await apiPostComContexto('notificacoes/estoque/')
+      return response
     } catch (error) {
       console.error('Erro ao gerar notificações de estoque:', error)
       throw error
     }
   }
 
-  // Gerar notificações financeiras (contas a pagar/receber)
   async gerarNotificacoesFinanceiro() {
-    await this.ensureInitialized()
     try {
-      const headers = await this.getHeaders()
-      const response = await fetch(`${this.baseURL}financeiro/`, {
-        method: 'POST',
-        headers,
-      })
-
-      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
-      return await response.json()
+      console.log('🔍 [DEBUG] Gerando notificações financeiras')
+      
+      const response = await apiPostComContexto('notificacoes/financeiro/')
+      return response
     } catch (error) {
       console.error('Erro ao gerar notificações financeiras:', error)
       throw error
     }
   }
 
-  // Gerar notificações de vendas do dia
   async gerarNotificacoesVendas() {
-    await this.ensureInitialized()
     try {
-      const headers = await this.getHeaders()
-      const response = await fetch(`${this.baseURL}vendas/`, {
-        method: 'POST',
-        headers,
-      })
-
-      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
-      return await response.json()
+      console.log('🔍 [DEBUG] Gerando notificações de vendas')
+      
+      const response = await apiPostComContexto('notificacoes/vendas/')
+      return response
     } catch (error) {
       console.error('Erro ao gerar notificações de vendas:', error)
       throw error
     }
   }
 
-  // Gerar notificações de resumo do dia
   async gerarNotificacoesResumo() {
-    await this.ensureInitialized()
     try {
-      const headers = await this.getHeaders()
-      const response = await fetch(`${this.baseURL}resumo/`, {
-        method: 'POST',
-        headers,
-      })
-
-      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`)
-      return await response.json()
+      console.log('🔍 [DEBUG] Gerando notificações de resumo')
+      
+      const response = await apiPostComContexto('notificacoes/resumo/')
+      return response
     } catch (error) {
       console.error('Erro ao gerar notificações de resumo:', error)
       throw error
     }
   }
 
-  // Método para gerar todas as notificações de uma vez
   async gerarTodasNotificacoes() {
     try {
       const resultados = await Promise.allSettled([

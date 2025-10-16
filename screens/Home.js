@@ -20,6 +20,7 @@ import SaldosChart from '../components/SaldosChart'
 import PedidosChart from '../components/PedidosChart'
 import { apiPostComContexto } from '../utils/api'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+import { useNotificacoes } from '../notificacoes/NotificacaoContext'
 
 export default function Home() {
   const [user, setUsuario] = useState(null)
@@ -33,6 +34,7 @@ export default function Home() {
   const [gravacao, setGravacao] = useState(null)
   const [pensando, setPensando] = useState(false)
   const [gravando, setGravando] = useState(false)
+  const notificacoes = useNotificacoes()
 
   // Config padrão para charts
   const chartConfig = {
@@ -44,6 +46,12 @@ export default function Home() {
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     propsForBackgroundLines: { strokeDasharray: '' },
   }
+
+  useEffect(() => {
+    if (notificacoes.error) {
+      Alert.alert('Erro', notificacoes.error)
+    }
+  }, [notificacoes.error])
 
   useEffect(() => {
     const loadData = async () => {
@@ -208,7 +216,11 @@ export default function Home() {
             )
           }
         }}>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
+        <Image 
+          source={require('../assets/logo.png')} 
+          style={{ width: 40, height: 50 }}
+          resizeMode="contain"
+        />
       </TouchableOpacity>
 
       {/* Modal Kronos */}
@@ -298,7 +310,11 @@ const PulsingLogo = ({ active }) => {
 
   return (
     <Animated.View style={{ transform: [{ scale: pulse }] }}>
-      <Image source={require('../assets/logo.png')} style={styles.logomodal} />
+      <Image 
+        source={require('../assets/logo.png')} 
+        style={{ width: 30, height: 30, marginBottom: 15, marginRight: 10 }}
+        resizeMode="contain"
+      />
     </Animated.View>
   )
 }
@@ -459,7 +475,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   logoButton: { position: 'absolute', top: 15, left: 20 },
-  logo: { width: 40, height: 50, resizeMode: 'contain' },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
@@ -481,7 +496,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  logomodal: { width: 30, height: 30, resizeMode: 'contain', marginBottom:15, marginRight:10 },
   modalTitle: {
     fontSize: 16,
     fontWeight: 'bold',

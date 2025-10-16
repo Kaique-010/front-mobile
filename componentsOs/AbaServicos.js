@@ -11,6 +11,7 @@ import Toast from 'react-native-toast-message'
 import ServModalOs from './ServModalOs'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
   const [removidos, setRemovidos] = useState([])
@@ -19,6 +20,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [servicosLista, setServicosLista] = useState(servicos)
+  const [usuarioTemSetor, setUsusarioTemSetor] = useState(false)
 
   useEffect(() => {
     if (orde_nume) {
@@ -27,6 +29,20 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       setIsLoading(false)
     }
   }, [orde_nume])
+
+  useEffect(() => {
+    const verificarSetor = async () => {
+      try{
+        const setor = await AsyncStorage.getItem('setor')
+        setUsusarioTemSetor(setor && setor !== null && setor !== 'null' && setor !== '0')
+      }catch(error){
+        console.error('Erro ao verificar setor:', error)
+        setUsusarioTemSetor(false)
+      }
+    }
+    verificarSetor()
+  }, [])
+
 
   const carregarServicosExistentes = async () => {
     try {
@@ -226,7 +242,14 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     }
   }
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }) => {
+    //Remover o preço quando usuario tem setor
+    const precoOculto = usuarioTemSetor
+    const precoReal = item.serv_unit.toFixed(2)
+    const quantidadeNum = Number(item.serv_quan) || 0
+    const totalReal = quantidadeNum * precoReal
+
+    return (
     <View style={styles.servico}>
       <View style={styles.servicoHeader}>
         <Text style={styles.servNome}>{item.servico_nome || 'Sem nome'}</Text>
@@ -249,14 +272,18 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           <Text style={styles.infoLabel}>Quantidade:</Text>
           <Text style={styles.infoValor}>{item.serv_quan.toFixed(4)}</Text>
         </View>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Preço Unit.:</Text>
-          <Text style={styles.infoValor}>R$ {item.serv_unit.toFixed(4)}</Text>
-        </View>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Total:</Text>
-          <Text style={styles.infoValor}>R$ {item.serv_tota.toFixed(4)}</Text>
-        </View>
+        {!precoOculto && (
+          <>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Preço Unit.:</Text>
+              <Text style={styles.infoValor}>R$ {parseFloat(precoReal).toFixed(2)}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Total:</Text>
+              <Text style={styles.infoValor}>R$ {parseFloat(totalReal).toFixed(2)}</Text> 
+            </View>
+          </>
+        )}
         {item.serv_comp ? (
           <View style={styles.complemento}>
             <Text style={styles.complementoLabel}>Complemento:</Text>
@@ -265,7 +292,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         ) : null}
       </View>
     </View>
-  )
+    )}
 
   return (
     <View style={styles.container}>

@@ -20,6 +20,7 @@ import {
   apiPutComContexto,
 } from '../utils/api'
 import { useContextoApp } from '../hooks/useContextoApp'
+import { useNavigation } from '@react-navigation/native'
 
 const PEDIDO_PISOS_CACHE_ID = 'pedido-pisos-edicao-cache'
 
@@ -110,6 +111,7 @@ export default function PedidosPisosForm({ route, navigation }) {
             pedi_clie: null,
             pedi_vend: null,
             pedi_data: new Date().toISOString().split('T')[0],
+            pedi_data_prev_entr: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             pedi_stat: 0,
             pedi_obse: 'Pedido de Pisos Enviado por Mobile',
             itens_input: [],
@@ -248,6 +250,10 @@ export default function PedidosPisosForm({ route, navigation }) {
           {
             text: 'OK',
             onPress: () => navigation.goBack(),
+          },
+          {
+            text: 'Voltar para Listagem',
+            onPress: () => navigation.navigate('PedidosPisos'),
           },
         ]
       )

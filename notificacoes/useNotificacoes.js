@@ -1,14 +1,22 @@
-// useNotificacoes.js
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { AppState } from 'react-native'
 import Service from './Service'
 import websocketService from './websocketService'
 
-export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
+export const useNotificacoes = ({ 
+  enableWebSocket = false,  // ← Controla WebSocket
+  autoRefresh = false,      // ← Controla polling
+  interval = 60000 
+} = {}) => {
   const [notificacoes, setNotificacoes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [contadorNaoLidas, setContadorNaoLidas] = useState(0)
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(null)
+
+  const intervalRef = useRef(null)
+  const isAuthenticated = useRef(false)
 
   const carregarNotificacoes = useCallback(async () => {
     try {
@@ -20,8 +28,27 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
 
       const naoLidas = dados.filter((n) => !n.lida).length
       setContadorNaoLidas(naoLidas)
+      setUltimaAtualizacao(new Date())
+      
+      console.log('✅ Notificações carregadas:', {
+        total: dados.length,
+        naoLidas,
+        ultimaAtualizacao: new Date().toLocaleTimeString()
+      })
     } catch (err) {
-      setError(err.message)
+      const errorMessage = err.message || 'Erro desconhecido ao carregar notificações'
+      setError(errorMessage)
+      
+      // Log mais detalhado para diferentes tipos de erro
+      if (err.message?.includes('404')) {
+        console.error('❌ Endpoint de notificações não encontrado. Verifique se o módulo está ativo no backend.')
+      } else if (err.message?.includes('401') || err.message?.includes('Não autorizado')) {
+        console.error('❌ Token de acesso inválido ou expirado.')
+      } else if (err.message?.includes('Slug')) {
+        console.error('❌ Problema com dados de login/empresa.')
+      } else {
+        console.error('❌ Erro ao carregar notificações:', err)
+      }
     } finally {
       setLoading(false)
     }
@@ -31,26 +58,38 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
     try {
       await Service.marcarComoLida(id)
       setNotificacoes((prev) => prev.filter((notif) => notif.id !== id))
-
       setContadorNaoLidas((prev) => Math.max(0, prev - 1))
     } catch (err) {
       setError(err.message)
+      console.error('Erro ao marcar como lida:', err)
     }
   }, [])
 
+  // ========== WebSocket CONDICIONAL ==========
+  // Só ativa se enableWebSocket = true
   useEffect(() => {
+    if (!enableWebSocket) {
+      console.log('🔌 WebSocket desabilitado para esta tela')
+      return
+    }
+
     const initWebSocket = async () => {
       try {
-        const token = await AsyncStorage.getItem('access') // ✅ CORRIGIDO: era 'accessToken'
+        const token = await AsyncStorage.getItem('access')
         const userId = await AsyncStorage.getItem('usuario_id')
 
         if (token && userId) {
+          isAuthenticated.current = true
+          console.log('🔌 WebSocket conectando...')
           websocketService.connect(userId)
+          
           websocketService.onNotificacao((novaNotificacao) => {
+            console.log('📩 Nova notificação via WebSocket:', novaNotificacao.titulo)
             setNotificacoes((prev) => [novaNotificacao, ...prev])
             setContadorNaoLidas((prev) => prev + 1)
           })
         } else {
+          isAuthenticated.current = false
           console.warn('Token ou userId não encontrado para WebSocket')
         }
       } catch (error) {
@@ -61,17 +100,28 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
     initWebSocket()
 
     return () => {
+      console.log('🔌 WebSocket desconectando...')
       websocketService.disconnect()
     }
-  }, [])
+  }, [enableWebSocket]) // ← Reconecta se enableWebSocket mudar
 
+  // ========== Polling CONDICIONAL ==========
+  // Só ativa se autoRefresh = true
   useEffect(() => {
+    if (!autoRefresh) {
+      console.log('⏱️ Polling desabilitado para esta tela')
+      return
+    }
+
     const verificarTokenECarregar = async () => {
       try {
         const token = await AsyncStorage.getItem('access')
         if (token) {
-          carregarNotificacoes()
+          isAuthenticated.current = true
+          console.log('⏱️ Iniciando polling a cada', interval / 1000, 'segundos')
+          await carregarNotificacoes()
         } else {
+          isAuthenticated.current = false
           setLoading(false)
         }
       } catch (error) {
@@ -82,14 +132,37 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
 
     verificarTokenECarregar()
 
-    if (autoRefresh) {
-      const intervalId = setInterval(async () => {
-        const token = await AsyncStorage.getItem('access')
-        if (token) {
+    // Polling inteligente baseado no estado do app
+    const startPolling = (pollingInterval) => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+
+      intervalRef.current = setInterval(async () => {
+        if (isAuthenticated.current) {
+          await carregarNotificacoes()
+        }
+      }, pollingInterval)
+    }
+
+    startPolling(interval)
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        startPolling(interval)
+        if (isAuthenticated.current) {
           carregarNotificacoes()
         }
-      }, interval)
-      return () => clearInterval(intervalId)
+      } else if (nextAppState.match(/inactive|background/)) {
+        startPolling(interval * 3) // Mais lento no background
+      }
+    })
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+      subscription.remove()
     }
   }, [carregarNotificacoes, autoRefresh, interval])
 
@@ -98,7 +171,8 @@ export const useNotificacoes = (autoRefresh = true, interval = 30000) => {
     loading,
     error,
     contadorNaoLidas,
-    carregarNotificacoes,
+    ultimaAtualizacao,
+    carregarNotificacoes, // ← Sempre expõe para refresh manual
     marcarComoLida,
   }
 }

@@ -68,6 +68,22 @@ export default function PedidoPisosHeader({ pedido = {}, setPedido }) {
           placeholderTextColor="#777"
         />
       </View>
+      {/* Data de Previsão de Entrega */}
+      <View style={styles.fieldContainer}>
+        <View style={styles.labelContainer}>
+          <MaterialIcons name="event" size={12} color="#18b7df" />
+          <Text style={styles.label}>Data de Previsão de Entrega</Text>
+        </View>
+        <TextInput
+          style={styles.input}
+          value={pedido?.pedi_data_prev_entr ?? ''}
+          onChangeText={(text) =>
+            setPedido((prev) => ({ ...prev, pedi_data_prev_entr: text }))
+          }
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor="#777"
+        />
+      </View>
 
       {/* Cliente */}
       <View style={styles.fieldContainer}>

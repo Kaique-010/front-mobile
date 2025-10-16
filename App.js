@@ -41,7 +41,13 @@ export default function App() {
 
   return (
     <NativeBaseProvider>
-      <NotificacaoProvider>
+      <NotificacaoProvider
+        config={{
+          enableWebSocket: false,
+          autoRefresh: false,
+          interval: 360000,
+        }}
+      >
         <NavigationContainer>
           <MainStackNavigator />
           <NotificationOverlay />

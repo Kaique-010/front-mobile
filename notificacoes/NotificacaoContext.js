@@ -3,8 +3,9 @@ import { useNotificacoes as useNotificacoesHook } from './useNotificacoes'
 
 const NotificacaoContext = createContext()
 
-export const NotificacaoProvider = ({ children }) => {
-  const notificacoes = useNotificacoesHook()
+export const NotificacaoProvider = ({ children, config = {} }) => {
+  // Recebe configuração do Provider
+  const notificacoes = useNotificacoesHook(config)
   
   return (
     <NotificacaoContext.Provider value={notificacoes}>

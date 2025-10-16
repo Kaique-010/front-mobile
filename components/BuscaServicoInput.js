@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   TextInput,
@@ -8,75 +8,71 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native'
-import { apiGetComContexto, safeSetItem } from '../utils/api'
+import { apiGetComContexto } from '../utils/api'
 import debounce from 'lodash/debounce'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-// Cache para serviços
-const SERVICOS_CACHE_KEY = 'servicos_cache'
-const SERVICOS_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
-export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
+
+export default function BuscaServicoInput({ valorAtual = '', onSelect, initialValue }) {
   const [query, setQuery] = useState('')
   const [servicos, setServicos] = useState([])
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
+  const [setorCarregado, setSetorCarregado] = useState(false)
 
-  const buscarServicos = debounce(async (texto) => {
+useEffect(() => {
+  const verificarSetor = async () => {
+    try {
+      const setorBruto = await AsyncStorage.getItem('setor')
+      const setor = parseInt((setorBruto || '').trim(), 10)
+      const temSetor = !isNaN(setor) && setor > 0
+      setUsuarioTemSetor(temSetor)
+      console.log('👤 [BuscaServico] Valor do setor bruto:', setorBruto)
+      console.log('👤 [BuscaServico] Usuário tem setor?', temSetor)
+    } catch (error) {
+      console.error('Erro ao verificar setor:', error)
+      setUsuarioTemSetor(false)
+    } finally {
+      setSetorCarregado(true)
+    }
+  }
+  verificarSetor()
+}, [])
+
+
+
+  useEffect(() => {
+    if (initialValue) setQuery(initialValue)
+  }, [initialValue])
+
+
+  const buscarServicos = useCallback(
+  debounce(async (texto) => {
     if (!texto.trim()) {
       setServicos([])
       return
     }
 
-    // Verificar cache persistente
-    const cacheKey = `${SERVICOS_CACHE_KEY}_${texto.toLowerCase()}`
-    try {
-      const cacheData = await AsyncStorage.getItem(cacheKey)
-      if (cacheData) {
-        const { results, timestamp } = JSON.parse(cacheData)
-        const now = Date.now()
-
-        if (now - timestamp < SERVICOS_CACHE_DURATION) {
-          console.log(
-            '📦 [CACHE-ASYNC] Usando dados em cache para serviços:',
-            texto
-          )
-          setServicos(results || [])
-          return
-        }
-      }
-    } catch (error) {
-      console.log('⚠️ Erro ao ler cache de serviços:', error)
-    }
-
     try {
       setLoading(true)
-      const response = await apiGetComContexto('produtos/produtos/busca/', {
-        q: texto,
-        tipo: 'S',
-      }, 'prod_')
-
+      const response = await apiGetComContexto(
+        'produtos/produtos/busca/',
+        { q: texto, tipo: 'S' },
+        'prod_'
+      )
       const servicosArray = response?.results || response || []
       setServicos(servicosArray)
-
-      // Salvar no cache persistente
-      try {
-        const cacheData = {
-          results: servicosArray,
-          timestamp: Date.now(),
-        }
-        await safeSetItem(cacheKey, JSON.stringify(cacheData))
-        console.log('💾 [CACHE-ASYNC] Serviços salvos no cache:', texto)
-      } catch (error) {
-        console.log('⚠️ Erro ao salvar cache de serviços:', error)
-      }
     } catch (error) {
       console.error('Erro ao buscar serviços:', error)
       setServicos([])
     } finally {
       setLoading(false)
     }
-  }, 500)
+  }, 500),
+  []
+)
 
   const handleSelect = (servico) => {
     setQuery(servico.prod_nome)
@@ -105,7 +101,7 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
         onFocus={() => setShowResults(true)}
       />
 
-      {showResults && (loading || servicos.length > 0) && (
+      {showResults && setorCarregado && (loading || servicos.length > 0) && (
         <View style={styles.resultados}>
           {loading ? (
             <ActivityIndicator color="#10a2a7" style={styles.loading} />
@@ -115,19 +111,33 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
               keyExtractor={(item) =>
                 `servico-${item.prod_codi}-${item.prod_nome}-${item.prod_empr}`
               }
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.itemResultado}
-                  onPress={() => handleSelect(item)}>
-                  <Text style={styles.nomeServico}>{item.prod_nome}</Text>
-                  <Text style={styles.precoServico}>
-                    R${' '}
-                    {Number(item.prod_preco_vista) > 0
-                      ? Number(item.prod_preco_vista).toFixed(2)
-                      : '0.00'}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                // ✅ CORRIGIDO: Ocultar preço quando usuário tem setor (igual ao AbaPecas)
+                const precoOculto = usuarioTemSetor
+                
+                console.log('🔍 [BuscaServico] Item:', item.prod_nome)
+                console.log('🔍 [BuscaServico] usuarioTemSetor:', usuarioTemSetor)
+                console.log('🔍 [BuscaServico] precoOculto:', precoOculto)
+
+                const subtitulo = `Código: ${item.prod_codi} | Saldo: ${item.saldo_estoque}`
+
+                return (
+                  <TouchableOpacity
+                    style={styles.itemResultado}
+                    onPress={() => handleSelect(item)}>
+                    <Text style={styles.nomeServico}>{item.prod_nome}</Text>
+                    <Text style={styles.subtituloServico}>{subtitulo}</Text>
+                    {!precoOculto && (item.prod_preco_vista > 0 || item.prod_preco_normal > 0) && (
+                      <Text style={styles.precoServico}>
+                        R${' '}
+                        {Number(item.prod_preco_vista) > 0
+                          ? Number(item.prod_preco_vista).toFixed(2)
+                          : '0.00'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                )
+              }}
               style={styles.lista}
             />
           )}
@@ -176,6 +186,11 @@ const styles = StyleSheet.create({
   precoServico: {
     color: '#10a2a7',
     fontSize: 12,
+  },
+  subtituloServico: {
+    color: '#999',
+    fontSize: 12,
+    marginBottom: 4,
   },
   loading: {
     padding: 20,

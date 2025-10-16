@@ -1,79 +1,68 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useNotificacoes } from './NotificacaoContext'
-import NotificacaoService from './Service'
 
 const NotificacaoBadge = ({ onPress }) => {
-  const { contadorNaoLidas, loading, carregarNotificacoes } = useNotificacoes()
-  const [gerandoNotificacoes, setGerandoNotificacoes] = useState(false)
+  const { 
+    contadorNaoLidas, 
+    loading, 
+    carregarNotificacoes,
+    ultimaAtualizacao 
+  } = useNotificacoes()
+  
+  const [refreshing, setRefreshing] = useState(false)
 
-  const gerarNotificacoes = async () => {
-    if (gerandoNotificacoes) return
+  // Refresh manual ao clicar no badge
+  const handleRefresh = async () => {
+    if (refreshing || loading) return
 
-    setGerandoNotificacoes(true)
+    console.log('🔄 Atualizando notificações manualmente...')
+    setRefreshing(true)
     try {
-      const resultado = await NotificacaoService.gerarTodasNotificacoes()
-
-      Alert.alert(
-        'Notificações Geradas',
-        `${resultado.sucessos} tipos de notificações foram processados com sucesso!`,
-        [{ text: 'OK' }]
-      )
-
       await carregarNotificacoes()
-    } catch (error) {
-      Alert.alert('Erro', 'Erro ao gerar notificações. Tente novamente.', [
-        { text: 'OK' },
-      ])
-      console.error('Erro ao gerar notificações:', error)
     } finally {
-      setGerandoNotificacoes(false)
+      setTimeout(() => setRefreshing(false), 500)
     }
   }
 
-  if (loading) return null
-
   return (
     <TouchableOpacity
-      onPress={onPress}
-      onLongPress={gerarNotificacoes}
+      onPress={onPress} // ← Abre modal
+      onLongPress={handleRefresh} // ← Long press = refresh manual
+      disabled={refreshing}
       style={{
         padding: 8,
         position: 'relative',
-        opacity: gerandoNotificacoes ? 0.6 : 1,
-      }}>
-      <Text style={{ fontSize: 18 }}>🔔</Text>
-      {contadorNaoLidas > 0 && (
-        <View
-          style={{
-            position: 'absolute',
-            top: -2,
-            right: -2,
-            backgroundColor: 'red',
-            borderRadius: 10,
-            minWidth: 15,
-            height: 15,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-          <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
-            {contadorNaoLidas > 99 ? '99+' : contadorNaoLidas}
-          </Text>
-        </View>
-      )}
-      {gerandoNotificacoes && (
-        <View
-          style={{
-            position: 'absolute',
-            bottom: -8,
-            right: -8,
-            backgroundColor: 'blue',
-            borderRadius: 6,
-            paddingHorizontal: 4,
-            paddingVertical: 2,
-          }}>
-          <Text style={{ color: 'white', fontSize: 8 }}>...</Text>
-        </View>
+        opacity: refreshing ? 0.6 : 1,
+      }}
+      activeOpacity={0.7}>
+      
+      {refreshing ? (
+        <ActivityIndicator size="small" color="#3b82f6" />
+      ) : (
+        <>
+          <Text style={{ fontSize: 20 }}>🔔</Text>
+          {contadorNaoLidas > 0 && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                backgroundColor: '#ef4444',
+                borderRadius: 10,
+                minWidth: 18,
+                height: 18,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: '#ffffff',
+              }}>
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold' }}>
+                {contadorNaoLidas > 99 ? '99+' : contadorNaoLidas}
+              </Text>
+            </View>
+          )}
+        </>
       )}
     </TouchableOpacity>
   )

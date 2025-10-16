@@ -33,6 +33,8 @@ export default function ItensModalPisos({
   const [dadosCalculo, setDadosCalculo] = useState(null)
   const [quebra, setQuebra] = useState('0')
   const [condicaoPagamento, setCondicaoPagamento] = useState('0')
+  const [ambiente, setAmbiente] = useState('')
+  const [nomeAmbiente, setNomeAmbiente] = useState('')
 
   useEffect(() => {
     if (item) {
@@ -41,11 +43,16 @@ export default function ItensModalPisos({
         prod_codi: item.item_prod,
         prod_nome: item.produto_nome,
         prod_prec: item.item_unit,
+        prod_area: item.area_m2,
+        
+
       })
       setQuantidade(String(item.item_quan || ''))
       setPrecoUnitario(String(item.item_unit || ''))
       setAreaM2(String(item.area_m2 || ''))
       setObservacoes(item.observacoes || '')
+      setAmbiente(item.ambiente || '')
+      setNomeAmbiente(item.nome_ambiente || '')
     } else {
       // Novo item
       limparCampos()
@@ -61,6 +68,8 @@ export default function ItensModalPisos({
     setDadosCalculo(null)
     setQuebra('')
     setCondicaoPagamento('0')
+    setAmbiente('')
+    setNomeAmbiente('')
   }
 
   const buscarDadosProduto = async (produtoSelecionado) => {
@@ -77,6 +86,8 @@ export default function ItensModalPisos({
           percentual_quebra: parseFloat(quebra) || 0,
           cliente_id: pedido.pedi_clie,
           condicao: condicaoPagamento,
+          ambiente: ambiente,
+          nome_ambiente: nomeAmbiente,
         }
       )
 
@@ -121,6 +132,8 @@ export default function ItensModalPisos({
           percentual_quebra: parseFloat(quebra) || 0,
           cliente_id: pedido.pedi_clie,
           condicao: condicaoPagamento,
+          ambiente: ambiente,
+          nome_ambiente: nomeAmbiente,
         }
       )
 
@@ -205,7 +218,8 @@ export default function ItensModalPisos({
       item_suto: calcularTotal(),
       // Observações mapeadas para campo correto
       item_obse: observacoes.trim() || null,
-      item_ambi: 1, // Campo obrigatório
+      item_ambi: ambiente.trim() || null, // Campo obrigatório
+      item_nome_ambi: nomeAmbiente.trim() || null, // Campo obrigatório
       // Campos específicos para pisos
       produto_tipo: 'PISO',
       desconto_item_disponivel: false,
@@ -258,6 +272,23 @@ export default function ItensModalPisos({
           {produto && (
             <>
               <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Nº Ambiente</Text>
+                <TextInput
+                  style={styles.input}
+                  value={ambiente}
+                  onChangeText={setAmbiente}
+                  placeholder="000"
+                  placeholderTextColor="#666"
+                  keyboardType="numeric"
+                />
+                <Text style={styles.sectionTitle}>Nome Ambiente</Text>
+                <TextInput
+                  style={styles.input}
+                  value={nomeAmbiente}
+                  onChangeText={setNomeAmbiente}
+                  placeholder="Nome do Ambiente"
+                  placeholderTextColor="#666"
+                />
                 <Text style={styles.sectionTitle}>Cálculo de Metragem</Text>
 
                 <View style={styles.calculoContainer}>

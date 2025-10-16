@@ -10,13 +10,15 @@ import {
   Dimensions,
   Platform,
 } from 'react-native'
-import { apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect } from '@react-navigation/native'
+import debounce from 'lodash.debounce'
+
+import { apiGetComContextoos } from '../utils/api'
 import commonStyles from '../styles/painelOsCommon'
 import desktopStyles from '../styles/painelOsDesktop'
 import mobileStyles from '../styles/painelOsMobile'
 import tvStyles from '../styles/PainelTvOsStyles'
-import debounce from 'lodash.debounce'
 
 const STATUS_OPTIONS = [
   { label: 'Todas', value: null },
@@ -57,8 +59,7 @@ const PainelAcompanhamento = ({ navigation }) => {
   const [filtroStatus, setFiltroStatus] = useState(null)
   const [filtroPrioridade, setFiltroPrioridade] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchValue, setSearchValue] = useState('')
-  const [modoExibicao, setModoExibicao] = useState('auto') // 'auto', 'mobile', 'desktop', 'tv'
+  const [modoExibicao, setModoExibicao] = useState('auto')
   const [ordenacao, setOrdenacao] = useState({ campo: null, direcao: 'asc' })
   const [contadores, setContadores] = useState({
     abertas: 0,
@@ -67,7 +68,6 @@ const PainelAcompanhamento = ({ navigation }) => {
     total: 0,
   })
 
-  // Detecta o tipo de dispositivo e modo de exibição
   const detectarModoExibicao = () => {
     const { width, height } = Dimensions.get('window')
     const isLandscape = width > height
@@ -83,16 +83,13 @@ const PainelAcompanhamento = ({ navigation }) => {
 
   const modoAtual = detectarModoExibicao()
 
-  // Função para combinar estilos baseado no modo
   const getStyles = () => {
     const base = commonStyles
-
     switch (modoAtual) {
       case 'tv':
         return { ...base, ...tvStyles }
       case 'mobile':
         return { ...base, ...mobileStyles }
-      case 'desktop':
       default:
         return { ...base, ...desktopStyles }
     }
@@ -112,49 +109,33 @@ const PainelAcompanhamento = ({ navigation }) => {
     return { abertas, atrasadas, liberadas, total: ordensData.length }
   }
 
-  const debouncedSetSearchValue = useCallback(
-    debounce((val) => {
-      setSearchValue(val)
-    }, 600),
-    []
-  )
-
   const fetchOrdens = async (filtros = {}) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (filtros.cliente_nome || searchValue) {
-        params.append('cliente_nome', filtros.cliente_nome || searchValue)
+      if (filtros.cliente_nome) {
+        params.append('cliente_nome', filtros.cliente_nome)
       }
+
       const queryString = params.toString()
-      const url = `ordemdeservico/ordens/${
-        queryString ? `?${queryString}` : ''
-      }`
+      const url = `ordemdeservico/ordens/${queryString ? `?${queryString}` : ''}`
 
       console.log('🔍 FRONTEND - URL da requisição:', url)
 
       const response = await apiGetComContextoos(url)
-
       let ordensData = []
-      if (Array.isArray(response)) {
-        ordensData = response
-      } else if (response && response.data && Array.isArray(response.data)) {
+
+      if (Array.isArray(response)) ordensData = response
+      else if (response?.data && Array.isArray(response.data))
         ordensData = response.data
-      } else if (
-        response &&
-        response.results &&
-        Array.isArray(response.results)
-      ) {
+      else if (response?.results && Array.isArray(response.results))
         ordensData = response.results
-      } else if (response && typeof response === 'object') {
+      else if (response && typeof response === 'object') {
         const possibleArrays = Object.values(response).filter(Array.isArray)
-        if (possibleArrays.length > 0) {
-          ordensData = possibleArrays[0]
-        }
+        if (possibleArrays.length > 0) ordensData = possibleArrays[0]
       }
 
       console.log('📊 FRONTEND - Total de registros:', ordensData.length)
-
       setOrdens(ordensData)
       setContadores(calcularContadores(ordensData))
     } catch (error) {
@@ -164,6 +145,31 @@ const PainelAcompanhamento = ({ navigation }) => {
       setLoading(false)
     }
   }
+
+  // Debounced search — dispara fetch após digitar
+  const debouncedFetch = useCallback(
+    debounce((term) => {
+      fetchOrdens({ cliente_nome: term })
+    }, 600),
+    []
+  )
+
+  const handleSearch = (text) => {
+    setSearchTerm(text)
+    debouncedFetch(text)
+  }
+
+  // Atualização automática a cada 1h30, apenas com a tela ativa
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrdens()
+      const intervalo = setInterval(() => {
+        console.log('⏰ Atualizando ordens automaticamente...')
+        fetchOrdens()
+      }, 5400000) // 1h30
+      return () => clearInterval(intervalo)
+    }, [])
+  )
 
   const ordensFiltradasLocalmente = useMemo(() => {
     let resultado = [...ordens]
@@ -219,18 +225,6 @@ const PainelAcompanhamento = ({ navigation }) => {
 
     return resultado
   }, [ordens, filtroStatus, filtroPrioridade, ordenacao])
-
-  useEffect(() => {
-    fetchOrdens()
-  }, [])
-
-  useEffect(() => {
-    if (searchValue) {
-      fetchOrdens({ cliente_nome: searchValue })
-    } else {
-      fetchOrdens()
-    }
-  }, [searchValue])
 
   const handleOrdenacao = (campo) => {
     if (ordenacao.campo === campo) {
@@ -699,12 +693,8 @@ const PainelAcompanhamento = ({ navigation }) => {
             placeholderTextColor="#777"
             style={modoAtual === 'tv' ? styles.inputTV : styles.input}
             value={searchTerm}
-            onChangeText={(text) => {
-              setSearchTerm(text)
-              debouncedSetSearchValue(text)
-            }}
+            onChangeText={handleSearch}
             returnKeyType="search"
-            onSubmitEditing={() => setSearchValue(searchTerm)}
           />
           <TouchableOpacity
             style={
