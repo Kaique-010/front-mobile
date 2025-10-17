@@ -10,7 +10,7 @@ import {
 } from 'react-native'
 import { MaterialIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import OrcamentoPisosHeader from '../componentsOrcamentos/OrcamentoHeader'
+import OrcamentoPisosHeader from './OrcamentoPisosHeader'
 import ItensListaPisos from './ItensListaPisos'
 import ItensModalPisos from './ItensModalPisos'
 import ResumoOrcamentoPisos from './ResumoOrcamentoPisos'
@@ -110,6 +110,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
             orca_clie: null,
             orca_vend: null,
             orca_data: new Date().toISOString().split('T')[0],
+            orca_data_prev_entr: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             orca_stat: 0,
             orca_obse: 'Orçamento de Pisos Enviado por Mobile',
             itens_input: [],

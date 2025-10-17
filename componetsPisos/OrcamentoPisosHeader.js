@@ -12,7 +12,7 @@ import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
 import { apiGetComContexto } from '../utils/api'
 
-export default function orcamentoPisosHeader({ orcamento = {}, setorcamento }) {
+export default function OrcamentoPisosHeader({ orcamento = {}, setOrcamento }) {
   const [carregandoCliente, setCarregandoCliente] = useState(false)
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function orcamentoPisosHeader({ orcamento = {}, setorcamento }) {
             `entidades/entidades/${orcamento.orca_clie}/`
           )
           if (entidade) {
-            setorcamento((prev) => ({
+            setOrcamento((prev) => ({
               ...prev,
               orca_clie_nome: entidade.enti_nome,
             }))
@@ -62,13 +62,28 @@ export default function orcamentoPisosHeader({ orcamento = {}, setorcamento }) {
           style={styles.input}
           value={orcamento?.orca_data ?? ''}
           onChangeText={(text) =>
-            setorcamento((prev) => ({ ...prev, orca_data: text }))
+            setOrcamento((prev) => ({ ...prev, orca_data: text }))
           }
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#777"
         />
       </View>
-
+      {/* Data de Previsão de Entrega */}
+      <View style={styles.fieldContainer}>
+        <View style={styles.labelContainer}>
+          <MaterialIcons name="event" size={12} color="#18b7df" />
+          <Text style={styles.label}>Data de Previsão de Entrega</Text>
+        </View>
+        <TextInput
+          style={styles.input}
+          value={orcamento?.orca_data_prev_entr ?? ''}
+          onChangeText={(text) =>
+            setOrcamento((prev) => ({ ...prev, orca_data_prev_entr: text }))
+          }
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor="#777"
+        />
+      </View>
       {/* Cliente */}
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
@@ -79,7 +94,7 @@ export default function orcamentoPisosHeader({ orcamento = {}, setorcamento }) {
           value={clienteFormatado}
           onSelect={(cliente) => {
             console.log('Cliente selecionado:', cliente)
-            setorcamento((prev) => {
+            setOrcamento((prev) => {
               const novoorcamento = {
                 ...prev,
                 orca_clie: cliente.enti_clie || cliente.enti_clie,
@@ -106,7 +121,7 @@ export default function orcamentoPisosHeader({ orcamento = {}, setorcamento }) {
           value={vendedorFormatado}
           onSelect={(vendedor) => {
             console.log('Vendedor selecionado:', vendedor)
-            setorcamento((prev) => ({
+            setOrcamento((prev) => ({
               ...prev,
               orca_vend: vendedor.enti_clie || vendedor.enti_clie,
               orca_vend_nome: vendedor.enti_nome,
@@ -126,7 +141,7 @@ export default function orcamentoPisosHeader({ orcamento = {}, setorcamento }) {
           style={[styles.input, styles.textArea]}
           value={orcamento?.orca_obse ?? ''}
           onChangeText={(text) =>
-            setorcamento((prev) => ({ ...prev, orca_obse: text }))
+            setOrcamento((prev) => ({ ...prev, orca_obse: text }))
           }
           placeholder="Observações gerais do orcamento"
           placeholderTextColor="#777"

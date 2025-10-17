@@ -144,12 +144,11 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
           maxToRenderPerBatch={10}
           windowSize={10}
           renderItem={({ item }) => {
-            // ✅ CORRIGIDO: Ocultar preço quando usuário tem setor
             const mostrarPreco = !usuarioTemSetor && (item.prod_preco_vista > 0 || item.prod_preco_normal > 0)
             
             const subtitle = mostrarPreco
-              ? `Código: ${item.prod_codi} | Saldo: ${item.saldo_estoque} | Preço: R$ ${(item.prod_preco_vista || item.prod_preco_normal || 0).toFixed(2)}`
-              : `Código: ${item.prod_codi} | Saldo: ${item.saldo_estoque}`
+              ? `Código: ${item.prod_codi} | UM: ${item.prod_unme} | Saldo: ${item.saldo_estoque} | Preço: R$ ${(item.prod_preco_vista || item.prod_preco_normal || 0).toFixed(2)}`
+              : `Código: ${item.prod_codi} | UM: ${item.prod_unme} | Saldo: ${item.saldo_estoque}`
 
             return (
               <Card
