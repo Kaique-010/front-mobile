@@ -13,6 +13,7 @@ import debounce from 'lodash.debounce'
 import {
   apiDeleteComContexto,
   apiGetComContexto,
+  apiPostComContexto,
   safeSetItem,
 } from '../utils/api'
 import styles from '../styles/pedidosStyle'
@@ -22,7 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 const statusPedidos = {
   0: 'Aberto',
   1: 'Faturado',
-  2: 'Cancelado',
+  4: 'Cancelado',
 }
 
 // Cache para pedidos
@@ -60,6 +61,15 @@ export default function Pedidos({ navigation }) {
       setSearchValue(value)
     }, 600),
     []
+  )
+
+  useFocusEffect(
+    useCallback(() => {
+      if (slug) {
+        console.log('🔄 [PEDIDOS] Tela ganhou foco - recarregando dados')
+        buscarPedidos(false, false)
+      }
+    }, [slug])
   )
 
   useEffect(() => {
@@ -163,35 +173,74 @@ export default function Pedidos({ navigation }) {
     }
   }
 
-  const deletarPedido = (pedido) => {
-    Alert.alert(
-      'Confirmar exclusão',
-      `Deseja realmente excluir o Pedido nº ${pedido.pedi_nume}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // ✅ CORREÇÃO: Incluir empresa e filial na URL
-              await apiDeleteComContexto(
-                `pedidos/pedidos/${pedido.pedi_empr}/${pedido.pedi_fili}/${pedido.pedi_nume}/`
-              )
-              setPedidos((prev) =>
-                prev.filter((p) => p.pedi_nume !== pedido.pedi_nume)
-              )
-              await AsyncStorage.removeItem(PEDIDOS_CACHE_KEY)
-              console.log('🗑️ [CACHE-PEDIDOS] Cache limpo após exclusão')
-            } catch (error) {
-              console.error('Erro ao excluir pedido:', error.message)
-              Alert.alert('Erro', 'Não foi possível excluir o pedido')
-            }
+  const deletarOuCancelarPedido = async (pedido) => {
+  try {
+    // busca config (pode vir no pedido ou ser carregada antes)
+    const parametros = await apiGetComContexto('ParametrosSps/parametros/configuracoes/');
+    const cancelaNaoExclui = parametros?.pedido_cancelamento_habilitado;
+
+    if (cancelaNaoExclui) {
+      Alert.alert(
+        'Cancelar pedido',
+        `Deseja realmente cancelar o Pedido nº ${pedido.pedi_nume}?`,
+        [
+          { text: 'Não', style: 'cancel' },
+          {
+            text: 'Sim, cancelar',
+            onPress: async () => {
+              try {
+                await apiPostComContexto(
+                  `pedidos/pedidos/${pedido.pedi_empr}/${pedido.pedi_fili}/${pedido.pedi_nume}/cancelar_pedido/`
+                );
+                setPedidos((prev) =>
+                  prev.map((p) =>
+                    p.pedi_nume === pedido.pedi_nume
+                      ? { ...p, pedi_stat: 4 } // atualiza status local
+                      : p
+                  )
+                );
+                Alert.alert('Sucesso', 'Pedido cancelado com sucesso.');
+              } catch (err) {
+                console.error('Erro ao cancelar pedido:', err.message);
+                Alert.alert('Erro', 'Falha ao cancelar o pedido.');
+              }
+            },
           },
-        },
-      ]
-    )
+        ]
+      );
+    } else {
+      // comportamento antigo (exclusão)
+      Alert.alert(
+        'Confirmar exclusão',
+        `Deseja realmente excluir o Pedido nº ${pedido.pedi_nume}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await apiDeleteComContexto(
+                  `pedidos/pedidos/${pedido.pedi_empr}/${pedido.pedi_fili}/${pedido.pedi_nume}/`
+                );
+                setPedidos((prev) =>
+                  prev.filter((p) => p.pedi_nume !== pedido.pedi_nume)
+                );
+                await AsyncStorage.removeItem(PEDIDOS_CACHE_KEY);
+              } catch (err) {
+                console.error('Erro ao excluir pedido:', err.message);
+                Alert.alert('Erro', 'Não foi possível excluir o pedido');
+              }
+            },
+          },
+        ]
+      );
+    }
+  } catch (err) {
+    console.error('Erro ao verificar parâmetro:', err.message);
+    Alert.alert('Erro', 'Falha ao verificar configuração de cancelamento.');
   }
+};
 
   const renderPedidos = ({ item }) => {
     console.log('[DEBUG] ID que será passado:', item.pedi_nume)
@@ -257,7 +306,7 @@ export default function Pedidos({ navigation }) {
 
           <TouchableOpacity
             style={styles.botao}
-            onPress={() => deletarPedido(item)}>
+            onPress={() => deletarOuCancelarPedido(item)}>
             <Text style={styles.botaoTexto}>🗑️</Text>
           </TouchableOpacity>
         </View>

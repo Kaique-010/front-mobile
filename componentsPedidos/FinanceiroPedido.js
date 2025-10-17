@@ -7,12 +7,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
 import { TextInput, List } from 'react-native-paper'
 import { Picker } from '@react-native-picker/picker'
 import { Ionicons } from '@expo/vector-icons'
+import DateTimePicker from '@react-native-community/datetimepicker'
 
 const FORMAS_RECEBIMENTO = [
   { codigo: '00', descricao: 'DUPLICATA' },
@@ -34,12 +36,12 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
   const [titulos, setTitulos] = useState([])
   const [formaPagamento, setFormaPagamento] = useState('54')
   const [parcelas, setParcelas] = useState('1')
-  const [dataBase, setDataBase] = useState(
-    new Date().toISOString().split('T')[0]
-  )
+  const [dataBase, setDataBase] = useState(new Date())
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [parcelasSimuladas, setParcelasSimuladas] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
   const [tituloEmEdicao, setTituloEmEdicao] = useState(null)
+  const [showModalDatePicker, setShowModalDatePicker] = useState(false)
 
   const pedi_nume = pedido?.pedi_nume
   const pedi_forn = pedido?.pedi_forn
@@ -63,7 +65,20 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
 
     for (let i = 1; i <= numParcelas; i++) {
       const dataVencimento = new Date(dataBase)
-      dataVencimento.setMonth(dataVencimento.getMonth() + (i - 1))
+      // Corrigindo o problema de Date value out of bounds
+      const novoMes = dataVencimento.getMonth() + (i - 1)
+      const novoAno = dataVencimento.getFullYear() + Math.floor(novoMes / 12)
+      const mesAjustado = novoMes % 12
+      
+      dataVencimento.setFullYear(novoAno)
+      dataVencimento.setMonth(mesAjustado)
+      
+      // Verificar se o dia é válido para o mês/ano
+      const ultimoDiaDoMes = new Date(novoAno, mesAjustado + 1, 0).getDate()
+      const diaOriginal = new Date(dataBase).getDate()
+      if (diaOriginal > ultimoDiaDoMes) {
+        dataVencimento.setDate(ultimoDiaDoMes)
+      }
 
       novasParcelasSimuladas.push({
         parcela: i,
@@ -108,6 +123,23 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
     carregarTitulos()
   }, [pedi_nume])
 
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || dataBase
+    setShowDatePicker(Platform.OS === 'ios')
+    setDataBase(currentDate)
+  }
+
+  const onModalDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || new Date(tituloEmEdicao?.vencimento || new Date())
+    setShowModalDatePicker(Platform.OS === 'ios')
+    if (selectedDate && tituloEmEdicao) {
+      setTituloEmEdicao(prev => ({
+        ...prev,
+        vencimento: selectedDate.toISOString().split('T')[0]
+      }))
+    }
+  }
+
   const gerarTitulos = async () => {
     if (!pedi_nume || !pedi_forn || !totalGeral) {
       Toast.show({
@@ -126,7 +158,7 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
         pedi_tota: totalGeral,
         forma_pagamento: formaPagamento,
         parcelas: parseInt(parcelas),
-        data_base: dataBase,
+        data_base: dataBase.toISOString().split('T')[0],
       }
 
       console.log('Payload para gerar títulos:', payload)
@@ -274,17 +306,31 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
             theme={{ colors: { primary: '#10a2a7' } }}
           />
 
-          <TextInput
-            label="Data de Vencimento"
-            value={tituloEmEdicao?.vencimento?.split('T')[0] || ''}
-            onChangeText={(text) =>
-              setTituloEmEdicao((prev) => ({ ...prev, vencimento: text }))
-            }
-            placeholder="YYYY-MM-DD"
-            style={styles.modalInput}
-            mode="outlined"
-            theme={{ colors: { primary: '#10a2a7' } }}
-          />
+          <Text style={[styles.pickerLabel, { color: '#10a2a7', marginBottom: 10 }]}>
+            Data de Vencimento
+          </Text>
+          <TouchableOpacity
+            style={styles.datePickerButton}
+            onPress={() => setShowModalDatePicker(true)}>
+            <Text style={styles.datePickerText}>
+              {tituloEmEdicao?.vencimento 
+                ? new Date(tituloEmEdicao.vencimento).toLocaleDateString('pt-BR')
+                : 'Selecionar data'
+              }
+            </Text>
+            <Ionicons name="calendar" size={20} color="#10a2a7" />
+          </TouchableOpacity>
+
+          {showModalDatePicker && (
+            <DateTimePicker
+              testID="modalDateTimePicker"
+              value={tituloEmEdicao?.vencimento ? new Date(tituloEmEdicao.vencimento) : new Date()}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={onModalDateChange}
+            />
+          )}
 
           <View style={styles.modalButtons}>
             <TouchableOpacity
@@ -437,16 +483,27 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
                 disabled={loading}
               />
 
-              <TextInput
-                label="Data Base"
-                value={dataBase}
-                onChangeText={setDataBase}
-                style={styles.input}
-                mode="outlined"
-                textColor="#fff"
-                theme={{ colors: { primary: '#10a2a7' } }}
-                disabled={loading}
-              />
+              <Text style={styles.pickerLabel}>Data Base</Text>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowDatePicker(true)}
+                disabled={loading}>
+                <Text style={styles.datePickerText}>
+                  {dataBase.toLocaleDateString('pt-BR')}
+                </Text>
+                <Ionicons name="calendar" size={20} color="#10a2a7" />
+              </TouchableOpacity>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  testID="dateTimePicker"
+                  value={dataBase}
+                  mode="date"
+                  is24Hour={true}
+                  display="default"
+                  onChange={onDateChange}
+                />
+              )}
 
               {parcelasSimuladas.length > 0 && (
                 <View style={styles.simulacaoContainer}>
@@ -738,5 +795,20 @@ const styles = StyleSheet.create({
   },
   statusCancelado: {
     color: '#ff0000',
+  },
+  datePickerButton: {
+    backgroundColor: '#1a2f3d',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#10a2a7',
+  },
+  datePickerText: {
+    color: '#fff',
+    fontSize: 16,
   },
 })

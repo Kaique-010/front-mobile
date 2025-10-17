@@ -131,7 +131,16 @@ export default function ItensList({ itens, onEdit, onRemove }) {
 
   const totalItens = itens.length
   const totalGeral = itens.reduce((acc, item) => {
-    const totalPreferencial = Number(item?.iped_tota) || 0
+    // Usar a mesma lógica do renderItem para calcular o total
+    const quantidade = Number(item?.iped_quan) || 0
+    const precoUnitario = Number(item?.iped_unit) || 0
+    const total = quantidade * precoUnitario
+    const percentualDesconto = Number(item?.percentual_desconto) || 0
+    const descontoItem = item?.desconto_item_disponivel
+      ? total * percentualDesconto
+      : 0
+    const totalComDesconto = total - descontoItem
+    const totalPreferencial = Number(item?.iped_tota) || totalComDesconto
     return acc + totalPreferencial
   }, 0)
 
