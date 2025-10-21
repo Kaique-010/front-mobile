@@ -93,15 +93,22 @@ export default function OrcamentoPisosHeader({ orcamento = {}, setOrcamento }) {
         <BuscaClienteInput
           value={clienteFormatado}
           onSelect={(cliente) => {
-            console.log('Cliente selecionado:', cliente)
+            console.log('🔍 [ORCAMENTO-HEADER] Cliente selecionado:', cliente)
+            console.log('🔍 [ORCAMENTO-HEADER] Estado anterior do orçamento:', orcamento)
             setOrcamento((prev) => {
+              console.log('🔍 [ORCAMENTO-HEADER] Estado prev antes da atualização:', prev)
               const novoorcamento = {
                 ...prev,
                 orca_clie: cliente.enti_clie || cliente.enti_clie,
-
                 orca_clie_nome: cliente.enti_nome,
+                // Preservar orca_empr e orca_fili se já existirem
+                orca_empr: prev.orca_empr,
+                orca_fili: prev.orca_fili,
               }
-              console.log('Novo estado do orcamento:', novoorcamento)
+              console.log('✅ [ORCAMENTO-HEADER] Novo estado do orçamento após seleção:', novoorcamento)
+              console.log('🔍 [ORCAMENTO-HEADER] orca_empr:', novoorcamento.orca_empr)
+              console.log('🔍 [ORCAMENTO-HEADER] orca_fili:', novoorcamento.orca_fili)
+              console.log('🔍 [ORCAMENTO-HEADER] orca_clie:', novoorcamento.orca_clie)
               return novoorcamento
             })
           }}

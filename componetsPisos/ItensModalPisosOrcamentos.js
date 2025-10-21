@@ -15,14 +15,16 @@ import {
 import { MaterialIcons } from '@expo/vector-icons'
 import BuscaProdutosInput from '../components/BuscaProdutosInput'
 import { apiGetComContexto, apiPostComContexto } from '../utils/api'
+import { useContextoApp } from '../hooks/useContextoApp'
 
-export default function ItensModalPisos({
+export default function ItensModalPisosOrcamentos({
   visible,
   onClose,
   onSave,
   item = null,
   orcamento = {},
 }) {
+  const { cliente } = useContextoApp()
   const [produto, setProduto] = useState(null)
   const [quantidade, setQuantidade] = useState('')
   const [precoUnitario, setPrecoUnitario] = useState('')
@@ -36,8 +38,6 @@ export default function ItensModalPisos({
   const [ambiente, setAmbiente] = useState('')
   const [nomeAmbiente, setNomeAmbiente] = useState('')
 
-
-
   useEffect(() => {
     if (item) {
       // Editando item existente
@@ -46,6 +46,8 @@ export default function ItensModalPisos({
         prod_nome: item.produto_nome,
         prod_prec: item.item_unit,
         prod_area: item.area_m2,
+        
+
       })
       setQuantidade(String(item.item_quan || ''))
       setPrecoUnitario(String(item.item_unit || ''))
@@ -53,6 +55,7 @@ export default function ItensModalPisos({
       setObservacoes(item.observacoes || '')
       setAmbiente(item.ambiente || '')
       setNomeAmbiente(item.nome_ambiente || '')
+      setQuebra(item.item_queb || '')
     } else {
       // Novo item
       limparCampos()
@@ -77,6 +80,15 @@ export default function ItensModalPisos({
 
     setCarregandoProduto(true)
     try {
+      // Validar cliente - usar cliente do contexto ou do orçamento
+      const clienteId = cliente?.clie_codi || orcamento?.orca_clie
+      
+      if (!clienteId) {
+        Alert.alert('Erro', 'Cliente não identificado. Verifique se há um cliente selecionado.')
+        setCarregandoProduto(false)
+        return
+      }
+      
       // Corrigir: usar POST e enviar dados no body
       const response = await apiPostComContexto(
         'pisos/produtos-pisos/calcular_metragem/',
@@ -84,100 +96,146 @@ export default function ItensModalPisos({
           produto_id: produtoSelecionado.prod_codi,
           tamanho_m2: parseFloat(areaM2) || 0,
           percentual_quebra: parseFloat(quebra) || 0,
-          cliente_id: orcamento.orca_clie,
+          cliente_id: clienteId,
           condicao: condicaoPagamento,
           ambiente: ambiente,
           nome_ambiente: nomeAmbiente,
+
         }
       )
 
       if (response) {
-        setProduto({
-          ...produtoSelecionado,
-          prod_prec: response.preco_unitario || produtoSelecionado.prod_prec,
-        })
-        setPrecoUnitario(
-          String(response.preco_unitario || produtoSelecionado.prod_prec || '')
-        )
-      } else {
-        setProduto(produtoSelecionado)
-        setPrecoUnitario(String(produtoSelecionado.prod_prec || ''))
-      }
-    } catch (error) {
-      console.error('Erro ao buscar dados do produto:', error)
-      setProduto(produtoSelecionado)
+      setProduto({
+        ...produtoSelecionado,
+        prod_prec: response.preco_unitario || produtoSelecionado.prod_prec,
+        prod_unme: response.unidade_medida || produtoSelecionado.prod_unme, // <- unidade (PC, M2, etc)
+      })
+      setPrecoUnitario(
+        String(response.preco_unitario || produtoSelecionado.prod_prec || '')
+      )
+    } else {
+      setProduto({
+        ...produtoSelecionado,
+        prod_unme: produtoSelecionado.prod_unme || 'M2',
+      })
       setPrecoUnitario(String(produtoSelecionado.prod_prec || ''))
+    }
+
     } finally {
       setCarregandoProduto(false)
     }
   }
 
   const calcularMetragem = async () => {
-    if (!produto?.prod_codi || !areaM2 || Number(areaM2) <= 0 || !orcamento?.orca_clie) {
-      Alert.alert(
-        'Atenção',
-        'Selecione um produto, informe uma área válida (maior que zero) e certifique-se de que há um cliente selecionado'
-      )
-      return
-    }
-
+    console.log('🚀 [ORCAMENTOS-MODAL] calcularMetragem INICIADA')
+    console.log('📊 [ORCAMENTOS-MODAL] Dados atuais:', {
+      produto: produto?.prod_nome,
+      areaM2,
+      quebra,
+      condicaoPagamento,
+      ambiente,
+      nomeAmbiente,
+      orcamento_completo: orcamento
+    })
     setCalculandoMetragem(true)
     try {
-      console.log('Dados para cálculo:', {
+    
+      const clienteId = orcamento?.orca_clie
+      const dadosRequisicao = {
         produto_id: produto.prod_codi,
         tamanho_m2: parseFloat(areaM2),
         percentual_quebra: parseFloat(quebra) || 0,
-        cliente_id: orcamento.orca_clie,
+        cliente_id: clienteId,
         condicao: condicaoPagamento,
         ambiente: ambiente,
         nome_ambiente: nomeAmbiente,
-      })
-
+      }
+      
+      console.log('📤 [ORCAMENTOS-MODAL] Dados da requisição:', dadosRequisicao)
+      
       const response = await apiPostComContexto(
         'pisos/produtos-pisos/calcular_metragem/',
-        {
-          produto_id: produto.prod_codi,
-          tamanho_m2: parseFloat(areaM2),
-          percentual_quebra: parseFloat(quebra) || 0,
-          cliente_id: orcamento.orca_clie,
-          condicao: condicaoPagamento,
-          ambiente: ambiente,
-          nome_ambiente: nomeAmbiente,
-        }
+        dadosRequisicao
       )
 
-      console.log('Resposta da API:', response)
+      console.log('✅ [ORCAMENTOS-MODAL] Resposta do cálculo:', response)
 
-      if (response) {
+      if (response && response.caixas_necessarias && response.preco_unitario) {
+        console.log('✅ [ORCAMENTOS-MODAL] Dados válidos recebidos:', {
+          caixas_necessarias: response.caixas_necessarias,
+          preco_unitario: response.preco_unitario,  
+          m2_por_caixa: response.m2_por_caixa,
+          pc_por_caixa: response.pc_por_caixa,  
+        })
+        
         setDadosCalculo(response)
         const caixasCalc = Number(response.caixas_necessarias) || 0
         setQuantidade(String(caixasCalc))
         setPrecoUnitario(String(response.preco_unitario))
+        console.log('✅ [ORCAMENTOS-MODAL] Valores atualizados com sucesso')
+      } else {
+        console.log('⚠️ [ORCAMENTOS-MODAL] Resposta inválida ou incompleta:', response)
+        
       }
     } catch (error) {
-      console.error('Erro ao calcular metragem:', error)
+      console.error('❌ [ORCAMENTOS-MODAL] Erro ao calcular metragem:', error)
       Alert.alert(
         'Erro',
         'Não foi possível calcular a metragem. Verifique os dados do produto.'
       )
     } finally {
       setCalculandoMetragem(false)
+      console.log('🏁 [ORCAMENTOS-MODAL] calcularMetragem FINALIZADA')
     }
   }
 
-  const calcularTotal = () => {
-    const preco = Number(precoUnitario) || 0
-    // Quando houver dados de cálculo, calcular o total por m² (m2_por_caixa * caixas)
-    if (dadosCalculo && (Number(dadosCalculo?.m2_por_caixa) || 0) > 0) {
-      const m2PorCaixa = Number(dadosCalculo?.m2_por_caixa) || 0
-      const caixas = Number(dadosCalculo?.caixas_necessarias) || 0
-      const m2Total = m2PorCaixa * caixas
-      return m2Total * preco
+    const calcularTotal = () => {
+    // Se temos o valor_total da API, usar ele diretamente (já inclui impostos/margens)
+    if (dadosCalculo?.valor_total) {
+      return Number(dadosCalculo.valor_total)
     }
-    // Fallback: usar a área informada (m²) quando não houver cálculo de caixas
+
+    const preco = Number(precoUnitario) || 0
+    const unid = (produto?.prod_unme || '').toUpperCase()
+      .replace('METRO QUADRADO', 'M2')
+      .replace('M²', 'M2')
+      .replace('PEÇA', 'PC')
+      .replace('PÇ', 'PC')
+      .replace('BARRA', 'PC')
+    const caixas = Number(dadosCalculo?.caixas_necessarias) || Number(quantidade) || 0
+
+    // Para produtos com unidade M2, calcular baseado na metragem real
+    if (unid === 'M2' || unid === 'M²' || unid === 'm2' || unid === 'm²') {
+      // Se temos metragem_real da API, usar ela
+      if (dadosCalculo?.metragem_real) {
+        return Number(dadosCalculo.metragem_real) * preco
+      }
+      // Senão, calcular baseado em caixas e m2_por_caixa
+      if (dadosCalculo?.m2_por_caixa > 0) {
+        const totalM2 = Number(dadosCalculo.m2_por_caixa) * caixas
+        return totalM2 * preco
+      }
+    }
+
+    // Para produtos com unidade PC (peças), calcular baseado nas peças
+    if (['PC', 'PÇ', 'PEÇA', 'BARRA'].includes(unid)) {
+      // Se temos metragem_real da API (que para peças representa a quantidade real), usar ela
+      if (dadosCalculo?.metragem_real) {
+        return Number(dadosCalculo.metragem_real) * preco
+      }
+      // Senão, calcular baseado em caixas e pc_por_caixa
+      if (dadosCalculo?.pc_por_caixa > 0) {
+        const totalPecas = Number(dadosCalculo.pc_por_caixa) * caixas
+        return totalPecas * preco
+      }
+    }
+
+    // Fallback: usar área M2 diretamente
     const m2 = Number(areaM2) || 0
     return m2 * preco
   }
+
+
 
   const formatarMoeda = (valor) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -187,51 +245,84 @@ export default function ItensModalPisos({
   }
 
   const validarCampos = () => {
+    console.log('🔍 [ITENS-MODAL] Iniciando validação de campos')
+    console.log('🔍 [ITENS-MODAL] Estado do orçamento:', orcamento)
+    
+    // Validação do cliente - usar a mesma lógica do cálculo de metragem
+    const clienteId = orcamento?.orca_clie
+    console.log('🔍 [ITENS-MODAL] Cliente ID:', clienteId)
+    
+    if (!clienteId && !orcamento?.orca_nume) {
+      console.log('❌ [ITENS-MODAL] Cliente não selecionado')
+     
+      return false
+    }
+    console.log('✅ [ITENS-MODAL] Cliente validado')
+    
+    console.log('🔍 [ITENS-MODAL] Produto selecionado:', produto)
+    
     if (!produto?.prod_codi) {
+      console.log('❌ [ITENS-MODAL] Produto não selecionado')
       Alert.alert('Erro', 'Selecione um produto')
       return false
     }
+    console.log('✅ [ITENS-MODAL] Produto validado')
+    
+    console.log('🔍 [ITENS-MODAL] Área M2:', areaM2)
+    
     if (!areaM2 || Number(areaM2) <= 0) {
+      console.log('❌ [ITENS-MODAL] Área M2 inválida')
       Alert.alert('Erro', 'Informe a metragem do ambiente (m²)')
       return false
     }
+    console.log('✅ [ITENS-MODAL] Área M2 validada')
+    
+    console.log('🔍 [ITENS-MODAL] Preço unitário:', precoUnitario)
+    
     if (!precoUnitario || Number(precoUnitario) < 0) {
+      console.log('❌ [ITENS-MODAL] Preço unitário inválido')
       Alert.alert('Erro', 'Informe um preço unitário válido')
       return false
     }
+    console.log('✅ [ITENS-MODAL] Preço unitário validado')
+    console.log('✅ [ITENS-MODAL] Todas as validações passaram')
+    
     return true
   }
 
-  const handleSalvar = () => {
-    if (!validarCampos()) return
+  const handleSalvar = () => {  
+    if (!validarCampos()) {
+      console.log('❌ [ITENS-MODAL] Validação falhou, cancelando salvamento')
+      return
+    }
 
-    // Determinar caixas a partir da metragem do ambiente quando houver dados de cálculo
     const caixasCalculadas = dadosCalculo
       ? Number(dadosCalculo?.caixas_necessarias) || 0
       : Number(quantidade) || 0
 
     const itemData = {
       // Campos obrigatórios do modelo
-      item_empr: orcamento.orca_empr,
-      item_fili: orcamento.orca_fili,
+      item_empr: orcamento.orca_empr || empresaId,
+      item_fili: orcamento.orca_fili || filialId,
       item_orca: orcamento.orca_nume || '0', // Usar '0' em vez de null
       item_prod: produto.prod_codi,
-
-      // Campos existentes (mantendo compatibilidade)
+      item_queb: quebra,
       produto_nome: produto.prod_nome,
-      // Quantidade será o número de caixas calculadas
       item_caix: caixasCalculadas,
-      // Metragem (m²) informada pelo usuário deve ser preservada
+
       item_m2: Number(areaM2) || 0,
-      // Quantidade em m² (se desejar usar como total de m2)
-      item_quan: (Number(dadosCalculo?.m2_por_caixa) || 0) * caixasCalculadas,
+
+      item_quan:
+      produto?.prod_unme?.toUpperCase() === 'M2'
+        ? (Number(dadosCalculo?.m2_por_caixa) || 0) * caixasCalculadas
+        : (Number(dadosCalculo?.pc_por_caixa) || 0) * caixasCalculadas,
+
       item_unit: Number(precoUnitario),
       item_suto: calcularTotal(),
       // Observações mapeadas para campo correto
       item_obse: observacoes.trim() || null,
-      item_ambi: ambiente || null, // Campo obrigatório
-      item_nome_ambi: nomeAmbiente || null, // Campo obrigatório
-
+      item_ambi: ambiente.trim() || null, // Campo obrigatório
+      item_nome_ambi: nomeAmbiente.trim() || null, // Campo obrigatório
       // Campos específicos para pisos
       produto_tipo: 'PISO',
       desconto_item_disponivel: false,
@@ -239,6 +330,12 @@ export default function ItensModalPisos({
       // Dados do cálculo se disponível
       dados_calculo: dadosCalculo,
     }
+
+    console.log('💾 [ITENS-MODAL] Item data construído:', itemData)
+    console.log('💾 [ITENS-MODAL] item_empr:', itemData.item_empr)
+    console.log('💾 [ITENS-MODAL] item_fili:', itemData.item_fili)
+    console.log('💾 [ITENS-MODAL] item_orca:', itemData.item_orca)
+    console.log('💾 [ITENS-MODAL] Chamando onSave com itemData')
 
     onSave(itemData)
     onClose()
@@ -284,26 +381,23 @@ export default function ItensModalPisos({
           {produto && (
             <>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Ambiente</Text>
+                <Text style={styles.sectionTitle}>Nº Ambiente</Text>
                 <TextInput
                   style={styles.input}
                   value={ambiente}
                   onChangeText={setAmbiente}
-                  placeholder="Informe o ambiente"
+                  placeholder="000"
                   placeholderTextColor="#666"
+                  keyboardType="numeric"
                 />
-              </View>
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Nome do Ambiente</Text>
+                <Text style={styles.sectionTitle}>Nome Ambiente</Text>
                 <TextInput
                   style={styles.input}
                   value={nomeAmbiente}
                   onChangeText={setNomeAmbiente}
-                  placeholder="Informe o nome do ambiente"
+                  placeholder="Nome do Ambiente"
                   placeholderTextColor="#666"
                 />
-              </View>
-              <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Cálculo de Metragem</Text>
 
                 <View style={styles.calculoContainer}>
@@ -426,6 +520,9 @@ export default function ItensModalPisos({
                       <Text style={styles.resultadoLabel}>Valor total:</Text>
                       <Text style={styles.resultadoValor}>
                         {formatarMoeda(dadosCalculo?.valor_total)}
+                      </Text>
+                      <Text style={[styles.resultadoValor, { marginTop: 4 }]}>
+                        Unidade: {produto?.prod_unme || '—'}
                       </Text>
                     </View>
                   </View>

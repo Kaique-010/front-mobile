@@ -23,9 +23,8 @@ export default function ResumoPedidoPisos({ pedido = {}, itens = [], onUpdatePed
 
   const calcularSubtotal = () => {
     return itens.reduce((total, item) => {
-      const quantidade = Number(item?.item_quan) || 0
-      const precoUnitario = Number(item?.item_unit) || 0
-      return total + quantidade * precoUnitario
+      const totalItem = Number(item?.item_suto) || 0
+      return total + totalItem
     }, 0)
   }
 

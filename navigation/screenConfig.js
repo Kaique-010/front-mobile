@@ -486,7 +486,7 @@ export const screenConfigs = [
   {
     name: 'PedidosPisosForm',
     component: Screens.PedidosPisosForm,
-    options: createHeaderOptions('Formulário de Pedidos de Pisos'),
+    options: createHeaderOptions('Pedidos de Pisos'),
   },
   {
     name: 'OrcamentosPisos',
@@ -496,7 +496,7 @@ export const screenConfigs = [
   {
     name: 'OrcamentosPisosForm',
     component: Screens.OrcamentosPisosForm,
-    options: createHeaderOptions('Formulário de Orçamentos de Pisos'),
+    options: createHeaderOptions('Orçamentos de Pisos'),
   },
   {
     name: 'ResumoOrcamentoPisos',

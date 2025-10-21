@@ -14,8 +14,9 @@ import { useContextoApp } from '../hooks/useContextoApp'
 import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import { formatarData } from '../utils/formatters'
 import styles from '../componetsPisos/Styles/orcamentoStyles'
+import BotaoTransformarOrcamento from '../componetsPisos/BotaoTransformarOrcamento'
 
-const OrcamentoPisosItem = ({ item, onEdit, onDelete }) => (
+const OrcamentoPisosItem = ({ item, onEdit, onDelete, onUpdateOrcamentos }) => (
   <View style={styles.card}>
     <View style={styles.cardContent}>
       <View style={styles.cardHeader}>
@@ -102,8 +103,21 @@ const OrcamentoPisosItem = ({ item, onEdit, onDelete }) => (
         </TouchableOpacity>
       </View>
     </View>
+    <BotaoTransformarOrcamento
+        orcamentoId={item.orca_nume}
+        onSuccess={() => {
+          onUpdateOrcamentos((prev) =>
+            prev.map((p) =>
+              p.orca_nume === item.orca_nume && p.orcamento_estado === 'ORÇAMENTO'
+                ? { ...p, orcamento_estado: 'PEDIDO' }
+                : p
+            )
+          )
+        }}
+      />
   </View>
 )
+
 
 export default function OrcamentosPisos({ navigation }) {  
   const { empresaId, filialId } = useContextoApp()
@@ -218,9 +232,10 @@ export default function OrcamentosPisos({ navigation }) {
         item={item}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onUpdateOrcamentos={setOrcamentos}
       />
     ),
-    [handleEdit, handleDelete]
+    [handleEdit, handleDelete, setOrcamentos]
   )
 
   if (initialLoading) {
@@ -231,6 +246,7 @@ export default function OrcamentosPisos({ navigation }) {
       </View>
     )
   }
+
 
   return (
     <View style={styles.container}>
@@ -279,6 +295,7 @@ export default function OrcamentosPisos({ navigation }) {
           <MaterialIcons name="search" size={20} color="#6366f1" />
         </TouchableOpacity>
       </View>
+      
 
       <FlatList
         data={orcamentos}
@@ -311,8 +328,9 @@ export default function OrcamentosPisos({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        
       />
-
+  
       <View style={styles.footerContainer}>
         <Text style={styles.footerText}>
           {orcamentos.length} orcamento{orcamentos.length !== 1 ? 's' : ''} encontrado

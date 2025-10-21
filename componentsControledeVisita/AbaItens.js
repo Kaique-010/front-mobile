@@ -35,14 +35,14 @@ const ItemVisitaCard = ({ item, onEdit, onDelete }) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={localStyles.deleteButton}
-            onPress={() => onDelete(item.id)}>
+            onPress={() => onDelete(item)}>
             <Ionicons name="trash" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
       
       {item.item_descricao && (
-        <Text style={localStyles.itemDescricao}>{item.item_descricao}</Text>
+        <Text style={localStyles.itemDescricao}>{item.item_desc_prod}</Text>
       )}
       
       {item.pisos_quantidade && (
@@ -62,7 +62,7 @@ const ItemVisitaCard = ({ item, onEdit, onDelete }) => {
         
         <View style={localStyles.detalheItemVertical}>
           <Text style={localStyles.detalheLabel}>Unidade</Text>
-          <Text style={localStyles.itemUnidade}>{item.item_unli || 'UN'}</Text>
+          <Text style={localStyles.itemUnidade}>{item.item_unli || ''}</Text>
         </View>
         
         <View style={localStyles.detalheItemVertical}>
@@ -87,19 +87,20 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
   const [tipoItem, setTipoItem] = useState('produto')
   const [isPisos, setIsPisos] = useState(false)
   const [calculandoMetragem, setCalculandoMetragem] = useState(false)
+  const [dadosCalculo, setDadosCalculo] = useState(null) // Novo estado para dados de cálculo
   const [itemForm, setItemForm] = useState({
     item_prod: '',
     item_desc_prod: '',
     item_quan: '',
     item_unit: '',
-    item_unli: 'UN',
+    item_unli: '',
     item_desc: '0',
     item_obse: '',
     item_codigo: '',
     // Campos específicos para pisos
     item_m2: '',
     item_nome_ambi: '',
-    item_queb: '10',
+    item_queb: '0',
     item_caix: '',
     item_tipo_calculo: 'normal',
   })
@@ -137,15 +138,31 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
         'controledevisitas/itens-visita/calcular-metragem-pisos/',
         {
           tamanho_m2: parseFloat(itemForm.item_m2),
-          percentual_quebra: parseFloat(itemForm.item_queb) || 10,
+          percentual_quebra: parseFloat(itemForm.item_queb) || 0,
           produto_id: itemForm.item_codigo,
           condicao: 'vista',
         }
       )
 
+      // Armazenar dados de cálculo para usar na função calcularTotal
+      setDadosCalculo(response)
+
+      // Calcular quantidade baseada na unidade de medida (igual ao ItensModalPisos.js)
+      const caixasCalculadas = Number(response.caixas_necessarias) || 0
+      const unidadeMedida = (itemForm.item_unli || '').toUpperCase()
+      
+      let quantidadeCalculada = 0
+      if (unidadeMedida === 'M2' || unidadeMedida === 'M²' || unidadeMedida === 'METRO QUADRADO') {
+        // Para M2: usar m2_por_caixa × caixas
+        quantidadeCalculada = (Number(response.m2_por_caixa) || 0) * caixasCalculadas
+      } else {
+        // Para PC/PEÇA: usar pc_por_caixa × caixas
+        quantidadeCalculada = (Number(response.pc_por_caixa) || 0) * caixasCalculadas
+      }
+
       setItemForm({
         ...itemForm,
-        item_quan: response.caixas_necessarias?.toString() || '1',
+        item_quan: quantidadeCalculada.toString(),
         item_unit: response.preco_unitario?.toString() || '0',
         item_caix: response.caixas_necessarias?.toString() || '1',
       })
@@ -164,6 +181,57 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
     } finally {
       setCalculandoMetragem(false)
     }
+  }
+
+  // Função para calcular total baseado na unidade de medida (similar ao ItensModalPisos.js)
+  const calcularTotal = () => {
+    // Se temos o valor_total da API, usar ele diretamente (já inclui impostos/margens)
+    if (dadosCalculo?.valor_total) {
+      return Number(dadosCalculo.valor_total)
+    }
+
+    const preco = Number(itemForm.item_unit) || 0
+    const unid = (itemForm.item_unli || '').toUpperCase()
+      .replace('METRO QUADRADO', 'M2')
+      .replace('M²', 'M2')
+      .replace('PEÇA', 'PC')
+      .replace('PÇ', 'PC')
+      .replace('BARRA', 'PC')
+    
+    // Para produtos de pisos, usar sempre as caixas como base
+    if (isPisos && dadosCalculo) {
+      const caixas = Number(dadosCalculo.caixas_necessarias) || Number(itemForm.item_quan) || 0
+      
+      // Para produtos com unidade M2, calcular baseado na metragem real
+      if (unid === 'M2' || unid === 'M²' || unid === 'm2' || unid === 'm²') {
+        // Se temos metragem_real da API, usar ela
+        if (dadosCalculo?.metragem_real) {
+          return Number(dadosCalculo.metragem_real) * preco
+        }
+        // Senão, calcular baseado em caixas e m2_por_caixa
+        if (dadosCalculo?.m2_por_caixa > 0) {
+          return caixas * Number(dadosCalculo.m2_por_caixa) * preco
+        }
+      }
+      
+      // Para produtos com unidade PC (peças), usar peças por caixa se disponível
+      if (unid === 'PC' || unid === 'PÇ' || unid === 'PEÇA') {
+        if (dadosCalculo?.pc_por_caixa > 0) {
+          return caixas * Number(dadosCalculo.pc_por_caixa) * preco
+        }
+        // Se não tem pc_por_caixa, usar as peças necessárias diretamente
+        if (dadosCalculo?.pecas_necessarias > 0) {
+          return Number(dadosCalculo.pecas_necessarias) * preco
+        }
+      }
+      
+      // Fallback: usar caixas * preço
+      return caixas * preco
+    }
+    
+    // Para itens normais (não pisos)
+    const quantidade = Number(itemForm.item_quan) || 0
+    return quantidade * preco
   }
 
   const salvarItem = async () => {
@@ -249,7 +317,7 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
         item_quan: quantidade,
         item_unit: valorUnit,
         item_desc: desconto,
-        item_unli: itemForm.item_unli || 'UN',
+        item_unli: itemForm.item_unli || '',
         item_obse: itemForm.item_obse?.trim() || '',
         item_visita: parseInt(visitaId),
         item_empr: parseInt(empresaIdToUse),
@@ -298,21 +366,28 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
       item_desc_prod: item.item_desc_prod || '',
       item_quan: item.item_quan?.toString() || '',
       item_unit: item.item_unit?.toString() || '',
-      item_unli: item.item_unli || 'UN',
+      item_unli: item.item_unli || '',
       item_desc: item.item_desc?.toString() || '0',
       item_obse: item.item_obse || '',
       item_codigo: item.item_codigo || '',
       // Campos específicos de pisos
       item_m2: item.item_m2?.toString() || '',
       item_nome_ambi: item.item_nome_ambi || '',
-      item_queb: item.item_queb?.toString() || '10',
+      item_queb: item.item_queb?.toString() || '0',
       item_caix: item.item_caix?.toString() || '',
       item_tipo_calculo: item.item_tipo_calculo || 'normal',
     })
     setModalVisible(true)
   }
 
+  
   const excluirItem = (item) => {
+    // Validação defensiva para evitar erros
+    if (!item || !item.item_prod) {
+      Alert.alert('Erro', 'Item inválido para exclusão')
+      return
+    }
+
     Alert.alert(
       'Confirmar Exclusão',
       `Deseja excluir o item "${item.item_prod}"?`,
@@ -375,25 +450,26 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
   }
 
   const resetForm = () => {
-    setEditingItem(null)
-    setTipoItem('produto')
-    setIsPisos(false)
     setItemForm({
       item_prod: '',
       item_desc_prod: '',
       item_quan: '',
       item_unit: '',
-      item_unli: 'UN',
+      item_unli: '',
       item_desc: '0',
       item_obse: '',
       item_codigo: '',
       // Campos específicos para pisos
       item_m2: '',
       item_nome_ambi: '',
-      item_queb: '10',
+      item_queb: '0',
       item_caix: '',
       item_tipo_calculo: 'normal',
     })
+    setEditingItem(null)
+    setTipoItem('produto')
+    setIsPisos(false)
+    setDadosCalculo(null) // Limpar dados de cálculo
   }
 
   const handleSelecionarProduto = (produto) => {
@@ -403,6 +479,7 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
       item_desc_prod: produto.prod_nome,
       item_unit: produto.prod_preco_vista?.toString() || '0',
       item_codigo: produto.prod_codi,
+      item_unli: produto.prod_unme || '',
     })
   }
 
@@ -413,6 +490,7 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
       item_desc_prod: '',
       item_unit: servico.serv_preco?.toString() || '0',
       item_codigo: servico.serv_prod,
+      item_unli: servico.serv_unme || '',
     })
   }
 
@@ -586,7 +664,7 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
                           ...itemForm,
                           item_m2: '',
                           item_nome_ambi: '',
-                          item_queb: '10',
+                          item_queb: '0',
                           item_caix: '',
                           item_tipo_calculo: 'normal',
                         })
@@ -703,7 +781,13 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
 
                   {/* Botão calcular metragem */}
                   <TouchableOpacity
-                    style={localStyles.calcularButton}
+                    style={[
+                      localStyles.calcularButton,
+                      (calculandoMetragem ||
+                        !itemForm.item_m2 ||
+                        !itemForm.item_codigo) &&
+                        localStyles.calcularButtonDisabled,
+                    ]}
                     onPress={calcularMetragemPisos}
                     disabled={
                       calculandoMetragem ||
@@ -718,6 +802,10 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
                     <Text style={localStyles.calcularButtonText}>
                       {calculandoMetragem
                         ? 'Calculando...'
+                        : !itemForm.item_codigo
+                        ? 'Selecione um produto primeiro'
+                        : !itemForm.item_m2
+                        ? 'Informe a metragem'
                         : 'Calcular Metragem'}
                     </Text>
                   </TouchableOpacity>
@@ -745,6 +833,88 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
                 </View>
               </View>
 
+              {/* Campos específicos para pisos */}
+              {isPisos && (
+                <View style={localStyles.pisosQuantidades}>
+                  <Text style={localStyles.pisosSectionTitle}>
+                    <Ionicons name="calculator" size={16} color="#10a2a7" /> Quantidades Calculadas
+                  </Text>
+                  
+                  <View style={localStyles.row}>
+                    <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
+                      <View style={styles.fieldIcon}>
+                        <Ionicons name="cube-outline" size={20} color="#10a2a7" />
+                      </View>
+                      <View style={styles.fieldContent}>
+                        <Text style={styles.fieldLabel}>Caixas Necessárias</Text>
+                        <TextInput
+                          style={[styles.textInput, localStyles.readOnlyInput]}
+                          placeholder="0"
+                          placeholderTextColor="#666"
+                          value={dadosCalculo?.caixas_necessarias?.toString() || itemForm.item_quan || '0'}
+                          editable={false}
+                        />
+                      </View>
+                    </View>
+                    
+                    <View style={[styles.fieldGroup, { flex: 1, marginLeft: 8 }]}>
+                      <View style={styles.fieldIcon}>
+                        <Ionicons name="apps" size={20} color="#10a2a7" />
+                      </View>
+                      <View style={styles.fieldContent}>
+                        <Text style={styles.fieldLabel}>
+                          {(() => {
+                            const unid = (itemForm.item_unli || '').toUpperCase()
+                              .replace('METRO QUADRADO', 'M2')
+                              .replace('M²', 'M2')
+                              .replace('PEÇA', 'PC')
+                              .replace('PÇ', 'PC')
+                              .replace('BARRA', 'PC');
+                            
+                            if (unid === 'M2' || unid === 'M²' || unid === 'm2' || unid === 'm²') {
+                              return 'Metros Quadrados';
+                            } else if (unid === 'PC' || unid === 'PÇ' || unid === 'PEÇA') {
+                              return 'Peças Totais';
+                            } else {
+                              return 'Quantidade Total';
+                            }
+                          })()}
+                        </Text>
+                        <TextInput
+                          style={[styles.textInput, localStyles.readOnlyInput]}
+                          placeholder="0"
+                          placeholderTextColor="#666"
+                          value={(() => {
+                            const unid = (itemForm.item_unli || '').toUpperCase()
+                              .replace('METRO QUADRADO', 'M2')
+                              .replace('M²', 'M2')
+                              .replace('PEÇA', 'PC')
+                              .replace('PÇ', 'PC')
+                              .replace('BARRA', 'PC');
+                            
+                            if (unid === 'M2' || unid === 'M²' || unid === 'm2' || unid === 'm²') {
+                              // Para M2, mostrar a metragem real calculada
+                              return dadosCalculo?.metragem_real?.toString() || 
+                                     (dadosCalculo?.caixas_necessarias && dadosCalculo?.m2_por_caixa ? 
+                                      (Number(dadosCalculo.caixas_necessarias) * Number(dadosCalculo.m2_por_caixa)).toString() : '0');
+                            } else if (unid === 'PC' || unid === 'PÇ' || unid === 'PEÇA') {
+                              // Para peças, mostrar as peças necessárias
+                              return dadosCalculo?.pecas_necessarias?.toString() || 
+                                     (dadosCalculo?.caixas_necessarias && dadosCalculo?.pc_por_caixa ? 
+                                      (Number(dadosCalculo.caixas_necessarias) * Number(dadosCalculo.pc_por_caixa)).toString() : '0');
+                            } else {
+                              // Para outras unidades, mostrar as caixas
+                              return dadosCalculo?.caixas_necessarias?.toString() || '0';
+                            }
+                          })()}
+                          editable={false}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              )}
+
               {/* Quantidade e Unidade */}
               <View style={localStyles.row}>
                 <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
@@ -752,14 +922,40 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
                     <Ionicons name="calculator" size={20} color="#10a2a7" />
                   </View>
                   <View style={styles.fieldContent}>
-                    <Text style={styles.fieldLabel}>
-                      {isPisos ? 'Caixas *' : 'Quantidade *'}
-                    </Text>
+                    <Text style={styles.fieldLabel}>Quantidade *</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[
+                        styles.textInput,
+                        isPisos && localStyles.readOnlyInput
+                      ]}
                       placeholder="0"
                       placeholderTextColor="#666"
-                      value={itemForm.item_quan}
+                      value={(() => {
+                        if (isPisos && dadosCalculo) {
+                          const unid = (itemForm.item_unli || '').toUpperCase()
+                            .replace('METRO QUADRADO', 'M2')
+                            .replace('M²', 'M2')
+                            .replace('PEÇA', 'PC')
+                            .replace('PÇ', 'PC')
+                            .replace('BARRA', 'PC');
+                          
+                          if (unid === 'M2' || unid === 'M²' || unid === 'm2' || unid === 'm²') {
+                            // Para M2, usar a metragem real calculada
+                            return dadosCalculo?.metragem_real?.toString() || 
+                                   (dadosCalculo?.caixas_necessarias && dadosCalculo?.m2_por_caixa ? 
+                                    (Number(dadosCalculo.caixas_necessarias) * Number(dadosCalculo.m2_por_caixa)).toString() : '0');
+                          } else if (unid === 'PC' || unid === 'PÇ' || unid === 'PEÇA') {
+                            // Para peças, usar as peças necessárias
+                            return dadosCalculo?.pecas_necessarias?.toString() || 
+                                   (dadosCalculo?.caixas_necessarias && dadosCalculo?.pc_por_caixa ? 
+                                    (Number(dadosCalculo.caixas_necessarias) * Number(dadosCalculo.pc_por_caixa)).toString() : '0');
+                          } else {
+                            // Para outras unidades, usar as caixas
+                            return dadosCalculo?.caixas_necessarias?.toString() || '0';
+                          }
+                        }
+                        return itemForm.item_quan;
+                      })()}
                       onChangeText={(text) =>
                         setItemForm({ ...itemForm, item_quan: text })
                       }
@@ -782,12 +978,13 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
                       onChangeText={(text) =>
                         setItemForm({ ...itemForm, item_unli: text })
                       }
+                      editable={!isPisos}
                     />
                   </View>
                 </View>
               </View>
 
-              {/* Valor e Desconto */}
+              {/* Valor Unitário e Desconto */}
               <View style={localStyles.row}>
                 <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
                   <View style={styles.fieldIcon}>
@@ -796,7 +993,10 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
                   <View style={styles.fieldContent}>
                     <Text style={styles.fieldLabel}>Valor Unitário *</Text>
                     <TextInput
-                      style={styles.textInput}
+                      style={[
+                        styles.textInput,
+                        isPisos && localStyles.readOnlyInput
+                      ]}
                       placeholder="0,00"
                       placeholderTextColor="#666"
                       value={itemForm.item_unit}
@@ -849,6 +1049,16 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
                 </View>
               </View>
             </ScrollView>
+
+            {/* Exibir valor total calculado */}
+            {(isPisos && dadosCalculo) || (!isPisos && itemForm.item_quan && itemForm.item_unit) ? (
+              <View style={localStyles.totalContainer}>
+                <Text style={localStyles.totalLabel}>Total do Item:</Text>
+                <Text style={localStyles.totalValue}>
+                  R$ {calcularTotal().toFixed(2)}
+                </Text>
+              </View>
+            ) : null}
 
             {/* Botões do modal melhorados */}
             <View style={localStyles.modalButtons}>
@@ -1196,6 +1406,19 @@ const localStyles = {
     borderLeftWidth: 3,
     borderLeftColor: '#10a2a7',
   },
+  pisosQuantidades: {
+    backgroundColor: '#1a2332',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  readOnlyInput: {
+    backgroundColor: '#2a3441',
+    color: '#adb5bd',
+    opacity: 0.8,
+  },
   pisosSectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -1214,6 +1437,10 @@ const localStyles = {
     marginTop: 16,
     gap: 8,
     elevation: 3,
+  },
+  calcularButtonDisabled: {
+    backgroundColor: '#6c757d',
+    opacity: 0.6,
   },
   calcularButtonText: {
     color: '#fff',
@@ -1261,7 +1488,27 @@ const localStyles = {
   },
   modalButtonSaveText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '600',
     fontSize: 15,
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: '#0d1421',
+    borderTopWidth: 1,
+    borderTopColor: '#2a3441',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#10a2a7',
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#28a745',
   },
 }

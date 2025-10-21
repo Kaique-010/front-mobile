@@ -22,6 +22,7 @@ export default function ItensModalPisos({
   onSave,
   item = null,
   pedido = {},
+  orcamento = {},
 }) {
   const [produto, setProduto] = useState(null)
   const [quantidade, setQuantidade] = useState('')
@@ -53,6 +54,7 @@ export default function ItensModalPisos({
       setObservacoes(item.observacoes || '')
       setAmbiente(item.ambiente || '')
       setNomeAmbiente(item.nome_ambiente || '')
+      setQuebra(item.item_queb || '')
     } else {
       // Novo item
       limparCampos()
@@ -70,6 +72,7 @@ export default function ItensModalPisos({
     setCondicaoPagamento('0')
     setAmbiente('')
     setNomeAmbiente('')
+    setQuebra('0')
   }
 
   const buscarDadosProduto = async (produtoSelecionado) => {
@@ -77,6 +80,9 @@ export default function ItensModalPisos({
 
     setCarregandoProduto(true)
     try {
+      // Determinar qual cliente usar (orcamento ou pedido)
+      const clienteId = orcamento?.orca_clie || pedido?.pedi_clie
+      
       // Corrigir: usar POST e enviar dados no body
       const response = await apiPostComContexto(
         'pisos/produtos-pisos/calcular_metragem/',
@@ -84,7 +90,7 @@ export default function ItensModalPisos({
           produto_id: produtoSelecionado.prod_codi,
           tamanho_m2: parseFloat(areaM2) || 0,
           percentual_quebra: parseFloat(quebra) || 0,
-          cliente_id: pedido.pedi_clie,
+          cliente_id: clienteId,
           condicao: condicaoPagamento,
           ambiente: ambiente,
           nome_ambiente: nomeAmbiente,
@@ -95,11 +101,12 @@ export default function ItensModalPisos({
         setProduto({
           ...produtoSelecionado,
           prod_prec: response.preco_unitario || produtoSelecionado.prod_prec,
+          prod_unme: response.unidade_medida || produtoSelecionado.prod_unme, 
         })
         setPrecoUnitario(
           String(response.preco_unitario || produtoSelecionado.prod_prec || '')
         )
-      } else {
+        } else {
         setProduto(produtoSelecionado)
         setPrecoUnitario(String(produtoSelecionado.prod_prec || ''))
       }
@@ -155,15 +162,47 @@ export default function ItensModalPisos({
   }
 
   const calcularTotal = () => {
-    const preco = Number(precoUnitario) || 0
-    // Quando houver dados de cálculo, calcular o total por m² (m2_por_caixa * caixas)
-    if (dadosCalculo && (Number(dadosCalculo?.m2_por_caixa) || 0) > 0) {
-      const m2PorCaixa = Number(dadosCalculo?.m2_por_caixa) || 0
-      const caixas = Number(dadosCalculo?.caixas_necessarias) || 0
-      const m2Total = m2PorCaixa * caixas
-      return m2Total * preco
+    // Se temos o valor_total da API, usar ele diretamente (já inclui impostos/margens)
+    if (dadosCalculo?.valor_total) {
+      return Number(dadosCalculo.valor_total)
     }
-    // Fallback: usar a área informada (m²) quando não houver cálculo de caixas
+
+    const preco = Number(precoUnitario) || 0
+    const unid = (produto?.prod_unme || '').toUpperCase()
+      .replace('METRO QUADRADO', 'M2')
+      .replace('M²', 'M2')
+      .replace('PEÇA', 'PC')
+      .replace('PÇ', 'PC')
+      .replace('BARRA', 'PC')
+    const caixas = Number(dadosCalculo?.caixas_necessarias) || Number(quantidade) || 0
+
+    // Para produtos com unidade M2, calcular baseado na metragem real
+    if (unid === 'M2' || unid === 'M²' || unid === 'm2' || unid === 'm²') {
+      // Se temos metragem_real da API, usar ela
+      if (dadosCalculo?.metragem_real) {
+        return Number(dadosCalculo.metragem_real) * preco
+      }
+      // Senão, calcular baseado em caixas e m2_por_caixa
+      if (dadosCalculo?.m2_por_caixa > 0) {
+        const totalM2 = Number(dadosCalculo.m2_por_caixa) * caixas
+        return totalM2 * preco
+      }
+    }
+
+    // Para produtos com unidade PC (peças), calcular baseado nas peças
+    if (['PC', 'PÇ', 'PEÇA', 'BARRA'].includes(unid)) {
+      // Se temos metragem_real da API (que para peças representa a quantidade real), usar ela
+      if (dadosCalculo?.metragem_real) {
+        return Number(dadosCalculo.metragem_real) * preco
+      }
+      // Senão, calcular baseado em caixas e pc_por_caixa
+      if (dadosCalculo?.pc_por_caixa > 0) {
+        const totalPecas = Number(dadosCalculo.pc_por_caixa) * caixas
+        return totalPecas * preco
+      }
+    }
+
+    // Fallback: usar área M2 diretamente
     const m2 = Number(areaM2) || 0
     return m2 * preco
   }
@@ -200,12 +239,14 @@ export default function ItensModalPisos({
       : Number(quantidade) || 0
 
     const itemData = {
-      // Campos obrigatórios do modelo
-      item_empr: pedido.pedi_empr,
-      item_fili: pedido.pedi_fili,
-      item_pedi: pedido.pedi_nume || '0', // Usar '0' em vez de null
+      // Campos obrigatórios do modelo - usar orcamento ou pedido dinamicamente
+      item_empr: orcamento?.orca_empr || pedido?.pedi_empr,
+      item_fili: orcamento?.orca_fili || pedido?.pedi_fili,
+      // Usar item_orca para orçamentos ou item_pedi para pedidos
+      ...(orcamento?.orca_nume && { item_orca: orcamento.orca_nume }),
+      ...(pedido?.pedi_nume && { item_pedi: pedido.pedi_nume || '0' }),
       item_prod: produto.prod_codi,
-
+      item_queb: quebra,
       // Campos existentes (mantendo compatibilidade)
       produto_nome: produto.prod_nome,
       // Quantidade será o número de caixas calculadas
@@ -213,7 +254,10 @@ export default function ItensModalPisos({
       // Metragem (m²) informada pelo usuário deve ser preservada
       item_m2: Number(areaM2) || 0,
       // Quantidade em m² (se desejar usar como total de m2)
-      item_quan: (Number(dadosCalculo?.m2_por_caixa) || 0) * caixasCalculadas,
+      item_quan:
+      produto?.prod_unme?.toUpperCase() === 'M2'
+        ? (Number(dadosCalculo?.m2_por_caixa) || 0) * caixasCalculadas
+        : (Number(dadosCalculo?.pc_por_caixa) || 0) * caixasCalculadas,
       item_unit: Number(precoUnitario),
       item_suto: calcularTotal(),
       // Observações mapeadas para campo correto

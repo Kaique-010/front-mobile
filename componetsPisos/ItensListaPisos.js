@@ -30,12 +30,7 @@ export default function ItensListaPisos({ itens, onEdit, onRemove }) {
     const quantidade = Number(item?.item_quan) || 0
     const precoUnitario = Number(item?.item_unit) || 0
     const total = quantidade * precoUnitario
-    const percentualDesconto = Number(item?.percentual_desconto) || 0
-    const descontoItem = item?.desconto_item_disponivel
-      ? total * percentualDesconto
-      : 0
-    const totalComDesconto = total - descontoItem
-    const totalPreferencial = Number(item?.item_suto) || totalComDesconto
+    const totalPreferencial = Number(item?.item_suto) || total
     const isExpanded = itensExpandidos[index]
 
     return (
@@ -94,14 +89,7 @@ export default function ItensListaPisos({ itens, onEdit, onRemove }) {
                   <Text style={styles.detailValue}>{item.observacoes}</Text>
                 </View>
               )}
-              {descontoItem > 0 && (
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Desconto:</Text>
-                  <Text style={styles.descontoValue}>
-                    -{formatarMoeda(descontoItem)}
-                  </Text>
-                </View>
-              )}
+             
               <View style={[styles.detailRow, styles.totalRow]}>
                 <Text style={styles.totalLabel}>Total:</Text>
                 <Text style={styles.totalValue}>
@@ -136,12 +124,8 @@ export default function ItensListaPisos({ itens, onEdit, onRemove }) {
     return itens.reduce((total, item) => {
       const quantidade = Number(item?.item_quan) || 0
       const precoUnitario = Number(item?.item_unit) || 0
-      const subtotal = quantidade * precoUnitario
-      const percentualDesconto = Number(item?.percentual_desconto) || 0
-      const descontoItem = item?.desconto_item_disponivel
-        ? subtotal * percentualDesconto
-        : 0
-      const totalItem = Number(item?.item_suto) || subtotal - descontoItem
+
+      const totalItem = Number(item?.item_suto) || (quantidade * precoUnitario)
       return total + totalItem
     }, 0)
   }
@@ -320,11 +304,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  descontoValue: {
-    color: '#ff6b6b',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+
   totalRow: {
     borderTopWidth: 1,
     borderTopColor: '#333',

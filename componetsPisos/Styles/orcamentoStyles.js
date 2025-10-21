@@ -2,10 +2,10 @@ import { StyleSheet } from 'react-native'
 
 
 const styles = StyleSheet.create({
-  // ====== Container Principal ======
+   // ====== Container Principal ======
   container: {
     flex: 1,
-    backgroundColor: '#faf5ff',
+    backgroundColor: '#152733ff',
   },
 
   listContent: {
@@ -28,16 +28,19 @@ const styles = StyleSheet.create({
 
   // ====== Botão de Incluir ======
   incluirButton: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#000000ff',
     margin: 16,
-    marginBottom: 8,
+    marginBottom: 15,
+    marginTop: 10,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    shadowColor: '#8b5cf6',
+    borderWidth: 2,
+    borderColor: '#5cdff6ff',
+    shadowColor: '#5cdff6ff',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -45,14 +48,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    
   },
 
   incluirButtonText: {
-    color: '#ffffff',
+    color: '#5cdff6ff',
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginLeft: 8,
+    
+    
   },
 
   // ====== Container de Busca ======
@@ -92,7 +97,7 @@ const styles = StyleSheet.create({
   },
 
   searchButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#5cdff6ff',
     borderRadius: 12,
     width: 44,
     height: 44,
@@ -110,23 +115,24 @@ const styles = StyleSheet.create({
 
   // ====== Cards ======
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1f1414ff',
     borderRadius: 20,
     marginBottom: 16,
-    shadowColor: '#8b5cf6',
+    shadowColor: '#5cdff6ff',
     shadowOffset: {
-      width: 0,
-      height: 6,
+      width: 1,
+      height: 8,
     },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#8b5cf6',
+    borderLeftColor: '#5cdff6ff',
   },
 
   cardContent: {
     padding: 20,
+    color: '#ffffff',
   },
 
   cardHeader: {
@@ -142,7 +148,7 @@ const styles = StyleSheet.create({
 
   numeroLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#5cdff6ff',
     fontWeight: '500',
     marginBottom: 2,
   },
@@ -150,7 +156,7 @@ const styles = StyleSheet.create({
   numero: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1f2937',
+    color: '#ffffff',
     letterSpacing: 0.5,
   },
 
@@ -160,7 +166,7 @@ const styles = StyleSheet.create({
 
   data: {
     fontSize: 13,
-    color: '#6b7280',
+    color: '#5cdff6ff',
     fontWeight: '500',
   },
 
@@ -174,7 +180,7 @@ const styles = StyleSheet.create({
 
   clienteLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#5cdff6ff',
     fontWeight: '500',
     marginBottom: 4,
   },
@@ -182,13 +188,13 @@ const styles = StyleSheet.create({
   cliente: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#ffffff',
     marginBottom: 2,
   },
 
   clienteCodigo: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: '#5cdff6ff',
   },
 
   // ====== Linha de Informações ======
@@ -208,21 +214,21 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: '#5cdff6ff',
     fontWeight: '500',
     marginBottom: 2,
   },
 
   vendedor: {
     fontSize: 14,
-    color: '#374151',
+    color: '#ffffff',
     fontWeight: '500',
   },
 
   valor: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#059669',
+    color: '#5cdff6ff',
   },
 
   // ====== Observações ======

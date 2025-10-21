@@ -42,10 +42,7 @@ export default function PedidosPisosForm({ route, navigation }) {
 
   const calcularTotal = (itens) => {
     return itens.reduce((total, item) => {
-      const quantidade = parseFloat(item.item_quan || 0)
-      const preco = parseFloat(item.item_unit || 0)
-      const desconto = parseFloat(item.desconto_valor || 0)
-      return total + (quantidade * preco - desconto)
+      return total + (parseFloat(item.item_suto) || 0)
     }, 0)
   }
 

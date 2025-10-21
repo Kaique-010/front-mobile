@@ -12,7 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import OrcamentoPisosHeader from './OrcamentoPisosHeader'
 import ItensListaPisos from './ItensListaPisos'
-import ItensModalPisos from './ItensModalPisos'
+import ItensModalPisosOrcamentos from './ItensModalPisosOrcamentos'
 import ResumoOrcamentoPisos from './ResumoOrcamentoPisos'
 import {
   apiGetComContexto,
@@ -43,8 +43,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
     return itens.reduce((total, item) => {
       const quantidade = parseFloat(item.item_quan || 0)
       const preco = parseFloat(item.item_unit || 0)
-      const desconto = parseFloat(item.desconto_valor || 0)
-      return total + (quantidade * preco - desconto)
+      return total + (quantidade * preco || 0)
     }, 0)
   }
 
@@ -74,9 +73,6 @@ export default function OrcamentosPisosForm({ route, navigation }) {
             ...data,
             itens_input: itens.map((item) => ({
               ...item,
-              desconto_item_disponivel: !!item.desconto_item_disponivel,
-              percentual_desconto: Number(item.percentual_desconto || 0),
-              desconto_valor: Number(item.desconto_valor || 0),
             })),
             orca_tota: calcularTotal(itens),
             // Campos específicos de pisos
@@ -152,25 +148,40 @@ export default function OrcamentosPisosForm({ route, navigation }) {
   }, [orcamentoParam])
 
   const handleAdicionarOuEditarItem = (novoItem, itemAnterior = null) => {
+    console.log('🔍 [ORCAMENTO-FORM] Adicionando/editando item')
+    console.log('🔍 [ORCAMENTO-FORM] Novo item:', novoItem)
+    console.log('🔍 [ORCAMENTO-FORM] Item anterior:', itemAnterior)
+    console.log('🔍 [ORCAMENTO-FORM] Estado atual do orçamento:', orcamento)
+    
     let novosItens = [...orcamento.itens_input]
 
     const index = itemAnterior
       ? novosItens.findIndex((i) => i.item_prod === itemAnterior.item_prod)
       : novosItens.findIndex((i) => i.item_prod === novoItem.item_prod)
 
+    console.log('🔍 [ORCAMENTO-FORM] Índice encontrado:', index)
+
     if (index !== -1) {
+      console.log('🔍 [ORCAMENTO-FORM] Editando item existente no índice:', index)
       novosItens[index] = novoItem
     } else {
+      console.log('🔍 [ORCAMENTO-FORM] Adicionando novo item')
       novosItens.push(novoItem)
     }
 
     const novoTotal = calcularTotal(novosItens)
+    console.log('🔍 [ORCAMENTO-FORM] Novo total calculado:', novoTotal)
+    console.log('🔍 [ORCAMENTO-FORM] Novos itens:', novosItens)
 
-    setOrcamento((prev) => ({
-      ...prev,
-      itens_input: novosItens,
-      orca_tota: novoTotal,
-    }))
+    setOrcamento((prev) => {
+      const novoEstado = {
+        ...prev,
+        itens_input: novosItens,
+        orca_tota: novoTotal,
+      }
+      console.log('✅ [ORCAMENTO-FORM] Novo estado do orçamento após adicionar item:', novoEstado)
+      return novoEstado
+    })
 
     setItemEditando(null)
     setModalVisivel(false)
@@ -200,25 +211,36 @@ export default function OrcamentosPisosForm({ route, navigation }) {
   }
 
   const salvarOrcamento = async () => {
+    console.log('🔍 [ORCAMENTO-FORM] Iniciando salvamento do orçamento')
+    console.log('🔍 [ORCAMENTO-FORM] Estado atual do orçamento:', orcamento)
+    
     if (!orcamento.orca_clie) {
+      console.log('❌ [ORCAMENTO-FORM] Cliente não selecionado - orca_clie:', orcamento.orca_clie)
       Alert.alert('Atenção', 'Selecione um cliente para o orcamento')
       return
     }
+    console.log('✅ [ORCAMENTO-FORM] Cliente validado - orca_clie:', orcamento.orca_clie)
 
     if (!orcamento.itens_input || orcamento.itens_input.length === 0) {
+      console.log('❌ [ORCAMENTO-FORM] Nenhum item no orçamento - itens_input:', orcamento.itens_input)
       Alert.alert('Atenção', 'Adicione pelo menos um item ao orcamento')
       return
     }
+    console.log('✅ [ORCAMENTO-FORM] Itens validados - quantidade:', orcamento.itens_input.length)
 
     setSalvando(true)
     try {
       // Calcular total dos itens
       const totalItens = calcularTotal(orcamento.itens_input)
+      console.log('🔍 [ORCAMENTO-FORM] Total dos itens calculado:', totalItens)
 
       // Aplicar desconto geral e frete
       const descontoGeral = Number(orcamento.orca_desc) || 0
       const frete = Number(orcamento.orca_fret) || 0
       const totalFinal = totalItens - descontoGeral + frete
+      console.log('🔍 [ORCAMENTO-FORM] Desconto geral:', descontoGeral)
+      console.log('🔍 [ORCAMENTO-FORM] Frete:', frete)
+      console.log('🔍 [ORCAMENTO-FORM] Total final:', totalFinal)
 
       const dadosOrcamento = {
         ...orcamento,
@@ -227,18 +249,21 @@ export default function OrcamentosPisosForm({ route, navigation }) {
         orca_ajus_port: orcamento.orca_ajus_port ? 'true' : 'false',
         orca_degr_esca: orcamento.orca_degr_esca ? 'true' : 'false',
       }
+      console.log('🔍 [ORCAMENTO-FORM] Dados do orçamento preparados para envio:', dadosOrcamento)
 
       let response
       if (orcamentoParam && orcamentoParam.orca_nume) {
+        console.log('🔍 [ORCAMENTO-FORM] Atualizando orçamento existente:', orcamentoParam.orca_nume)
         response = await apiPutComContexto(
           `pisos/orcamentos-pisos/${orcamentoParam.orca_nume}/`,
           dadosOrcamento  
         )
-        console.log('response dos dados enviados', response)
+        console.log('✅ [ORCAMENTO-FORM] Response da atualização:', response)
       } else {
+        console.log('🔍 [ORCAMENTO-FORM] Criando novo orçamento')
         response = await apiPostComContexto('pisos/orcamentos-pisos/', dadosOrcamento)
+        console.log('✅ [ORCAMENTO-FORM] Response da criação:', response)
       }
-      console.log('response dos dados enviados', response)
 
       await AsyncStorage.removeItem(ORCAMENTO_PISOS_CACHE_ID)
 
@@ -462,7 +487,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
       </View>
 
       {/* Modal de itens com nova lógica de cálculo */}
-      <ItensModalPisos
+      <ItensModalPisosOrcamentos
         visible={modalVisivel}
         onClose={() => {
           setModalVisivel(false)
