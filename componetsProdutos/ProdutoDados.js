@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Image,
+  Platform,
 } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -81,7 +82,10 @@ export default function ProdutoDados({
         const granted = cam.status === 'granted' && lib.status === 'granted'
         setPermissoesImagemOk(granted)
         if (!granted) {
-          console.warn('Permissões de câmera/galeria não concedidas')
+          Alert.alert(
+            'Permissões necessárias',
+            'Para usar a câmera e galeria, é necessário conceder as permissões.'
+          )
         }
       } catch (e) {
         console.warn('Erro ao solicitar permissões de imagem:', e?.message)
@@ -91,36 +95,84 @@ export default function ProdutoDados({
   }, [])
 
   const tirarFoto = async () => {
+    if (!permissoesImagemOk) {
+      Alert.alert('Permissão necessária', 'Permissão de câmera não concedida.')
+      return
+    }
+
     try {
       const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5, // Reduzido de 0.6 para 0.5
         base64: true,
-        quality: 0.6,
+        exif: false, // Não precisa de dados EXIF
       })
-      if (!result.canceled) {
-        const asset = result.assets?.[0]
-        setFotoBase64(asset?.base64 || '')
-        setFotoUri(asset?.uri || '')
+
+      console.log('📸 Resultado da câmera:', { canceled: result.canceled })
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0]
+        console.log('📸 Asset recebido:', {
+          uri: asset.uri?.substring(0, 50),
+          hasBase64: !!asset.base64,
+          base64Length: asset.base64?.length || 0,
+        })
+
+        if (asset.base64) {
+          setFotoBase64(asset.base64)
+          setFotoUri(asset.uri)
+          console.log('✅ Foto capturada com sucesso')
+        } else {
+          console.warn('⚠️ Base64 não disponível')
+          Alert.alert('Aviso', 'Não foi possível processar a imagem.')
+        }
       }
     } catch (e) {
-      console.error('Erro ao abrir câmera:', e)
-      Alert.alert('Erro', 'Não foi possível abrir a câmera.')
+      console.error('❌ Erro ao abrir câmera:', e)
+      Alert.alert('Erro', `Não foi possível abrir a câmera: ${e.message}`)
     }
   }
 
   const escolherImagem = async () => {
+    if (!permissoesImagemOk) {
+      Alert.alert('Permissão necessária', 'Permissão de galeria não concedida.')
+      return
+    }
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5, // Reduzido de 0.6 para 0.5
         base64: true,
-        quality: 0.6,
+        exif: false,
       })
-      if (!result.canceled) {
-        const asset = result.assets?.[0]
-        setFotoBase64(asset?.base64 || '')
-        setFotoUri(asset?.uri || '')
+
+      console.log('🖼️ Resultado da galeria:', { canceled: result.canceled })
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0]
+        console.log('🖼️ Asset recebido:', {
+          uri: asset.uri?.substring(0, 50),
+          hasBase64: !!asset.base64,
+          base64Length: asset.base64?.length || 0,
+        })
+
+        if (asset.base64) {
+          setFotoBase64(asset.base64)
+          setFotoUri(asset.uri)
+          console.log('✅ Imagem selecionada com sucesso')
+        } else {
+          console.warn('⚠️ Base64 não disponível')
+          Alert.alert('Aviso', 'Não foi possível processar a imagem.')
+        }
       }
     } catch (e) {
-      console.error('Erro ao abrir galeria:', e)
-      Alert.alert('Erro', 'Não foi possível abrir a galeria.')
+      console.error('❌ Erro ao abrir galeria:', e)
+      Alert.alert('Erro', `Não foi possível abrir a galeria: ${e.message}`)
     }
   }
 
@@ -151,9 +203,23 @@ export default function ProdutoDados({
       prod_empr: parseInt(empresa, 10),
     }
 
+    // Melhor tratamento da imagem
     if (fotoBase64 && typeof fotoBase64 === 'string' && fotoBase64.trim().length > 0) {
-      // Enviar no formato data URL para máxima compatibilidade
-      payload.prod_foto = `data:image/jpeg;base64,${fotoBase64.trim()}`
+      const base64Clean = fotoBase64.trim()
+      
+      // Verifica o tamanho (máximo ~4MB em base64 = ~3MB original)
+      const tamanhoEstimado = (base64Clean.length * 3) / 4
+      console.log(`📦 Tamanho estimado da imagem: ${(tamanhoEstimado / 1024 / 1024).toFixed(2)}MB`)
+      
+      if (tamanhoEstimado > 5 * 1024 * 1024) { // 5MB
+        Alert.alert('Erro', 'Imagem muito grande. Por favor, tire uma foto com menor resolução.')
+        setSalvando(false)
+        return
+      }
+      
+      // Remove prefixo data URL se já existir
+      const base64SemPrefixo = base64Clean.replace(/^data:image\/\w+;base64,/, '')
+      payload.prod_foto = `data:image/jpeg;base64,${base64SemPrefixo}`
     }
 
     // Validação adicional
@@ -184,6 +250,7 @@ export default function ProdutoDados({
     console.log('- Produto código:', produto?.prod_codi)
     console.log('- prod_foto presente:', !!payload.prod_foto)
     console.log('- prod_foto tamanho:', payload.prod_foto ? payload.prod_foto.length : 0)
+    console.log('- Platform:', Platform.OS)
 
     try {
       if (produto?.prod_codi) {
@@ -225,7 +292,8 @@ export default function ProdutoDados({
       console.error('- Status:', err?.response?.status)
       console.error('- Data:', JSON.stringify(err?.response?.data, null, 2))
       console.error('- Headers:', err?.response?.headers)
-      console.error('- Config:', JSON.stringify(err?.config?.data, null, 2))
+      console.error('- Config URL:', err?.config?.url)
+      console.error('- Config Method:', err?.config?.method)
       console.error('- Message:', err?.message)
       
       let errorMessage = 'Erro ao salvar produto.'
@@ -235,7 +303,8 @@ export default function ProdutoDados({
                       `Nome: "${payload.prod_nome}"\n` +
                       `Unidade: "${payload.prod_unme}"\n` +
                       `NCM: "${payload.prod_ncm}"\n` +
-                      `Empresa: ${payload.prod_empr}`
+                      `Empresa: ${payload.prod_empr}\n` +
+                      `Tem foto: ${!!payload.prod_foto}`
       } else if (err?.response?.status === 400) {
         const errorData = err?.response?.data
         if (typeof errorData === 'object') {
@@ -249,12 +318,16 @@ export default function ProdutoDados({
         } else {
           errorMessage = errorData || 'Dados inválidos enviados.'
         }
+      } else if (err?.response?.status === 413) {
+        errorMessage = 'Imagem muito grande. Tire uma foto com menor resolução.'
       } else if (err?.response?.status === 401) {
         errorMessage = 'Sessão expirada. Faça login novamente.'
       } else if (err?.response?.status === 403) {
         errorMessage = 'Você não tem permissão para realizar esta operação.'
       } else if (err?.response?.status === 404) {
         errorMessage = 'Produto não encontrado.'
+      } else if (err.message?.includes('Network')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet.'
       }
       
       Alert.alert('Erro', errorMessage)
@@ -271,6 +344,7 @@ export default function ProdutoDados({
         value={nome}
         onChangeText={setNome}
         style={styles.input}
+        placeholderTextColor="#999"
       />
 
       <Text style={styles.label}>Unidade de Medida</Text>
@@ -299,6 +373,7 @@ export default function ProdutoDados({
         onChangeText={setNcm}
         style={styles.input}
         keyboardType="number-pad"
+        placeholderTextColor="#999"
       />
 
       <Text style={styles.labelImagemProduto}>Imagem do Produto</Text>
@@ -314,13 +389,14 @@ export default function ProdutoDados({
       <View style={styles.buttonRow}>
         <TouchableOpacity
           onPress={tirarFoto}
-          style={[styles.smallButton, { opacity: permissoesImagemOk ? 1 : 0.6 }]}>
+          style={[styles.smallButton, { opacity: permissoesImagemOk ? 1 : 0.6 }]}
+          disabled={!permissoesImagemOk}>
           <Text style={styles.smallButtonText}>Tirar Foto</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={escolherImagem}
           style={[styles.smallButton, { opacity: permissoesImagemOk ? 1 : 0.6 }]}
-        >
+          disabled={!permissoesImagemOk}>
           <Text style={styles.smallButtonText}>Escolher da Galeria</Text>
         </TouchableOpacity>
       </View>
@@ -351,8 +427,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   label: { marginBottom: 4, fontWeight: 'bold', fontSize: 14, color: '#fff' },
-
-  labelImagemProduto: { marginBottom: 10,marginTop: 20, fontWeight: 'bold', fontSize: 14, textAlign: 'center', color: '#fff' },
+  labelImagemProduto: { marginBottom: 10, marginTop: 20, fontWeight: 'bold', fontSize: 14, textAlign: 'center', color: '#fff' },
   button: {
     backgroundColor: '#0058A2',
     padding: 12,

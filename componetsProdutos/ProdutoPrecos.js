@@ -28,13 +28,17 @@ export default function ProdutoPrecos({
   const atualizarProduto = paramAtualizarProduto || propAtualizarProduto
 
   const [precoCompra, setPrecoCompra] = useState('')
-  const [percentualAVista, setPercentualAVista] = useState('10')
-  const [percentualAPrazo, setPercentualAPrazo] = useState('20')
+  const [percentualAVista, setPercentualAVista] = useState('5')
+  const [percentualAPrazo, setPercentualAPrazo] = useState('10')
   const [precoCusto, setPrecoCusto] = useState('')
   const [aVista, setAVista] = useState('')
   const [aPrazo, setAPrazo] = useState('')
   const [empresaId, setEmpresaId] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // Flags para controlar se os preços foram editados manualmente
+  const [precoVistaEditado, setPrecoVistaEditado] = useState(false)
+  const [precoPrazoEditado, setPrecoPrazoEditado] = useState(false)
 
   useEffect(() => {
     if (!produto || !produto.prod_codi) return
@@ -101,9 +105,36 @@ export default function ProdutoPrecos({
     const pPrazo = parseFloat(percentualAPrazo.replace(',', '.')) || 0
 
     setPrecoCusto(preco.toFixed(2))
-    setAVista((preco * (1 + pVista / 100)).toFixed(2))
-    setAPrazo((preco * (1 + pPrazo / 100)).toFixed(2))
-  }, [precoCompra, percentualAVista, percentualAPrazo])
+    
+    // Só recalcula os preços se não foram editados manualmente
+    if (preco > 0) {
+      if (!precoVistaEditado) {
+        setAVista((preco * (1 + pVista / 100)).toFixed(2))
+      }
+      if (!precoPrazoEditado) {
+        setAPrazo((preco * (1 + pPrazo / 100)).toFixed(2))
+      }
+    }
+  }, [precoCompra, percentualAVista, percentualAPrazo, precoVistaEditado, precoPrazoEditado])
+
+  // Função para recalcular percentuais quando preços à vista/prazo são editados
+  const recalcularPercentuais = () => {
+    const preco = parseFloat(precoCompra.replace(',', '.')) || 0
+    const vista = parseFloat(aVista.replace(',', '.')) || 0
+    const prazo = parseFloat(aPrazo.replace(',', '.')) || 0
+
+    if (preco > 0) {
+      if (vista > 0) {
+        const novoPercVista = ((vista / preco - 1) * 100).toFixed(2)
+        setPercentualAVista(novoPercVista)
+      }
+      
+      if (prazo > 0) {
+        const novoPercPrazo = ((prazo / preco - 1) * 100).toFixed(2)
+        setPercentualAPrazo(novoPercPrazo)
+      }
+    }
+  }
 
   const validarCampos = () => {
     if (!precoCompra || parseFloat(precoCompra) <= 0) {
@@ -236,33 +267,54 @@ export default function ProdutoPrecos({
       <Campo
         label="Preço de Compra"
         value={precoCompra}
-        onChange={(valor) => setPrecoCompra(formatarNumero(valor))}
+        onChange={(valor) => {
+          setPrecoCompra(formatarNumero(valor))
+          // Reset flags quando preço de compra é editado
+          setPrecoVistaEditado(false)
+          setPrecoPrazoEditado(false)
+        }}
         placeholder="0,00"
       />
       <Campo
         label="Percentual à Vista (%)"
         value={percentualAVista}
-        onChange={(valor) => setPercentualAVista(formatarNumero(valor))}
+        onChange={(valor) => {
+          setPercentualAVista(formatarNumero(valor))
+          setPrecoVistaEditado(false) // Reset flag quando percentual é editado
+        }}
         placeholder="0,00"
       />
       <Campo
         label="Percentual a Prazo (%)"
         value={percentualAPrazo}
-        onChange={(valor) => setPercentualAPrazo(formatarNumero(valor))}
+        onChange={(valor) => {
+          setPercentualAPrazo(formatarNumero(valor))
+          setPrecoPrazoEditado(false) // Reset flag quando percentual é editado
+        }}
         placeholder="0,00"
       />
       <Campo
         label="Preço à Vista"
         value={aVista}
-        editable={false}
-        dark
+        onChange={(valor) => {
+          setAVista(formatarNumero(valor))
+          setPrecoVistaEditado(true) // Marca que foi editado manualmente
+          // Recalcula percentual após um pequeno delay para evitar cálculos excessivos
+          setTimeout(recalcularPercentuais, 300)
+        }}
+        editable={true}
         placeholder="0,00"
       />
       <Campo
         label="Preço a Prazo"
         value={aPrazo}
-        editable={false}
-        dark
+        onChange={(valor) => {
+          setAPrazo(formatarNumero(valor))
+          setPrecoPrazoEditado(true) // Marca que foi editado manualmente
+          // Recalcula percentual após um pequeno delay para evitar cálculos excessivos
+          setTimeout(recalcularPercentuais, 300)
+        }}
+        editable={true}
         placeholder="0,00"
       />
 

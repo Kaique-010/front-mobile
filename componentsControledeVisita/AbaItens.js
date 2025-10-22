@@ -162,7 +162,7 @@ export default function AbaItens({ visitaId, formData, empresaId, filialId }) {
 
       setItemForm({
         ...itemForm,
-        item_quan: quantidadeCalculada.toString(),
+        item_quan: quantidadeCalculada.toFixed(2),
         item_unit: response.preco_unitario?.toString() || '0',
         item_caix: response.caixas_necessarias?.toString() || '1',
       })
