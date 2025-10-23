@@ -219,6 +219,12 @@ export const getMenuConfig = (hasModulo) => {
           iconType: 'MaterialCommunityIcons',
           condition: hasModulo('Gerencial'),
         },
+        {
+          name: 'Fluxo de Caixa',
+          route: 'FluxoDeCaixa',
+          icon: 'activity',
+          condition: hasModulo('Gerencial'),
+        },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     gerencial: {

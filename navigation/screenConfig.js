@@ -281,6 +281,11 @@ export const screenConfigs = [
     component: Screens.PropriedadeForm,
     options: createHeaderOptions('Propriedade'),
   },
+  {
+    name: 'FluxoDeCaixa',
+    component: Screens.FluxoDeCaixa,
+    options: createHeaderOptions('Fluxo de Caixa'),
+  },
   // Telas de ordem de serviço
   {
     name: 'PainelAcompanhamento',

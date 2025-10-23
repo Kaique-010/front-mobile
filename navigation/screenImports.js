@@ -153,3 +153,4 @@ export { default as ClienteOrdensServicoDetalhes } from '../componentsClients/Cl
 // Telas de Propriedade
 export { default as PropriedadeForm } from '../componentsFloresta/PropriedadeForm'
 export { default as PropriedadeList } from '../componentsFloresta/PropriedadeList'
+export { default as FluxoDeCaixa } from '../componentsFloresta/FluxoDeCaixa'

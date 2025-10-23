@@ -8,14 +8,11 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-import { apiDelete, apiGet, safeSetItem } from '../utils/api'
+import { apiDelete, apiGet } from '../utils/api'
 import styles from '../styles/listaStyles'
 
-// Cache para listas de casamento
-const LISTAS_CASAMENTO_CACHE_KEY = 'listas_casamento_cache'
-const LISTAS_CASAMENTO_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
+
 
 export default function ListaCasamento({ navigation }) {
   const [listas, setListas] = useState([])
@@ -46,27 +43,6 @@ export default function ListaCasamento({ navigation }) {
   const buscarListas = async () => {
     setIsSearching(true)
     
-    // Verificar cache primeiro (apenas para busca inicial sem filtros)
-    if (!searchTerm) {
-      try {
-        const cacheData = await AsyncStorage.getItem(LISTAS_CASAMENTO_CACHE_KEY)
-        if (cacheData) {
-          const { results, timestamp } = JSON.parse(cacheData)
-          const now = Date.now()
-          
-          if ((now - timestamp) < LISTAS_CASAMENTO_CACHE_DURATION) {
-            console.log('📦 [CACHE-LISTAS] Usando cache para listas de casamento')
-            setListas(results || [])
-            setIsSearching(false)
-            setLoading(false)
-            return
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Erro ao ler cache de listas:', error)
-      }
-    }
-    
     try {
       console.log(`🔍 [LISTAS-CASAMENTO] Buscando listas${searchTerm ? ` para: "${searchTerm}"` : ''}`)
       
@@ -80,20 +56,6 @@ export default function ListaCasamento({ navigation }) {
       const resultados = data.results || []
       console.log(`✅ [LISTAS-CASAMENTO] Encontradas ${resultados.length} listas`)
       setListas(resultados)
-      
-      // Salvar no cache apenas se for busca inicial
-      if (!searchTerm) {
-        try {
-          const cacheData = {
-            results: resultados,
-            timestamp: Date.now()
-          }
-          await safeSetItem(LISTAS_CASAMENTO_CACHE_KEY, JSON.stringify(cacheData))
-          console.log(`💾 [CACHE-LISTAS] Salvadas ${resultados.length} listas no cache`)
-        } catch (error) {
-          console.log('⚠️ Erro ao salvar cache de listas:', error)
-        }
-      }
       
     } catch (error) {
       console.log('❌ Erro ao buscar listas:', error.message)
@@ -119,14 +81,6 @@ export default function ListaCasamento({ navigation }) {
             setListas((prev) =>
               prev.filter((lista) => lista.list_codi !== list_codi)
             )
-            
-            // Limpar cache após exclusão
-            try {
-              await AsyncStorage.removeItem(LISTAS_CASAMENTO_CACHE_KEY)
-              console.log('🗑️ [CACHE-LISTAS] Cache limpo após exclusão')
-            } catch (error) {
-              console.log('⚠️ Erro ao limpar cache:', error)
-            }
             
           } catch (error) {
             console.log(

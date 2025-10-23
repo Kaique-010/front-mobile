@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Picker } from '@react-native-picker/picker'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { apiPostComContexto, apiPutComContexto } from '../utils/api'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import styles from '../styles/listaStyles'
@@ -24,6 +25,12 @@ export default function ListaCasamentoForm({ route, navigation }) {
   const [clienteSelecionadoTexto, setClienteSelecionadoTexto] = useState(
     cliente_nome && list_noiv ? `${list_noiv} - ${cliente_nome}` : ''
   )
+  
+  // Estados para controlar a exibição dos date pickers
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showDateCasaPicker, setShowDateCasaPicker] = useState(false)
+  const [datePickerMode, setDatePickerMode] = useState('date')
+
   const [form, setForm] = useState({
     list_data: new Date().toISOString().split('T')[0],
     list_data_casa: new Date().toISOString().split('T')[0],
@@ -82,6 +89,7 @@ export default function ListaCasamentoForm({ route, navigation }) {
         setForm((prev) => ({
           ...prev,
           list_data: lista.list_data || prev.list_data,
+          list_data_casa: lista.list_data_casa || prev.list_data_casa,
           list_noiv: lista.list_noiv || prev.list_noiv,
           list_stat: String(lista.list_stat),
           list_nome: lista.list_nome || prev.list_nome,
@@ -107,6 +115,38 @@ export default function ListaCasamentoForm({ route, navigation }) {
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  // Função para converter string de data para objeto Date
+  const stringToDate = (dateString) => {
+    if (!dateString) return new Date()
+    const [year, month, day] = dateString.split('-')
+    return new Date(year, month - 1, day)
+  }
+
+  // Função para converter objeto Date para string no formato YYYY-MM-DD
+  const dateToString = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // Handlers para os date pickers
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false)
+    if (selectedDate) {
+      const dateString = dateToString(selectedDate)
+      handleChange('list_data', dateString)
+    }
+  }
+
+  const onDateCasaChange = (event, selectedDate) => {
+    setShowDateCasaPicker(false)
+    if (selectedDate) {
+      const dateString = dateToString(selectedDate)
+      handleChange('list_data_casa', dateString)
+    }
   }
 
   const [estaSalvando, setEstaSalvando] = useState(false)
@@ -188,24 +228,46 @@ export default function ListaCasamentoForm({ route, navigation }) {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.inner}>
           <Text style={styles.label}>Data de criação</Text>
-          <TextInput
-            style={styles.forminput}
-            value={form.list_data}
-            onChangeText={(text) => handleChange('list_data', text)}
-            placeholder="YYYY-MM-DD"
-          />
+          <TouchableOpacity
+            style={[styles.forminput, { justifyContent: 'center' }]}
+            onPress={() => setShowDatePicker(true)}>
+            <Text style={{ color: '#fff', fontSize: 16 }}>
+              {form.list_data || 'Selecione a data'}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={stringToDate(form.list_data)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onDateChange}
+            />
+          )}
+
           <Text style={styles.label}>Data do Casamento</Text>
-          <TextInput
-            style={styles.forminput}
-            value={form.list_data_casa}
-            onChangeText={(text) => handleChange('list_data_casa', text)}
-            placeholder="YYYY-MM-DD"
-          />
+          <TouchableOpacity
+            style={[styles.forminput, { justifyContent: 'center' }]}
+            onPress={() => setShowDateCasaPicker(true)}>
+            <Text style={{ color: '#fff', fontSize: 16 }}>
+              {form.list_data_casa || 'Selecione a data'}
+            </Text>
+          </TouchableOpacity>
+          {showDateCasaPicker && (
+            <DateTimePicker
+              value={stringToDate(form.list_data_casa)}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onDateCasaChange}
+            />
+          )}
+
           <Text style={styles.label}>Cliente</Text>
 
           <BuscaClienteInput
+            value={clienteSelecionadoTexto}
             onSelect={(item) => {
               const texto = `${item.enti_clie} - ${item.enti_nome}`
+              setClienteSelecionadoTexto(texto)
               setForm((prev) => ({
                 ...prev,
                 list_noiv: item.enti_clie,
