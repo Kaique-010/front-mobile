@@ -88,27 +88,27 @@ export default function PedidoPisosHeader({ pedido = {}, setPedido }) {
       {/* Cliente */}
       <View style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <MaterialIcons name="person" size={12} color="#18b7df" />
-          <Text style={styles.label}>Cliente *</Text>
+          <MaterialIcons name="person" size={12} color="#10a2a7" />
+          <Text style={styles.label}>Cliente</Text>
         </View>
         <BuscaClienteInput
           value={clienteFormatado}
-          onSelect={(cliente) => {
-            console.log('Cliente selecionado:', cliente)
-            setPedido((prev) => {
-              const novoPedido = {
+          onSelect={(item) => {
+            if (!item) {
+              setPedido((prev) => ({
                 ...prev,
-                pedi_clie: cliente.enti_clie || cliente.enti_clie,
-
-                pedi_clie_nome: cliente.enti_nome,
-              }
-              console.log('Novo estado do pedido:', novoPedido)
-              return novoPedido
-            })
+                pedi_clie: null,
+                pedi_clie_nome: null,
+              }))
+              return
+            }
+            setPedido((prev) => ({
+              ...prev,
+              pedi_clie: item.enti_clie,
+              pedi_clie_nome: item.enti_nome,
+            }))
           }}
-          placeholder="Buscar cliente..."
-          loading={carregandoCliente}
-          tipo="cliente"
+          style={styles.searchInput}
         />
       </View>
 
