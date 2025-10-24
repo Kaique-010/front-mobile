@@ -7,7 +7,12 @@ export { default as SelectFilial } from '../screens/SelectFilial'
 export { default as AppNavigator } from './AppNavigator'
 export { default as HomeCliente } from '../screens/HomeCliente'
 export { default as AuditoriaScreen } from '../screens/AuditoriaScreen'
-export { default as AlterarSenhaScreen } from '../screens/AlterarSenhaScreen'
+
+// Componentes de usuários
+export { default as AlterarSenhaScreen } from '../componentsUsuarios/AlterarSenhaScreen'
+export { default as UsuariosList } from '../componentsUsuarios/UsuariosList'
+export { default as UsuarioForm } from '../componentsUsuarios/UsuarioForm'
+
 
 // Telas de produtos
 
@@ -163,3 +168,4 @@ export { default as ClienteOrdensServicoDetalhes } from '../componentsClients/Cl
 export { default as PropriedadeForm } from '../componentsFloresta/PropriedadeForm'
 export { default as PropriedadeList } from '../componentsFloresta/PropriedadeList'
 export { default as FluxoDeCaixa } from '../componentsFloresta/FluxoDeCaixa'
+export { default as DashboardFluxo } from '../componentsFloresta/DashboardFluxo'

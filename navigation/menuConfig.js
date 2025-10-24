@@ -366,6 +366,12 @@ export const getMenuConfig = (hasModulo) => {
           condition: true,
         },
         {
+          name: 'Usuários do Sistema',
+          route: 'UsuariosList',
+          icon: 'users',
+          condition: hasModulo('parametros_admin'),
+        },
+        {
           name: 'Coletor de Estoque',
           route: 'ColetorEstoque',
           icon: 'barcode-scan',

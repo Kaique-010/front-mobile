@@ -42,6 +42,16 @@ export const screenConfigs = [
     component: Screens.AlterarSenhaScreen,
     options: createHeaderOptions('Alterar Senha'),
   },
+  {
+    name: 'UsuariosList',
+    component: Screens.UsuariosList,
+    options: createHeaderOptions('Usuários do Sistema'),
+  },
+  {
+    name: 'UsuarioForm',
+    component: Screens.UsuarioForm,
+    options: createHeaderOptions('Cadastro de Usuário'),
+  },
 
   // Telas de produtos
   {
@@ -301,6 +311,11 @@ export const screenConfigs = [
     name: 'FluxoDeCaixa',
     component: Screens.FluxoDeCaixa,
     options: createHeaderOptions('Fluxo de Caixa'),
+  },
+  {
+    name: 'DashboardFluxo',
+    component: Screens.DashboardFluxo,
+    options: createHeaderOptions('Dashboard - Fluxo de Caixa'),
   },
   // Telas de ordem de serviço
   {
