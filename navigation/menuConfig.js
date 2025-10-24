@@ -401,13 +401,21 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'file-text',
           condition: hasModulo('contratos'),
         },
+        //{
+          //name: 'Lista de Casamento',
+          //route: 'ListaCasamento',
+          //icon: 'heart-multiple',
+          //iconType: 'MaterialCommunityIcons',
+         // condition: hasModulo('listacasamento'),
+        //},
         {
-          name: 'Lista de Casamento',
+          name: 'Listas de Casamento',
           route: 'ListaCasamento',
           icon: 'heart-multiple',
           iconType: 'MaterialCommunityIcons',
           condition: hasModulo('listacasamento'),
         },
+
         {
           name: 'Orçamentos',
           route: 'Orcamentos',

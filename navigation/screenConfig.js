@@ -120,11 +120,27 @@ export const screenConfigs = [
   {
     name: 'ListaCasamentoForm',
     component: Screens.ListaCasamentoForm,
-    options: createHeaderOptions('Lista de Casamento'),
+    options: createHeaderOptions('Listas de Casamento'),
   },
   {
     name: 'ItensListaModal',
     component: Screens.ItensListaModal,
+    options: createHeaderOptions('Adicionar Itens à Lista'),
+  },
+  {
+    name: 'ListaCasamento2',
+    component: Screens.ListaCasamento2,
+    options: createHeaderOptions('Listas de Casamento'),
+  },
+
+  {
+    name: 'ListaCasamentoForm2',
+    component: Screens.ListaCasamentoForm2,
+    options: createHeaderOptions('Listas de Casamento'),
+  },
+  {
+    name: 'ItensListaModal2',
+    component: Screens.ItensListaModal2,
     options: createHeaderOptions('Adicionar Itens à Lista'),
   },
 

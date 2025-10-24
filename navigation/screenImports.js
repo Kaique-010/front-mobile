@@ -28,9 +28,18 @@ export { default as Pedidos } from '../screens/Pedidos'
 export { default as PedidosForm } from '../screens/PedidosForm'
 export { default as Orcamentos } from '../screens/Orcamentos'
 export { default as OrcamentosForm } from '../screens/OrcamentosForm'
+
+// Lista de casamento
 export { default as ListaCasamentoForm } from '../screens/ListaCasamentoForm'
 export { default as ListaCasamento } from '../screens/ListaCasamento'
 export { default as ItensListaModal } from '../screens/ItensListaModal'
+
+export { default as ListaCasamentoForm2 } from '../componentsListaCasamento/ListaCasamentoForm'
+export { default as ListaCasamento2 } from '../componentsListaCasamento/ListaCasamento'
+export { default as ItensListaModal2 } from '../componentsListaCasamento/ItensListaModal'
+
+
+
 
 // Telas de estoque
 export { default as EntradasForm } from '../screens/EntradasForm'
