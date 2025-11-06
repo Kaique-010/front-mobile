@@ -9,12 +9,16 @@ import {
   ScrollView,
 } from 'react-native'
 import { apiGetComContexto, apiPostComContexto } from '../utils/api'
+import ErrorBoundary from '../components/ErrorBoundary'
+import BuscaSetorInput from '../components/BuscaSetorInput'
 import useContextoApp from '../hooks/useContextoApp'
 
-const WorkflowButton = ({ ordem, onOrdemAtualizada }) => {
+const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
   const { usuarioId } = useContextoApp()
   const [proximosSetores, setProximosSetores] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
+  const [modalRetornarVisible, setModalRetornarVisible] = useState(false)
+  const [setorRetornoNome, setSetorRetornoNome] = useState('')
   const [carregando, setCarregando] = useState(false)
   const [podeAvancar, setPodeAvancar] = useState(false)
 
@@ -112,6 +116,54 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada }) => {
     )
   }
 
+  const retornarSetor = async (setorDestino) => {
+    try {
+      setCarregando(true)
+      const response = await apiPostComContexto(
+        `ordemdeservico/ordens/${ordem.orde_nume}/retornar-setor/`,
+        {
+          // Backend aceita setor_origem ou setor_destino
+          setor_origem: setorDestino.codigo || setorDestino?.osfs_codi,
+        }
+      )
+
+      setModalRetornarVisible(false)
+
+      if (response && (response.success || response.ordem)) {
+        Alert.alert('Sucesso', `Ordem retornada para ${setorDestino.nome || setorRetornoNome}`, [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (onOrdemAtualizada) {
+                onOrdemAtualizada(response.ordem || response)
+              }
+            },
+          },
+        ])
+      } else {
+        Alert.alert(
+          'Processado',
+          `Solicitação de retorno para ${setorDestino.nome || setorRetornoNome} foi processada`,
+          [{ text: 'OK' }]
+        )
+      }
+    } catch (error) {
+      console.error('Erro ao retornar setor:', error)
+      if (error.response?.status === 200 || error.response?.data?.success) {
+        Alert.alert('Sucesso', `Ordem retornada para ${setorDestino.nome || setorRetornoNome}`, [
+          { text: 'OK' },
+        ])
+      } else {
+        Alert.alert(
+          'Erro',
+          error.response?.data?.error || error.message || 'Não foi possível retornar a ordem'
+        )
+      }
+    } finally {
+      setCarregando(false)
+    }
+  }
+
   const renderSetorOption = (setor) => (
     <TouchableOpacity
       key={setor.codigo}
@@ -129,20 +181,40 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada }) => {
     </TouchableOpacity>
   )
 
-  if (!podeAvancar || proximosSetores.length === 0) {
+  if ((!podeAvancar || proximosSetores.length === 0) && !onSalvarAlteracoes) {
     return null
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.workflowButton}
-        onPress={() => setModalVisible(true)}
-        disabled={carregando}>
-        <Text style={styles.buttonText}>
-          {carregando ? 'Processando...' : 'Avançar OS'}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.actionsRow}>
+        {onSalvarAlteracoes && (
+          <TouchableOpacity
+            style={styles.workflowButton}
+            onPress={onSalvarAlteracoes}
+            disabled={carregando}>
+            <Text style={styles.buttonText}>Salvar alterações</Text>
+          </TouchableOpacity>
+        )}
+        {podeAvancar && proximosSetores.length > 0 && (
+          <TouchableOpacity
+            style={styles.workflowButton}
+            onPress={() => setModalVisible(true)}
+            disabled={carregando}>
+            <Text style={styles.buttonText}>
+              {carregando ? 'Processando...' : 'Avançar OS'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {podeAvancar && proximosSetores.length > 0 && (
+          <TouchableOpacity
+            style={styles.returnButton}
+            onPress={() => setModalRetornarVisible(true)}
+            disabled={carregando}>
+            <Text style={styles.buttonText}>Retornar OS</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <Modal
         animationType="slide"
@@ -168,6 +240,40 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Modal para retornar para setor anterior */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalRetornarVisible}
+        onRequestClose={() => setModalRetornarVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Retornar Setor</Text>
+            <Text style={styles.modalSubtitle}>
+              Selecione o setor para retornar a OS #{ordem.orde_nume}
+            </Text>
+
+            <ErrorBoundary>
+              <BuscaSetorInput
+                initialValue={setorRetornoNome}
+                onSelect={(setor) => {
+                  const codigo = setor?.osfs_codi
+                  const nome = setor?.osfs_nome
+                  setSetorRetornoNome(nome || '')
+                  retornarSetor({ codigo, nome })
+                }}
+              />
+            </ErrorBoundary>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setModalRetornarVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -175,6 +281,10 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada }) => {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 10,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
   workflowButton: {
     backgroundColor: '#10a2a7',
@@ -190,6 +300,22 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  returnButton: {
+    backgroundColor: '#6c757d',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    marginLeft: 10,
   },
   buttonText: {
     color: '#fff',

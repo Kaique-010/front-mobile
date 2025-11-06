@@ -94,7 +94,7 @@ export default StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   tableHeaderButton: {
     flexDirection: 'row',
@@ -117,12 +117,17 @@ export default StyleSheet.create({
   },
   tableCellText: {
     fontSize: 11,
-    color: '#333',
+    color: '#fff',
+    fontWeight: 'bold',
     textAlign: 'left',
+    marginBottom: 2,
+    lineHeight: 8,
+    marginLeft: 10,
   },
   osNumber: {
     fontWeight: 'bold',
-    color: '#284665',
+    color: '#fff',
+    fontSize: 12,
   },
 
   // Prioridade

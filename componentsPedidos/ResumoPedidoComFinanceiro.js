@@ -222,6 +222,7 @@ export default function ResumoPedidoComFinanceiro({
         pedi_vend: Number(pedido.pedi_vend),
         pedi_data: pedido.pedi_data,
         pedi_fina: Number(pedido.pedi_fina || 0),
+        pedi_form_rece: pedido.pedi_form_rece || '54',
         status: Number(pedido.status || 0),
         pedi_obse: pedido.pedi_obse || '',
         pedi_topr: Number(pedi_topr.toFixed(2)),
@@ -256,7 +257,9 @@ export default function ResumoPedidoComFinanceiro({
         '🎯 [ResumoPedidoComFinanceiro] Payload para salvar:',
         payload
       )
-
+      
+      console.log('🔍 [DEBUG] Campo pedi_form_rece no payload:', payload.pedi_form_rece)
+      console.log('🔍 [DEBUG] Valor original do pedido.pedi_form_rece:', pedido.pedi_form_rece)
       if (pedido.pedi_nume) {
         // Atualizar pedido existente
         await apiPutComContexto(`pedidos/pedidos/${pedido.pedi_nume}/`, payload)
@@ -451,7 +454,7 @@ export default function ResumoPedidoComFinanceiro({
   )
 
   const renderAbaFinanceiro = () => (
-    <FinanceiroPedido pedido={pedido} totalGeral={totalComDescontoGeral} />
+    <FinanceiroPedido pedido={pedido} totalGeral={totalComDescontoGeral} setPedido={setPedido} />
   )
 
   return (

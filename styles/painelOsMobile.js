@@ -34,15 +34,16 @@ export default StyleSheet.create({
     marginBottom: 8,
   },
   indicadorLabelMobile: {
-    fontSize: 10,
-    color: '#666',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000ff',
     marginBottom: 4,
     textAlign: 'center',
   },
   indicadorValorMobile: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#000000ff',
     textAlign: 'center',
   },
   filtrosMobileFiltro: {
@@ -78,8 +79,8 @@ export default StyleSheet.create({
     fontWeight: 'bold',
   },
   filtroButtonTextMobile: {
-    color: 'rgba(11, 11, 11, 0.8)',
-    fontSize: 10,
+    color: 'rgba(0, 0, 0, 0.8)',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   botaoCriarMobile: {
@@ -92,7 +93,8 @@ export default StyleSheet.create({
     justifyContent: 'center',
     elevation: 2,
     width: '23%',
-    marginBottom: 8,
+    marginBottom: 10,
+    marginTop: 10,
   },
   botaoCriarTextMobile: {
     color: '#fff',
@@ -100,6 +102,7 @@ export default StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 4,
   },
+  
 
   // Colunas da tabela mobile
   colOSMobile: { width: '15%' },

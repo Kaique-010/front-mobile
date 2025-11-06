@@ -169,3 +169,9 @@ export { default as PropriedadeForm } from '../componentsFloresta/PropriedadeFor
 export { default as PropriedadeList } from '../componentsFloresta/PropriedadeList'
 export { default as FluxoDeCaixa } from '../componentsFloresta/FluxoDeCaixa'
 export { default as DashboardFluxo } from '../componentsFloresta/DashboardFluxo'
+
+// Telas de Ordem de Serviço Florestal
+export { default as OrdemFlorestalCriacao } from '../componentsFloresta/osFlorestal/OrdemFlorestalCriacao'
+export { default as OrdemListagem } from '../componentsFloresta/osFlorestal/PainelOs'
+export { default as OrdemFlorestalDetalhe } from '../componentsFloresta/osFlorestal/OrdemFlorestalDetalhe'
+

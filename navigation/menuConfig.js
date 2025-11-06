@@ -18,12 +18,12 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'arrow-down-circle',
           condition: hasModulo('Entradas_Estoque'),
         },
-        {
-          name: 'Entradas de Estoque',
-          route: 'EntradasForm',
-          icon: 'arrow-down-circle',
-          condition: hasModulo('Entradas_Estoque'),
-        },
+        //{
+          //name: 'Entradas de Estoque',
+          //route: 'EntradasForm',
+          //icon: 'arrow-down-circle',
+          //condition: hasModulo('Entradas_Estoque'),
+        //},
         {
           name: 'Produtos',
           route: 'Produtos',
@@ -42,12 +42,12 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'arrow-up-circle',
           condition: hasModulo('Saidas_Estoque'),
         },
-        {
-          name: 'Saídas de Estoque',
-          route: 'SaidasForm',
-          icon: 'arrow-up-circle',
-          condition: hasModulo('Saidas_Estoque'),
-        },
+        //{
+         // name: 'Saídas de Estoque',
+          //route: 'SaidasForm',
+          //icon: 'arrow-up-circle',
+          //condition: hasModulo('Saidas_Estoque'),
+        //},
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     consulta: {
@@ -224,6 +224,12 @@ export const getMenuConfig = (hasModulo) => {
           route: 'FluxoDeCaixa',
           icon: 'activity',
           condition: hasModulo('Gerencial'),
+        },
+        {
+          name: 'Ordens Florestal',
+          route: 'OrdensFlorestalList',
+          icon: 'tool',
+          condition: hasModulo('OrdemdeServico'),
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },

@@ -15,6 +15,7 @@ if (!BackHandler.removeEventListener) {
 import { NavigationContainer } from '@react-navigation/native'
 import Toast from 'react-native-toast-message'
 import { NativeBaseProvider } from 'native-base'
+import { PaperProvider } from 'react-native-paper'
 import { NotificacaoProvider } from './notificacoes/NotificacaoContext'
 import MainStackNavigator from './navigation/MainStackNavigator'
 import NotificationOverlay from './components/NotificationOverlay'
@@ -40,21 +41,23 @@ export default function App() {
   }, [])
 
   return (
-    <NativeBaseProvider>
-      <NotificacaoProvider
-        config={{
-          enableWebSocket: false,
-          autoRefresh: false,
-          interval: 360000,
-        }}
-      >
-        <NavigationContainer>
-          <MainStackNavigator />
-          <NotificationOverlay />
+    <PaperProvider>
+      <NativeBaseProvider>
+        <NotificacaoProvider
+          config={{
+            enableWebSocket: false,
+            autoRefresh: false,
+            interval: 360000,
+          }}
+        >
+          <NavigationContainer>
+            <MainStackNavigator />
+            <NotificationOverlay />
 
-          <Toast config={toastConfig} />
-        </NavigationContainer>
-      </NotificacaoProvider>
-    </NativeBaseProvider>
+            <Toast config={toastConfig} />
+          </NavigationContainer>
+        </NotificacaoProvider>
+      </NativeBaseProvider>
+    </PaperProvider>
   )
 }

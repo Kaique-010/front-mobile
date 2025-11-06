@@ -11,6 +11,9 @@ import { MaterialIcons } from '@expo/vector-icons'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
 import { apiGetComContexto } from '../utils/api'
+import DataPicker from '../componetsPisos/DataComponent'
+
+
 
 export default function OrcamentoPisosHeader({ orcamento = {}, setOrcamento }) {
   const [carregandoCliente, setCarregandoCliente] = useState(false)
@@ -58,11 +61,11 @@ export default function OrcamentoPisosHeader({ orcamento = {}, setOrcamento }) {
           <MaterialIcons name="event" size={12} color="#18b7df" />
           <Text style={styles.label}>Data do orçamento</Text>
         </View>
-        <TextInput
-          style={styles.input}
-          value={orcamento?.orca_data ?? ''}
-          onChangeText={(text) =>
-            setOrcamento((prev) => ({ ...prev, orca_data: text }))
+        <DataPicker
+          label="Data do orçamento"
+          valor={orcamento?.orca_data ?? ''}
+          onChange={(date) =>
+            setOrcamento((prev) => ({ ...prev, orca_data: date }))
           }
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#777"
@@ -74,11 +77,11 @@ export default function OrcamentoPisosHeader({ orcamento = {}, setOrcamento }) {
           <MaterialIcons name="event" size={12} color="#18b7df" />
           <Text style={styles.label}>Data de Previsão de Entrega</Text>
         </View>
-        <TextInput
-          style={styles.input}
-          value={orcamento?.orca_data_prev_entr ?? ''}
-          onChangeText={(text) =>
-            setOrcamento((prev) => ({ ...prev, orca_data_prev_entr: text }))
+        <DataPicker
+          label="Data de Previsão de Entrega"
+          valor={orcamento?.orca_data_prev_entr ?? ''}
+          onChange={(date) =>
+            setOrcamento((prev) => ({ ...prev, orca_data_prev_entr: date }))
           }
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#777"

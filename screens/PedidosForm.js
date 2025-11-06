@@ -26,6 +26,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
     pedi_fili: null,
     pedi_forn: null,
     pedi_vend: null,
+    pedi_form_rece: '54',
     pedi_data: new Date().toISOString().split('T')[0],
     pedi_fina: '0',
     status: 0,
@@ -86,6 +87,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
               desconto_valor: Number(item.desconto_valor || 0),
             })),
             pedi_tota: calcularTotal(itens),
+            pedi_form_rece: data.pedi_form_rece || null,
             // Mapear campos de desconto geral
             desconto_geral_aplicado: data.pedi_desc && Number(data.pedi_desc) > 0 ? true : !!data.desconto_geral_aplicado,
             desconto_geral_tipo: data.desconto_geral_tipo || 'percentual',
@@ -106,6 +108,7 @@ export default function TelaPedidoVenda({ route, navigation }) {
             pedi_fili: filialId,
             pedi_forn: null,
             pedi_vend: null,
+            pedi_form_rece: '54',
             pedi_data: new Date().toISOString().split('T')[0],
             pedi_fina: '0',
             status: 0,

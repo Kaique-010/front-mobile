@@ -307,6 +307,25 @@ export const screenConfigs = [
     component: Screens.PropriedadeForm,
     options: createHeaderOptions('Propriedade'),
   },
+
+  // Telas de ordem de serviço florestal
+  {
+    name: 'OrdensFlorestalList',
+    component: Screens.OrdemListagem,
+    options: createHeaderOptions('Ordens Florestal'),
+  },
+  {
+    name: 'OrdemFlorestalCriacao',
+    component: Screens.OrdemFlorestalCriacao,
+    options: createHeaderOptions('Abertura O.F'),
+  },
+  {
+    name: 'OrdemFlorestalDetalhe',
+    component: Screens.OrdemFlorestalDetalhe,
+    options: createHeaderOptions('Detalhes da O.F'),
+  },
+
+  // Telas de fluxo de caixa
   {
     name: 'FluxoDeCaixa',
     component: Screens.FluxoDeCaixa,

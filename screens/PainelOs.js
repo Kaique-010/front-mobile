@@ -32,12 +32,12 @@ const STATUS_OPTIONS = [
 ]
 
 const statusColors = {
-  0: '#d1ecf1',
+  0: '#00a2ffff',
   1: '#fff3cd',
-  21: '#f5c6cb',
-  3: '#d4edda',
-  5: '#f5c6cb',
-  20: '#bee5eb',
+  21: '#ff051eff',
+  3: '#0dec41ff',
+  5: '#f3ef00ff',
+  20: '#0c616eff',
 }
 
 const PRIORIDADE_OPTIONS = [
@@ -546,9 +546,9 @@ const PainelAcompanhamento = ({ navigation }) => {
 
       {/* Indicadores */}
       <View style={indicadoresStyle}>
-        {renderIndicador('Abertas', contadores.abertas, '#d1ecf1')}
-        {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
-        {renderIndicador('Liberadas', contadores.liberadas, '#d4edda')}
+        {renderIndicador('Abertas', contadores.abertas, '#00a2ffff')}
+        {renderIndicador('Atrasadas', contadores.atrasadas, '#ff051eff', '21')}
+        {renderIndicador('Liberadas', contadores.liberadas, '#0dec41ff')}
         {renderIndicador('Total', contadores.total, '#eee')}
         <TouchableOpacity
           style={
@@ -690,11 +690,12 @@ const PainelAcompanhamento = ({ navigation }) => {
           }>
           <TextInput
             placeholder="Buscar por nome do cliente..."
-            placeholderTextColor="#777"
-            style={modoAtual === 'tv' ? styles.inputTV : styles.input}
-            value={searchTerm}
+            placeholderTextColor="#ffffffff"
+            style={[modoAtual === 'tv' ? styles.inputTV : styles.input, { color: '#fff' }]}
+            value={searchTerm} 
             onChangeText={handleSearch}
             returnKeyType="search"
+            
           />
           <TouchableOpacity
             style={

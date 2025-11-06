@@ -199,14 +199,15 @@ export default StyleSheet.create({
 
   tableCellTextTV: {
     fontSize: 15,
-    color: '#333',
+    color: '#fff',
+    fontWeight: 'bold',
     paddingHorizontal: 8,
   },
 
   osNumberTV: {
     fontWeight: 'bold',
     fontSize: 17,
-    color: '#284665',
+    color: '#fff',
   },
 
   prioridadeBadgeTV: {

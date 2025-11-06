@@ -11,6 +11,9 @@ import { MaterialIcons } from '@expo/vector-icons'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
 import { apiGetComContexto } from '../utils/api'
+import DataPicker from '../componetsPisos/DataComponent'
+
+
 
 export default function PedidoPisosHeader({ pedido = {}, setPedido }) {
   const [carregandoCliente, setCarregandoCliente] = useState(false)
@@ -58,11 +61,11 @@ export default function PedidoPisosHeader({ pedido = {}, setPedido }) {
           <MaterialIcons name="event" size={12} color="#18b7df" />
           <Text style={styles.label}>Data do Pedido</Text>
         </View>
-        <TextInput
-          style={styles.input}
-          value={pedido?.pedi_data ?? ''}
-          onChangeText={(text) =>
-            setPedido((prev) => ({ ...prev, pedi_data: text }))
+        <DataPicker
+          label="Data do Pedido"
+          valor={pedido?.pedi_data ?? ''}
+          onChange={(date) =>
+            setPedido((prev) => ({ ...prev, pedi_data: date }))
           }
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#777"
@@ -74,11 +77,11 @@ export default function PedidoPisosHeader({ pedido = {}, setPedido }) {
           <MaterialIcons name="event" size={12} color="#18b7df" />
           <Text style={styles.label}>Data de Previsão de Entrega</Text>
         </View>
-        <TextInput
-          style={styles.input}
-          value={pedido?.pedi_data_prev_entr ?? ''}
-          onChangeText={(text) =>
-            setPedido((prev) => ({ ...prev, pedi_data_prev_entr: text }))
+        <DataPicker
+          label="Data de Previsão de Entrega"
+          valor={pedido?.pedi_data_prev_entr ?? ''}
+          onChange={(date) =>
+            setPedido((prev) => ({ ...prev, pedi_data_prev_entr: date }))
           }
           placeholder="YYYY-MM-DD"
           placeholderTextColor="#777"

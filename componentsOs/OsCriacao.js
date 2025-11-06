@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   TextInput,
+  CheckBox,
+  Modal,
 } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -16,7 +18,7 @@ import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaSetorInput from '../components/BuscaSetorInput'
 import BuscaMarcasInput from '../components/BuscaMarcasInput'
 import ErrorBoundary from '../components/ErrorBoundary'
-import { apiPostComContexto } from '../utils/api'
+import { apiPostComContexto, apiGetComContexto, apiPatchComContexto } from '../utils/api'
 import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
 import AbaForos from '../componentsOs/AbaForos'
@@ -32,10 +34,14 @@ export default function CriarOrdemServico() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitLock, setSubmitLock] = useState(false)
   const submitLockRef = useRef(false)
+  const notaFiscalRef = useRef(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showSetorReprovModal, setShowSetorReprovModal] = useState(false)
+  const [setorReprovNome, setSetorReprovNome] = useState('')
   const [abaAtiva, setAbaAtiva] = useState('cliente')
   const [orde_nume, setNumeroOS] = useState(null)
   const [financeiroGerado, setFinanceiroGerado] = useState(false)
+  const [setorNome, setSetorNome] = useState('')
 
   const [ordemServico, setOrdemServico] = useState({
     orde_nume: '',
@@ -77,6 +83,13 @@ export default function CriarOrdemServico() {
     orde_tens_arma: '',
     orde_corr_arma: '',
     orde_obse: '',
+    orde_nf_entr: '',
+    orde_gara: '',
+    orde_sem_cons: '',
+    orde_data_repr: '',
+    orde_seto_repr: '',
+    orde_fina_ofic: false,
+    orde_stat_orde: '',
   })
 
   const [camposVisiveis, setCamposVisiveis] = useState([])
@@ -155,6 +168,31 @@ export default function CriarOrdemServico() {
     }))
   }
 
+  // Ao marcar Garantia, definir diretamente o setor como 3 (Garantia)
+  const preencherSetorGarantia = async () => {
+    try {
+      handleInputChange('orde_seto', 13)
+      setSetorNome('garantia')
+    } catch (err) {
+      console.error('❌ Erro ao definir setor de Garantia automaticamente:', err)
+    }
+  }
+
+  const marcarFinalizadoOficina = () => {
+    handleInputChange('orde_fina_ofic', true)
+  }
+  // Ao Marcar Setor de Expedição  poder marcar um check de finalizado oficina campo orde_fina_ofic
+  const preencherSetorExpedicao = async () => {
+    try {
+      handleInputChange('orde_seto', 13)
+      setSetorNome('Expedição')
+    } catch (err) {
+      console.error('❌ Erro ao definir setor de Expedição automaticamente:', err)
+    }
+  }
+
+
+
   const validarMudancaAba = (novaAba) => {
     if (financeiroGerado && (novaAba === 'pecas' || novaAba === 'servicos')) {
       Toast.show({
@@ -203,52 +241,6 @@ export default function CriarOrdemServico() {
         text2: 'Por favor, selecione uma data válida',
       })
       return false
-    }
-
-    // Validar campos obrigatórios do tipo selecionado
-    const config = ORDER_FIELDS_CONFIG[ordemServico.orde_tipo]
-    if (config) {
-      console.log(
-        '🔍 Validando campos obrigatórios para tipo:',
-        ordemServico.orde_tipo
-      )
-      const camposObrigatorios = config.campos.filter((c) => c.required)
-      console.log(
-        '📝 Campos obrigatórios encontrados:',
-        camposObrigatorios.map((c) => c.key)
-      )
-
-      for (const campo of camposObrigatorios) {
-        const valor = ordemServico[campo.key]
-        console.log(`🔍 Validando campo ${campo.key}:`, valor)
-
-        // Verificar se o valor existe e não está vazio
-        // Para números, verificar se não é null/undefined/0
-        // Para strings, verificar se não está vazio após trim
-        let valorVazio = false
-
-        if (valor === null || valor === undefined) {
-          valorVazio = true
-        } else if (typeof valor === 'string') {
-          valorVazio = valor.trim() === ''
-        } else if (typeof valor === 'number') {
-          valorVazio = valor === 0 || isNaN(valor)
-        } else {
-          valorVazio = !valor
-        }
-
-        if (valorVazio) {
-          console.log(
-            `❌ Validação falhou: Campo obrigatório vazio - ${campo.key}`
-          )
-          Toast.show({
-            type: 'error',
-            text1: 'Campo obrigatório',
-            text2: `Por favor, preencha o campo: ${campo.label}`,
-          })
-          return false
-        }
-      }
     }
 
     console.log('✅ Validação passou com sucesso!')
@@ -313,7 +305,29 @@ export default function CriarOrdemServico() {
         orde_empr: empresaId?.toString() || '',
         orde_fili: filialId?.toString() || '',
         usua: usuarioId?.toString() || '',
-        orde_seto: ordemServico.orde_seto?.toString() || '',
+        orde_seto: ordemServico.orde_seto !== '' && ordemServico.orde_seto !== null
+          ? Number(ordemServico.orde_seto)
+          : null,
+        orde_nf_entr: ordemServico.orde_nf_entr?.toString() || '',
+        // Sem Conserto: normaliza tipo; Garantia mantém original
+        orde_gara: ordemServico.orde_gara?.toString() || '',
+        orde_sem_cons: ordemServico.orde_sem_cons ? 'S' : '',
+        // Data de reprovação: envia null quando vazia; caso exista, já está em YYYY-MM-DD
+        orde_data_repr:
+          ordemServico.orde_data_repr && ordemServico.orde_data_repr.trim() !== ''
+            ? ordemServico.orde_data_repr
+            : null,
+        orde_seto_repr:
+          ordemServico.orde_seto_repr !== '' && ordemServico.orde_seto_repr !== null
+            ? Number(ordemServico.orde_seto_repr)
+            : null,
+        // API espera string; mapeamos boolean para '1' (true) ou '0' (false)
+        orde_fina_ofic: ordemServico.orde_fina_ofic ? '1' : '0',
+        // Backend espera inteiro em `orde_stat_orde`
+        orde_stat_orde:
+          ordemServico.orde_stat_orde !== '' && ordemServico.orde_stat_orde !== null
+            ? Number(ordemServico.orde_stat_orde)
+            : 0,
       }
 
       // Adiciona apenas campos que têm valor
@@ -345,6 +359,23 @@ export default function CriarOrdemServico() {
 
       if (!data.orde_nume) {
         throw new Error('Número da O.S não retornado pelo servidor')
+      }
+
+      // Garanta status 4 quando setor for 13 (Expedição),
+      // mesmo que o backend normalize o create para 0
+      try {
+        const setorSelecionado = Number(ordemServico.orde_seto)
+        const desejaStatusQuatro = Number(ordemServico.orde_stat_orde) === 4 || setorSelecionado === 13
+        if (desejaStatusQuatro) {
+          console.log('🔧 Aplicando PATCH para forçar orde_stat_orde=4...')
+          await apiPatchComContexto(
+            `ordemdeservico/ordens/${data.orde_nume}/`,
+            { orde_stat_orde: 4 }
+          )
+          console.log('✅ Status atualizado para 4 via PATCH')
+        }
+      } catch (patchErr) {
+        console.warn('⚠️ Não foi possível aplicar PATCH de status 4:', patchErr?.message || patchErr)
       }
 
       setNumeroOS(data.orde_nume)
@@ -485,8 +516,139 @@ export default function CriarOrdemServico() {
         </View>
 
         <View style={{ flex: 1 }}>
+          
           {abaAtiva === 'cliente' && (
             <>
+              <View style={styles.inlineRow}>
+                <View style={styles.rowItem}>
+                  <Text style={styles.rowLabel}>Garantia</Text>
+                  <CheckBox
+                    value={Boolean(ordemServico.orde_gara)}
+                    onValueChange={(value) => {
+                      handleInputChange('orde_gara', value)
+                      if (value) {
+                        preencherSetorGarantia()
+                      }
+                    }}
+                  />
+                </View>
+                <View style={styles.rowItem}>
+                  <Text style={styles.rowLabel}>Sem Conserto</Text>
+                  <CheckBox
+                    value={ordemServico.orde_sem_cons}
+                    onValueChange={(value) => {
+                      handleInputChange('orde_sem_cons', value)
+                      if (value) {
+                        const hoje = new Date().toISOString().split('T')[0]
+                        handleInputChange('orde_data_repr', hoje)
+                        // Abre modal para selecionar setor da reprovação
+                        setShowSetorReprovModal(true)
+                      } else {
+                        handleInputChange('orde_data_repr', '')
+                        handleInputChange('orde_seto_repr', '')
+                        setSetorReprovNome('')
+                        setShowSetorReprovModal(false)
+                      }
+                    }}
+                  />
+                </View>
+                <View style={styles.rowItemDate}>
+                  <Text style={styles.rowLabel}>Reprov.:</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(true)}
+                    style={styles.datePill}>
+                    <Text style={{ color: '#fff' }}>
+                      {ordemServico.orde_data_repr
+                        ? new Date(ordemServico.orde_data_repr).toLocaleDateString()
+                        : 'Selecionar'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {ordemServico.orde_sem_cons ? (
+                  <View style={styles.rowItem}>
+                    <Text style={styles.rowLabel}>Setor:</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowSetorReprovModal(true)}
+                      style={styles.datePill}>
+                      <Text style={{ color: '#fff' }}>
+                        {setorReprovNome
+                          || (ordemServico.orde_seto_repr
+                                ? `Código ${ordemServico.orde_seto_repr}`
+                                : 'Selecionar')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+              
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={new Date(ordemServico.orde_data_repr)}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false)
+                    if (selectedDate) {
+                      handleInputChange(
+                        'orde_data_repr',
+                        selectedDate.toISOString().split('T')[0]
+                      )
+                    }
+                  }}
+                />
+              )}             
+
+              {/* Modal de seleção de setor da reprovação */}
+              <Modal
+                visible={showSetorReprovModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowSetorReprovModal(false)}>
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                  <View
+                    style={{
+                      width: '90%',
+                      backgroundColor: '#1a2f3d',
+                      borderRadius: 12,
+                      padding: 16,
+                    }}>
+                    <Text style={{ color: '#fff', fontSize: 16, marginBottom: 10 }}>
+                      Selecionar Setor da Reprovação
+                    </Text>
+                    <ErrorBoundary>
+                      <BuscaSetorInput
+                        initialValue={setorReprovNome}
+                        onSelect={(setor) => {
+                          const codigo = String(setor?.osfs_codi || '')
+                          const nome = setor?.osfs_nome || ''
+                          handleInputChange('orde_seto_repr', codigo)
+                          setSetorReprovNome(nome)
+                          setShowSetorReprovModal(false)
+                        }}
+                      />
+                    </ErrorBoundary>
+                    <TouchableOpacity
+                      onPress={() => setShowSetorReprovModal(false)}
+                      style={{
+                        backgroundColor: '#10a2a7',
+                        padding: 12,
+                        borderRadius: 8,
+                        alignItems: 'center',
+                        marginTop: 10,
+                      }}>
+                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Fechar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+
               <Text style={styles.label}>
                 Nº da O.S
                 <Text style={styles.required}> *</Text>
@@ -514,6 +676,7 @@ export default function CriarOrdemServico() {
                   {new Date(ordemServico.orde_data_aber).toLocaleDateString()}
                 </Text>
               </TouchableOpacity>
+              
 
               {showDatePicker && (
                 <DateTimePicker
@@ -542,11 +705,38 @@ export default function CriarOrdemServico() {
               />
               <Text style={styles.label}>Setor:</Text>
               <BuscaSetorInput
-                value={ordemServico.orde_seto}
-                tipo="setor"
+                initialValue={setorNome}
                 onSelect={(setor) => {
-                  handleInputChange('orde_seto', setor?.osfs_codi || null)
+                  const codigo = Number(setor?.osfs_codi || null)
+                  const nome = setor?.osfs_nome || ''
+                  handleInputChange('orde_seto', codigo)
+                  setSetorNome(nome)
+
+                  if (codigo === 13) {
+                    // Ao selecionar Expedição (13), marcar finalizado e setar status 4
+                    marcarFinalizadoOficina()
+                    preencherSetorExpedicao()
+                    handleInputChange('orde_stat_orde', 4)
+                  }
                 }}
+              />
+              <Text style={styles.label}>Número da Nota Fiscal de Entrada:</Text>
+              <TextInput
+                ref={notaFiscalRef}
+                style={[
+                  styles.input,
+                  !ordemServico.orde_nf_entr && {
+                    borderColor: '#1a2f3d',
+                    borderWidth: 1,
+                  },
+                ]}
+                value={ordemServico.orde_nf_entr}
+                onChangeText={(text) =>
+                  handleInputChange('orde_nf_entr', text)
+                }
+                placeholder="Digite o número da nota fiscal de entrada"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
               />
               <Text style={styles.label}>Tipo de Ordem:</Text>
               <View
@@ -608,6 +798,7 @@ export default function CriarOrdemServico() {
                   ))}
                 </Picker>
               </View>
+              
 
               {ordemServico.orde_tipo && camposVisiveis.length > 0 && (
                 <>
@@ -623,6 +814,7 @@ export default function CriarOrdemServico() {
                   </View>
                   {camposVisiveis.map(renderCampo)}
                 </>
+
               )}
 
               {!orde_nume && (
@@ -706,6 +898,34 @@ export default function CriarOrdemServico() {
 }
 
 const styles = StyleSheet.create({
+  inlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  rowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rowItemDate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rowLabel: {
+    color: '#fff',
+    fontSize: 14,
+    marginRight: 8,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  datePill: {
+    backgroundColor: '#1a2f3d',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
   osNumeroContainer: {
     flexDirection: 'row',
     alignItems: 'center',

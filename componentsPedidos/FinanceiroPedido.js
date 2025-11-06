@@ -31,7 +31,7 @@ const FORMAS_RECEBIMENTO = [
   { codigo: '60', descricao: 'PIX' },
 ]
 
-export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
+export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedido }) {
   const [loading, setLoading] = useState(false)
   const [titulos, setTitulos] = useState([])
   const [formaPagamento, setFormaPagamento] = useState('54')
@@ -47,6 +47,23 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
   const pedi_forn = pedido?.pedi_forn
   const pedi_empr = pedido?.pedi_empr
   const pedi_fili = pedido?.pedi_fili
+
+  // Sincronizar formaPagamento com o estado do pedido
+  useEffect(() => {
+    if (pedido?.pedi_form_rece) {
+      setFormaPagamento(pedido.pedi_form_rece)
+    }
+  }, [pedido?.pedi_form_rece])
+
+  // Atualizar o estado do pedido quando formaPagamento mudar
+  useEffect(() => {
+    if (setPedido && formaPagamento) {
+      setPedido(prev => ({
+        ...prev,
+        pedi_form_rece: formaPagamento
+      }))
+    }
+  }, [formaPagamento, setPedido])
 
   useEffect(() => {
     console.log('FinanceiroPedido props:', {
@@ -156,11 +173,15 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
         pedi_nume,
         pedi_forn,
         pedi_tota: totalGeral,
-        forma_pagamento: formaPagamento,
+        pedi_form_rece: formaPagamento,
         parcelas: parseInt(parcelas),
         data_base: dataBase.toISOString().split('T')[0],
       }
 
+      console.log('🔍 Payload gerarTitulos:', payload)
+      console.log('📋 Forma de pagamento selecionada:', formaPagamento)
+      const formaDescricao = FORMAS_RECEBIMENTO.find(f => f.codigo === formaPagamento)?.descricao
+      console.log('📝 Descrição da forma:', formaDescricao)
       console.log('Payload para gerar títulos:', payload)
 
       await apiPostComContexto('pedidos/gerar-titulos-pedido/', payload)
@@ -228,12 +249,20 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
 
     try {
       setLoading(true)
-      await apiPostComContexto('pedidos/atualizar-titulo-pedido/', {
+      const payload = {
         pedi_nume,
         parcela: tituloEmEdicao.parcela,
         valor: parseFloat(tituloEmEdicao.valor),
         vencimento: tituloEmEdicao.vencimento,
-      })
+        pedi_form_rece: formaPagamento,
+      }
+
+      console.log('🔍 Payload salvarEdicaoTitulo:', payload)
+      console.log('📋 Forma de pagamento na edição:', formaPagamento)
+      const formaDescricao = FORMAS_RECEBIMENTO.find(f => f.codigo === formaPagamento)?.descricao
+      console.log('📝 Descrição da forma na edição:', formaDescricao)
+
+      await apiPostComContexto('pedidos/atualizar-titulo-pedido/', payload)
 
       Toast.show({
         type: 'success',
@@ -422,7 +451,10 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0 }) {
                 <View style={styles.tituloRow}>
                   <Text style={styles.tituloLabel}>Forma de Pagamento:</Text>
                   <Text style={styles.tituloValor}>
-                    {titulo.forma_pagamento || 'N/A'}
+                    {(() => {
+                      const forma = FORMAS_RECEBIMENTO.find(f => f.codigo === titulo.forma_pagamento)
+                      return forma ? `${forma.codigo} - ${forma.descricao}` : titulo.forma_pagamento || 'N/A'
+                    })()}
                   </Text>
                 </View>
                 <View style={styles.tituloRow}>
