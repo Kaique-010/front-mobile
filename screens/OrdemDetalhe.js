@@ -7,9 +7,9 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  CheckBox,
   Alert,
 } from 'react-native'
+import CrossCheckbox from '../components/CrossCheckbox'
 import Toast from 'react-native-toast-message'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import AbaPecas from '../componentsOs/AbaPecas'
@@ -90,11 +90,11 @@ const OrdemDetalhe = ({ route }) => {
       // Campos gerais editáveis (omitimos strings vazias e garantimos tipos)
       if (has(formEdicao.orde_gara)) {
         const v = formEdicao.orde_gara
-        payload.orde_gara = v === true || v === 'S'
+        payload.orde_gara = (v === true || v === 'S' || v === 1 || v === '1') ? 1 : 0
       }
       if (has(formEdicao.orde_sem_cons)) {
         const v = formEdicao.orde_sem_cons
-        payload.orde_sem_cons = v === true || v === 'S'
+        payload.orde_sem_cons = (v === true || v === 'S' || v === 1 || v === '1') ? 1 : 0
       }
       if (has(formEdicao.orde_data_repr)) {
         const v = formEdicao.orde_data_repr
@@ -197,14 +197,14 @@ const OrdemDetalhe = ({ route }) => {
         <View style={styles.inlineRow}>
           <View style={styles.rowItem}>
             <Text style={styles.rowLabel}>Garantia</Text>
-            <CheckBox
+            <CrossCheckbox
               value={Boolean(formEdicao.orde_gara)}
               onValueChange={(value) => setFormEdicao((prev) => ({ ...prev, orde_gara: value ? 'S' : '' }))}
             />
           </View>
           <View style={styles.rowItem}>
             <Text style={styles.rowLabel}>Sem Conserto</Text>
-              <CheckBox
+              <CrossCheckbox
                 value={Boolean(formEdicao.orde_sem_cons)}
                 onValueChange={(value) => {
                   setFormEdicao((prev) => ({ ...prev, orde_sem_cons: value ? 'S' : '' }))

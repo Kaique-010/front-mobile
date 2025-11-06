@@ -111,7 +111,7 @@ eas build -p android --profile preview
 Para rodar o apk da aplicação geramos o comando eas build -p android --profile preview
 
 e para gerar o aab
-eas build --platform android
+eas build --platform android --profile production
 
 ## deploy na apple com o eas
 

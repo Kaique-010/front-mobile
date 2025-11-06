@@ -7,9 +7,9 @@ import {
   ActivityIndicator,
   StyleSheet,
   TextInput,
-  CheckBox,
   Modal,
 } from 'react-native'
+import CrossCheckbox from '../components/CrossCheckbox'
 import { Picker } from '@react-native-picker/picker'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
@@ -522,7 +522,7 @@ export default function CriarOrdemServico() {
               <View style={styles.inlineRow}>
                 <View style={styles.rowItem}>
                   <Text style={styles.rowLabel}>Garantia</Text>
-                  <CheckBox
+                  <CrossCheckbox
                     value={Boolean(ordemServico.orde_gara)}
                     onValueChange={(value) => {
                       handleInputChange('orde_gara', value)
@@ -534,7 +534,7 @@ export default function CriarOrdemServico() {
                 </View>
                 <View style={styles.rowItem}>
                   <Text style={styles.rowLabel}>Sem Conserto</Text>
-                  <CheckBox
+                  <CrossCheckbox
                     value={ordemServico.orde_sem_cons}
                     onValueChange={(value) => {
                       handleInputChange('orde_sem_cons', value)
