@@ -222,15 +222,15 @@ const OrdemDetalhe = ({ route }) => {
           </View>
           <View style={styles.rowItemDate}>
             <Text style={styles.rowLabel}>Reprov.:</Text>
-            <TouchableOpacity
-              onPress={() => setShowDatePickerReprov(true)}
-              style={styles.datePill}>
-              <Text style={{ color: '#fff' }}>
+              <TouchableOpacity
+                onPress={() => setShowDatePickerReprov(true)}
+                style={styles.datePill}>
+              <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
                 {formEdicao.orde_data_repr
                   ? new Date(formEdicao.orde_data_repr).toLocaleDateString()
                   : 'Selecionar'}
               </Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
           </View>
           {Boolean(formEdicao.orde_sem_cons) ? (
             <View style={styles.rowItem}>
@@ -238,7 +238,7 @@ const OrdemDetalhe = ({ route }) => {
               <TouchableOpacity
                 onPress={() => setShowSetorReprovModal(true)}
                 style={styles.datePill}>
-                <Text style={{ color: '#fff' }}>
+                <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
                   {setorReprovNome || (formEdicao.orde_seto_repr ? `Código ${formEdicao.orde_seto_repr}` : 'Selecionar')}
                 </Text>
               </TouchableOpacity>
@@ -754,17 +754,24 @@ const styles = StyleSheet.create({
   inlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
     marginTop: 10,
     marginBottom: 10,
   },
   rowItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 12,
+    marginBottom: 8,
+    flexShrink: 1,
   },
   rowItemDate: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 12,
+    marginBottom: 8,
+    flexShrink: 1,
   },
   rowLabel: {
     color: '#fff',
@@ -778,6 +785,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
+    flexShrink: 1,
+    maxWidth: 180,
   },
   modalContainer: {
     flex: 1,
@@ -910,10 +919,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   workflowButton: {
-    marginBottom: 0,
+    marginBottom: 15,
     marginTop: 20,
     paddingHorizontal: 15,
-
+    paddingVertical: 12,
+    borderRadius: 6,
     alignSelf: 'flex-end',
   },
 })

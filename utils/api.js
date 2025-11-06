@@ -309,8 +309,9 @@ export const apiPostComContextoList = async (
 
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
-
-  const response = await apiFetch(fullEndpoint, 'post', payloadComContexto)
+  // Contexto é enviado via headers (X-Empresa, X-Filial, X-Docu) por getAuthHeaders
+  // Portanto, podemos enviar a lista diretamente
+  const response = await apiFetch(fullEndpoint, 'post', lista)
   return response.data
 }
 
@@ -503,9 +504,25 @@ export async function fetchSlugMap() {
 }
 
 const getSlug = async () => {
-  const slug = await AsyncStorage.getItem('slug')
-  if (!slug) throw new Error('Slug não encontrado no AsyncStorage')
-  return slug
+  let slug = await AsyncStorage.getItem('slug')
+  if (slug) return slug
+
+  // Fallback: tentar derivar via CNPJ (docu) e mapa de slugs
+  try {
+    const docu = await AsyncStorage.getItem('docu')
+    if (!docu) throw new Error('CNPJ não encontrado para derivar slug')
+
+    const map = await fetchSlugMap()
+    const derived = map[docu]
+    if (derived) {
+      await safeSetItem('slug', derived)
+      return derived
+    }
+    throw new Error('Slug não encontrado para o CNPJ informado')
+  } catch (err) {
+    // Propagar erro com mensagem clara, para ser tratado no fluxo de UI
+    throw new Error(`Slug indisponível: ${err.message}`)
+  }
 }
 
 export const request = async ({ method, endpoint, data = {}, params = {} }) => {

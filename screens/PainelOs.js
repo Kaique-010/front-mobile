@@ -34,7 +34,7 @@ const STATUS_OPTIONS = [
 const statusColors = {
   0: '#00a2ffff',
   1: '#fff3cd',
-  21: '#ff051eff',
+  21: '#d85a67ff',
   3: '#0dec41ff',
   5: '#f3ef00ff',
   20: '#0c616eff',
@@ -547,7 +547,7 @@ const PainelAcompanhamento = ({ navigation }) => {
       {/* Indicadores */}
       <View style={indicadoresStyle}>
         {renderIndicador('Abertas', contadores.abertas, '#00a2ffff')}
-        {renderIndicador('Atrasadas', contadores.atrasadas, '#ff051eff', '21')}
+        {renderIndicador('Atrasadas', contadores.atrasadas, '#d85a67ff', '21')}
         {renderIndicador('Liberadas', contadores.liberadas, '#0dec41ff')}
         {renderIndicador('Total', contadores.total, '#eee')}
         <TouchableOpacity
@@ -602,7 +602,7 @@ const PainelAcompanhamento = ({ navigation }) => {
                         ? statusColors[value] || '#f0f0f0'
                         : '#f0f0f0',
                     borderColor:
-                      filtroStatus === value ? '#284665' : 'transparent',
+                      filtroStatus === value ? '#000000ff' : 'transparent',
                     borderWidth: filtroStatus === value ? 3 : 2,
                   },
                 ]}
@@ -701,7 +701,7 @@ const PainelAcompanhamento = ({ navigation }) => {
             style={
               modoAtual === 'tv' ? styles.searchButtonTV : styles.searchButton
             }
-            onPress={() => setSearchValue(searchTerm)}>
+            onPress={() => fetchOrdens({ cliente_nome: searchTerm })}>
             <Text
               style={
                 modoAtual === 'tv'

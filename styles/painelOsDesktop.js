@@ -18,7 +18,7 @@ export default StyleSheet.create({
     paddingVertical: 6,
   },
   filtros: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 8,
     padding: 10,
     marginBottom: 8,
@@ -30,7 +30,7 @@ export default StyleSheet.create({
     borderRadius: 15,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(0, 0, 0, 0.3)',
   },
   filtroButtonText: {
     color: '#000',
@@ -40,7 +40,7 @@ export default StyleSheet.create({
   titulo: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: 'rgba(0, 0, 0, 0.3)',
     marginBottom: 8,
   },
 

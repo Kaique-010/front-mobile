@@ -55,10 +55,12 @@ export default StyleSheet.create({
     fontSize: 9,
     marginBottom: 2,
     opacity: 0.7,
+    color: '#000000ff',
   },
   indicadorValor: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#000000ff',
   },
 
   // Filtros
@@ -71,6 +73,7 @@ export default StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 3,
   },
+  
   filtroScroll: {
     flexDirection: 'row',
   },
@@ -94,7 +97,7 @@ export default StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 12,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   tableHeaderButton: {
     flexDirection: 'row',
@@ -117,16 +120,15 @@ export default StyleSheet.create({
   },
   tableCellText: {
     fontSize: 11,
-    color: '#fff',
+    color: '#000000ff',
     fontWeight: 'bold',
     textAlign: 'left',
     marginBottom: 2,
-    lineHeight: 8,
     marginLeft: 10,
   },
   osNumber: {
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#070707ff',
     fontSize: 12,
   },
 
@@ -207,7 +209,7 @@ export default StyleSheet.create({
   },
   statusLabel: {
     fontSize: 10,
-    color: '#666',
+    color: '#000000ff',
   },
   status: {
     fontSize: 10,

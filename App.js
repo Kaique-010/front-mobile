@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { BackHandler, Platform, StatusBar } from 'react-native'
+import { BackHandler, Platform, StatusBar, NativeModules } from 'react-native'
 import { LogBox } from 'react-native'
 LogBox.ignoreLogs(['Warning: ...'])
 LogBox.ignoreAllLogs()
@@ -13,6 +13,7 @@ if (!BackHandler.removeEventListener) {
 }
 
 import { NavigationContainer } from '@react-navigation/native'
+import ErrorBoundary from './components/ErrorBoundary'
 import Toast from 'react-native-toast-message'
 import { NativeBaseProvider } from 'native-base'
 import { PaperProvider } from 'react-native-paper'
@@ -20,20 +21,33 @@ import { NotificacaoProvider } from './notificacoes/NotificacaoContext'
 import MainStackNavigator from './navigation/MainStackNavigator'
 import NotificationOverlay from './components/NotificationOverlay'
 import { toastConfig } from './config/toastConfig'
-import * as ScreenOrientation from 'expo-screen-orientation'
+// Removido import direto de ScreenOrientation para evitar crash em binários
+// que não possuem o módulo nativo; será carregado dinamicamente com guarda
 
 export default function App() {
   useEffect(() => {
     async function setScreenOrientation() {
-      if (Platform.isTV) {
-        // CORREÇÃO: O valor correto é LANDSCAPE
-        await ScreenOrientation.lockAsync(
-          ScreenOrientation.OrientationLock.LANDSCAPE
-        )
-      } else {
-        await ScreenOrientation.lockAsync(
-          ScreenOrientation.OrientationLock.PORTRAIT_UP
-        )
+      try {
+        const hasOrientationModule = !!NativeModules.ExpoScreenOrientation
+        if (!hasOrientationModule) {
+          // Módulo não presente no binário atual; segue sem aplicar lock
+          return
+        }
+
+        const ScreenOrientation = await import('expo-screen-orientation')
+
+        if (Platform.isTV) {
+          await ScreenOrientation.lockAsync(
+            ScreenOrientation.OrientationLock.LANDSCAPE
+          )
+        } else {
+          await ScreenOrientation.lockAsync(
+            ScreenOrientation.OrientationLock.PORTRAIT_UP
+          )
+        }
+      } catch (err) {
+        // Falha ao carregar/aplicar orientação — não bloqueia inicialização
+        console.log('[Orientation] módulo indisponível, seguindo sem lock:', err?.message || err)
       }
     }
 
@@ -50,12 +64,14 @@ export default function App() {
             interval: 360000,
           }}
         >
-          <NavigationContainer>
-            <MainStackNavigator />
-            <NotificationOverlay />
+          <ErrorBoundary>
+            <NavigationContainer>
+              <MainStackNavigator />
+              <NotificationOverlay />
 
-            <Toast config={toastConfig} />
-          </NavigationContainer>
+              <Toast config={toastConfig} />
+            </NavigationContainer>
+          </ErrorBoundary>
         </NotificacaoProvider>
       </NativeBaseProvider>
     </PaperProvider>

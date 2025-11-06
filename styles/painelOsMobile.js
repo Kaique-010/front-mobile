@@ -34,7 +34,7 @@ export default StyleSheet.create({
     marginBottom: 8,
   },
   indicadorLabelMobile: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#000000ff',
     marginBottom: 4,
