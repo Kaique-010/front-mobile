@@ -58,7 +58,7 @@ export default StyleSheet.create({
     color: '#000000ff',
   },
   indicadorValor: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000000ff',
   },
@@ -68,7 +68,7 @@ export default StyleSheet.create({
     marginBottom: 2,
   },
   filtroLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#fff',
     fontWeight: 'bold',
     marginBottom: 3,

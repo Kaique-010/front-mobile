@@ -34,20 +34,20 @@ export default StyleSheet.create({
     marginBottom: 8,
   },
   indicadorLabelMobile: {
-    fontSize: 12,
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#000000ff',
     marginBottom: 4,
     textAlign: 'center',
   },
   indicadorValorMobile: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000000ff',
     textAlign: 'center',
   },
   filtrosMobileFiltro: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#fff',
     fontWeight: 'bold',
   },
@@ -80,7 +80,7 @@ export default StyleSheet.create({
   },
   filtroButtonTextMobile: {
     color: 'rgba(0, 0, 0, 0.8)',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
   },
   botaoCriarMobile: {
