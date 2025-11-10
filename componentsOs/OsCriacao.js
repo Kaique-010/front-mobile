@@ -305,9 +305,10 @@ export default function CriarOrdemServico() {
         orde_empr: empresaId?.toString() || '',
         orde_fili: filialId?.toString() || '',
         usua: usuarioId?.toString() || '',
+        // Defaultar setor para 1 quando não informado
         orde_seto: ordemServico.orde_seto !== '' && ordemServico.orde_seto !== null
           ? Number(ordemServico.orde_seto)
-          : null,
+          : 1,
         orde_nf_entr: ordemServico.orde_nf_entr?.toString() || '',
         // Sem Conserto: normaliza tipo; Garantia mantém original
         orde_gara: ordemServico.orde_gara?.toString() || '',
