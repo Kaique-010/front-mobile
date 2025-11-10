@@ -9,13 +9,13 @@ import {
   ScrollView,
 } from 'react-native'
 import { apiGetComContexto, apiPostComContexto } from '../utils/api'
-import ErrorBoundary from '../components/ErrorBoundary'
-import BuscaSetorInput from '../components/BuscaSetorInput'
+// Removidos componentes de busca para usar a lista de setores anteriores
 import useContextoApp from '../hooks/useContextoApp'
 
 const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
   const { usuarioId } = useContextoApp()
   const [proximosSetores, setProximosSetores] = useState([])
+  const [setoresAnteriores, setSetoresAnteriores] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
   const [modalRetornarVisible, setModalRetornarVisible] = useState(false)
   const [setorRetornoNome, setSetorRetornoNome] = useState('')
@@ -25,6 +25,7 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
   useEffect(() => {
     verificarPermissoes()
     carregarProximosSetores()
+    carregarSetoresAnteriores()
   }, [ordem])
 
   const verificarPermissoes = () => {
@@ -45,6 +46,17 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
       setProximosSetores(response.proximos_setores || [])
     } catch (error) {
       console.error('Erro ao carregar próximos setores:', error)
+    }
+  }
+
+  const carregarSetoresAnteriores = async () => {
+    try {
+      const response = await apiGetComContexto(
+        `ordemdeservico/ordens/${ordem.orde_nume}/anteriores-setores/`
+      )
+      setSetoresAnteriores(response.anteriores_setores || [])
+    } catch (error) {
+      console.error('Erro ao carregar setores anteriores:', error)
     }
   }
 
@@ -116,6 +128,20 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
     )
   }
 
+  const confirmarRetorno = (setor) => {
+    Alert.alert(
+      'Confirmar Retorno',
+      `Deseja retornar a ordem para ${setor.nome}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: () => retornarSetor(setor),
+        },
+      ]
+    )
+  }
+
   const retornarSetor = async (setorDestino) => {
     try {
       setCarregando(true)
@@ -181,6 +207,22 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
     </TouchableOpacity>
   )
 
+  const renderSetorAnteriorOption = (setor) => (
+    <TouchableOpacity
+      key={setor.codigo}
+      style={styles.setorOption}
+      onPress={() => confirmarRetorno(setor)}
+      disabled={carregando}>
+      <View style={styles.setorInfo}>
+        <Text style={styles.setorNome}>{setor.nome}</Text>
+        <Text style={styles.setorCodigo}>Código: {setor.codigo}</Text>
+      </View>
+      <View style={styles.setorArrow}>
+        <Text style={styles.arrowText}>←</Text>
+      </View>
+    </TouchableOpacity>
+  )
+
   if ((!podeAvancar || proximosSetores.length === 0) && !onSalvarAlteracoes) {
     return null
   }
@@ -206,7 +248,7 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
             </Text>
           </TouchableOpacity>
         )}
-        {podeAvancar && proximosSetores.length > 0 && (
+        {setoresAnteriores.length > 0 && (
           <TouchableOpacity
             style={styles.returnButton}
             onPress={() => setModalRetornarVisible(true)}
@@ -241,7 +283,7 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
         </View>
       </Modal>
 
-      {/* Modal para retornar para setor anterior */}
+      {/* Modal para retornar para setor anterior (lista como próximos) */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -253,18 +295,9 @@ const WorkflowButton = ({ ordem, onOrdemAtualizada, onSalvarAlteracoes }) => {
             <Text style={styles.modalSubtitle}>
               Selecione o setor para retornar a OS #{ordem.orde_nume}
             </Text>
-
-            <ErrorBoundary>
-              <BuscaSetorInput
-                initialValue={setorRetornoNome}
-                onSelect={(setor) => {
-                  const codigo = setor?.osfs_codi
-                  const nome = setor?.osfs_nome
-                  setSetorRetornoNome(nome || '')
-                  retornarSetor({ codigo, nome })
-                }}
-              />
-            </ErrorBoundary>
+            <ScrollView style={styles.setoresList}>
+              {setoresAnteriores.map(renderSetorAnteriorOption)}
+            </ScrollView>
 
             <TouchableOpacity
               style={styles.cancelButton}

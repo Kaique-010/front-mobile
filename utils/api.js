@@ -1,10 +1,18 @@
 import { useState } from 'react'
+// import { Platform } from 'react-native'
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
 // NetInfo removido - não está instalado
 
-export const BASE_URL = 'https://mobile-sps.site'//'http://175.25.0.18:8000'//'https://mobile-sps.site' 
+// BASE_URL manual; altere conforme ambiente
+export const BASE_URL = 'https://mobile-sps.site'
+// export const BASE_URL = 'http://172.25.0.18:8000' // Android emulador - dev local
+// export const BASE_URL = 'http://localhost:8000' // iOS/desktop - dev local
+// export const BASE_URL = 'http://192.168.0.10:8000' // Dispositivo físico na rede
+// export const BASE_URL = 'https://mobile-sps.site' // Produção
+
+
 const refreshToken = async () => {
   const refresh = await AsyncStorage.getItem('refresh')
 
@@ -13,17 +21,10 @@ const refreshToken = async () => {
   const { slug, userType } = await getStoredData()
 
   try {
-    let endpoint
-    let headers = {}
+    // Unificar refresh para ambos os tipos via endpoint padrão JWT
+    const endpoint = `${BASE_URL}/api/${slug}/auth/token/refresh/`
 
-    if (userType === 'cliente') {
-      endpoint = `${BASE_URL}/api/${slug}/entidades/refresh/`
-    } else {
-      endpoint = `${BASE_URL}/api/${slug}/auth/token/refresh/`
-      headers = await getAuthHeaders()
-    }
-
-    const response = await axios.post(endpoint, { refresh }, { headers })
+    const response = await axios.post(endpoint, { refresh })
 
     const newAccess = response.data.access
 
@@ -161,7 +162,9 @@ const apiFetch = async (
         const headersExtras = await getAuthHeaders()
         const newConfig = {
           method,
-          url: `${BASE_URL}${endpoint}`,
+          url: `${BASE_URL}/${
+            endpoint.startsWith('/') ? endpoint.substring(1) : endpoint
+          }`,
           headers: {
             Authorization: `Bearer ${newToken}`,
             ...headersExtras,

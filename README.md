@@ -122,6 +122,7 @@ eas build -p ios --profile production
 
 e enviar ele para o IPO em:
 eas submit -p ios --profile production
+eas build -p ios --profile production --auto-submit
 
 ## Em caso de erros
 

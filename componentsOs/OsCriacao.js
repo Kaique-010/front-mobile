@@ -220,7 +220,7 @@ export default function CriarOrdemServico() {
     console.log('📋 Dados para validação:', {
       orde_enti: ordemServico.orde_enti,
       orde_data_aber: ordemServico.orde_data_aber,
-      orde_tipo: ordemServico.orde_tipo,
+   
     })
 
     if (!ordemServico.orde_enti) {
@@ -301,7 +301,7 @@ export default function CriarOrdemServico() {
         orde_nume: ordemServico.orde_nume,
         orde_enti: ordemServico.orde_enti,
         orde_data_aber: ordemServico.orde_data_aber,
-        orde_tipo: ordemServico.orde_tipo,
+        orde_tipo: ordemServico.orde_tipo?.toString() || '1',
         orde_empr: empresaId?.toString() || '',
         orde_fili: filialId?.toString() || '',
         usua: usuarioId?.toString() || '',
@@ -557,7 +557,7 @@ export default function CriarOrdemServico() {
                   <TouchableOpacity
                     onPress={() => setShowDatePicker(true)}
                     style={styles.datePill}>
-                    <Text style={{ color: '#fff' }}>
+                    <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
                       {ordemServico.orde_data_repr
                         ? new Date(ordemServico.orde_data_repr).toLocaleDateString()
                         : 'Selecionar'}
@@ -570,7 +570,7 @@ export default function CriarOrdemServico() {
                     <TouchableOpacity
                       onPress={() => setShowSetorReprovModal(true)}
                       style={styles.datePill}>
-                      <Text style={{ color: '#fff' }}>
+                      <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
                         {setorReprovNome
                           || (ordemServico.orde_seto_repr
                                 ? `Código ${ordemServico.orde_seto_repr}`
@@ -901,17 +901,24 @@ const styles = StyleSheet.create({
   inlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
     marginTop: 10,
     marginBottom: 10,
   },
   rowItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 12,
+    marginBottom: 8,
+    flexShrink: 1,
   },
   rowItemDate: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 12,
+    marginBottom: 8,
+    flexShrink: 1,
   },
   rowLabel: {
     color: '#fff',
@@ -925,6 +932,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
+    flexShrink: 1,
+    maxWidth: 180,
   },
   osNumeroContainer: {
     flexDirection: 'row',

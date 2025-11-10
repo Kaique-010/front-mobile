@@ -17,6 +17,42 @@ import { MotiView, MotiText } from 'moti'
 import useClienteAuth from '../hooks/useClienteAuth'
 import Toast from 'react-native-toast-message'
 
+// Cache para dados de empresas
+const EMPRESAS_CACHE_KEY = 'empresas_login_cache'
+const EMPRESAS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
+
+// Função para buscar empresas com cache (rota nova com slug)
+const buscarEmpresasComCache = async () => {
+  try {
+    // Resolve slug a partir do CNPJ salvo
+    const docu = await AsyncStorage.getItem('docu')
+    const slugMap = await fetchSlugMap()
+    const slug = slugMap?.[docu]
+
+    if (!slug) {
+      throw new Error('Slug não encontrado para o CNPJ informado')
+    }
+
+    const response = await fetch(`${BASE_URL}/api/${slug}/licencas/empresas/`)
+    const empresas = await response.json()
+
+    // Salvar no cache
+    const cacheData = {
+      empresas,
+      timestamp: Date.now(),
+    }
+    await safeSetItem(EMPRESAS_CACHE_KEY, JSON.stringify(cacheData))
+    console.log(
+      `💾 [CACHE-LOGIN] Salvadas ${empresas.length} empresas no cache`
+    )
+
+    return empresas
+  } catch (error) {
+    console.log('❌ Erro ao buscar empresas:', error)
+    return []
+  }
+}
+
 export default function Login({ navigation }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -25,18 +61,17 @@ export default function Login({ navigation }) {
   const [isLoading, setIsLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState('')
   const [modulos, setModulos] = useState([])
-  const [isClienteLogin, setIsClienteLogin] = useState(false)
-  const [documento, setDocumento] = useState('')
-  const [usuario, setUsuario] = useState('')
-  const [senha, setSenha] = useState('')
-  
+  const [isClienteLogin, setIsClienteLogin] = useState(false) // Checkbox para cliente
+  const [documento, setDocumento] = useState('') // Para login de cliente
+  const [usuario, setUsuario] = useState('') // Para login de cliente
+  const [senha, setSenha] = useState('') // Para login de cliente
+  const [setor, setSetor] = useState('') // Setor do usuário
   const {
     login: clienteLogin,
     loading: clienteAuthLoading,
     error: clienteAuthError,
   } = useClienteAuth()
 
-  // ✅ Carregar apenas dados básicos salvos
   useEffect(() => {
     const carregarDadosSalvos = async () => {
       try {
@@ -44,11 +79,15 @@ export default function Login({ navigation }) {
         const usernameSalvo = await AsyncStorage.getItem('username')
         const documentoSalvo = await AsyncStorage.getItem('documento')
         const usuarioSalvo = await AsyncStorage.getItem('usuario')
+        const senhaSalvo = await AsyncStorage.getItem('senha')
+        const setorSalvo = await AsyncStorage.getItem('setor')
 
         if (docuSalvo) setDocu(docuSalvo)
         if (usernameSalvo) setUsername(usernameSalvo)
         if (documentoSalvo) setDocumento(documentoSalvo)
         if (usuarioSalvo) setUsuario(usuarioSalvo)
+        if (senhaSalvo) setSenha(senhaSalvo)
+        if (setorSalvo) setSetor(setorSalvo)
       } catch (e) {
         console.error('Erro ao carregar dados salvos do AsyncStorage', e)
       }
@@ -73,7 +112,9 @@ export default function Login({ navigation }) {
 
   const handleLoginFuncionario = async () => {
     const startTime = Date.now()
-    console.log(`🕐 [LOGIN-TIMING] Início do login: ${new Date().toISOString()}`)
+    console.log(
+      `🕐 [LOGIN-TIMING] Início do login: ${new Date().toISOString()}`
+    )
 
     if (!docu || !username || !password) {
       setError('Preencha todos os campos.')
@@ -84,27 +125,37 @@ export default function Login({ navigation }) {
     setLoadingStep('Verificando dados...')
 
     try {
-      // Salvar apenas dados básicos ANTES do login
+      // Log: Salvando dados no AsyncStorage
       const asyncStartTime = Date.now()
-      console.log(`🕐 [LOGIN-TIMING] Salvando AsyncStorage: ${new Date().toISOString()}`)
+      console.log(
+        `🕐 [LOGIN-TIMING] Salvando AsyncStorage: ${new Date().toISOString()}`
+      )
 
       await AsyncStorage.multiSet([
         ['docu', docu],
         ['username', username],
+        ['setor', setor],
       ])
-      
-      console.log(`🔑 [LOGIN-TIMING] Dados básicos salvos: docu=${docu}, username=${username}`)
-      console.log(`⏱️ [LOGIN-TIMING] AsyncStorage salvo em: ${Date.now() - asyncStartTime}ms`)
 
-      // Buscar SlugMap
+      console.log(
+        `⏱️ [LOGIN-TIMING] AsyncStorage salvo em: ${
+          Date.now() - asyncStartTime
+        }ms`
+      )
+
+      // Log: Buscando SlugMap (agora otimizado)
       setLoadingStep('Buscando configurações...')
       const slugStartTime = Date.now()
-      console.log(`🕐 [LOGIN-TIMING] Buscando SlugMap: ${new Date().toISOString()}`)
+      console.log(
+        `🕐 [LOGIN-TIMING] Buscando SlugMap: ${new Date().toISOString()}`
+      )
 
-      const slugMap = await fetchSlugMap()
+      const slugMap = await fetchSlugMap() // Usando função otimizada
       const slug = slugMap[docu]
 
-      console.log(`⏱️ [LOGIN-TIMING] SlugMap obtido em: ${Date.now() - slugStartTime}ms`)
+      console.log(
+        `⏱️ [LOGIN-TIMING] SlugMap obtido em: ${Date.now() - slugStartTime}ms`
+      )
       console.log(`🔍 [LOGIN-TIMING] Slug encontrado: ${slug}`)
 
       if (!slug) {
@@ -114,11 +165,15 @@ export default function Login({ navigation }) {
         return
       }
 
-      // Fazer requisição de login
+      // Log: Fazendo requisição de login
       setLoadingStep('Conectando ao servidor...')
       const loginStartTime = Date.now()
-      console.log(`🕐 [LOGIN-TIMING] Iniciando requisição login: ${new Date().toISOString()}`)
-      console.log(`🔗 [LOGIN-TIMING] URL: ${BASE_URL}/api/${slug}/licencas/login/`)
+      console.log(
+        `🕐 [LOGIN-TIMING] Iniciando requisição login: ${new Date().toISOString()}`
+      )
+      console.log(
+        `🔗 [LOGIN-TIMING] URL: ${BASE_URL}/api/${slug}/licencas/login/`
+      )
 
       const response = await axios.post(
         `${BASE_URL}/api/${slug}/licencas/login/`,
@@ -126,66 +181,71 @@ export default function Login({ navigation }) {
           username,
           password,
           docu,
+          setor,
         },
         {
           headers: {
             'X-CNPJ': docu,
             'X-Username': username,
           },
-          timeout: 15000,
+          timeout: 15000, // 15 segundos de timeout (reduzido de 30s)
         }
       )
 
-      console.log(`⏱️ [LOGIN-TIMING] Requisição login concluída em: ${Date.now() - loginStartTime}ms`)
+      console.log(
+        `⏱️ [LOGIN-TIMING] Requisição login concluída em: ${
+          Date.now() - loginStartTime
+        }ms`
+      )
       console.log(`📊 [LOGIN-TIMING] Status da resposta: ${response.status}`)
 
-      // ✅ CORRIGIDO: Extrair dados do usuário da resposta
-      const { access, refresh, usuario, modulos, licenca } = response.data
-      
-      // ✅ PEGAR O SETOR DO BACKEND
-      const setorUsuario = usuario?.setor || usuario?.usua_seto || '0'
-      
-      console.log('📋 [LOGIN] Dados do usuário recebidos:', usuario)
-      console.log('🏢 [LOGIN] Setor do usuário:', setorUsuario)
-      console.log('📦 [LOGIN] Módulos recebidos:', modulos)
+      setModulos(response.data.modulos)
+      const { access, refresh, usuario } = response.data
 
-      // ✅ Salvar dados da sessão COM O SETOR DO BACKEND
+      // Log: Salvando dados da sessão
       setLoadingStep('Salvando sessão...')
       const sessionStartTime = Date.now()
-      console.log(`🕐 [LOGIN-TIMING] Salvando dados da sessão: ${new Date().toISOString()}`)
+      console.log(
+        `🕐 [LOGIN-TIMING] Salvando dados da sessão: ${new Date().toISOString()}`
+      )
 
       await AsyncStorage.multiSet([
         ['access', access],
         ['refresh', refresh],
         ['usuario', JSON.stringify(usuario)],
-        ['usuario_id', usuario.usuario_id?.toString() || '0'],
-        ['username', usuario.username || username],
-        ['setor', setorUsuario.toString()], // ✅ SALVAR SETOR DO BACKEND
+        ['usuario_id', usuario.usuario_id.toString()],
+        ['username', usuario.username],
+        ['setor', setor],
         ['docu', docu],
         ['slug', slug],
-        ['modulos', JSON.stringify(modulos || [])],
+        ['modulos', JSON.stringify(response.data.modulos)],
         ['userType', 'funcionario'],
       ])
 
-      console.log(`✅ [LOGIN] Setor salvo no AsyncStorage: ${setorUsuario}`)
-      console.log(`⏱️ [LOGIN-TIMING] Sessão salva em: ${Date.now() - sessionStartTime}ms`)
-      console.log(`🎉 [LOGIN-TIMING] Login completo em: ${Date.now() - startTime}ms`)
+      console.log(
+        `⏱️ [LOGIN-TIMING] Sessão salva em: ${Date.now() - sessionStartTime}ms`
+      )
+      console.log(
+        `🎉 [LOGIN-TIMING] Login completo em: ${Date.now() - startTime}ms`
+      )
       console.log(`🕐 [LOGIN-TIMING] Fim do login: ${new Date().toISOString()}`)
 
-      setModulos(modulos || [])
       navigation.navigate('SelectEmpresa')
-
     } catch (error) {
       console.error(`❌ [LOGIN-TIMING] Erro após: ${Date.now() - startTime}ms`)
       console.error(`❌ [LOGIN-TIMING] Detalhes do erro:`, error)
-      console.log(`🔍 [DEBUG] Senha digitada: "${password}"`)
+      console.log(`🔍 [DEBUG] Senha digitada: "${password}"`) // Debug da senha
 
       if (error.code === 'ECONNABORTED') {
         setError('Timeout na conexão. Verifique sua internet.')
       } else if (error.response) {
         console.error(`❌ [LOGIN-TIMING] Status HTTP: ${error.response.status}`)
-        console.error(`❌ [LOGIN-TIMING] Dados da resposta:`, error.response.data)
+        console.error(
+          `❌ [LOGIN-TIMING] Dados da resposta:`,
+          error.response.data
+        )
 
+        // Toast específico para senha incorreta
         if (
           error.response.status === 401 &&
           error.response.data?.error === 'Senha incorreta.'
@@ -315,7 +375,7 @@ export default function Login({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Logo animada */}
+      {/* Logo animada com bounce */}
       <MotiView
         from={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -360,7 +420,7 @@ export default function Login({ navigation }) {
                 value={value}
                 onChangeText={(text) => {
                   onChange(text)
-                  setError('')
+                  setError('') // Limpa o erro ao digitar
                 }}
                 placeholder={placeholder}
                 placeholderTextColor="#aaa"
@@ -374,7 +434,7 @@ export default function Login({ navigation }) {
         )
       )}
 
-      {/* Botão */}
+      {/* Botão animado */}
       <MotiView
         from={{ scale: 0.95 }}
         animate={{ scale: isLoading ? 0.95 : 1 }}
