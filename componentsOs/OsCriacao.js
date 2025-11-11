@@ -17,6 +17,7 @@ import useContextoApp from '../hooks/useContextoApp'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaSetorInput from '../components/BuscaSetorInput'
 import BuscaMarcasInput from '../components/BuscaMarcasInput'
+import BuscaVoltagemInput from '../components/BuscaVoltagemInput'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { apiPostComContexto, apiGetComContexto, apiPatchComContexto } from '../utils/api'
 import AbaPecas from '../componentsOs/AbaPecas'
@@ -243,6 +244,16 @@ export default function CriarOrdemServico() {
       return false
     }
 
+    if (!ordemServico.orde_nume) {
+      console.log('❌ Validação falhou: Ordem de serviço com este número já existe')
+      Toast.show({
+        type: 'error',
+        text1: 'Ordem de serviço com este número já existe',
+        text2: 'Por favor, informe um número de ordem de serviço único',
+      })
+      return false
+    }
+
     console.log('✅ Validação passou com sucesso!')
     return true
   }
@@ -396,10 +407,35 @@ export default function CriarOrdemServico() {
         stack: error.stack,
       })
 
+      let errorMessage = 'Tente novamente mais tarde'
+      
+      if (error.response?.data) {
+        const errorData = error.response.data
+        
+        // Verifica se é erro de número duplicado
+        if (errorData.orde_nume && Array.isArray(errorData.orde_nume)) {
+          const duplicateError = errorData.orde_nume.find(
+            err => err.includes('já existe') || err.includes('unique')
+          )
+          if (duplicateError) {
+            errorMessage = `O número ${ordemServico.orde_nume} já está em uso. Por favor, utilize outro número.`
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message
+        } else if (errorData.error) {
+          errorMessage = errorData.error
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
       Toast.show({
         type: 'error',
         text1: 'Erro ao criar O.S',
-        text2: error.message || 'Tente novamente mais tarde',
+        text2: errorMessage,
+        visibilityTime: 5000,
       })
     } finally {
       console.log('🏁 Finalizando processo de salvamento')
@@ -429,6 +465,26 @@ export default function CriarOrdemServico() {
             numberOfLines={4}
           />
         </View>
+      )
+    }
+
+    if (campo.tipo === 'BuscaVoltagemInput'){
+      return(
+         <View key={campo.key} style={styles.fieldContainer}>
+          <Text style={styles.label}>
+            {campo.label}
+            {campo.required && <Text style={styles.required}> *</Text>}:
+          </Text>
+          <ErrorBoundary>
+            <BuscaVoltagemInput
+              initialValue={valor}
+              onSelect={(codigoVoltagem) => {
+                handleInputChange(campo.key, codigoVoltagem || '')
+              }}
+            />
+          </ErrorBoundary>
+        </View>
+        
       )
     }
 

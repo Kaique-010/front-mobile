@@ -1,4 +1,7 @@
 import BuscaMarcasInput from '../components/BuscaMarcasInput'
+import BuscaVoltagemInput from '../components/BuscaVoltagemInput'
+
+
 
 export const TIPOS_ORDEM = [
   { value: '1', label: 'Motor C.A' },
@@ -26,7 +29,7 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Motor C.A',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      { key: 'orde_volt', label: 'Tensão', tipo: 'BuscaVoltagemInput', required: true },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
@@ -236,7 +239,7 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_volt',
         label: 'Tensão do primário',
-        tipo: 'text',
+        tipo: 'BuscaVoltagemInput',
         required: true,
       },
       {
@@ -297,7 +300,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Motor Monofásico',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
@@ -356,7 +364,7 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_volt',
         label: 'Tensão Primário',
-        tipo: 'text',
+        tipo: 'BuscaVoltagemInput',
         required: true,
       },
       {
@@ -394,7 +402,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Servo Motor',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
       {
@@ -431,7 +444,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Drives',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       {
@@ -456,7 +474,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Campo M.C.A',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
@@ -490,7 +513,7 @@ export const ORDER_FIELDS_CONFIG = {
       {
         key: 'orde_volt',
         label: 'Tensão Primário',
-        tipo: 'text',
+        tipo: 'BuscaVoltagemInput',
         required: true,
       },
       {
@@ -540,7 +563,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Campo Geral',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
@@ -572,7 +600,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Motor Bomba',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
@@ -684,7 +717,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Gerador',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
@@ -752,7 +790,12 @@ export const ORDER_FIELDS_CONFIG = {
     nome: 'Carcaça',
     campos: [
       { key: 'orde_pote', label: 'Potência', tipo: 'text', required: true },
-      { key: 'orde_volt', label: 'Tensão', tipo: 'text', required: true },
+      {
+        key: 'orde_volt',
+        label: 'Tensão',
+        tipo: 'BuscaVoltagemInput',
+        required: true,
+      },
       { key: 'orde_ampe', label: 'Corrente', tipo: 'text', required: true },
       { key: 'orde_hz', label: 'Frequência', tipo: 'text', required: true },
       { key: 'orde_rpm', label: 'Rotação', tipo: 'text', required: true },
