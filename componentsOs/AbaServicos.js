@@ -323,6 +323,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
             item.serv_id?.toString() || `temp-${item.serv_codi}-${Date.now()}`
           }
           renderItem={renderItem}
+          nestedScrollEnabled={true}
           contentContainerStyle={styles.lista}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>

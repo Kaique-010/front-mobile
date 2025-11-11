@@ -22,6 +22,7 @@ import useContextoApp from '../hooks/useContextoApp'
 import ErrorBoundary from '../components/ErrorBoundary'
 import BuscaSetorInput from '../components/BuscaSetorInput'
 import BuscaMarcasInput from '../components/BuscaMarcasInput'
+import BuscaVoltagemInput from '../components/BuscaVoltagemInput'
 import { ORDER_FIELDS_CONFIG, TIPOS_ORDEM } from '../componentsOs/orderFieldsConfig'
 
 const OrdemDetalhe = ({ route }) => {
@@ -532,6 +533,7 @@ const OrdemDetalhe = ({ route }) => {
                     </View>
                   )
                 }
+                
                 if (campo.tipo === 'BuscaMarcasInput') {
                   return (
                     <View key={campo.key} style={{ marginBottom: 12 }}>
@@ -539,8 +541,32 @@ const OrdemDetalhe = ({ route }) => {
                       <ErrorBoundary>
                         <BuscaMarcasInput
                           initialValue={valor}
-                          onSelect={(codigoMarca) => {
+                          onSelect={(valorSelecionado) => {
+                            const codigoMarca =
+                              typeof valorSelecionado === 'object'
+                                ? valorSelecionado?.codigo
+                                : valorSelecionado
                             setFormEdicao((prev) => ({ ...prev, [campo.key]: codigoMarca || '' }))
+                          }}
+                        />
+                      </ErrorBoundary>
+                    </View>
+                  )
+                }
+
+                if (campo.tipo === 'BuscaVoltagemInput') {
+                  return (
+                    <View key={campo.key} style={{ marginBottom: 12 }}>
+                      <Text style={styles.label}>{campo.label}:</Text>
+                      <ErrorBoundary>
+                        <BuscaVoltagemInput
+                          initialValue={valor}
+                          onSelect={(valorSelecionado) => {
+                            const codigoVoltagem =
+                              typeof valorSelecionado === 'object'
+                                ? valorSelecionado?.osvo_codi
+                                : valorSelecionado
+                            setFormEdicao((prev) => ({ ...prev, [campo.key]: codigoVoltagem || '' }))
                           }}
                         />
                       </ErrorBoundary>

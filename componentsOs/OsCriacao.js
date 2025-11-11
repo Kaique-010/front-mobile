@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import {
   View,
   Text,
@@ -37,6 +37,7 @@ export default function CriarOrdemServico() {
   const submitLockRef = useRef(false)
   const notaFiscalRef = useRef(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showDatePickerReprov, setShowDatePickerReprov] = useState(false)
   const [showSetorReprovModal, setShowSetorReprovModal] = useState(false)
   const [setorReprovNome, setSetorReprovNome] = useState('')
   const [abaAtiva, setAbaAtiva] = useState('cliente')
@@ -54,7 +55,6 @@ export default function CriarOrdemServico() {
     pecas: [],
     servicos: [],
     fotos: [],
-    // Campos dinâmicos
     orde_pote: '',
     orde_volt: '',
     orde_ampe: '',
@@ -95,55 +95,20 @@ export default function CriarOrdemServico() {
 
   const [camposVisiveis, setCamposVisiveis] = useState([])
 
-  // Atualiza campos visíveis quando o tipo muda
-  useEffect(() => {
-    if (ordemServico.orde_tipo) {
-      const config = ORDER_FIELDS_CONFIG[ordemServico.orde_tipo]
-      if (config) {
-        setCamposVisiveis(config.campos)
-        // Limpa campos que não são do tipo atual
-        limparCamposNaoVisiveis(config.campos)
-      }
-    } else {
-      setCamposVisiveis([]) // Não mostra campos se não há tipo selecionado
-    }
-  }, [ordemServico.orde_tipo])
-
-  const limparCamposNaoVisiveis = (camposAtivos) => {
+  // Função de limpeza de campos isolada e memorizada
+  const limparCamposNaoVisiveis = useCallback((camposAtivos) => {
     const keysAtivos = camposAtivos.map((c) => c.key)
     const camposParaLimpar = {}
 
-    // Lista todos os campos possíveis
     const todosCampos = [
-      'orde_pote',
-      'orde_volt',
-      'orde_ampe',
-      'orde_hz',
-      'orde_rpm',
-      'orde_marc',
-      'orde_seri',
-      'orde_mode',
-      'orde_patr',
-      'orde_cond',
-      'orde_polo',
-      'orde_foco',
-      'orde_esta_chap',
-      'orde_esta_comp',
-      'orde_esta_cabo',
-      'orde_esta_quan_cabo',
-      'orde_esta_fio',
-      'orde_esta_quan_fio',
-      'orde_esta_larg',
-      'orde_esta_liga',
-      'orde_esta_mate',
-      'orde_esta_quan_mate',
-      'orde_grau_ip',
-      'orde_isol',
-      'orde_tens_camp',
-      'orde_corr_camp',
-      'orde_tens_arma',
-      'orde_corr_arma',
-      'orde_obse',
+      'orde_pote', 'orde_volt', 'orde_ampe', 'orde_hz', 'orde_rpm',
+      'orde_marc', 'orde_seri', 'orde_mode', 'orde_patr', 'orde_cond',
+      'orde_polo', 'orde_foco', 'orde_esta_chap', 'orde_esta_comp',
+      'orde_esta_cabo', 'orde_esta_quan_cabo', 'orde_esta_fio',
+      'orde_esta_quan_fio', 'orde_esta_larg', 'orde_esta_liga',
+      'orde_esta_mate', 'orde_esta_quan_mate', 'orde_grau_ip',
+      'orde_isol', 'orde_tens_camp', 'orde_corr_camp', 'orde_tens_arma',
+      'orde_corr_arma', 'orde_obse',
     ]
 
     todosCampos.forEach((campo) => {
@@ -153,54 +118,88 @@ export default function CriarOrdemServico() {
     })
 
     setOrdemServico((prev) => ({ ...prev, ...camposParaLimpar }))
-  }
+  }, [])
 
-  const handleInputChange = (key, value) => {
-    // Log específico para orde_marc
-    if (key === 'orde_marc') {
-      console.log(
-        `🏷️ Marca alterada: ${key} = ${value} (tipo: ${typeof value})`
-      )
+  // Atualiza campos visíveis quando o tipo muda
+  useEffect(() => {
+    if (ordemServico.orde_tipo) {
+      const config = ORDER_FIELDS_CONFIG[ordemServico.orde_tipo]
+      if (config) {
+        setCamposVisiveis(config.campos)
+        limparCamposNaoVisiveis(config.campos)
+      }
+    } else {
+      setCamposVisiveis([])
     }
+  }, [ordemServico.orde_tipo, limparCamposNaoVisiveis])
 
-    setOrdemServico((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
-  }
+  // handleInputChange simplificado e memorizado
+  const handleInputChange = useCallback((key, value) => {
+    console.log(`🔄 handleInputChange: ${key} = ${value} (tipo: ${typeof value})`)
+    
+    setOrdemServico((prev) => {
+      let nextValue = value
 
-  // Ao marcar Garantia, definir diretamente o setor como 3 (Garantia)
-  const preencherSetorGarantia = async () => {
-    try {
-      handleInputChange('orde_seto', 13)
-      setSetorNome('garantia')
-    } catch (err) {
-      console.error('❌ Erro ao definir setor de Garantia automaticamente:', err)
-    }
-  }
+      // Normalização de valores
+      if (key === 'orde_seto' || key === 'orde_seto_repr') {
+        if (value && typeof value === 'object' && value.osfs_codi) {
+          nextValue = Number(value.osfs_codi)
+        } else if (value === '' || value === null || value === undefined) {
+          nextValue = ''
+        } else if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+          nextValue = Number(value)
+        }
+      } else if (key === 'orde_volt') {
+        if (value && typeof value === 'object' && value.osvo_codi) {
+          nextValue = Number(value.osvo_codi)
+        } else if (value === '' || value === null || value === undefined) {
+          nextValue = ''
+        } else if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+          nextValue = Number(value)
+        }
+      } else if (key === 'orde_marc') {
+        if (value && typeof value === 'object' && value.codigo) {
+          nextValue = Number(value.codigo)
+        } else if (value === '' || value === null || value === undefined) {
+          nextValue = ''
+        } else if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
+          nextValue = Number(value)
+        }
+      } else {
+        // Campos de texto
+        nextValue = value === null || value === undefined ? '' : String(value)
+      }
 
-  const marcarFinalizadoOficina = () => {
+      console.log(`✅ Valor final para ${key}:`, nextValue, `(tipo: ${typeof nextValue})`)
+      
+      return {
+        ...prev,
+        [key]: nextValue,
+      }
+    })
+  }, [])
+
+  // Funções auxiliares simplificadas
+  const preencherSetorGarantia = useCallback(() => {
+    console.log('🔧 Preenchendo setor Garantia (13)')
+    handleInputChange('orde_seto', 13)
+    setSetorNome('Garantia')
+  }, [handleInputChange])
+
+  const preencherSetorExpedicao = useCallback(() => {
+    console.log('🔧 Preenchendo setor Expedição (13)')
+    handleInputChange('orde_seto', 13)
     handleInputChange('orde_fina_ofic', true)
-  }
-  // Ao Marcar Setor de Expedição  poder marcar um check de finalizado oficina campo orde_fina_ofic
-  const preencherSetorExpedicao = async () => {
-    try {
-      handleInputChange('orde_seto', 13)
-      setSetorNome('Expedição')
-    } catch (err) {
-      console.error('❌ Erro ao definir setor de Expedição automaticamente:', err)
-    }
-  }
-
-
+    handleInputChange('orde_stat_orde', 4)
+    setSetorNome('Expedição')
+  }, [handleInputChange])
 
   const validarMudancaAba = (novaAba) => {
     if (financeiroGerado && (novaAba === 'pecas' || novaAba === 'servicos')) {
       Toast.show({
         type: 'warning',
         text1: 'Atenção',
-        text2:
-          'Não é possível modificar peças ou serviços após gerar o financeiro',
+        text2: 'Não é possível modificar peças ou serviços após gerar o financeiro',
       })
       return false
     }
@@ -208,9 +207,9 @@ export default function CriarOrdemServico() {
   }
 
   const validarOrdemServico = () => {
-    console.log('🔍 Iniciando validação da ordem de serviço...')
+    console.log('🔍 Validando ordem de serviço...')
+    
     if (!ordemServico.orde_nume || ordemServico.orde_nume.trim() === '') {
-      console.log('❌ Validação falhou: Número da O.S não informado')
       Toast.show({
         type: 'error',
         text1: 'Número da O.S ausente',
@@ -218,14 +217,8 @@ export default function CriarOrdemServico() {
       })
       return false
     }
-    console.log('📋 Dados para validação:', {
-      orde_enti: ordemServico.orde_enti,
-      orde_data_aber: ordemServico.orde_data_aber,
-   
-    })
 
     if (!ordemServico.orde_enti) {
-      console.log('❌ Validação falhou: Cliente não selecionado')
       Toast.show({
         type: 'error',
         text1: 'Cliente não selecionado',
@@ -235,7 +228,6 @@ export default function CriarOrdemServico() {
     }
 
     if (!ordemServico.orde_data_aber) {
-      console.log('❌ Validação falhou: Data inválida')
       Toast.show({
         type: 'error',
         text1: 'Data inválida',
@@ -244,70 +236,34 @@ export default function CriarOrdemServico() {
       return false
     }
 
-    if (!ordemServico.orde_nume) {
-      console.log('❌ Validação falhou: Ordem de serviço com este número já existe')
-      Toast.show({
-        type: 'error',
-        text1: 'Ordem de serviço com este número já existe',
-        text2: 'Por favor, informe um número de ordem de serviço único',
-      })
-      return false
-    }
-
-    console.log('✅ Validação passou com sucesso!')
     return true
   }
 
   const salvarOrdemServico = async () => {
-    console.log('🚀 Iniciando salvamento da ordem de serviço...')
-    console.log(
-      '🔍 Estado dos locks - submitLock:',
-      submitLock,
-      'isSubmitting:',
-      isSubmitting,
-      'submitLockRef:',
-      submitLockRef.current
-    )
+    console.log('🚀 Iniciando salvamento...')
 
-    // Verificação imediata com ref para evitar execuções múltiplas
     if (submitLockRef.current) {
-      console.log('🔒 Salvamento já em andamento (ref), ignorando...')
+      console.log('🔒 Salvamento já em andamento')
       return
     }
 
-    // Ativa o lock imediatamente
     submitLockRef.current = true
-    console.log('🔒 Lock ativado via ref')
 
-    // Dupla verificação para evitar execuções múltiplas
     if (submitLock || isSubmitting) {
-      console.log('🔒 Salvamento já em andamento (state), ignorando...')
+      console.log('🔒 Locks já ativos')
       submitLockRef.current = false
       return
     }
 
     if (!validarOrdemServico()) {
-      console.log('❌ Validação falhou')
       submitLockRef.current = false
       return
     }
 
-    console.log('🔒 Ativando locks de salvamento')
     setSubmitLock(true)
     setIsSubmitting(true)
 
     try {
-      console.log('📋 Estado atual do ordemServico:', ordemServico)
-      console.log(
-        '👥 Contexto - empresaId:',
-        empresaId,
-        'filialId:',
-        filialId,
-        'usuarioId:',
-        usuarioId
-      )
-
-      // Cria payload apenas com campos preenchidos
       const payload = {
         orde_nume: ordemServico.orde_nume,
         orde_enti: ordemServico.orde_enti,
@@ -316,15 +272,12 @@ export default function CriarOrdemServico() {
         orde_empr: empresaId?.toString() || '',
         orde_fili: filialId?.toString() || '',
         usua: usuarioId?.toString() || '',
-        // Defaultar setor para 1 quando não informado
         orde_seto: ordemServico.orde_seto !== '' && ordemServico.orde_seto !== null
           ? Number(ordemServico.orde_seto)
-          : 1,
+          : 2,
         orde_nf_entr: ordemServico.orde_nf_entr?.toString() || '',
-        // Sem Conserto: normaliza tipo; Garantia mantém original
         orde_gara: ordemServico.orde_gara?.toString() || '',
         orde_sem_cons: ordemServico.orde_sem_cons ? 'S' : '',
-        // Data de reprovação: envia null quando vazia; caso exista, já está em YYYY-MM-DD
         orde_data_repr:
           ordemServico.orde_data_repr && ordemServico.orde_data_repr.trim() !== ''
             ? ordemServico.orde_data_repr
@@ -333,16 +286,13 @@ export default function CriarOrdemServico() {
           ordemServico.orde_seto_repr !== '' && ordemServico.orde_seto_repr !== null
             ? Number(ordemServico.orde_seto_repr)
             : null,
-        // API espera string; mapeamos boolean para '1' (true) ou '0' (false)
         orde_fina_ofic: ordemServico.orde_fina_ofic ? '1' : '0',
-        // Backend espera inteiro em `orde_stat_orde`
         orde_stat_orde:
           ordemServico.orde_stat_orde !== '' && ordemServico.orde_stat_orde !== null
             ? Number(ordemServico.orde_stat_orde)
             : 0,
       }
 
-      // Adiciona apenas campos que têm valor
       camposVisiveis.forEach((campo) => {
         const valor = ordemServico[campo.key]
         if (valor && valor !== '') {
@@ -350,44 +300,30 @@ export default function CriarOrdemServico() {
         }
       })
 
-      console.log('📤 Payload a ser enviado:', payload)
-      console.log('🌐 Fazendo chamada para API: ordemdeservico/ordens/')
-      console.log('🔄 Iniciando apiPostComContexto...')
+      console.log('📤 Enviando payload:', payload)
 
-      let data
-      try {
-        data = await apiPostComContexto('ordemdeservico/ordens/', payload)
-        console.log('✅ Resposta da API após criar O.S.:', data)
-      } catch (apiError) {
-        console.error('💥 Erro específico na chamada da API:', apiError)
-        console.error('📊 Detalhes do erro da API:', {
-          message: apiError.message,
-          status: apiError.status,
-          response: apiError.response,
-          stack: apiError.stack,
-        })
-        throw apiError
-      }
+      const data = await apiPostComContexto('ordemdeservico/ordens/', payload)
+      console.log('✅ Resposta da API:', data)
 
       if (!data.orde_nume) {
         throw new Error('Número da O.S não retornado pelo servidor')
       }
 
-      // Garanta status 4 quando setor for 13 (Expedição),
-      // mesmo que o backend normalize o create para 0
+      // Aplicar PATCH se necessário
       try {
         const setorSelecionado = Number(ordemServico.orde_seto)
         const desejaStatusQuatro = Number(ordemServico.orde_stat_orde) === 4 || setorSelecionado === 13
+        
         if (desejaStatusQuatro) {
-          console.log('🔧 Aplicando PATCH para forçar orde_stat_orde=4...')
+          console.log('🔧 Aplicando PATCH para status 4...')
           await apiPatchComContexto(
             `ordemdeservico/ordens/${data.orde_nume}/`,
             { orde_stat_orde: 4 }
           )
-          console.log('✅ Status atualizado para 4 via PATCH')
+          console.log('✅ Status atualizado para 4')
         }
       } catch (patchErr) {
-        console.warn('⚠️ Não foi possível aplicar PATCH de status 4:', patchErr?.message || patchErr)
+        console.warn('⚠️ Erro ao aplicar PATCH:', patchErr?.message)
       }
 
       setNumeroOS(data.orde_nume)
@@ -396,29 +332,22 @@ export default function CriarOrdemServico() {
       Toast.show({
         type: 'success',
         text1: 'O.S criada com sucesso!',
-        text2: `Número da O.S: ${data.orde_nume}. Agora você pode incluir peças.`,
+        text2: `Número da O.S: ${data.orde_nume}`,
       })
     } catch (error) {
       console.error('💥 Erro ao criar O.S:', error)
-      console.error('📊 Detalhes do erro:', {
-        message: error.message,
-        status: error.status,
-        response: error.response,
-        stack: error.stack,
-      })
 
       let errorMessage = 'Tente novamente mais tarde'
       
       if (error.response?.data) {
         const errorData = error.response.data
         
-        // Verifica se é erro de número duplicado
         if (errorData.orde_nume && Array.isArray(errorData.orde_nume)) {
           const duplicateError = errorData.orde_nume.find(
             err => err.includes('já existe') || err.includes('unique')
           )
           if (duplicateError) {
-            errorMessage = `O número ${ordemServico.orde_nume} já está em uso. Por favor, utilize outro número.`
+            errorMessage = `O número ${ordemServico.orde_nume} já está em uso.`
           }
         } else if (errorData.message) {
           errorMessage = errorData.message
@@ -438,7 +367,6 @@ export default function CriarOrdemServico() {
         visibilityTime: 5000,
       })
     } finally {
-      console.log('🏁 Finalizando processo de salvamento')
       submitLockRef.current = false
       setSubmitLock(false)
       setIsSubmitting(false)
@@ -457,7 +385,7 @@ export default function CriarOrdemServico() {
           </Text>
           <TextInput
             style={[styles.input, styles.textarea]}
-            value={valor}
+            value={valor === null || valor === undefined ? '' : String(valor)}
             onChangeText={(value) => handleInputChange(campo.key, value)}
             placeholder={`Digite ${campo.label.toLowerCase()}`}
             placeholderTextColor="#666"
@@ -468,9 +396,9 @@ export default function CriarOrdemServico() {
       )
     }
 
-    if (campo.tipo === 'BuscaVoltagemInput'){
-      return(
-         <View key={campo.key} style={styles.fieldContainer}>
+    if (campo.tipo === 'BuscaVoltagemInput') {
+      return (
+        <View key={campo.key} style={styles.fieldContainer}>
           <Text style={styles.label}>
             {campo.label}
             {campo.required && <Text style={styles.required}> *</Text>}:
@@ -478,13 +406,16 @@ export default function CriarOrdemServico() {
           <ErrorBoundary>
             <BuscaVoltagemInput
               initialValue={valor}
-              onSelect={(codigoVoltagem) => {
+              onSelect={(valorSelecionado) => {
+                const codigoVoltagem =
+                  typeof valorSelecionado === 'object'
+                    ? valorSelecionado?.osvo_codi
+                    : valorSelecionado
                 handleInputChange(campo.key, codigoVoltagem || '')
               }}
             />
           </ErrorBoundary>
         </View>
-        
       )
     }
 
@@ -498,7 +429,11 @@ export default function CriarOrdemServico() {
           <ErrorBoundary>
             <BuscaMarcasInput
               initialValue={valor}
-              onSelect={(codigoMarca) => {
+              onSelect={(valorSelecionado) => {
+                const codigoMarca =
+                  typeof valorSelecionado === 'object'
+                    ? valorSelecionado?.codigo
+                    : valorSelecionado
                 handleInputChange(campo.key, codigoMarca || '')
               }}
             />
@@ -515,7 +450,7 @@ export default function CriarOrdemServico() {
         </Text>
         <TextInput
           style={styles.input}
-          value={valor}
+          value={valor === null || valor === undefined ? '' : String(valor)}
           onChangeText={(value) => handleInputChange(campo.key, value)}
           placeholder={`Digite ${campo.label.toLowerCase()}`}
           placeholderTextColor="#666"
@@ -527,13 +462,7 @@ export default function CriarOrdemServico() {
 
   if (carregando) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#121212',
-        }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }}>
         <ActivityIndicator size="large" color="#10a2a7" />
         <Text style={{ color: '#fff', marginTop: 10 }}>Carregando...</Text>
       </View>
@@ -541,7 +470,11 @@ export default function CriarOrdemServico() {
   }
 
   return (
-    <KeyboardAwareScrollView style={{ backgroundColor: '#0f1f2a' }}>
+    <KeyboardAwareScrollView
+      style={{ backgroundColor: '#0f1f2a' }}
+      nestedScrollEnabled={true}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={{ padding: 20, backgroundColor: '#0f1f2a' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           {['cliente', 'pecas', 'servicos', 'fotos'].map((aba) => (
@@ -573,7 +506,6 @@ export default function CriarOrdemServico() {
         </View>
 
         <View style={{ flex: 1 }}>
-          
           {abaAtiva === 'cliente' && (
             <>
               <View style={styles.inlineRow}>
@@ -598,13 +530,11 @@ export default function CriarOrdemServico() {
                       if (value) {
                         const hoje = new Date().toISOString().split('T')[0]
                         handleInputChange('orde_data_repr', hoje)
-                        // Abre modal para selecionar setor da reprovação
                         setShowSetorReprovModal(true)
                       } else {
                         handleInputChange('orde_data_repr', '')
                         handleInputChange('orde_seto_repr', '')
                         setSetorReprovNome('')
-                        setShowSetorReprovModal(false)
                       }
                     }}
                   />
@@ -612,70 +542,64 @@ export default function CriarOrdemServico() {
                 <View style={styles.rowItemDate}>
                   <Text style={styles.rowLabel}>Reprov.:</Text>
                   <TouchableOpacity
-                    onPress={() => setShowDatePicker(true)}
+                    onPress={() => setShowDatePickerReprov(true)}
                     style={styles.datePill}>
-                    <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={{ color: '#fff' }} numberOfLines={1}>
                       {ordemServico.orde_data_repr
                         ? new Date(ordemServico.orde_data_repr).toLocaleDateString()
                         : 'Selecionar'}
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {ordemServico.orde_sem_cons ? (
+                {ordemServico.orde_sem_cons && (
                   <View style={styles.rowItem}>
                     <Text style={styles.rowLabel}>Setor:</Text>
                     <TouchableOpacity
                       onPress={() => setShowSetorReprovModal(true)}
                       style={styles.datePill}>
-                      <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-                        {setorReprovNome
-                          || (ordemServico.orde_seto_repr
-                                ? `Código ${ordemServico.orde_seto_repr}`
-                                : 'Selecionar')}
+                      <Text style={{ color: '#fff' }} numberOfLines={1}>
+                        {setorReprovNome || (ordemServico.orde_seto_repr
+                          ? `Código ${ordemServico.orde_seto_repr}`
+                          : 'Selecionar')}
                       </Text>
                     </TouchableOpacity>
                   </View>
-                ) : null}
+                )}
               </View>
-              
 
-              {showDatePicker && (
+              {showDatePickerReprov && (
                 <DateTimePicker
-                  value={new Date(ordemServico.orde_data_repr)}
+                  value={ordemServico.orde_data_repr 
+                    ? new Date(ordemServico.orde_data_repr) 
+                    : new Date()}
                   mode="date"
                   display="default"
                   onChange={(event, selectedDate) => {
-                    setShowDatePicker(false)
+                    setShowDatePickerReprov(false)
                     if (selectedDate) {
-                      handleInputChange(
-                        'orde_data_repr',
-                        selectedDate.toISOString().split('T')[0]
-                      )
+                      handleInputChange('orde_data_repr', selectedDate.toISOString().split('T')[0])
                     }
                   }}
                 />
-              )}             
+              )}
 
-              {/* Modal de seleção de setor da reprovação */}
               <Modal
                 visible={showSetorReprovModal}
                 animationType="slide"
                 transparent={true}
                 onRequestClose={() => setShowSetorReprovModal(false)}>
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                <View style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <View style={{
+                    width: '90%',
+                    backgroundColor: '#1a2f3d',
+                    borderRadius: 12,
+                    padding: 16,
                   }}>
-                  <View
-                    style={{
-                      width: '90%',
-                      backgroundColor: '#1a2f3d',
-                      borderRadius: 12,
-                      padding: 16,
-                    }}>
                     <Text style={{ color: '#fff', fontSize: 16, marginBottom: 10 }}>
                       Selecionar Setor da Reprovação
                     </Text>
@@ -683,7 +607,7 @@ export default function CriarOrdemServico() {
                       <BuscaSetorInput
                         initialValue={setorReprovNome}
                         onSelect={(setor) => {
-                          const codigo = String(setor?.osfs_codi || '')
+                          const codigo = setor?.osfs_codi || ''
                           const nome = setor?.osfs_nome || ''
                           handleInputChange('orde_seto_repr', codigo)
                           setSetorReprovNome(nome)
@@ -707,17 +631,13 @@ export default function CriarOrdemServico() {
               </Modal>
 
               <Text style={styles.label}>
-                Nº da O.S
-                <Text style={styles.required}> *</Text>
+                Nº da O.S<Text style={styles.required}> *</Text>
               </Text>
               <TextInput
-                style={[
-                  styles.input,
-                  !ordemServico.orde_nume && {
-                    borderColor: '#1a2f3d',
-                    borderWidth: 1,
-                  },
-                ]}
+                style={[styles.input, !ordemServico.orde_nume && {
+                  borderColor: '#1a2f3d',
+                  borderWidth: 1,
+                }]}
                 value={ordemServico.orde_nume}
                 onChangeText={(value) => handleInputChange('orde_nume', value)}
                 placeholder="Digite o número da O.S"
@@ -730,27 +650,30 @@ export default function CriarOrdemServico() {
                 onPress={() => setShowDatePicker(true)}
                 style={styles.datePickerButton}>
                 <Text style={{ color: '#fff' }}>
-                  {new Date(ordemServico.orde_data_aber).toLocaleDateString()}
+                  {(() => {
+                    const d = new Date(ordemServico.orde_data_aber)
+                    return isNaN(d.getTime()) ? new Date().toLocaleDateString() : d.toLocaleDateString()
+                  })()}
                 </Text>
               </TouchableOpacity>
-              
 
               {showDatePicker && (
                 <DateTimePicker
-                  value={new Date(ordemServico.orde_data_aber)}
+                  value={(() => {
+                    const d = new Date(ordemServico.orde_data_aber)
+                    return isNaN(d.getTime()) ? new Date() : d
+                  })()}
                   mode="date"
                   display="default"
                   onChange={(event, selectedDate) => {
                     setShowDatePicker(false)
                     if (selectedDate) {
-                      handleInputChange(
-                        'orde_data_aber',
-                        selectedDate.toISOString().split('T')[0]
-                      )
+                      handleInputChange('orde_data_aber', selectedDate.toISOString().split('T')[0])
                     }
                   }}
                 />
               )}
+
               <Text style={styles.label}>Cliente:</Text>
               <BuscaClienteInput
                 value={ordemServico.orde_enti_nome}
@@ -760,6 +683,7 @@ export default function CriarOrdemServico() {
                   handleInputChange('orde_enti_nome', entidade?.enti_nome || '')
                 }}
               />
+
               <Text style={styles.label}>Setor:</Text>
               <BuscaSetorInput
                 initialValue={setorNome}
@@ -770,47 +694,39 @@ export default function CriarOrdemServico() {
                   setSetorNome(nome)
 
                   if (codigo === 13) {
-                    // Ao selecionar Expedição (13), marcar finalizado e setar status 4
-                    marcarFinalizadoOficina()
                     preencherSetorExpedicao()
-                    handleInputChange('orde_stat_orde', 4)
                   }
                 }}
               />
+
               <Text style={styles.label}>Número da Nota Fiscal de Entrada:</Text>
               <TextInput
                 ref={notaFiscalRef}
-                style={[
-                  styles.input,
-                  !ordemServico.orde_nf_entr && {
-                    borderColor: '#1a2f3d',
-                    borderWidth: 1,
-                  },
-                ]}
+                style={[styles.input, !ordemServico.orde_nf_entr && {
+                  borderColor: '#1a2f3d',
+                  borderWidth: 1,
+                }]}
                 value={ordemServico.orde_nf_entr}
-                onChangeText={(text) =>
-                  handleInputChange('orde_nf_entr', text)
-                }
-                placeholder="Digite o número da nota fiscal de entrada"
+                onChangeText={(text) => handleInputChange('orde_nf_entr', text)}
+                placeholder="Digite o número da nota fiscal"
                 placeholderTextColor="#999"
                 keyboardType="numeric"
               />
+
               <Text style={styles.label}>Tipo de Ordem:</Text>
-              <View
-                style={[
-                  styles.pickerContainer,
-                  Platform.OS === 'android' && { overflow: 'hidden' },
-                  Platform.OS === 'ios' && { paddingVertical: 5 },
-                ]}>
+              <View style={[
+                styles.pickerContainer,
+                Platform.OS === 'android' && { overflow: 'hidden' },
+                Platform.OS === 'ios' && { paddingVertical: 5 },
+
+              ]}>
                 <Picker
                   selectedValue={ordemServico.orde_tipo}
-                  onValueChange={(value) =>
-                    handleInputChange('orde_tipo', value)
-                  }
+                  onValueChange={(value) => handleInputChange('orde_tipo', value)}
                   style={[
                     styles.picker,
                     Platform.OS === 'android' && {
-                      backgroundColor: '#1a2f3d',
+                      backgroundColor: 'transparent',
                       marginHorizontal: -5,
                       marginVertical: -3,
                     },
@@ -820,58 +736,33 @@ export default function CriarOrdemServico() {
                       minHeight: 44,
                     },
                   ]}
-                  dropdownIconColor="#fff"
-                  itemStyle={
-                    Platform.OS === 'ios'
-                      ? {
-                          color: '#fff',
-                          backgroundColor: 'transparent',
-                          fontSize: 18,
-                          height: 44,
-                          textAlign: 'center',
-                        }
-                      : undefined
-                  }
-                  mode={Platform.OS === 'android' ? 'dropdown' : 'compact'}
-                  dropdownIconRippleColor="#10a2a7"
-                  prompt="Selecione o tipo de ordem">
+                  dropdownIconColor="#000000ff"
+                  mode={Platform.OS === 'android' ? 'dropdown' : 'compact'}>
                   <Picker.Item
                     label="Selecione o tipo de ordem..."
                     value=""
-                    color={Platform.OS === 'android' ? '#666' : '#999'}
+                    backgroundColor="transparent"
                   />
                   {TIPOS_ORDEM.map((tipo) => (
                     <Picker.Item
                       key={tipo.value}
                       label={tipo.label}
                       value={tipo.value}
-                      color={Platform.OS === 'android' ? '#fff' : '#fff'}
-                      style={
-                        Platform.OS === 'android'
-                          ? { backgroundColor: '#1a2f3d' }
-                          : undefined
-                      }
+                      backgroundColor="transparent"
                     />
                   ))}
                 </Picker>
               </View>
-              
 
               {ordemServico.orde_tipo && camposVisiveis.length > 0 && (
                 <>
                   <View style={styles.divider}>
                     <Text style={styles.dividerText}>
-                      Campos Específicos -{' '}
-                      {
-                        TIPOS_ORDEM.find(
-                          (t) => t.value === ordemServico.orde_tipo
-                        )?.label
-                      }
+                      Campos Específicos - {TIPOS_ORDEM.find(t => t.value === ordemServico.orde_tipo)?.label}
                     </Text>
                   </View>
                   {camposVisiveis.map(renderCampo)}
                 </>
-
               )}
 
               {!orde_nume && (
@@ -892,8 +783,7 @@ export default function CriarOrdemServico() {
               {orde_nume && (
                 <View style={styles.avisoContainer}>
                   <Text style={styles.avisoText}>
-                    O.S criada com sucesso! Agora você pode incluir peças e
-                    serviços nas abas correspondentes.
+                    O.S criada com sucesso! Agora você pode incluir peças e serviços.
                   </Text>
                 </View>
               )}
@@ -904,9 +794,7 @@ export default function CriarOrdemServico() {
             <AbaPecas
               orde_nume={orde_nume}
               pecas={ordemServico.pecas}
-              onPecasChange={(novasPecas) =>
-                handleInputChange('pecas', novasPecas)
-              }
+              onPecasChange={(novasPecas) => handleInputChange('pecas', novasPecas)}
             />
           )}
 
@@ -914,9 +802,7 @@ export default function CriarOrdemServico() {
             <AbaServicos
               orde_nume={orde_nume}
               servicos={ordemServico.servicos}
-              onServicosChange={(novosServicos) =>
-                handleInputChange('servicos', novosServicos)
-              }
+              onServicosChange={(novosServicos) => handleInputChange('servicos', novosServicos)}
             />
           )}
 
@@ -981,8 +867,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     marginRight: 8,
-    marginTop: 0,
-    marginBottom: 0,
   },
   datePill: {
     backgroundColor: '#1a2f3d',
@@ -991,25 +875,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flexShrink: 1,
     maxWidth: 180,
-  },
-  osNumeroContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1a2f3d',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  osNumeroLabel: {
-    color: '#10a2a7',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 10,
-  },
-  osNumero: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   label: {
     color: '#fff',

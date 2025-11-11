@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { FlatList, View, ActivityIndicator } from 'react-native'
 import { TextInput, Card, Snackbar } from 'react-native-paper'
-import { getStoredData } from '../services/storageService'
-import { apiGetComContexto, safeSetItem } from '../utils/api'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiGetComContexto } from '../utils/api'
 
-// Hook de debounce otimizado
 function useDebounce(value, delay = 300) {
-  // Reduzido de 400ms para 300ms
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
@@ -19,110 +15,150 @@ function useDebounce(value, delay = 300) {
 }
 
 export default function BuscaSetorInput({ onSelect, initialValue = '' }) {
-  const [searchTerm, setSearchTerm] = useState(initialValue)
-  const debouncedSearchTerm = useDebounce(searchTerm, 300) // Mais responsivo
+  const [searchTerm, setSearchTerm] = useState(
+    typeof initialValue === 'string' ? initialValue : ''
+  )
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [setores, setSetores] = useState([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
+  const [errorSnackbarVisible, setErrorSnackbarVisible] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Atualiza searchTerm quando initialValue muda (apenas strings)
   useEffect(() => {
-    if (initialValue) setSearchTerm(initialValue)
+    if (typeof initialValue === 'string' && initialValue) {
+      setSearchTerm(initialValue)
+    }
   }, [initialValue])
 
+  // Pré-preenche o nome quando initialValue é um código numérico
   useEffect(() => {
-    if (
-      debouncedSearchTerm.trim().length < 2 ||
-      debouncedSearchTerm === initialValue
-    ) {
+    const isNumeric = (val) =>
+      typeof val === 'number' || (typeof val === 'string' && /^\d+$/.test(val?.trim()))
+
+    if (!initialValue || !isNumeric(initialValue)) return
+
+    let isCancelled = false
+
+    const fetchNome = async () => {
+      try {
+        console.log('ℹ️ [SETOR] Buscando nome para código:', initialValue)
+        setLoading(true)
+        
+        const data = await apiGetComContexto(
+          'ordemdeservico/fase-setor/',
+          { search: String(initialValue), limit: 5 },
+          'seto_'
+        )
+        
+        if (isCancelled) return
+
+        const candidatos = (data?.results || []).filter(
+          (p) => p?.osfs_codi && !isNaN(Number(p.osfs_codi))
+        )
+        
+        const match = candidatos.find(
+          (p) => Number(p.osfs_codi) === Number(initialValue)
+        ) || candidatos[0]
+
+        if (match?.osfs_nome && !isCancelled) {
+          console.log('✅ [SETOR] Nome encontrado:', match.osfs_nome)
+          setSearchTerm(match.osfs_nome)
+        }
+      } catch (err) {
+        console.error('❌ Erro ao buscar setor por código:', err?.message || err)
+        if (!isCancelled) {
+          setErrorMessage('Não foi possível obter o setor.')
+          setErrorSnackbarVisible(true)
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchNome()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [initialValue])
+
+  // Busca setores enquanto o usuário digita
+  useEffect(() => {
+    if (debouncedSearchTerm.trim().length < 2) {
       setSetores([])
       return
     }
 
+    let isCancelled = false
+
     const buscar = async () => {
       setLoading(true)
 
-      // Verificar cache primeiro
       try {
-        const cacheKey = `${BUSCA_SETOR_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-        const cacheData = await AsyncStorage.getItem(cacheKey)
-
-        if (cacheData) {
-          const { results, timestamp } = JSON.parse(cacheData)
-          const now = Date.now()
-
-          if (now - timestamp < BUSCA_SETOR_CACHE_DURATION) {
-            console.log(
-              `📦 [CACHE-BUSCA] Usando cache para: "${debouncedSearchTerm}"`
-            )
-            const validos = results.filter(
-              (p) => p?.osfs_codi && !isNaN(Number(p.osfs_codi))
-            )
-            setSetores(validos)
-            setLoading(false)
-            return
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Erro ao ler cache de busca:', error)
-      }
-
-      try {
-        console.log(
-          `🔍 [BUSCA-OTIMIZADA] Buscando setores para: "${debouncedSearchTerm}"`
-        )
+        console.log(`🔍 [BUSCA] Setores: "${debouncedSearchTerm}"`)
 
         const data = await apiGetComContexto(
           'ordemdeservico/fase-setor/',
-          {
-            search: debouncedSearchTerm,
-            limit: 10,
-          },
+          { search: debouncedSearchTerm, limit: 10 },
           'seto_'
         )
 
-        const validos = data.results.filter(
+        if (isCancelled) return
+
+        const validos = (data?.results || []).filter(
           (p) => p?.osfs_codi && !isNaN(Number(p.osfs_codi))
         )
 
-        console.log(
-          `✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} setores válidos`
-        )
+        console.log(`✅ [BUSCA] ${validos.length} setores encontrados`)
         setSetores(validos)
 
-        // Salvar no cache
-        try {
-          const cacheKey = `${BUSCA_SETOR_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-          const cacheData = {
-            results: data.results,
-            timestamp: Date.now(),
-          }
-          await safeSetItem(cacheKey, JSON.stringify(cacheData))
-          console.log(
-            `💾 [CACHE-BUSCA] Salvos ${validos.length} setores no cache`
-          )
-        } catch (error) {
-          console.log('⚠️ Erro ao salvar cache de busca:', error)
-        }
       } catch (err) {
-        console.error('❌ Erro ao buscar setores:', err.message)
+        console.error('❌ Erro ao buscar setores:', err?.message || err)
+        if (!isCancelled) {
+          setErrorMessage(err?.message || 'Falha ao buscar setores.')
+          setErrorSnackbarVisible(true)
+          setSetores([])
+        }
       } finally {
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false)
+        }
       }
     }
 
     buscar()
+
+    return () => {
+      isCancelled = true
+    }
   }, [debouncedSearchTerm])
 
   const handleSelecionarSetor = (setor) => {
-    if (!setor?.osfs_codi || isNaN(Number(setor.osfs_codi))) {
-      console.warn('❌ Setor inválido selecionado:', setor)
-      return
-    }
+    try {
+      console.log('🎯 [SELECAO] Setor:', setor)
+      
+      if (!setor?.osfs_codi || isNaN(Number(setor.osfs_codi))) {
+        console.warn('❌ Setor inválido:', setor)
+        return
+      }
 
-    onSelect(setor)
-    setSearchTerm(setor.osfs_nome)
-    setSetores([])
-    setSnackbarVisible(true)
+      console.log('✅ [SELECAO] Enviando setor completo')
+
+      if (onSelect && typeof onSelect === 'function') {
+        // Envia o objeto completo para manter compatibilidade
+        onSelect(setor)
+      }
+
+      setSearchTerm(setor.osfs_nome)
+      setSetores([])
+      setSnackbarVisible(true)
+    } catch (error) {
+      console.error('❌ Erro ao selecionar setor:', error)
+    }
   }
 
   return (
@@ -147,9 +183,7 @@ export default function BuscaSetorInput({ onSelect, initialValue = '' }) {
             background: '#232935',
           },
         }}
-        contentStyle={{
-          color: 'white',
-        }}
+        contentStyle={{ color: 'white' }}
       />
 
       {loading ? (
@@ -159,30 +193,35 @@ export default function BuscaSetorInput({ onSelect, initialValue = '' }) {
           style={{ marginVertical: 20 }}
         />
       ) : (
-        <FlatList
-          data={setores}
-          keyExtractor={(item) => `setor-${item.osfs_codi}-${item.osfs_nome}`}
-          nestedScrollEnabled={true}
-          maxToRenderPerBatch={10} // Otimização de renderização
-          windowSize={10} // Otimização de memória
-          renderItem={({ item }) => (
-            <Card
-              onPress={() => handleSelecionarSetor(item)}
-              style={{
-                marginVertical: 4,
-                backgroundColor: '#1c1c1c',
-                borderRadius: 8,
-                elevation: 3,
-              }}>
-              <Card.Title
-                title={item.osfs_nome}
-                subtitle={`Código: ${item.osfs_codi} | Nome: ${item.osfs_nome}`}
-                titleStyle={{ color: 'white', fontWeight: 'bold' }}
-                subtitleStyle={{ color: '#A1A1A1' }}
-              />
-            </Card>
-          )}
-        />
+        setores.length > 0 && (
+          <FlatList
+            data={setores}
+            keyExtractor={(item, index) =>
+              `setor-${item?.osfs_codi ?? index}-${item?.osfs_nome}`
+            }
+            nestedScrollEnabled={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={10}
+            renderItem={({ item }) => (
+              <Card
+                onPress={() => handleSelecionarSetor(item)}
+                style={{
+                  marginVertical: 4,
+                  backgroundColor: '#1c1c1c',
+                  borderRadius: 8,
+                  elevation: 3,
+                }}>
+                <Card.Title
+                  title={item?.osfs_nome ?? 'Setor desconhecido'}
+                  subtitle={`Código: ${item?.osfs_codi ?? '-'}`}
+                  titleStyle={{ color: 'white', fontWeight: 'bold' }}
+                  subtitleStyle={{ color: '#A1A1A1' }}
+                />
+              </Card>
+            )}
+          />
+        )
       )}
 
       <Snackbar
@@ -190,7 +229,15 @@ export default function BuscaSetorInput({ onSelect, initialValue = '' }) {
         onDismiss={() => setSnackbarVisible(false)}
         duration={1500}
         style={{ backgroundColor: '#388E3C' }}>
-        Setor adicionado com sucesso!
+        Setor selecionado com sucesso!
+      </Snackbar>
+
+      <Snackbar
+        visible={errorSnackbarVisible}
+        onDismiss={() => setErrorSnackbarVisible(false)}
+        duration={3000}
+        style={{ backgroundColor: '#B00020' }}>
+        {errorMessage || 'Erro inesperado ao buscar setores.'}
       </Snackbar>
     </View>
   )

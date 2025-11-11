@@ -156,18 +156,6 @@ export const ORDER_FIELDS_CONFIG = {
         required: false,
       },
       {
-        key: 'orde_grau_ip',
-        label: 'Grau de IP',
-        tipo: 'text',
-        required: false,
-      },
-      {
-        key: 'orde_isol',
-        label: 'Isolamento',
-        tipo: 'text',
-        required: false,
-      },
-      {
         key: 'orde_obse',
         label: 'Observações',
         tipo: 'textarea',

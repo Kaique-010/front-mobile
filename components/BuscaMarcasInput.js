@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { FlatList, View, ActivityIndicator } from 'react-native'
 import { TextInput, Card, Snackbar } from 'react-native-paper'
-import { getStoredData } from '../services/storageService'
-import { apiGetComContexto, safeSetItem } from '../utils/api'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiGetComContexto } from '../utils/api'
 
-const BUSCA_MARCA_CACHE_KEY = 'busca_marca'
-const BUSCA_MARCA_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
-
-// Hook de debounce otimizado
 function useDebounce(value, delay = 300) {
-  // Reduzido de 400ms para 300ms
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
@@ -23,14 +16,18 @@ function useDebounce(value, delay = 300) {
 
 export default function BuscaMarcasInput({ onSelect, initialValue = '' }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300) // Mais responsivo
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [marcas, setMarcas] = useState([])
+  const [showResults, setShowResults] = useState(false)
+  const [selectedMarca, setSelectedMarca] = useState(null)
   const [snackbarVisible, setSnackbarVisible] = useState(false)
+  const [errorSnackbarVisible, setErrorSnackbarVisible] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Inicializa searchTerm apenas se initialValue for string
   useEffect(() => {
     try {
-      // Se initialValue for um número (código), não definir searchTerm
       if (initialValue && typeof initialValue === 'string') {
         setSearchTerm(initialValue)
       }
@@ -39,106 +36,150 @@ export default function BuscaMarcasInput({ onSelect, initialValue = '' }) {
     }
   }, [initialValue])
 
+  // Pré-preenche o nome quando initialValue é um código numérico
   useEffect(() => {
-    if (
-      debouncedSearchTerm.trim().length < 2 ||
-      debouncedSearchTerm === initialValue
-    ) {
+    const isNumeric = (val) =>
+      typeof val === 'number' || (typeof val === 'string' && /^\d+$/.test(val?.trim()))
+
+    if (!initialValue || !isNumeric(initialValue)) return
+
+    let isCancelled = false
+
+    const fetchNome = async () => {
+      try {
+        console.log('ℹ️ [MARCA] Buscando nome para código:', initialValue)
+        setLoading(true)
+        
+        // Busca por código exato para evitar nomes incorretos
+        const data = await apiGetComContexto(
+          'produtos/marcas/',
+          { codigo: Number(initialValue), limit: 1 },
+          'marca_'
+        )
+        
+        if (isCancelled) return
+
+        const candidatos = (data?.results || []).filter(
+          (p) => p?.codigo && !isNaN(Number(p.codigo))
+        )
+        
+        const match = candidatos.find(
+          (p) => Number(p.codigo) === Number(initialValue)
+        )
+
+        if (match?.nome && !isCancelled) {
+          console.log('✅ [MARCA] Nome encontrado:', match.nome)
+          setSearchTerm(match.nome)
+          setSelectedMarca(match)
+          setShowResults(false)
+        }
+      } catch (err) {
+        console.error('❌ Erro ao buscar marca por código:', err?.message || err)
+        if (!isCancelled) {
+          setErrorMessage('Não foi possível obter a marca.')
+          setErrorSnackbarVisible(true)
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchNome()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [initialValue])
+
+  // Busca marcas enquanto o usuário digita (somente 3+ caracteres, como BuscaClienteInput)
+  useEffect(() => {
+    if (debouncedSearchTerm.trim().length < 3) {
       setMarcas([])
+      setShowResults(false)
       return
     }
+
+    let isCancelled = false
 
     const buscar = async () => {
       setLoading(true)
 
-      // Verificar cache primeiro
       try {
-        const cacheKey = `${BUSCA_MARCA_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-        const cacheData = await AsyncStorage.getItem(cacheKey)
-
-        if (cacheData) {
-          const { results, timestamp } = JSON.parse(cacheData)
-          const now = Date.now()
-
-          if (now - timestamp < BUSCA_MARCA_CACHE_DURATION) {
-            console.log(
-              `📦 [CACHE-BUSCA] Usando cache para: "${debouncedSearchTerm}"`
-            )
-            const validos = results.filter(
-              (p) => p?.codigo && !isNaN(Number(p.codigo))
-            )
-            setMarcas(validos)
-            setLoading(false)
-            return
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Erro ao ler cache de busca:', error)
-      }
-
-      try {
-        console.log(
-          `🔍 [BUSCA-OTIMIZADA] Buscando marcas para: "${debouncedSearchTerm}"`
-        )
+        console.log(`🔍 [BUSCA] Marcas: "${debouncedSearchTerm}"`)
 
         const data = await apiGetComContexto(
           'produtos/marcas/',
-          {
-            search: debouncedSearchTerm,
-            limit: 10,
-          },
+          { search: debouncedSearchTerm, limit: 10 },
           'marca_'
         )
 
-        const validos =
-          data.results?.filter((p) => p?.codigo && !isNaN(Number(p.codigo))) ||
-          []
+        if (isCancelled) return
 
-        console.log(
-          `✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} marcas válidos`
+        const validos = (data?.results || []).filter(
+          (p) => p?.codigo && !isNaN(Number(p.codigo))
         )
-        setMarcas(validos)
 
-        // Salvar no cache
-        try {
-          const cacheKey = `${BUSCA_MARCA_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-          const cacheData = {
-            results: data.results,
-            timestamp: Date.now(),
-          }
-          await safeSetItem(cacheKey, JSON.stringify(cacheData))
-          console.log(
-            `💾 [CACHE-BUSCA] Salvos ${validos.length} marcas no cache`
-          )
-        } catch (error) {
-          console.log('⚠️ Erro ao salvar cache de busca:', error)
-        }
+        console.log(`✅ [BUSCA] ${validos.length} marcas encontradas`)
+        setMarcas(validos)
+        setShowResults(validos.length > 0)
+
       } catch (err) {
-        console.error('❌ Erro ao buscar marcas:', err.message)
+        console.error('❌ Erro ao buscar marcas:', err?.message || err)
+        if (!isCancelled) {
+          setErrorMessage(err?.message || 'Falha ao buscar marcas.')
+          setErrorSnackbarVisible(true)
+          setMarcas([])
+          setShowResults(false)
+        }
       } finally {
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false)
+        }
       }
     }
 
     buscar()
+
+    return () => {
+      isCancelled = true
+    }
   }, [debouncedSearchTerm])
 
   const handleSelecionarMarca = (marca) => {
     try {
+      console.log('🎯 [SELECAO] Marca:', marca)
+      
       if (!marca?.codigo || isNaN(Number(marca.codigo))) {
-        console.warn('❌ Marca inválida selecionada:', marca)
+        console.warn('❌ Marca inválida:', marca)
         return
       }
 
-      // Enviar apenas o código da marca (número inteiro)
+      console.log('✅ [SELECAO] Enviando objeto completo')
+
       if (onSelect && typeof onSelect === 'function') {
-        onSelect(Number(marca.codigo))
+        // Envia o objeto completo para padronizar com BuscaProdutosInput
+        onSelect(marca)
       }
+
       setSearchTerm(marca.nome)
       setMarcas([])
+      setSelectedMarca(marca)
+      setShowResults(false)
       setSnackbarVisible(true)
     } catch (error) {
       console.error('❌ Erro ao selecionar marca:', error)
+    }
+  }
+
+  const limparSelecao = () => {
+    setSearchTerm('')
+    setMarcas([])
+    setSelectedMarca(null)
+    setShowResults(false)
+    if (onSelect && typeof onSelect === 'function') {
+      onSelect(null)
     }
   }
 
@@ -153,8 +194,24 @@ export default function BuscaMarcasInput({ onSelect, initialValue = '' }) {
         }}
         label="Buscar marca"
         value={searchTerm}
-        onChangeText={setSearchTerm}
-        right={<TextInput.Icon icon="magnify" />}
+        onChangeText={(text) => {
+          setSearchTerm(text)
+          setSelectedMarca(null)
+          setShowResults(false)
+        }}
+        onFocus={() => {
+          if (marcas.length > 0) {
+            setShowResults(true)
+          } else if (searchTerm && searchTerm.length >= 3 && !selectedMarca) {
+            // O efeito de debounce já disparará a busca
+          }
+        }}
+        right={
+          <TextInput.Icon
+            icon={selectedMarca ? 'close' : 'magnify'}
+            onPress={selectedMarca ? limparSelecao : undefined}
+          />
+        }
         mode="outlined"
         theme={{
           colors: {
@@ -164,9 +221,7 @@ export default function BuscaMarcasInput({ onSelect, initialValue = '' }) {
             background: '#232935',
           },
         }}
-        contentStyle={{
-          color: 'white',
-        }}
+        contentStyle={{ color: 'white' }}
       />
 
       {loading ? (
@@ -176,30 +231,35 @@ export default function BuscaMarcasInput({ onSelect, initialValue = '' }) {
           style={{ marginVertical: 20 }}
         />
       ) : (
-        <FlatList
-          data={marcas}
-          keyExtractor={(item) => `marca-${item.codigo}-${item.nome}`}
-          scrollEnabled={false}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          renderItem={({ item }) => (
-            <Card
-              onPress={() => handleSelecionarMarca(item)}
-              style={{
-                marginVertical: 4,
-                backgroundColor: '#1c1c1c',
-                borderRadius: 8,
-                elevation: 3,
-              }}>
-              <Card.Title
-                title={item.nome}
-                subtitle={`Código: ${item.codigo} | Nome: ${item.nome}`}
-                titleStyle={{ color: 'white', fontWeight: 'bold' }}
-                subtitleStyle={{ color: '#A1A1A1' }}
-              />
-            </Card>
-          )}
-        />
+        marcas.length > 0 && showResults && (
+          <FlatList
+            data={marcas}
+            keyExtractor={(item, index) =>
+              `marca-${item?.codigo ?? index}-${item?.nome}`
+            }
+            nestedScrollEnabled={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={10}
+            renderItem={({ item }) => (
+              <Card
+                onPress={() => handleSelecionarMarca(item)}
+                style={{
+                  marginVertical: 4,
+                  backgroundColor: '#1c1c1c',
+                  borderRadius: 8,
+                  elevation: 3,
+                }}>
+                <Card.Title
+                  title={item?.nome ?? 'Marca desconhecida'}
+                  subtitle={`Código: ${item?.codigo ?? '-'}`}
+                  titleStyle={{ color: 'white', fontWeight: 'bold' }}
+                  subtitleStyle={{ color: '#A1A1A1' }}
+                />
+              </Card>
+            )}
+          />
+        )
       )}
 
       <Snackbar
@@ -208,6 +268,14 @@ export default function BuscaMarcasInput({ onSelect, initialValue = '' }) {
         duration={1500}
         style={{ backgroundColor: '#388E3C' }}>
         Marca selecionada com sucesso!
+      </Snackbar>
+
+      <Snackbar
+        visible={errorSnackbarVisible}
+        onDismiss={() => setErrorSnackbarVisible(false)}
+        duration={3000}
+        style={{ backgroundColor: '#B00020' }}>
+        {errorMessage || 'Erro inesperado ao buscar marcas.'}
       </Snackbar>
     </View>
   )

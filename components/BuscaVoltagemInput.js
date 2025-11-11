@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { FlatList, View, ActivityIndicator } from 'react-native'
 import { TextInput, Card, Snackbar } from 'react-native-paper'
-import { getStoredData } from '../services/storageService'
-import { apiGetComContexto, safeSetItem } from '../utils/api'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { apiGetComContexto } from '../utils/api'
 
-const BUSCA_VOLTAGEM_CACHE_KEY = 'busca_voltagem'
-const BUSCA_VOLTAGEM_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
-
-// Hook de debounce otimizado
 function useDebounce(value, delay = 300) {
-  // Reduzido de 400ms para 300ms
   const [debouncedValue, setDebouncedValue] = useState(value)
 
   useEffect(() => {
@@ -23,14 +16,16 @@ function useDebounce(value, delay = 300) {
 
 export default function BuscaVoltagemInput({ onSelect, initialValue = '' }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300) // Mais responsivo
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [voltagens, setVoltagens] = useState([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
+  const [errorSnackbarVisible, setErrorSnackbarVisible] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Inicializa searchTerm apenas se initialValue for string
   useEffect(() => {
     try {
-      // Se initialValue for um número (código), não definir searchTerm
       if (initialValue && typeof initialValue === 'string') {
         setSearchTerm(initialValue)
       }
@@ -39,103 +34,130 @@ export default function BuscaVoltagemInput({ onSelect, initialValue = '' }) {
     }
   }, [initialValue])
 
+  // Pré-preenche o nome quando initialValue é um código numérico
   useEffect(() => {
-    if (
-      debouncedSearchTerm.trim().length < 2 ||
-      debouncedSearchTerm === initialValue
-    ) {
+    const isNumeric = (val) =>
+      typeof val === 'number' || (typeof val === 'string' && /^\d+$/.test(val?.trim()))
+
+    if (!initialValue || !isNumeric(initialValue)) return
+
+    let isCancelled = false
+
+    const fetchNome = async () => {
+      try {
+        console.log('ℹ️ [VOLTAGEM] Buscando nome para código:', initialValue)
+        setLoading(true)
+        
+        // Busca por código exato para evitar nomes/valores incorretos
+        const data = await apiGetComContexto(
+          'ordemdeservico/voltagens/',
+          { osvo_codi: Number(initialValue), limit: 1 },
+          'voltagem_'
+        )
+        
+        if (isCancelled) return
+
+        const candidatos = (data?.results || []).filter(
+          (p) => p?.osvo_codi && !isNaN(Number(p.osvo_codi))
+        )
+        
+        const match = candidatos.find(
+          (p) => Number(p.osvo_codi) === Number(initialValue)
+        )
+
+        if (match?.osvo_nome && !isCancelled) {
+          console.log('✅ [VOLTAGEM] Nome encontrado:', match.osvo_nome)
+          setSearchTerm(match.osvo_nome)
+        }
+      } catch (err) {
+        console.error('❌ Erro ao buscar voltagem por código:', err?.message || err)
+        if (!isCancelled) {
+          setErrorMessage('Não foi possível obter a voltagem.')
+          setErrorSnackbarVisible(true)
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchNome()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [initialValue])
+
+  // Busca voltagens enquanto o usuário digita
+  useEffect(() => {
+    if (debouncedSearchTerm.trim().length < 2) {
       setVoltagens([])
       return
     }
 
+    let isCancelled = false
+
     const buscar = async () => {
       setLoading(true)
 
-      // Verificar cache primeiro
       try {
-        const cacheKey = `${BUSCA_VOLTAGEM_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-        const cacheData = await AsyncStorage.getItem(cacheKey)
-
-        if (cacheData) {
-          const { results, timestamp } = JSON.parse(cacheData)
-          const now = Date.now()
-
-          if (now - timestamp < BUSCA_VOLTAGEM_CACHE_DURATION) {
-            console.log(
-              `📦 [CACHE-BUSCA] Usando cache para: "${debouncedSearchTerm}"`
-            )
-            const validos = results.filter(
-              (p) => p?.osvo_codi && !isNaN(Number(p.osvo_codi))
-            )
-            setVoltagens(validos)
-            setLoading(false)
-            return
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Erro ao ler cache de busca:', error)
-      }
-
-      try {
-        console.log(
-          `🔍 [BUSCA-OTIMIZADA] Buscando voltagens para: "${debouncedSearchTerm}"`
-        )
+        console.log(`🔍 [BUSCA] Voltagens: "${debouncedSearchTerm}"`)
 
         const data = await apiGetComContexto(
           'ordemdeservico/voltagens/',
-          {
-            search: debouncedSearchTerm,
-            limit: 10,
-          },
+          { search: debouncedSearchTerm, limit: 10 },
           'voltagem_'
         )
 
-        const validos =
-          data.results?.filter((p) => p?.osvo_codi && !isNaN(Number(p.osvo_codi))) ||
-          []
+        if (isCancelled) return
 
-        console.log(
-          `✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} voltagens válidos`
+        const validos = (data?.results || []).filter(
+          (p) => p?.osvo_codi && !isNaN(Number(p.osvo_codi))
         )
+
+        console.log(`✅ [BUSCA] ${validos.length} voltagens encontradas`)
         setVoltagens(validos)
 
-        // Salvar no cache
-        try {
-          const cacheKey = `${BUSCA_VOLTAGEM_CACHE_KEY}_${debouncedSearchTerm.toLowerCase()}`
-          const cacheData = {
-            results: data.results,
-            timestamp: Date.now(),
-          }
-          await safeSetItem(cacheKey, JSON.stringify(cacheData))
-          console.log(
-            `💾 [CACHE-BUSCA] Salvos ${validos.length} voltagens no cache`
-          )
-        } catch (error) {
-          console.log('⚠️ Erro ao salvar cache de busca:', error)
-        }
       } catch (err) {
-        console.error('❌ Erro ao buscar voltagens:', err.message)
+        console.error('❌ Erro ao buscar voltagens:', err?.message || err)
+        if (!isCancelled) {
+          setErrorMessage(err?.message || 'Falha ao buscar voltagens.')
+          setErrorSnackbarVisible(true)
+          setVoltagens([])
+        }
       } finally {
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false)
+        }
       }
     }
 
     buscar()
+
+    return () => {
+      isCancelled = true
+    }
   }, [debouncedSearchTerm])
 
   const handleSelecionarVoltagem = (voltagem) => {
     try {
+      console.log('🎯 [SELECAO] Voltagem:', voltagem)
+      
       if (!voltagem?.osvo_codi || isNaN(Number(voltagem.osvo_codi))) {
-        console.warn('❌ Voltagem inválida selecionada:', voltagem)
+        console.warn('❌ Voltagem inválida:', voltagem)
         return
       }
 
-      // Enviar apenas o código da voltagem (número inteiro)
+      console.log('✅ [SELECAO] Enviando objeto completo')
+
       if (onSelect && typeof onSelect === 'function') {
-        onSelect(Number(voltagem.osvo_codi))
+        // Envia o objeto completo para padronizar com BuscaProdutosInput
+        onSelect(voltagem)
       }
+
       setSearchTerm(voltagem.osvo_nome)
-      setVoltagens([])  
+      setVoltagens([])
       setSnackbarVisible(true)
     } catch (error) {
       console.error('❌ Erro ao selecionar voltagem:', error)
@@ -164,9 +186,7 @@ export default function BuscaVoltagemInput({ onSelect, initialValue = '' }) {
             background: '#232935',
           },
         }}
-        contentStyle={{
-          color: 'white',
-        }}
+        contentStyle={{ color: 'white' }}
       />
 
       {loading ? (
@@ -176,30 +196,35 @@ export default function BuscaVoltagemInput({ onSelect, initialValue = '' }) {
           style={{ marginVertical: 20 }}
         />
       ) : (
-        <FlatList
-          data={voltagens}
-          keyExtractor={(item) => `voltagem-${item.osvo_codi}-${item.osvo_nome}`}
-          scrollEnabled={false}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          renderItem={({ item }) => (
-            <Card
-              onPress={() => handleSelecionarVoltagem(item)}
-              style={{
-                marginVertical: 4,
-                backgroundColor: '#1c1c1c',
-                borderRadius: 8,
-                elevation: 3,
-              }}>
-              <Card.Title
-                title={item.osvo_nome}
-                subtitle={`Código: ${item.osvo_codi} | Nome: ${item.osvo_nome}`}  
-                titleStyle={{ color: 'white', fontWeight: 'bold' }}
-                subtitleStyle={{ color: '#A1A1A1' }}
-              />
-            </Card>
-          )}
-        />
+        voltagens.length > 0 && (
+          <FlatList
+            data={voltagens}
+            keyExtractor={(item, index) =>
+              `voltagem-${item?.osvo_codi ?? index}-${item?.osvo_nome}`
+            }
+            nestedScrollEnabled={true}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            initialNumToRender={10}
+            renderItem={({ item }) => (
+              <Card
+                onPress={() => handleSelecionarVoltagem(item)}
+                style={{
+                  marginVertical: 4,
+                  backgroundColor: '#1c1c1c',
+                  borderRadius: 8,
+                  elevation: 3,
+                }}>
+                <Card.Title
+                  title={item?.osvo_nome ?? 'Voltagem desconhecida'}
+                  subtitle={`Código: ${item?.osvo_codi ?? '-'}`}
+                  titleStyle={{ color: 'white', fontWeight: 'bold' }}
+                  subtitleStyle={{ color: '#A1A1A1' }}
+                />
+              </Card>
+            )}
+          />
+        )
       )}
 
       <Snackbar
@@ -208,6 +233,14 @@ export default function BuscaVoltagemInput({ onSelect, initialValue = '' }) {
         duration={1500}
         style={{ backgroundColor: '#388E3C' }}>
         Voltagem selecionada com sucesso!
+      </Snackbar>
+
+      <Snackbar
+        visible={errorSnackbarVisible}
+        onDismiss={() => setErrorSnackbarVisible(false)}
+        duration={3000}
+        style={{ backgroundColor: '#B00020' }}>
+        {errorMessage || 'Erro inesperado ao buscar voltagens.'}
       </Snackbar>
     </View>
   )

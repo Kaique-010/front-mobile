@@ -353,6 +353,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
           item.peca_id?.toString() || `temp-${item.peca_codi}-${Date.now()}`
         }
         renderItem={renderItem}
+        nestedScrollEnabled={true}
         contentContainerStyle={styles.lista}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

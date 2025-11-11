@@ -157,6 +157,7 @@ export default function AbaForos({ orde_nume, codTecnico }) {
           }}
           renderItem={renderItem}
           numColumns={3}
+          nestedScrollEnabled={true}
           contentContainerStyle={{ padding: 8 }}
         />
       ) : (
