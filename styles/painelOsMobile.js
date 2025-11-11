@@ -50,6 +50,9 @@ export default StyleSheet.create({
     fontSize: 12,
     color: '#fff',
     fontWeight: 'bold',
+    marginBottom:15,
+    marginTop:15,
+
   },
   filtrosMobile: {
     backgroundColor: '#182C39',

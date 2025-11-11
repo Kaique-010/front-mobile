@@ -678,9 +678,9 @@ const PainelAcompanhamento = ({ navigation }) => {
 
         <Text
           style={
-            modoAtual === 'mobile' ? styles.filtrosMobileFiltro : styles.titulo
+            modoAtual === 'mobile' ? styles.filtrosMobileFiltro : styles.titulo 
           }>
-          Filtragem por Cliente
+         🤵Filtragem por Clientes
         </Text>
         <View
           style={
