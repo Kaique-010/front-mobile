@@ -19,7 +19,11 @@ import BuscaSetorInput from '../components/BuscaSetorInput'
 import BuscaMarcasInput from '../components/BuscaMarcasInput'
 import BuscaVoltagemInput from '../components/BuscaVoltagemInput'
 import ErrorBoundary from '../components/ErrorBoundary'
-import { apiPostComContexto, apiGetComContexto, apiPatchComContexto } from '../utils/api'
+import {
+  apiPostComContexto,
+  apiGetComContexto,
+  apiPatchComContexto,
+} from '../utils/api'
 import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
 import AbaForos from '../componentsOs/AbaForos'
@@ -101,14 +105,35 @@ export default function CriarOrdemServico() {
     const camposParaLimpar = {}
 
     const todosCampos = [
-      'orde_pote', 'orde_volt', 'orde_ampe', 'orde_hz', 'orde_rpm',
-      'orde_marc', 'orde_seri', 'orde_mode', 'orde_patr', 'orde_cond',
-      'orde_polo', 'orde_foco', 'orde_esta_chap', 'orde_esta_comp',
-      'orde_esta_cabo', 'orde_esta_quan_cabo', 'orde_esta_fio',
-      'orde_esta_quan_fio', 'orde_esta_larg', 'orde_esta_liga',
-      'orde_esta_mate', 'orde_esta_quan_mate', 'orde_grau_ip',
-      'orde_isol', 'orde_tens_camp', 'orde_corr_camp', 'orde_tens_arma',
-      'orde_corr_arma', 'orde_obse',
+      'orde_pote',
+      'orde_volt',
+      'orde_ampe',
+      'orde_hz',
+      'orde_rpm',
+      'orde_marc',
+      'orde_seri',
+      'orde_mode',
+      'orde_patr',
+      'orde_cond',
+      'orde_polo',
+      'orde_foco',
+      'orde_esta_chap',
+      'orde_esta_comp',
+      'orde_esta_cabo',
+      'orde_esta_quan_cabo',
+      'orde_esta_fio',
+      'orde_esta_quan_fio',
+      'orde_esta_larg',
+      'orde_esta_liga',
+      'orde_esta_mate',
+      'orde_esta_quan_mate',
+      'orde_grau_ip',
+      'orde_isol',
+      'orde_tens_camp',
+      'orde_corr_camp',
+      'orde_tens_arma',
+      'orde_corr_arma',
+      'orde_obse',
     ]
 
     todosCampos.forEach((campo) => {
@@ -135,8 +160,10 @@ export default function CriarOrdemServico() {
 
   // handleInputChange simplificado e memorizado
   const handleInputChange = useCallback((key, value) => {
-    console.log(`🔄 handleInputChange: ${key} = ${value} (tipo: ${typeof value})`)
-    
+    console.log(
+      `🔄 handleInputChange: ${key} = ${value} (tipo: ${typeof value})`
+    )
+
     setOrdemServico((prev) => {
       let nextValue = value
 
@@ -170,8 +197,12 @@ export default function CriarOrdemServico() {
         nextValue = value === null || value === undefined ? '' : String(value)
       }
 
-      console.log(`✅ Valor final para ${key}:`, nextValue, `(tipo: ${typeof nextValue})`)
-      
+      console.log(
+        `✅ Valor final para ${key}:`,
+        nextValue,
+        `(tipo: ${typeof nextValue})`
+      )
+
       return {
         ...prev,
         [key]: nextValue,
@@ -199,7 +230,8 @@ export default function CriarOrdemServico() {
       Toast.show({
         type: 'warning',
         text1: 'Atenção',
-        text2: 'Não é possível modificar peças ou serviços após gerar o financeiro',
+        text2:
+          'Não é possível modificar peças ou serviços após gerar o financeiro',
       })
       return false
     }
@@ -208,7 +240,7 @@ export default function CriarOrdemServico() {
 
   const validarOrdemServico = () => {
     console.log('🔍 Validando ordem de serviço...')
-    
+
     if (!ordemServico.orde_nume || ordemServico.orde_nume.trim() === '') {
       Toast.show({
         type: 'error',
@@ -272,23 +304,27 @@ export default function CriarOrdemServico() {
         orde_empr: empresaId?.toString() || '',
         orde_fili: filialId?.toString() || '',
         usua: usuarioId?.toString() || '',
-        orde_seto: ordemServico.orde_seto !== '' && ordemServico.orde_seto !== null
-          ? Number(ordemServico.orde_seto)
-          : 2,
+        orde_seto:
+          ordemServico.orde_seto !== '' && ordemServico.orde_seto !== null
+            ? Number(ordemServico.orde_seto)
+            : 2,
         orde_nf_entr: ordemServico.orde_nf_entr?.toString() || '',
         orde_gara: ordemServico.orde_gara?.toString() || '',
         orde_sem_cons: ordemServico.orde_sem_cons ? 'S' : '',
         orde_data_repr:
-          ordemServico.orde_data_repr && ordemServico.orde_data_repr.trim() !== ''
+          ordemServico.orde_data_repr &&
+          ordemServico.orde_data_repr.trim() !== ''
             ? ordemServico.orde_data_repr
             : null,
         orde_seto_repr:
-          ordemServico.orde_seto_repr !== '' && ordemServico.orde_seto_repr !== null
+          ordemServico.orde_seto_repr !== '' &&
+          ordemServico.orde_seto_repr !== null
             ? Number(ordemServico.orde_seto_repr)
             : null,
         orde_fina_ofic: ordemServico.orde_fina_ofic ? '1' : '0',
         orde_stat_orde:
-          ordemServico.orde_stat_orde !== '' && ordemServico.orde_stat_orde !== null
+          ordemServico.orde_stat_orde !== '' &&
+          ordemServico.orde_stat_orde !== null
             ? Number(ordemServico.orde_stat_orde)
             : 0,
       }
@@ -312,8 +348,9 @@ export default function CriarOrdemServico() {
       // Aplicar PATCH se necessário
       try {
         const setorSelecionado = Number(ordemServico.orde_seto)
-        const desejaStatusQuatro = Number(ordemServico.orde_stat_orde) === 4 || setorSelecionado === 13
-        
+        const desejaStatusQuatro =
+          Number(ordemServico.orde_stat_orde) === 4 || setorSelecionado === 13
+
         if (desejaStatusQuatro) {
           console.log('🔧 Aplicando PATCH para status 4...')
           await apiPatchComContexto(
@@ -338,13 +375,13 @@ export default function CriarOrdemServico() {
       console.error('💥 Erro ao criar O.S:', error)
 
       let errorMessage = 'Tente novamente mais tarde'
-      
+
       if (error.response?.data) {
         const errorData = error.response.data
-        
+
         if (errorData.orde_nume && Array.isArray(errorData.orde_nume)) {
           const duplicateError = errorData.orde_nume.find(
-            err => err.includes('já existe') || err.includes('unique')
+            (err) => err.includes('já existe') || err.includes('unique')
           )
           if (duplicateError) {
             errorMessage = `O número ${ordemServico.orde_nume} já está em uso.`
@@ -462,7 +499,13 @@ export default function CriarOrdemServico() {
 
   if (carregando) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#121212',
+        }}>
         <ActivityIndicator size="large" color="#10a2a7" />
         <Text style={{ color: '#fff', marginTop: 10 }}>Carregando...</Text>
       </View>
@@ -472,9 +515,9 @@ export default function CriarOrdemServico() {
   return (
     <KeyboardAwareScrollView
       style={{ backgroundColor: '#0f1f2a' }}
-      nestedScrollEnabled={true}
-      keyboardShouldPersistTaps="handled"
-    >
+      contentContainerStyle={{ flexGrow: 1 }}
+      nestedScrollEnabled
+      keyboardShouldPersistTaps="handled">
       <View style={{ padding: 20, backgroundColor: '#0f1f2a' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           {['cliente', 'pecas', 'servicos', 'fotos'].map((aba) => (
@@ -546,7 +589,9 @@ export default function CriarOrdemServico() {
                     style={styles.datePill}>
                     <Text style={{ color: '#fff' }} numberOfLines={1}>
                       {ordemServico.orde_data_repr
-                        ? new Date(ordemServico.orde_data_repr).toLocaleDateString()
+                        ? new Date(
+                            ordemServico.orde_data_repr
+                          ).toLocaleDateString()
                         : 'Selecionar'}
                     </Text>
                   </TouchableOpacity>
@@ -558,9 +603,10 @@ export default function CriarOrdemServico() {
                       onPress={() => setShowSetorReprovModal(true)}
                       style={styles.datePill}>
                       <Text style={{ color: '#fff' }} numberOfLines={1}>
-                        {setorReprovNome || (ordemServico.orde_seto_repr
-                          ? `Código ${ordemServico.orde_seto_repr}`
-                          : 'Selecionar')}
+                        {setorReprovNome ||
+                          (ordemServico.orde_seto_repr
+                            ? `Código ${ordemServico.orde_seto_repr}`
+                            : 'Selecionar')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -569,15 +615,20 @@ export default function CriarOrdemServico() {
 
               {showDatePickerReprov && (
                 <DateTimePicker
-                  value={ordemServico.orde_data_repr 
-                    ? new Date(ordemServico.orde_data_repr) 
-                    : new Date()}
+                  value={
+                    ordemServico.orde_data_repr
+                      ? new Date(ordemServico.orde_data_repr)
+                      : new Date()
+                  }
                   mode="date"
                   display="default"
                   onChange={(event, selectedDate) => {
                     setShowDatePickerReprov(false)
                     if (selectedDate) {
-                      handleInputChange('orde_data_repr', selectedDate.toISOString().split('T')[0])
+                      handleInputChange(
+                        'orde_data_repr',
+                        selectedDate.toISOString().split('T')[0]
+                      )
                     }
                   }}
                 />
@@ -588,19 +639,22 @@ export default function CriarOrdemServico() {
                 animationType="slide"
                 transparent={true}
                 onRequestClose={() => setShowSetorReprovModal(false)}>
-                <View style={{
-                  flex: 1,
-                  backgroundColor: 'rgba(0,0,0,0.6)',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
-                  <View style={{
-                    width: '90%',
-                    backgroundColor: '#1a2f3d',
-                    borderRadius: 12,
-                    padding: 16,
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
                   }}>
-                    <Text style={{ color: '#fff', fontSize: 16, marginBottom: 10 }}>
+                  <View
+                    style={{
+                      width: '90%',
+                      backgroundColor: '#1a2f3d',
+                      borderRadius: 12,
+                      padding: 16,
+                    }}>
+                    <Text
+                      style={{ color: '#fff', fontSize: 16, marginBottom: 10 }}>
                       Selecionar Setor da Reprovação
                     </Text>
                     <ErrorBoundary>
@@ -624,7 +678,9 @@ export default function CriarOrdemServico() {
                         alignItems: 'center',
                         marginTop: 10,
                       }}>
-                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Fechar</Text>
+                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                        Fechar
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -634,10 +690,13 @@ export default function CriarOrdemServico() {
                 Nº da O.S<Text style={styles.required}> *</Text>
               </Text>
               <TextInput
-                style={[styles.input, !ordemServico.orde_nume && {
-                  borderColor: '#1a2f3d',
-                  borderWidth: 1,
-                }]}
+                style={[
+                  styles.input,
+                  !ordemServico.orde_nume && {
+                    borderColor: '#1a2f3d',
+                    borderWidth: 1,
+                  },
+                ]}
                 value={ordemServico.orde_nume}
                 onChangeText={(value) => handleInputChange('orde_nume', value)}
                 placeholder="Digite o número da O.S"
@@ -652,7 +711,9 @@ export default function CriarOrdemServico() {
                 <Text style={{ color: '#fff' }}>
                   {(() => {
                     const d = new Date(ordemServico.orde_data_aber)
-                    return isNaN(d.getTime()) ? new Date().toLocaleDateString() : d.toLocaleDateString()
+                    return isNaN(d.getTime())
+                      ? new Date().toLocaleDateString()
+                      : d.toLocaleDateString()
                   })()}
                 </Text>
               </TouchableOpacity>
@@ -668,7 +729,10 @@ export default function CriarOrdemServico() {
                   onChange={(event, selectedDate) => {
                     setShowDatePicker(false)
                     if (selectedDate) {
-                      handleInputChange('orde_data_aber', selectedDate.toISOString().split('T')[0])
+                      handleInputChange(
+                        'orde_data_aber',
+                        selectedDate.toISOString().split('T')[0]
+                      )
                     }
                   }}
                 />
@@ -699,13 +763,18 @@ export default function CriarOrdemServico() {
                 }}
               />
 
-              <Text style={styles.label}>Número da Nota Fiscal de Entrada:</Text>
+              <Text style={styles.label}>
+                Número da Nota Fiscal de Entrada:
+              </Text>
               <TextInput
                 ref={notaFiscalRef}
-                style={[styles.input, !ordemServico.orde_nf_entr && {
-                  borderColor: '#1a2f3d',
-                  borderWidth: 1,
-                }]}
+                style={[
+                  styles.input,
+                  !ordemServico.orde_nf_entr && {
+                    borderColor: '#1a2f3d',
+                    borderWidth: 1,
+                  },
+                ]}
                 value={ordemServico.orde_nf_entr}
                 onChangeText={(text) => handleInputChange('orde_nf_entr', text)}
                 placeholder="Digite o número da nota fiscal"
@@ -714,15 +783,17 @@ export default function CriarOrdemServico() {
               />
 
               <Text style={styles.label}>Tipo de Ordem:</Text>
-              <View style={[
-                styles.pickerContainer,
-                Platform.OS === 'android' && { overflow: 'hidden' },
-                Platform.OS === 'ios' && { paddingVertical: 5 },
-
-              ]}>
+              <View
+                style={[
+                  styles.pickerContainer,
+                  Platform.OS === 'android' && { overflow: 'hidden' },
+                  Platform.OS === 'ios' && { paddingVertical: 5 },
+                ]}>
                 <Picker
                   selectedValue={ordemServico.orde_tipo}
-                  onValueChange={(value) => handleInputChange('orde_tipo', value)}
+                  onValueChange={(value) =>
+                    handleInputChange('orde_tipo', value)
+                  }
                   style={[
                     styles.picker,
                     Platform.OS === 'android' && {
@@ -758,7 +829,12 @@ export default function CriarOrdemServico() {
                 <>
                   <View style={styles.divider}>
                     <Text style={styles.dividerText}>
-                      Campos Específicos - {TIPOS_ORDEM.find(t => t.value === ordemServico.orde_tipo)?.label}
+                      Campos Específicos -{' '}
+                      {
+                        TIPOS_ORDEM.find(
+                          (t) => t.value === ordemServico.orde_tipo
+                        )?.label
+                      }
                     </Text>
                   </View>
                   {camposVisiveis.map(renderCampo)}
@@ -783,7 +859,8 @@ export default function CriarOrdemServico() {
               {orde_nume && (
                 <View style={styles.avisoContainer}>
                   <Text style={styles.avisoText}>
-                    O.S criada com sucesso! Agora você pode incluir peças e serviços.
+                    O.S criada com sucesso! Agora você pode incluir peças e
+                    serviços.
                   </Text>
                 </View>
               )}
@@ -794,7 +871,9 @@ export default function CriarOrdemServico() {
             <AbaPecas
               orde_nume={orde_nume}
               pecas={ordemServico.pecas}
-              onPecasChange={(novasPecas) => handleInputChange('pecas', novasPecas)}
+              onPecasChange={(novasPecas) =>
+                handleInputChange('pecas', novasPecas)
+              }
             />
           )}
 
@@ -802,7 +881,9 @@ export default function CriarOrdemServico() {
             <AbaServicos
               orde_nume={orde_nume}
               servicos={ordemServico.servicos}
-              onServicosChange={(novosServicos) => handleInputChange('servicos', novosServicos)}
+              onServicosChange={(novosServicos) =>
+                handleInputChange('servicos', novosServicos)
+              }
             />
           )}
 
