@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TextInput,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native'
 import CrossCheckbox from '../components/CrossCheckbox'
 import { Picker } from '@react-native-picker/picker'
@@ -95,6 +96,7 @@ export default function CriarOrdemServico() {
     orde_seto_repr: '',
     orde_fina_ofic: false,
     orde_stat_orde: '',
+    orde_orde_ante: '',
   })
 
   const [camposVisiveis, setCamposVisiveis] = useState([])
@@ -327,6 +329,7 @@ export default function CriarOrdemServico() {
           ordemServico.orde_stat_orde !== null
             ? Number(ordemServico.orde_stat_orde)
             : 0,
+        orde_orde_ante: ordemServico.orde_orde_ante?.toString() || '',
       }
 
       camposVisiveis.forEach((campo) => {
@@ -517,7 +520,9 @@ export default function CriarOrdemServico() {
       style={{ backgroundColor: '#0f1f2a' }}
       contentContainerStyle={{ flexGrow: 1 }}
       nestedScrollEnabled
-      keyboardShouldPersistTaps="handled">
+      keyboardShouldPersistTaps="handled"
+      behavior="padding"
+      keyboardVerticalOffset={100}>
       <View style={{ padding: 20, backgroundColor: '#0f1f2a' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           {['cliente', 'pecas', 'servicos', 'fotos'].map((aba) => (
@@ -737,6 +742,23 @@ export default function CriarOrdemServico() {
                   }}
                 />
               )}
+              <Text style={styles.label}>Ordem Antecessora:</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  !ordemServico.orde_orde_ante && {
+                    borderColor: '#1a2f3d',
+                    borderWidth: 1,
+                  },
+                ]}
+                value={ordemServico.orde_orde_ante}
+                onChangeText={(value) =>
+                  handleInputChange('orde_orde_ante', value)
+                }
+                placeholder="Digite o número da ordem antecessora"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+              />
 
               <Text style={styles.label}>Cliente:</Text>
               <BuscaClienteInput

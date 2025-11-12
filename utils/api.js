@@ -12,7 +12,6 @@ export const BASE_URL = 'https://mobile-sps.site'
 // export const BASE_URL = 'http://192.168.0.10:8000' // Dispositivo físico na rede
 // export const BASE_URL = 'https://mobile-sps.site' // Produção
 
-
 const refreshToken = async () => {
   const refresh = await AsyncStorage.getItem('refresh')
 

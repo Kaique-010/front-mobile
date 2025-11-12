@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native'
 import { FontAwesome } from '@expo/vector-icons'
 import axios from 'axios'
@@ -374,7 +375,10 @@ export default function Login({ navigation }) {
     : renderFuncionarioFields()
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior="padding"
+      keyboardVerticalOffset={100}>
       {/* Logo animada com bounce */}
       <MotiView
         from={{ scale: 0.8, opacity: 0 }}
@@ -468,6 +472,6 @@ export default function Login({ navigation }) {
           {error}
         </MotiText>
       ) : null}
-    </View>
+    </KeyboardAvoidingView>
   )
 }
