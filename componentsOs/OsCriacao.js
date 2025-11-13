@@ -214,8 +214,8 @@ export default function CriarOrdemServico() {
 
   // Funções auxiliares simplificadas
   const preencherSetorGarantia = useCallback(() => {
-    console.log('🔧 Preenchendo setor Garantia (13)')
-    handleInputChange('orde_seto', 13)
+    console.log('🔧 Preenchendo setor Garantia (3)')
+    handleInputChange('orde_seto', 3)
     setSetorNome('Garantia')
   }, [handleInputChange])
 
