@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   TextInput,
@@ -13,12 +13,13 @@ import debounce from 'lodash/debounce'
 
 // Adicionar no topo
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Ionicons } from '@expo/vector-icons'
 
 // Cache para serviços (plural)
 const SERVICOS_PLURAL_CACHE_KEY = 'servicos_plural_cache'
 const SERVICOS_PLURAL_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
-export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
+export default function BuscaServicoInput({ valorAtual = '', onSelect, initialValue }) {
   const [query, setQuery] = useState('')
   const [servicos, setServicos] = useState([])
   const [loading, setLoading] = useState(false)
@@ -73,6 +74,11 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
     }
   }, 500)
 
+  useEffect(() => {
+    const inicial = initialValue ?? valorAtual
+    if (inicial) setQuery(inicial)
+  }, [initialValue, valorAtual])
+
   const handleSelect = (servico) => {
     setQuery(servico.prod_nome)
     setShowResults(false)
@@ -81,6 +87,13 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
       serv_nome: servico.prod_nome,
       serv_preco: servico.prod_preco_vista,
     })
+  }
+
+  const limpar = () => {
+    setQuery('')
+    setServicos([])
+    setShowResults(false)
+    if (typeof onSelect === 'function') onSelect(null)
   }
 
   const handleChangeText = (texto) => {
@@ -93,12 +106,18 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect }) {
     <View style={styles.container}>
       <TextInput
         style={styles.input}
-        value={query || valorAtual}
+        value={query}
         onChangeText={handleChangeText}
         placeholder="Buscar serviço..."
         placeholderTextColor="#666"
         onFocus={() => setShowResults(true)}
       />
+
+      {!loading && !!query && (
+        <TouchableOpacity onPress={limpar} style={styles.clearButton}>
+          <Ionicons name="close-circle" size={20} color="#999" />
+        </TouchableOpacity>
+      )}
 
       {showResults && (loading || servicos.length > 0) && (
         <View style={styles.resultados}>
@@ -143,6 +162,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    padding: 4,
+    zIndex: 3,
   },
   resultados: {
     position: 'absolute',

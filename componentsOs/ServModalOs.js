@@ -109,9 +109,21 @@ export default function ServModalOs({
               <BuscaServicoInput
                 valorAtual={form.servicoNome}
                 onSelect={(servico) => {
+                  if (!servico) {
+                    setForm((f) => ({
+                      ...f,
+                      servicoId: '',
+                      servicoNome: '',
+                      preco: '',
+                      quantidade: '',
+                      complemento: '',
+                    }))
+                    return
+                  }
+
                   setForm((f) => ({
                     ...f,
-                    servicoId: servico.serv_codi.toString(),
+                    servicoId: servico?.serv_codi?.toString() || '',
                     servicoNome: servico.serv_nome,
                     preco: servico.serv_preco?.toString() || '',
                     quantidade: '1',
@@ -250,4 +262,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-}) 
+})

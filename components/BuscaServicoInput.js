@@ -11,6 +11,7 @@ import {
 import { apiGetComContexto } from '../utils/api'
 import debounce from 'lodash/debounce'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Ionicons } from '@expo/vector-icons'
 
 
 
@@ -44,8 +45,10 @@ useEffect(() => {
 
 
   useEffect(() => {
-    if (initialValue) setQuery(initialValue)
-  }, [initialValue])
+    // Inicializa o input com o valor vindo de props, permitindo limpeza completa depois
+    const inicial = initialValue ?? valorAtual
+    if (inicial) setQuery(inicial)
+  }, [initialValue, valorAtual])
 
 
   const buscarServicos = useCallback(
@@ -84,6 +87,13 @@ useEffect(() => {
     })
   }
 
+  const limpar = () => {
+    setQuery('')
+    setServicos([])
+    setShowResults(false)
+    if (typeof onSelect === 'function') onSelect(null)
+  }
+
   const handleChangeText = (texto) => {
     setQuery(texto)
     setShowResults(true)
@@ -94,12 +104,18 @@ useEffect(() => {
     <View style={styles.container}>
       <TextInput
         style={styles.input}
-        value={query || valorAtual}
+        value={query}
         onChangeText={handleChangeText}
         placeholder="Buscar serviço..."
         placeholderTextColor="#666"
         onFocus={() => setShowResults(true)}
       />
+
+      {!loading && !!query && (
+        <TouchableOpacity onPress={limpar} style={styles.clearButton}>
+          <Ionicons name="close-circle" size={20} color="#999" />
+        </TouchableOpacity>
+      )}
 
       {showResults && setorCarregado && (loading || servicos.length > 0) && (
         <View style={styles.resultados}>
@@ -158,6 +174,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 12,
+    top: 12,
+    padding: 4,
+    zIndex: 3,
   },
   resultados: {
     position: 'absolute',
