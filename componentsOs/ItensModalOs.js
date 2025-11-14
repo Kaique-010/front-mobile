@@ -11,7 +11,7 @@ import {
 import { LogBox } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import LeitorCodigoBarras from '../components/Leitor'
-import BuscaProdutoInput from '../components/BuscaProdutosInput'
+import BuscaProdutoInputOs from '../components/BuscaProdutosOs'
 import { Ionicons } from '@expo/vector-icons'
 import { apiGetComContexto } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -39,16 +39,16 @@ export default function ItensModalOs({
     const verificarSetor = async () => {
       try {
         console.log('🔍 [MODAL] Verificando setor do usuário...')
-        
+
         // Buscar todas as chaves possíveis
         const setor = await AsyncStorage.getItem('setor')
         const userInfo = await AsyncStorage.getItem('userInfo')
         const userData = await AsyncStorage.getItem('userData')
-        
+
         console.log('📦 [MODAL] Setor direto:', setor)
         console.log('📦 [MODAL] UserInfo:', userInfo)
         console.log('📦 [MODAL] UserData:', userData)
-        
+
         // Tentar parsear userInfo
         let setorFinal = null
         if (setor && setor !== '0' && setor !== 'null') {
@@ -64,12 +64,13 @@ export default function ItensModalOs({
             setorFinal = parsed?.setor || parsed?.usua_seto
           } catch (e) {}
         }
-        
-        const temSetor = setorFinal && setorFinal !== '0' && setorFinal !== 'null'
-        
+
+        const temSetor =
+          setorFinal && setorFinal !== '0' && setorFinal !== 'null'
+
         console.log('✅ [MODAL] Setor final:', setorFinal)
         console.log('✅ [MODAL] Usuário TEM setor?', temSetor)
-        
+
         setUsuarioTemSetor(temSetor)
       } catch (error) {
         console.error('❌ [MODAL] Erro ao verificar setor:', error)
@@ -85,7 +86,10 @@ export default function ItensModalOs({
         produtoId: itemEditando.peca_codi?.toString() || '',
         quantidade: itemEditando.peca_quan?.toString() || '',
         preco: itemEditando.peca_unit?.toString() || '',
-        precoReal: itemEditando.peca_unit_real?.toString() || itemEditando.peca_unit?.toString() || '',
+        precoReal:
+          itemEditando.peca_unit_real?.toString() ||
+          itemEditando.peca_unit?.toString() ||
+          '',
         produtoNome: itemEditando.produto_nome || '',
       })
     } else {
@@ -195,12 +199,18 @@ export default function ItensModalOs({
       peca_tota: total,
       produto_nome: form.produtoNome,
     }
-    
+
     console.log('✅ [MODAL] Item criado:', novoItem)
     onAdicionar(novoItem, itemEditando)
 
     if (!itemEditando) {
-      setForm({ produtoId: '', produtoNome: '', quantidade: '', preco: '', precoReal: '' })
+      setForm({
+        produtoId: '',
+        produtoNome: '',
+        quantidade: '',
+        preco: '',
+        precoReal: '',
+      })
     }
 
     onFechar()
@@ -233,8 +243,7 @@ export default function ItensModalOs({
             <Text style={styles.label}>Produto:</Text>
             <View style={styles.buscaComIcone}>
               <View style={styles.produtoInput}>
-                <BuscaProdutoInput
-                  valorAtual={form.produtoNome}
+                <BuscaProdutoInputOs
                   onSelect={(produto) => {
                     const precoVista = produto.prod_preco_vista || 0
                     setForm((f) => ({

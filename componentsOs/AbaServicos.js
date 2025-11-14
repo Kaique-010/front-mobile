@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -19,87 +19,107 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
   const [itemEditando, setItemEditando] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [servicosLista, setServicosLista] = useState(servicos)
-  const [usuarioTemSetor, setUsusarioTemSetor] = useState(false)
+  const [lista, setLista] = useState(servicos)
+  const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
+  const [empresaId, setEmpresaId] = useState(null)
+  const [filialId, setFilialId] = useState(null)
 
-  useEffect(() => {
-    if (orde_nume) {
-      carregarServicosExistentes()
-    } else {
-      setIsLoading(false)
-    }
-  }, [orde_nume])
+  // ID LOCAL para evitar key mudar sempre
+  const nextLocalId = useRef(1)
 
+  // --- carregar setor
   useEffect(() => {
     const verificarSetor = async () => {
-      try{
+      try {
         const setor = await AsyncStorage.getItem('setor')
-        setUsusarioTemSetor(setor && setor !== null && setor !== 'null' && setor !== '0')
-      }catch(error){
-        console.error('Erro ao verificar setor:', error)
-        setUsusarioTemSetor(false)
+        setUsuarioTemSetor(setor && setor !== '0' && setor !== 'null')
+      } catch (error) {
+        console.error('Erro setor:', error)
+        setUsuarioTemSetor(false)
       }
     }
     verificarSetor()
   }, [])
 
+  useEffect(() => {
+    const carregarContexto = async () => {
+      try {
+        const [empr, fili] = await Promise.all([
+          AsyncStorage.getItem('empresaId'),
+          AsyncStorage.getItem('filialId'),
+        ])
+        setEmpresaId(empr)
+        setFilialId(fili)
+      } catch (e) {
+        setEmpresaId(null)
+        setFilialId(null)
+      }
+    }
+    carregarContexto()
+  }, [])
+
+  useEffect(() => {
+    const withIds = (arr) =>
+      (arr || []).map((s) => ({
+        ...s,
+        serv_quan: parseFloat(s?.serv_quan ?? 0),
+        serv_unit: parseFloat(s?.serv_unit ?? 0),
+        _local_id: s?._local_id ?? nextLocalId.current++,
+      }))
+    setLista(withIds(servicos))
+  }, [servicos])
+
+  // --- sincroniza com API
+  useEffect(() => {
+    if (orde_nume) carregarServicosExistentes()
+    else setIsLoading(false)
+  }, [orde_nume])
 
   const carregarServicosExistentes = async () => {
     try {
       setIsLoading(true)
-      console.log('Carregando serviços para OS:', orde_nume)
-
+      let empr = empresaId
+      let fili = filialId
+      if (!empr || !fili) {
+        const [emprS, filiS] = await Promise.all([
+          AsyncStorage.getItem('empresaId'),
+          AsyncStorage.getItem('filialId'),
+        ])
+        empr = emprS
+        fili = filiS
+      }
       const response = await apiGetComContexto('ordemdeservico/servicos/', {
         serv_orde: orde_nume,
-        serv_empr: 1,
-        serv_fili: 1,
+        serv_empr: empr,
+        serv_fili: fili,
       })
 
-      console.log('Resposta da API:', response)
+      const raw = response?.data ?? response?.results ?? response ?? []
+      const arr = raw.map((s) => ({
+        ...s,
+        serv_quan: parseFloat(s.serv_quan),
+        serv_unit: parseFloat(s.serv_unit),
+        _local_id: nextLocalId.current++, // id estável
+      }))
 
-      const servicosArray = response?.results || response || []
-
-      if (Array.isArray(servicosArray)) {
-        const servicosFormatados = servicosArray.map((servico) => ({
-          serv_id: servico.serv_id,
-          serv_codi: servico.serv_codi,
-          serv_quan: parseFloat(servico.serv_quan),
-          serv_unit: parseFloat(servico.serv_unit),
-          serv_tota: parseFloat(servico.serv_tota),
-          serv_comp: servico.serv_comp,
-          servico_nome: servico.servico_nome || 'Serviço',
-        }))
-
-        console.log('Serviços formatados:', servicosFormatados)
-        setServicosLista(servicosFormatados)
-        setServicos(servicosFormatados)
-      } else {
-        console.log('Nenhum serviço encontrado ou resposta inválida')
-        setServicosLista([])
-        setServicos([])
-      }
+      setLista(arr)
+      setServicos(arr)
     } catch (error) {
-      console.error(
-        'Erro ao carregar serviços:',
-        error.response?.data || error.message
-      )
       Toast.show({
         type: 'error',
         text1: 'Erro ao carregar serviços',
-        text2:
-          error.response?.data?.error ||
-          'Não foi possível carregar os serviços existentes',
+        text2: 'Verifique sua conexão',
       })
-      setServicosLista([])
+      setLista([])
       setServicos([])
     } finally {
       setIsLoading(false)
     }
   }
 
-  const sincronizarComPai = (novos) => {
-    setServicosLista(novos)
-    setServicos(novos)
+  const syncPai = (novaLista) => {
+    setLista(novaLista)
+    setServicos(novaLista)
   }
 
   const abrirModalParaEditar = (item) => {
@@ -108,11 +128,11 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
   }
 
   const removerServico = (item) => {
-    const atualizados = servicosLista.filter((s) => s !== item)
-    sincronizarComPai(atualizados)
+    syncPai(lista.filter((s) => s._local_id !== item._local_id))
     if (item.serv_id) {
       setRemovidos((prev) => [...prev, item])
     }
+
     Toast.show({
       type: 'success',
       text1: 'Serviço removido',
@@ -120,38 +140,49 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     })
   }
 
-  const adicionarOuEditarServico = (novoItem, itemEditando) => {
-    let atualizados
-    if (itemEditando?.serv_id) {
-      atualizados = servicosLista.map((s) =>
-        s.serv_id === itemEditando.serv_id ? { ...novoItem } : s
-      )
-    } else if (itemEditando) {
-      atualizados = servicosLista.map((s) =>
-        !s.serv_id && s.serv_codi === itemEditando.serv_codi
-          ? { ...novoItem }
+  const adicionarOuEditarServico = (novo, antigo) => {
+    let novaLista = []
+
+    // EDITAR EXISTENTE
+    if (antigo) {
+      const coerced = {
+        ...novo,
+        serv_quan: parseFloat(novo?.serv_quan ?? 0),
+        serv_unit: parseFloat(novo?.serv_unit ?? 0),
+      }
+      novaLista = lista.map((s) =>
+        s._local_id === antigo._local_id
+          ? { ...coerced, _local_id: antigo._local_id }
           : s
       )
-    } else {
-      const existe = servicosLista.some(
-        (s) => s.serv_codi === novoItem.serv_codi
-      )
-      if (existe) {
-        Toast.show({
+    }
+    // ADICIONAR NOVO
+    else {
+      const jaExiste = lista.some((s) => s.serv_codi === novo.serv_codi)
+      if (jaExiste) {
+        return Toast.show({
           type: 'error',
           text1: 'Serviço já adicionado',
-          text2: 'Este serviço já está na lista',
         })
-        return
       }
-      atualizados = [...servicosLista, novoItem]
+
+      novaLista = [
+        ...lista,
+        {
+          ...novo,
+          serv_quan: parseFloat(novo?.serv_quan ?? 0),
+          serv_unit: parseFloat(novo?.serv_unit ?? 0),
+          _local_id: nextLocalId.current++,
+        },
+      ]
     }
 
-    sincronizarComPai(atualizados)
+    syncPai(novaLista)
+
     Toast.show({
       type: 'success',
-      text1: itemEditando ? 'Serviço atualizado' : 'Serviço adicionado',
-      text2: novoItem.servico_nome,
+      text1: antigo ? 'Serviço atualizado' : 'Serviço adicionado',
+      text2: novo.servico_nome,
     })
   }
 
@@ -160,11 +191,19 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     setIsSubmitting(true)
 
     try {
-      if (!orde_nume) {
-        throw new Error('Número da O.S não definido')
+      if (!orde_nume) throw new Error('Número da OS ausente')
+      let empr = empresaId
+      let fili = filialId
+      if (!empr || !fili) {
+        const [emprS, filiS] = await Promise.all([
+          AsyncStorage.getItem('empresaId'),
+          AsyncStorage.getItem('filialId'),
+        ])
+        empr = emprS
+        fili = filiS
       }
 
-      const adicionar = servicosLista
+      const adicionar = lista
         .filter((s) => !s.serv_id)
         .map((s) => ({
           serv_orde: orde_nume.toString(),
@@ -173,13 +212,13 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_unit: s.serv_unit,
           serv_tota: s.serv_quan * s.serv_unit,
           serv_comp: s.serv_comp || '',
-          serv_empr: '1',
-          serv_fili: '1',
+          serv_empr: empr,
+          serv_fili: fili,
         }))
 
-      const editar = servicosLista
+      const editar = lista
         .filter(
-          (s) => s.serv_id && !removidos.find((r) => r.serv_id === s.serv_id)
+          (s) => s.serv_id && !removidos.some((r) => r.serv_id === s.serv_id)
         )
         .map((s) => ({
           serv_id: s.serv_id,
@@ -189,53 +228,32 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_unit: s.serv_unit,
           serv_tota: s.serv_quan * s.serv_unit,
           serv_comp: s.serv_comp || '',
-          serv_empr: '1',
-          serv_fili: '1',
+          serv_empr: empr,
+          serv_fili: fili,
         }))
 
-      const remover = removidos
-        .filter((r) => r.serv_id)
-        .map((r) => ({
-          serv_id: r.serv_id,
-          serv_orde: orde_nume.toString(),
-          serv_empr: '1',
-          serv_fili: '1',
-        }))
+      const remover = removidos.map((r) => ({
+        serv_id: r.serv_id,
+        serv_orde: orde_nume.toString(),
+        serv_empr: empr,
+        serv_fili: fili,
+      }))
 
-      const payload = {
-        adicionar,
-        editar,
-        remover,
-        empr: '1',
-        fili: '1',
-      }
+      const payload = { adicionar, editar, remover, empr, fili }
 
-      console.log('Enviando payload:', payload)
-
-      const response = await apiPostComContexto(
-        'ordemdeservico/servicos/update-lista/',
-        payload
-      )
-
-      console.log('Resposta do servidor após salvar:', response)
+      await apiPostComContexto('ordemdeservico/servicos/update-lista/', payload)
 
       await carregarServicosExistentes()
       setRemovidos([])
 
       Toast.show({
         type: 'success',
-        text1: 'Serviços salvos com sucesso',
-        text2: `${adicionar.length} adicionados, ${editar.length} editados, ${remover.length} removidos`,
+        text1: 'Serviços salvos',
       })
     } catch (err) {
-      console.error('Erro ao salvar serviços:', err.response?.data || err)
       Toast.show({
         type: 'error',
-        text1: 'Erro ao salvar serviços',
-        text2:
-          err.response?.data?.error ||
-          err.message ||
-          'Tente novamente mais tarde',
+        text1: 'Erro ao salvar',
       })
     } finally {
       setIsSubmitting(false)
@@ -243,56 +261,67 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
   }
 
   const renderItem = ({ item }) => {
-    //Remover o preço quando usuario tem setor
     const precoOculto = usuarioTemSetor
-    const precoReal = item.serv_unit.toFixed(2)
-    const quantidadeNum = Number(item.serv_quan) || 0
-    const totalReal = quantidadeNum * precoReal
+    const quantidade =
+      typeof item.serv_quan === 'number'
+        ? item.serv_quan
+        : parseFloat(item.serv_quan) || 0
+    const unit =
+      typeof item.serv_unit === 'number'
+        ? item.serv_unit
+        : parseFloat(item.serv_unit) || 0
+    const total = quantidade * unit
 
     return (
-    <View style={styles.servico}>
-      <View style={styles.servicoHeader}>
-        <Text style={styles.servNome}>{item.servico_nome || 'Sem nome'}</Text>
-        <View style={styles.botoesContainer}>
-          <TouchableOpacity
-            style={[styles.botaoAcao, styles.botaoEditar]}
-            onPress={() => abrirModalParaEditar(item)}>
-            <Ionicons name="pencil" size={18} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.botaoAcao, styles.botaoRemover]}
-            onPress={() => removerServico(item)}>
-            <Ionicons name="trash" size={18} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <View style={styles.servico}>
+        <View style={styles.servicoHeader}>
+          <Text style={styles.servNome}>{item.servico_nome || 'Sem nome'}</Text>
 
-      <View style={styles.servicoInfo}>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Quantidade:</Text>
-          <Text style={styles.infoValor}>{item.serv_quan.toFixed(4)}</Text>
-        </View>
-        {!precoOculto && (
-          <>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Preço Unit.:</Text>
-              <Text style={styles.infoValor}>R$ {parseFloat(precoReal).toFixed(2)}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Total:</Text>
-              <Text style={styles.infoValor}>R$ {parseFloat(totalReal).toFixed(2)}</Text> 
-            </View>
-          </>
-        )}
-        {item.serv_comp ? (
-          <View style={styles.complemento}>
-            <Text style={styles.complementoLabel}>Complemento:</Text>
-            <Text style={styles.complementoTexto}>{item.serv_comp}</Text>
+          <View style={styles.botoesContainer}>
+            <TouchableOpacity
+              style={[styles.botaoAcao, styles.botaoEditar]}
+              onPress={() => abrirModalParaEditar(item)}>
+              <Ionicons name="pencil" size={18} color="white" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.botaoAcao, styles.botaoRemover]}
+              onPress={() => removerServico(item)}>
+              <Ionicons name="trash" size={18} color="white" />
+            </TouchableOpacity>
           </View>
-        ) : null}
+        </View>
+
+        <View style={styles.servicoInfo}>
+          <View style={styles.infoItem}>
+            <Text style={styles.infoLabel}>Quantidade:</Text>
+            <Text style={styles.infoValor}>{quantidade.toFixed(4)}</Text>
+          </View>
+
+          {!precoOculto && (
+            <>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Preço Unit.:</Text>
+                <Text style={styles.infoValor}>R$ {unit.toFixed(2)}</Text>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Total:</Text>
+                <Text style={styles.infoValor}>R$ {total.toFixed(2)}</Text>
+              </View>
+            </>
+          )}
+
+          {item.serv_comp ? (
+            <View style={styles.complemento}>
+              <Text style={styles.complementoLabel}>Complemento:</Text>
+              <Text style={styles.complementoTexto}>{item.serv_comp}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
-    </View>
-    )}
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -318,12 +347,16 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         </View>
       ) : (
         <FlatList
-          data={servicosLista}
-          keyExtractor={(item) =>
-            item.serv_id?.toString() || `temp-${item.serv_codi}-${Date.now()}`
+          data={lista || []}
+          keyExtractor={(item, index) =>
+            (
+              item?._local_id ??
+              item?.serv_id ??
+              `${item?.serv_codi || 'novo'}-${index}`
+            ).toString()
           }
           renderItem={renderItem}
-          nestedScrollEnabled={true}
+          nestedScrollEnabled
           contentContainerStyle={styles.lista}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -337,7 +370,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         />
       )}
 
-      {servicosLista.length > 0 && !isLoading && (
+      {lista.length > 0 && !isLoading && (
         <TouchableOpacity
           style={[styles.botaoSalvar, isSubmitting && styles.botaoDesabilitado]}
           onPress={salvarServicos}

@@ -206,6 +206,7 @@ export default function CriarOrdemServico({ navigation }) {
                     os_clie_nome: item.enti_nome,
                   }))
                 }}
+                value={ordemServico.os_clie_nome}
               />
               <TouchableOpacity
                 style={[
@@ -235,7 +236,10 @@ export default function CriarOrdemServico({ navigation }) {
             <AbaServicos
               servicos={ordemServico.servicos}
               setServicos={(novosServicos) =>
-                setOrdemServico((prev) => ({ ...prev, servicos: novosServicos }))
+                setOrdemServico((prev) => ({
+                  ...prev,
+                  servicos: novosServicos,
+                }))
               }
               os_os={numeroOS}
               financeiroGerado={financeiroGerado}
