@@ -6,7 +6,7 @@ import { getStoredData } from '../services/storageService'
 // NetInfo removido - não está instalado
 
 // BASE_URL manual; altere conforme ambiente
-export const BASE_URL = 'https://mobile-sps.site'
+export const BASE_URL = 'http://localhost:8000'
 // export const BASE_URL = 'http://172.25.0.18:8000' // Android emulador - dev local
 // export const BASE_URL = 'http://localhost:8000' // iOS/desktop - dev local
 // export const BASE_URL = 'http://192.168.0.10:8000' // Dispositivo físico na rede
@@ -37,6 +37,20 @@ const refreshToken = async () => {
     }
 
     await safeSetItem('access', newAccess)
+    // Atualizar setor a partir da resposta de refresh, se disponível
+    if (response.data?.usuario?.setor != null) {
+      await safeSetItem('setor', String(response.data.usuario.setor))
+      console.log(
+        '✅ Setor atualizado via refresh:',
+        response.data.usuario.setor
+      )
+    } else {
+      const claims = decodeJwtClaims(newAccess)
+      if (claims && claims.setor != null) {
+        await safeSetItem('setor', String(claims.setor))
+        console.log('✅ Setor atualizado via claims do access:', claims.setor)
+      }
+    }
     console.log('✅ Token renovado com sucesso')
     return newAccess
   } catch (error) {
@@ -53,9 +67,21 @@ export const getAuthHeaders = async () => {
     const empresaId = await AsyncStorage.getItem('empresaId')
     const filialId = await AsyncStorage.getItem('filialId')
     const docu = await AsyncStorage.getItem('docu')
-    const usuario_id = await AsyncStorage.getItem('usuario_id')
+    let usuario_setor = await AsyncStorage.getItem('setor')
     const username = await AsyncStorage.getItem('username')
-    const cliente_id = await AsyncStorage.getItem('cliente_id')
+
+    if (!usuario_setor || usuario_setor === '0') {
+      const currentToken = await AsyncStorage.getItem('access')
+      const claims = decodeJwtClaims(currentToken)
+      if (claims && claims.setor != null) {
+        usuario_setor = String(claims.setor)
+        await safeSetItem('setor', usuario_setor)
+        console.log(
+          '✅ [AUTH-HEADERS] Setor sincronizado do JWT:',
+          usuario_setor
+        )
+      }
+    }
 
     console.log('🔍 [AUTH-HEADERS] empresaId:', empresaId)
     console.log('🔍 [AUTH-HEADERS] filialId:', filialId)
@@ -64,6 +90,8 @@ export const getAuthHeaders = async () => {
       'X-Empresa': empresaId || '1',
       'X-Filial': filialId || '1',
       'X-Docu': docu || '',
+      setor: usuario_setor || '',
+      'X-Username': username || '',
     }
 
     console.log('🔍 [AUTH-HEADERS] Headers enviados:', headers)
@@ -75,6 +103,8 @@ export const getAuthHeaders = async () => {
       'X-Empresa': '1',
       'X-Filial': '1',
       'X-Docu': '',
+      setor: '',
+      'X-Username': '',
     }
   }
 }
@@ -710,5 +740,17 @@ export const clearAllStorage = async () => {
     console.log('✅ Storage limpo com sucesso')
   } catch (error) {
     console.error('❌ Erro ao limpar storage:', error)
+  }
+}
+const decodeJwtClaims = (token) => {
+  try {
+    if (!token) return null
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const jsonStr = typeof atob === 'function' ? atob(base64) : null
+    return jsonStr ? JSON.parse(jsonStr) : null
+  } catch (e) {
+    return null
   }
 }

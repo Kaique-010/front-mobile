@@ -83,20 +83,33 @@ export default function BuscaProdutoInputOs({ onSelect, initialValue = '' }) {
   }, [debouncedSearchTerm])
 
   const handleSelecionar = (produto) => {
+    Keyboard.dismiss()
+
+    // ENVIO 100% CONSISTENTE DOS PREÇOS
+    onSelect &&
+      onSelect({
+        prod_codi: produto.prod_codi,
+        prod_nome: produto.prod_nome,
+
+        prod_preco_vista: produto.prod_preco_vista,
+        prod_preco_normal: produto.prod_preco_normal,
+
+        preco_final:
+          produto.prod_preco_vista > 0
+            ? produto.prod_preco_vista
+            : produto.prod_preco_normal ?? 0,
+      })
+
     setSearchTerm(produto.prod_nome)
     setProdutos([])
     setShowResults(false)
-    Keyboard.dismiss()
-
-    if (onSelect) onSelect(produto)
   }
 
-  const mostrarPreco = (p) =>
+  const mostrarPrecoAoUsuario = (p) =>
     !usuarioTemSetor && (p.prod_preco_vista > 0 || p.prod_preco_normal > 0)
 
   return (
     <View>
-      {/* INPUT NATIVO */}
       <View
         style={{
           flexDirection: 'row',
@@ -125,15 +138,13 @@ export default function BuscaProdutoInputOs({ onSelect, initialValue = '' }) {
           value={searchTerm}
           onChangeText={(text) => {
             setSearchTerm(text)
-            if (text.length >= 2) setShowResults(true)
-            else setShowResults(false)
+            setShowResults(text.length >= 2)
           }}
         />
 
         {loading ? <ActivityIndicator size="small" color="#01ff16" /> : null}
       </View>
 
-      {/* LISTA NATIVA */}
       {showResults && produtos.length > 0 && (
         <FlatList
           data={produtos}
@@ -163,7 +174,7 @@ export default function BuscaProdutoInputOs({ onSelect, initialValue = '' }) {
                 {item.saldo_estoque}
               </Text>
 
-              {mostrarPreco(item) && (
+              {mostrarPrecoAoUsuario(item) && (
                 <Text style={{ color: '#0fdd79', marginTop: 2 }}>
                   Preço: R${' '}
                   {(

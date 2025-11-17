@@ -34,6 +34,7 @@ export const fetchDashboardData = async () => {
     filial_id: stored?.filialId || null,
     usuario_id: stored?.user?.usuario_id || null,
     cliente_id: stored?.cliente_id || null,
+    setor: stored?.setor || null,
     userType: stored?.userType || null,
     accessToken: stored?.accessToken || null,
     refreshToken: stored?.refreshToken || null,

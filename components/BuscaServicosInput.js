@@ -10,47 +10,37 @@ import {
 } from 'react-native'
 import { apiGetComContexto } from '../utils/api'
 import debounce from 'lodash/debounce'
-
-// Adicionar no topo
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Ionicons } from '@expo/vector-icons'
 
-// Cache para serviços (plural)
-const SERVICOS_PLURAL_CACHE_KEY = 'servicos_plural_cache'
-const SERVICOS_PLURAL_CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
-
-export default function BuscaServicoInput({ valorAtual = '', onSelect, initialValue }) {
+export default function BuscaServicoInput({
+  valorAtual = '',
+  onSelect,
+  initialValue,
+}) {
   const [query, setQuery] = useState('')
   const [servicos, setServicos] = useState([])
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
 
-  // Na função de busca, adicionar:
+  useEffect(() => {
+    const load = async () => {
+      const setor = await AsyncStorage.getItem('setor')
+      setUsuarioTemSetor(!!setor && setor !== '0' && setor !== 'null')
+    }
+    load()
+  }, [])
+
+  useEffect(() => {
+    const inicial = initialValue ?? valorAtual
+    if (inicial) setQuery(inicial)
+  }, [initialValue, valorAtual])
+
   const buscarServicos = debounce(async (texto) => {
     if (!texto.trim()) {
       setServicos([])
       return
-    }
-
-    // Verificar cache persistente
-    const cacheKey = `${SERVICOS_PLURAL_CACHE_KEY}_${texto.toLowerCase()}`
-    try {
-      const cacheData = await AsyncStorage.getItem(cacheKey)
-      if (cacheData) {
-        const { results, timestamp } = JSON.parse(cacheData)
-        const now = Date.now()
-
-        if (now - timestamp < SERVICOS_PLURAL_CACHE_DURATION) {
-          console.log(
-            '📦 [CACHE-ASYNC] Usando dados em cache para serviços (plural):',
-            texto
-          )
-          setServicos(results || [])
-          return
-        }
-      }
-    } catch (error) {
-      console.log('⚠️ Erro ao ler cache de serviços (plural):', error)
     }
 
     try {
@@ -74,32 +64,23 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect, initialVa
     }
   }, 500)
 
-  useEffect(() => {
-    const inicial = initialValue ?? valorAtual
-    if (inicial) setQuery(inicial)
-  }, [initialValue, valorAtual])
-
   const handleSelect = (servico) => {
+    onSelect &&
+      onSelect({
+        serv_codi: servico.prod_codi,
+        serv_nome: servico.prod_nome,
+
+        prod_preco_vista: servico.prod_preco_vista,
+        prod_preco_normal: servico.prod_preco_normal,
+
+        preco_final:
+          servico.prod_preco_vista > 0
+            ? servico.prod_preco_vista
+            : servico.prod_preco_normal ?? 0,
+      })
+
     setQuery(servico.prod_nome)
     setShowResults(false)
-    onSelect({
-      serv_codi: servico.prod_codi,
-      serv_nome: servico.prod_nome,
-      serv_preco: servico.prod_preco_vista,
-    })
-  }
-
-  const limpar = () => {
-    setQuery('')
-    setServicos([])
-    setShowResults(false)
-    if (typeof onSelect === 'function') onSelect(null)
-  }
-
-  const handleChangeText = (texto) => {
-    setQuery(texto)
-    setShowResults(true)
-    buscarServicos(texto)
   }
 
   return (
@@ -107,14 +88,23 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect, initialVa
       <TextInput
         style={styles.input}
         value={query}
-        onChangeText={handleChangeText}
+        onChangeText={(texto) => {
+          setQuery(texto)
+          setShowResults(true)
+          buscarServicos(texto)
+        }}
         placeholder="Buscar serviço..."
         placeholderTextColor="#666"
         onFocus={() => setShowResults(true)}
       />
 
       {!loading && !!query && (
-        <TouchableOpacity onPress={limpar} style={styles.clearButton}>
+        <TouchableOpacity
+          onPress={() => {
+            setQuery('')
+            setServicos([])
+          }}
+          style={styles.clearButton}>
           <Ionicons name="close-circle" size={20} color="#999" />
         </TouchableOpacity>
       )}
@@ -134,12 +124,17 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect, initialVa
                   style={styles.itemResultado}
                   onPress={() => handleSelect(item)}>
                   <Text style={styles.nomeServico}>{item.prod_nome}</Text>
-                  <Text style={styles.precoServico}>
-                    R${' '}
-                    {Number(item.prod_preco_vista) > 0
-                      ? Number(item.prod_preco_vista).toFixed(2)
-                      : '0.00'}
-                  </Text>
+
+                  {!usuarioTemSetor && (
+                    <Text style={styles.precoServico}>
+                      R${' '}
+                      {(
+                        item.prod_preco_vista ||
+                        item.prod_preco_normal ||
+                        0
+                      ).toFixed(2)}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               )}
               style={styles.lista}
@@ -152,10 +147,7 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect, initialVa
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    zIndex: 1,
-  },
+  container: { position: 'relative', zIndex: 1 },
   input: {
     backgroundColor: '#232935',
     color: 'white',
@@ -181,24 +173,13 @@ const styles = StyleSheet.create({
     maxHeight: 200,
     zIndex: 2,
   },
-  lista: {
-    padding: 8,
-  },
+  lista: { padding: 8 },
   itemResultado: {
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#2c3e50',
   },
-  nomeServico: {
-    color: 'white',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  precoServico: {
-    color: '#10a2a7',
-    fontSize: 12,
-  },
-  loading: {
-    padding: 20,
-  },
+  nomeServico: { color: 'white', fontSize: 14, marginBottom: 4 },
+  precoServico: { color: '#10a2a7', fontSize: 12 },
+  loading: { padding: 20 },
 })
