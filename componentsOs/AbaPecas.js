@@ -191,7 +191,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
         .filter((p) => !p.peca_id)
         .map((p) => {
           const quan = formatarValorNumerico(p.peca_quan)
-          // Usar o preço real se disponível, senão usar peca_unit
+          // Mesmo com setor, enviar preço real
           const precoReal = p.peca_unit_real || p.peca_unit
           const unit = formatarValorNumerico(precoReal)
           const tota = formatarValorNumerico(quan * unit)
@@ -213,7 +213,6 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
         )
         .map((p) => {
           const quan = formatarValorNumerico(p.peca_quan)
-          // Usar o preço real se disponível, senão usar peca_unit
           const precoReal = p.peca_unit_real || p.peca_unit
           const unit = formatarValorNumerico(precoReal)
           const tota = formatarValorNumerico(quan * unit)

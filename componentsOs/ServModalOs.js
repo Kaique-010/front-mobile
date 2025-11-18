@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import BuscaServicoInput from '../components/BuscaServicosInput'
 import Toast from 'react-native-toast-message'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function ServModalOs({
   visivel,
@@ -24,9 +25,25 @@ export default function ServModalOs({
     servicoId: '',
     servicoNome: '',
     quantidade: '',
-    preco: '',
+    preco: '', // editável apenas quando usuário NÃO tem setor
+    precoReal: '', // preço real sempre vindo da API / serviço
     complemento: '',
   })
+
+  const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
+
+  // Verifica se o usuário tem setor para ocultar campos de preço
+  useEffect(() => {
+    const verificarSetor = async () => {
+      try {
+        const setor = await AsyncStorage.getItem('setor')
+        setUsuarioTemSetor(!!setor && setor !== '0' && setor !== 'null')
+      } catch (error) {
+        setUsuarioTemSetor(false)
+      }
+    }
+    verificarSetor()
+  }, [])
 
   useEffect(() => {
     if (itemEditando) {
@@ -34,6 +51,7 @@ export default function ServModalOs({
         servicoId: itemEditando.serv_codi?.toString() || '',
         quantidade: itemEditando.serv_quan?.toString() || '',
         preco: itemEditando.serv_unit?.toString() || '',
+        precoReal: itemEditando.serv_unit?.toString() || '',
         complemento: itemEditando.serv_comp || '',
         servicoNome: itemEditando.servico_nome || '',
       })
@@ -43,6 +61,7 @@ export default function ServModalOs({
         servicoNome: '',
         quantidade: '',
         preco: '',
+        precoReal: '',
         complemento: '',
       })
     }
@@ -55,8 +74,12 @@ export default function ServModalOs({
   const adicionar = () => {
     const quantidadeNum = parseFloat(form.quantidade)
     const precoNum = parseFloat(form.preco)
+    const precoRealNum = parseFloat(form.precoReal)
 
-    if (!form.servicoId || quantidadeNum <= 0 || precoNum <= 0) {
+    // Não exigir preço quando há setor; sem setor, preço > 0
+    const precoDigitadoInvalido = !usuarioTemSetor && (isNaN(precoNum) || precoNum <= 0)
+
+    if (!form.servicoId || quantidadeNum <= 0 || precoDigitadoInvalido) {
       Toast.show({
         type: 'error',
         text1: 'Preencha todos os campos corretamente',
@@ -65,12 +88,16 @@ export default function ServModalOs({
       return
     }
 
-    const total = quantidadeNum * precoNum
+    // Se usuário tem setor, enviar o preço real vindo da API
+    const precoFinal = usuarioTemSetor
+      ? (isNaN(precoRealNum) ? 0 : precoRealNum)
+      : (isNaN(precoNum) ? 0 : precoNum)
+    const total = quantidadeNum * precoFinal
 
     const novoItem = {
       serv_codi: form.servicoId,
       serv_quan: quantidadeNum,
-      serv_unit: precoNum,
+      serv_unit: precoFinal,
       serv_tota: total,
       serv_comp: form.complemento,
       servico_nome: form.servicoNome,
@@ -85,6 +112,7 @@ export default function ServModalOs({
         servicoNome: '',
         quantidade: '',
         preco: '',
+        precoReal: '',
         complemento: '',
       })
     }
@@ -115,6 +143,7 @@ export default function ServModalOs({
                       servicoId: '',
                       servicoNome: '',
                       preco: '',
+                      precoReal: '',
                       quantidade: '',
                       complemento: '',
                     }))
@@ -125,7 +154,9 @@ export default function ServModalOs({
                     ...f,
                     servicoId: servico?.serv_codi?.toString() || '',
                     servicoNome: servico.serv_nome,
-                    preco: servico.serv_preco?.toString() || '',
+                    // Usa o preço final calculado pela busca
+                    preco: (servico?.preco_final ?? 0).toString(),
+                    precoReal: (servico?.preco_final ?? 0).toString(),
                     quantidade: '1',
                   }))
                   Toast.show({
@@ -151,15 +182,25 @@ export default function ServModalOs({
               placeholderTextColor="#666"
             />
 
-            <Text style={styles.label}>Preço Unitário:</Text>
-            <TextInput
-              keyboardType="numeric"
-              value={form.preco}
-              onChangeText={(v) => onChange('preco', v)}
-              style={styles.input}
-              placeholder="Digite o preço unitário"
-              placeholderTextColor="#666"
-            />
+            {!usuarioTemSetor && (
+              <>
+                <Text style={styles.label}>Preço Unitário:</Text>
+                <TextInput
+                  keyboardType="numeric"
+                  value={form.preco}
+                  onChangeText={(v) => onChange('preco', v)}
+                  style={styles.input}
+                  placeholder="Digite o preço unitário"
+                  placeholderTextColor="#666"
+                />
+
+                <Text style={styles.total}>
+                  Total: R$ {(
+                    (parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0)
+                  ).toFixed(4)}
+                </Text>
+              </>
+            )}
 
             <Text style={styles.label}>Complemento:</Text>
             <TextInput
@@ -171,11 +212,6 @@ export default function ServModalOs({
               multiline
               numberOfLines={3}
             />
-
-            <Text style={styles.total}>
-              Total: R${' '}
-              {((parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0)).toFixed(4)}
-            </Text>
 
             <TouchableOpacity style={styles.botaoAdicionar} onPress={adicionar}>
               <Text style={styles.textoBotao}>

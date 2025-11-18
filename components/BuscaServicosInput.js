@@ -46,15 +46,16 @@ export default function BuscaServicoInput({
     try {
       setLoading(true)
       const response = await apiGetComContexto(
-        'produtos/produtos/busca/',
+        'produtos/produtos/',
         {
-          q: texto,
+          search: texto,
+          limit: 10,
           tipo: 'S',
         },
         'prod_'
       )
 
-      const servicosArray = response?.results || response || []
+      const servicosArray = response?.results || []
       setServicos(servicosArray)
     } catch (error) {
       console.error('Erro ao buscar serviços:', error)
@@ -64,19 +65,25 @@ export default function BuscaServicoInput({
     }
   }, 500)
 
+  const normalizarPreco = (valor) => {
+    const num = parseFloat(String(valor ?? 0).replace(',', '.'))
+    return isNaN(num) ? 0 : num
+  }
+
   const handleSelect = (servico) => {
     onSelect &&
       onSelect({
         serv_codi: servico.prod_codi,
         serv_nome: servico.prod_nome,
 
-        prod_preco_vista: servico.prod_preco_vista,
-        prod_preco_normal: servico.prod_preco_normal,
+        prod_preco_vista: normalizarPreco(servico.prod_preco_vista),
+        prod_preco_normal: normalizarPreco(servico.prod_preco_normal),
 
-        preco_final:
-          servico.prod_preco_vista > 0
-            ? servico.prod_preco_vista
-            : servico.prod_preco_normal ?? 0,
+        preco_final: (() => {
+          const vista = normalizarPreco(servico.prod_preco_vista)
+          const normal = normalizarPreco(servico.prod_preco_normal)
+          return vista > 0 ? vista : normal > 0 ? normal : 0
+        })(),
       })
 
     setQuery(servico.prod_nome)

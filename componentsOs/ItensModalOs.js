@@ -117,6 +117,7 @@ export default function ItensModalOs({
       })
     }
 
+    // Com setor: enviar o preço real da API; sem setor: o digitado
     const precoFinal = usuarioTemSetor ? precoRealNum : precoNum
 
    
@@ -128,6 +129,7 @@ export default function ItensModalOs({
       peca_codi: Number(form.produtoId),
       peca_quan: quantidadeNum,
       peca_unit: precoFinal,
+      // Sempre registrar o preço real
       peca_unit_real: precoRealNum,
       peca_tota: total,
       produto_nome: form.produtoNome,

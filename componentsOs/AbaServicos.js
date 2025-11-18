@@ -209,6 +209,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_orde: orde_nume.toString(),
           serv_codi: s.serv_codi,
           serv_quan: s.serv_quan,
+          // Mesmo com setor, enviar preço real
           serv_unit: s.serv_unit,
           serv_tota: s.serv_quan * s.serv_unit,
           serv_comp: s.serv_comp || '',
