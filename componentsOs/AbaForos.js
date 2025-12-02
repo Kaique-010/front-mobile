@@ -7,13 +7,13 @@ import {
   Image,
   StyleSheet,
 } from 'react-native'
-import { Modal, Linking } from 'react-native'
+import { Modal, Linking, Platform } from 'react-native'
 import {
   tirarFotoComGeo,
   enviarFotoEtapa,
   fetchFotos,
 } from '../services/fotosApi'
-import { BASE_URL } from '../utils/api'
+import { BASE_URL, getAuthHeaders } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 const etapas = [
@@ -29,6 +29,8 @@ export default function AbaForos({ orde_nume, codTecnico }) {
   const [imagemSelecionada, setImagemSelecionada] = useState([])
   const [isUploading, setIsUploading] = useState(false)
   const [slug, setSlug] = useState('')
+  const [authHeaders, setAuthHeaders] = useState(null)
+  const [secureSources, setSecureSources] = useState({})
 
   useEffect(() => {
     const getSlug = async () => {
@@ -36,6 +38,15 @@ export default function AbaForos({ orde_nume, codTecnico }) {
       setSlug(storedSlug || '')
     }
     getSlug()
+  }, [])
+
+  useEffect(() => {
+    const loadAuth = async () => {
+      const headers = await getAuthHeaders()
+      const token = await AsyncStorage.getItem('access')
+      setAuthHeaders({ Authorization: `Bearer ${token}`, ...headers })
+    }
+    loadAuth()
   }, [])
 
   useEffect(() => {
@@ -95,24 +106,65 @@ export default function AbaForos({ orde_nume, codTecnico }) {
     const imageId = getImageId(item)
     let uri
 
-    if (item.imagem_base64) {
+    if (item.imagem_data_uri) {
+      uri = item.imagem_data_uri
+    } else if (item.imagem_base64) {
       uri = `data:image/jpeg;base64,${item.imagem_base64}`
     } else {
-      uri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${imageId}/bin/`
+      const directUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${orde_nume}/${imageId}/bin/`
+      if (secureSources[imageId]) {
+        uri = secureSources[imageId]
+      } else {
+        uri = directUri
+      }
     }
 
-    setImagemSelecionada([{ uri }, item])
+    if (Platform.OS === 'web' && uri && uri.startsWith('http')) {
+      setImagemSelecionada([{ uri: secureSources[imageId] || uri }, item])
+    } else if (authHeaders && uri && uri.startsWith('http')) {
+      setImagemSelecionada([{ uri, headers: authHeaders }, item])
+    } else {
+      setImagemSelecionada([{ uri }, item])
+    }
     setModalVisible(true)
+  }
+
+  const loadSecureImage = async (imageId, imageUri) => {
+    try {
+      const headers = await getAuthHeaders()
+      const token = await AsyncStorage.getItem('access')
+      const res = await fetch(imageUri, {
+        headers: { Authorization: `Bearer ${token}`, ...headers },
+      })
+      const blob = await res.blob()
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setSecureSources((prev) => ({ ...prev, [imageId]: reader.result }))
+      }
+      reader.readAsDataURL(blob)
+    } catch (e) {
+      console.error('Erro ao carregar imagem segura:', e)
+    }
   }
 
   const renderItem = ({ item }) => {
     const imageId = getImageId(item)
     let imageSource
-    if (item.imagem_base64) {
+    if (item.imagem_data_uri) {
+      imageSource = { uri: item.imagem_data_uri }
+    } else if (item.imagem_base64) {
       imageSource = { uri: `data:image/jpeg;base64,${item.imagem_base64}` }
     } else {
-      const imageUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${imageId}/bin/`
-      imageSource = { uri: imageUri }
+      const imageUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${orde_nume}/${imageId}/bin/`
+      if (secureSources[imageId]) {
+        imageSource = { uri: secureSources[imageId] }
+      } else if (Platform.OS === 'web') {
+        imageSource = { uri: imageUri }
+      } else if (authHeaders) {
+        imageSource = { uri: imageUri, headers: authHeaders }
+      } else {
+        imageSource = { uri: imageUri }
+      }
     }
 
     return (
@@ -124,6 +176,8 @@ export default function AbaForos({ orde_nume, codTecnico }) {
             console.error(`❌ Erro ao carregar imagem ${imageId}:`, error)
             console.error(`❌ Source usado:`, imageSource)
             console.error(`❌ Item completo:`, item)
+            const fallbackUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${orde_nume}/${imageId}/bin/`
+            loadSecureImage(imageId, fallbackUri)
           }}
           onLoad={() => {}}
           onLoadStart={() => {}}
