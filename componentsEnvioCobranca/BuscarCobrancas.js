@@ -12,6 +12,8 @@ export const buscarCobrancasAPI = async ({
   setLoading,
   setCobrancasOriginais,
   setCobrancas,
+  cliente_id,
+  cliente_nome,
 }) => {
   setLoading(true)
   try {
@@ -22,37 +24,46 @@ export const buscarCobrancasAPI = async ({
     if (incluirBoleto) {
       apiUrl += `&incluir_boleto=true`
     }
-    const response = await apiGetComContexto(apiUrl)
+    if (cliente_id) {
+      apiUrl += `&cliente_id=${cliente_id}`
+    }
+    if (cliente_nome) {
+      apiUrl += `&cliente_nome=${cliente_nome}`
+    }
+    const payload = await apiGetComContexto(apiUrl)
 
     let cobrancasData = []
 
-    if (response.data && response.data.results) {
-      console.log('✅ Usando response.data.results:', response.data.results)
-      cobrancasData = response.data.results
-    } else if (Array.isArray(response.data)) {
-      console.log('✅ Usando response.data diretamente:', response.data)
-      cobrancasData = response.data
-    } else if (Array.isArray(response)) {
-      console.log('✅ Usando response.direamente:', response)
-      cobrancasData = response
+    if (Array.isArray(payload)) {
+      cobrancasData = payload
+    } else if (Array.isArray(payload?.results)) {
+      cobrancasData = payload.results
+    } else if (Array.isArray(payload?.data)) {
+      cobrancasData = payload.data
+    } else if (Array.isArray(payload?.data?.results)) {
+      cobrancasData = payload.data.results
     } else {
       console.log('❌ Formato de dados não reconhecido')
       console.log('🔍 Tentando extrair dados...')
-      const possibleData =
-        response?.data?.data || response?.results || response || []
-      console.log('🎯 Dados extraídos:', possibleData)
-      cobrancasData = Array.isArray(possibleData) ? possibleData : []
+      const arraysEncontradas = Object.values(payload || {}).find(Array.isArray)
+      cobrancasData = arraysEncontradas || []
     }
 
-    console.log('🎯 Final cobrancasData:', cobrancasData)
     console.log('📏 Final length:', cobrancasData.length)
+    const amostra = cobrancasData.slice(0, 3).map((c) => c.numero_titulo)
+    console.log('🧪 Amostra de títulos:', amostra)
+    cobrancasData = cobrancasData.map((c) => ({
+      ...c,
+      id: c.id || c.numero_titulo || `${c.cliente_id}-${c.numero_titulo}`,
+    }))
+    console.log('🔍 Amostra de IDs:', amostra)
     setCobrancasOriginais(cobrancasData)
     setCobrancas(cobrancasData)
+    console.log('🔍 Amostra de IDs:', cobrancasData)
 
     Toast.show({
       type: 'info',
       text1: 'Busca Concluída',
-      text2: `${cobrancasData.length} cobrança(s) encontrada(s)`,
       visibilityTime: 3000,
     })
   } catch (error) {
@@ -68,6 +79,8 @@ export const useBuscarCobrancas = ({
   dataIni,
   dataFim,
   incluirBoleto,
+  cliente_id,
+  cliente_nome,
   setLoading,
   setCobrancasOriginais,
   setCobrancas,
@@ -80,11 +93,13 @@ export const useBuscarCobrancas = ({
         dataFim,
         incluirBoleto,
         setLoading,
+        cliente_id,
+        cliente_nome,
         setCobrancasOriginais,
         setCobrancas,
       })
     }
-  }, [dataIni, dataFim, incluirBoleto, autoLoad])
+  }, [dataIni, dataFim, incluirBoleto, autoLoad, cliente_id, cliente_nome])
 }
 
 export default buscarCobrancasAPI

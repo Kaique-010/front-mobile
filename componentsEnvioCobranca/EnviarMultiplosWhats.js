@@ -29,9 +29,11 @@ export default function enviarMultiplosWhatsapps({
     'Confirmar Envio',
     `Enviar para ${cobrancasSelecionadas.length} cliente(s)?\n\n` +
       `${
-        incluirBoleto
-          ? '📎 APENAS BOLETOS serão enviados (sem texto)'
-          : '📝 Apenas mensagens de texto serão enviadas'
+        cobrancasSelecionadas.length > 1
+          ? '📎 Enviar apenas boletos (sem texto)'
+          : incluirBoleto
+          ? '📝 Mensagem + Boleto'
+          : '📝 Apenas mensagem'
       }`,
     [
       { text: 'Cancelar', style: 'cancel' },
@@ -40,7 +42,7 @@ export default function enviarMultiplosWhatsapps({
         onPress: () =>
           processarEnviosMultiplos({
             cobrancasSelecionadas,
-            incluirBoleto,
+            incluirBoleto: cobrancasSelecionadas.length > 1 ? true : incluirBoleto,
             setEnviandoLote,
             setProgressoEnvio,
             setSelecionadas,

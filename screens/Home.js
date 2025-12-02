@@ -13,6 +13,7 @@ import {
   Animated,
   Easing,
 } from 'react-native'
+import { Linking } from 'react-native'
 import { Audio } from 'expo-av'
 import { getStoredData } from '../services/storageService'
 import { fetchDashboardData } from '../services/apiService'
@@ -320,6 +321,116 @@ const PulsingLogo = ({ active }) => {
 }
 
 /* Mensagens com fade-in */
+const FormattedMessage = ({ texto }) => {
+  const lines = String(texto || '').split(/\r?\n/)
+
+  const sanitizeUrl = (u) => String(u || '').replace(/^sandbox:\//, '')
+
+  const renderBold = (str) => {
+    const spans = []
+    const re = /\*\*([^*]+)\*\*/g
+    let last = 0
+    let m
+    while ((m = re.exec(str)) !== null) {
+      const prev = str.slice(last, m.index)
+      if (prev) spans.push(<Text key={`b-prev-${last}`} style={styles.paragraph}>{prev}</Text>)
+      spans.push(
+        <Text key={`b-bold-${m.index}`} style={{ fontWeight: 'bold', color: '#fff' }}>
+          {m[1]}
+        </Text>
+      )
+      last = re.lastIndex
+    }
+    const rest = str.slice(last)
+    if (rest) spans.push(<Text key={`b-rest-${last}`} style={styles.paragraph}>{rest}</Text>)
+    return spans.length ? spans : [<Text key={`b-only-${Math.random()}`} style={styles.paragraph}>{str}</Text>]
+  }
+
+  const renderSegments = (str) => {
+    const parts = []
+    const re = /\[([^\]]+)\]\(([^)]+)\)/g
+    let last = 0
+    let m
+    while ((m = re.exec(str)) !== null) {
+      const prev = str.slice(last, m.index)
+      if (prev) parts.push(...renderBold(prev))
+      const url = sanitizeUrl(m[2])
+      parts.push(
+        <Text
+          key={`lnk-${m.index}`}
+          style={{ color: '#00bfff', textDecorationLine: 'underline' }}
+          onPress={() => {
+            try { Linking.openURL(url) } catch (e) {}
+          }}
+        >
+          {m[1]}
+        </Text>
+      )
+      last = re.lastIndex
+    }
+    const rest = str.slice(last)
+    if (rest) parts.push(...renderBold(rest))
+    return parts.length ? parts : [<Text key={`seg-only-${Math.random()}`} style={styles.paragraph}>{str}</Text>]
+  }
+
+  const rows = []
+  let inList = false
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const h1 = line.match(/^#\s+(.+)/)
+    const h2 = line.match(/^##\s+(.+)/)
+    const h3 = line.match(/^###\s+(.+)/)
+    const li = line.match(/^\s*[-•]\s+(.+)/)
+
+    if (h1) {
+      rows.push(
+        <Text key={`h1-${i}`} style={styles.h3}>
+          {h1[1]}
+        </Text>
+      )
+      inList = false
+      continue
+    }
+    if (h2) {
+      rows.push(
+        <Text key={`h2-${i}`} style={styles.h4}>
+          {h2[1]}
+        </Text>
+      )
+      inList = false
+      continue
+    }
+    if (h3) {
+      rows.push(
+        <Text key={`h3-${i}`} style={styles.h5}>
+          {h3[1]}
+        </Text>
+      )
+      inList = false
+      continue
+    }
+    if (li) {
+      rows.push(
+        <View key={`li-${i}`} style={styles.listItem}>
+          <Text style={styles.bullet}>•</Text>
+          <Text style={styles.listText}>{renderSegments(li[1])}</Text>
+        </View>
+      )
+      inList = true
+      continue
+    }
+    if (line.trim()) {
+      rows.push(
+        <Text key={`p-${i}`} style={styles.paragraph}>
+          {renderSegments(line)}
+        </Text>
+      )
+      inList = false
+    }
+  }
+  return <View>{rows}</View>
+}
+
 const FadeMessage = ({ tipo, texto }) => {
   const fade = useRef(new Animated.Value(0)).current
   useEffect(() => {
@@ -362,9 +473,13 @@ const FadeMessage = ({ tipo, texto }) => {
           }}
         />
       )}
-      <Text style={tipo === 'user' ? styles.userMsg : styles.spartMsg}>
-        {texto}
-      </Text>
+      {tipo === 'user' ? (
+        <Text style={styles.userMsg}>{texto}</Text>
+      ) : (
+        <View style={styles.spartMsg}>
+          <FormattedMessage texto={texto} />
+        </View>
+      )}
     </Animated.View>
   )
 }
@@ -516,12 +631,18 @@ const styles = StyleSheet.create({
   spartMsg: {
     alignSelf: 'flex-start',
     backgroundColor: '#333',
-    color: '#fff',
     padding: 8,
     borderRadius: 8,
     marginVertical: 4,
     maxWidth: '70%',
   },
+  paragraph: { color: '#fff', lineHeight: 18 },
+  h3: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  h4: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 6 },
+  h5: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 6 },
+  listItem: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: 2 },
+  bullet: { color: '#00bfff', marginRight: 6 },
+  listText: { color: '#fff', flex: 1, flexWrap: 'wrap' },
   inputRow: { flexDirection: 'row', alignItems: 'center' },
   input: {
     flex: 1,

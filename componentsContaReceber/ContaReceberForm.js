@@ -9,14 +9,16 @@ import {
   StyleSheet,
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
+import { useNavigation } from '@react-navigation/native'
 import { Picker } from '@react-native-picker/picker'
 import useContextoApp from '../hooks/useContextoApp'
 import BuscaClienteInput from '../components/BuscaClienteInput'
-import { apiPutComContexto, apiPostComContexto } from '../utils/api'
+import { apiPutComContexto, request } from '../utils/api'
 import Toast from 'react-native-toast-message'
 
 export default function ContaReceberForm({ route }) {
   const { empresaId, filialId } = useContextoApp()
+  const navigation = useNavigation()
   const [showPicker, setShowPicker] = useState({ tipo: null })
   const [isLoading, setIsLoading] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
@@ -111,12 +113,16 @@ export default function ContaReceberForm({ route }) {
         const url = `contas_a_receber/titulos-receber/${conta.titu_empr}/${conta.titu_fili}/${conta.titu_clie}/${conta.titu_titu}/${conta.titu_seri}/${conta.titu_parc}/`
         await apiPutComContexto(url, dadosFormatados)
         Toast.show({ type: 'success', text1: 'Conta atualizada com sucesso!' })
+        navigation.goBack()
       } else {
-        await apiPostComContexto(
-          'contas_a_receber/titulos-receber/',
-          dadosFormatados
-        )
+        await request({
+          method: 'post',
+          endpoint: 'contas_a_receber/titulos-receber/',
+          data: dadosFormatados,
+          params: { empresa_id: empresaId, filial_id: filialId },
+        })
         Toast.show({ type: 'success', text1: 'Conta criada com sucesso!' })
+        navigation.goBack()
       }
     } catch (error) {
       console.error(error)

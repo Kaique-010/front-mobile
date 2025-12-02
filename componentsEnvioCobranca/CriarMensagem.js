@@ -1,4 +1,22 @@
 // MELHORADO: Função para criar mensagem padrão
+const formatarData = (data) => {
+  try {
+    const d = new Date(data)
+    if (isNaN(d)) return String(data)
+    return d.toLocaleDateString('pt-BR')
+  } catch (_) {
+    return String(data)
+  }
+}
+
+const formatarValor = (valor) => {
+  const num = Number(valor)
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(isNaN(num) ? 0 : num)
+}
+
 export function criarMensagemCobranca(cobranca) {
   return (
     `*Prezado Cliente ${cobranca.cliente_nome}*\n\n` +

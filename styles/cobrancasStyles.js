@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   filtroLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1f6d7a',
     marginBottom: 8,
@@ -81,18 +81,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#1f6d7a',
   },
   statusButtonText: {
-    fontSize: 12,
+    fontSize: 8,
     color: '#1f6d7a',
     fontWeight: '600',
-    margin: 25,
+    margin: 10,
   },
   statusButtonTextActive: {
     color: '#fff',
   },
   checkboxContainer: {
     flexDirection: 'column',
-    marginBottom: 16,
-    marginTop: 45,
+    marginBottom: 10,
+    marginTop: 10,
     padding: 12,
     backgroundColor: '#243242',
     borderRadius: 8,

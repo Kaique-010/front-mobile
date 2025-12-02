@@ -45,6 +45,7 @@ export default function EntidadeForm({ navigation, route }) {
     enti_bair: '',
     enti_pais: '1058',
     enti_codi_pais: '1058',
+    enti_codi_cida: '',
     enti_cida: '',
     enti_esta: '',
     enti_fone: '',
@@ -61,6 +62,9 @@ export default function EntidadeForm({ navigation, route }) {
         ...prev,
         ...entidade,
         enti_pais: entidade.enti_pais || prev.enti_pais || '1058',
+        enti_codi_pais:
+          entidade.enti_codi_pais || prev.enti_codi_pais || '1058',
+        enti_codi_cida: entidade.enti_codi_cida || prev.enti_codi_cida || '',
       }))
     } else {
       const carregarEmpresaFilial = async () => {
@@ -116,10 +120,11 @@ export default function EntidadeForm({ navigation, route }) {
     setIsSalvando(true)
 
     const { enti_clie, ...dadosEntidade } = formData
-    
+
     // Garantir que os campos de país sempre tenham valores válidos
     dadosEntidade.enti_pais = dadosEntidade.enti_pais || '1058'
     dadosEntidade.enti_codi_pais = dadosEntidade.enti_codi_pais || '1058'
+    dadosEntidade.enti_codi_cida = dadosEntidade.enti_codi_cida || ''
 
     try {
       if (!slug) throw new Error('Slug ainda não carregado')
@@ -161,7 +166,7 @@ export default function EntidadeForm({ navigation, route }) {
   const buscarEnderecoPorCep = async (cep) => {
     try {
       const { slug, accessToken } = await getStoredData()
-      
+
       // ✅ ADICIONAR VALIDAÇÃO
       if (!slug || !accessToken) {
         console.error('Slug ou token não encontrados:', { slug, accessToken })
@@ -194,6 +199,7 @@ export default function EntidadeForm({ navigation, route }) {
         enti_esta: data.estado || '',
         enti_pais: data.pais || prev.enti_pais || '1058',
         enti_codi_pais: data.pais || prev.enti_codi_pais || '1058',
+        enti_codi_cida: data.codi_cidade || prev.enti_codi_cida || '',
       }))
     } catch (error) {
       console.error('Erro ao buscar endereço:', error)
@@ -312,6 +318,14 @@ export default function EntidadeForm({ navigation, route }) {
             style={styles.input}
             value={formData.enti_cida}
             onChangeText={(text) => handleChange('enti_cida', text)}
+          />
+
+          <Text style={styles.label}>Código da Cidade (IBGE)</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.enti_codi_cida}
+            onChangeText={(text) => handleChange('enti_codi_cida', text)}
+            keyboardType="numeric"
           />
 
           <Text style={styles.label}>Estado</Text>

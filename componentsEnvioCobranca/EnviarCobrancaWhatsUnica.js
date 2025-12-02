@@ -35,7 +35,7 @@ export default async function enviarCobrancaWhatsApp({
     await Linking.openURL(urlTexto)
 
     // Se tem boleto e foi solicitado, envia após o texto
-    if (incluirBoleto && selectedCobranca.boleto_base64) {
+    if (selectedCobranca.boleto_base64) {
       setTimeout(async () => {
         await compartilharBoleto(selectedCobranca)
       }, 3000)
