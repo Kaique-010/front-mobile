@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { View, TextInput, Text, StyleSheet } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
+import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 import { MaterialIcons } from '@expo/vector-icons'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'
@@ -51,12 +52,20 @@ export default function PedidoHeader({ pedido = {}, setPedido }) {
           <MaterialIcons name="event" size={12} color="#18b7df" />
           <Text style={styles.label}>Data do Pedido</Text>
         </View>
-        <TextInput
-          value={pedido?.pedi_data ?? ''}
-          onChangeText={(v) => setPedido((prev) => ({ ...prev, pedi_data: v }))}
+        <DatePickerCrossPlatform
+          value={pedido?.pedi_data || ''}
+          onChange={(date) => {
+            if (date instanceof Date && !isNaN(date.getTime())) {
+              const ano = date.getFullYear()
+              const mes = String(date.getMonth() + 1).padStart(2, '0')
+              const dia = String(date.getDate()).padStart(2, '0')
+              const iso = `${ano}-${mes}-${dia}`
+              setPedido((prev) => ({ ...prev, pedi_data: iso }))
+            }
+          }}
           style={styles.input}
-          placeholder="DD/MM/AAAA"
-          placeholderTextColor="#666"
+          textStyle={{ color: '#faebd7', fontSize: 16 }}
+          placeholder="Selecione a data"
         />
       </View>
 
