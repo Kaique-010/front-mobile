@@ -198,6 +198,18 @@ export default function Home() {
           📊 Sem dados de dashboard disponíveis.
         </Text>
       )}
+      <Text
+        style={{
+          color: '#aaa',
+          marginLeft: 10,
+          width: '100%',
+          textAlign: 'center',
+          marginBottom: 10,
+          textTransform: 'uppercase',
+          fontSize: 6,
+        }}>
+        Versão 1.0.8
+      </Text>
 
       <TouchableOpacity
         style={styles.logoButton}
@@ -217,8 +229,8 @@ export default function Home() {
             )
           }
         }}>
-        <Image 
-          source={require('../assets/logo.png')} 
+        <Image
+          source={require('../assets/logo.png')}
           style={{ width: 40, height: 50 }}
           resizeMode="contain"
         />
@@ -311,8 +323,8 @@ const PulsingLogo = ({ active }) => {
 
   return (
     <Animated.View style={{ transform: [{ scale: pulse }] }}>
-      <Image 
-        source={require('../assets/logo.png')} 
+      <Image
+        source={require('../assets/logo.png')}
         style={{ width: 30, height: 30, marginBottom: 15, marginRight: 10 }}
         resizeMode="contain"
       />
@@ -333,17 +345,35 @@ const FormattedMessage = ({ texto }) => {
     let m
     while ((m = re.exec(str)) !== null) {
       const prev = str.slice(last, m.index)
-      if (prev) spans.push(<Text key={`b-prev-${last}`} style={styles.paragraph}>{prev}</Text>)
+      if (prev)
+        spans.push(
+          <Text key={`b-prev-${last}`} style={styles.paragraph}>
+            {prev}
+          </Text>
+        )
       spans.push(
-        <Text key={`b-bold-${m.index}`} style={{ fontWeight: 'bold', color: '#fff' }}>
+        <Text
+          key={`b-bold-${m.index}`}
+          style={{ fontWeight: 'bold', color: '#fff' }}>
           {m[1]}
         </Text>
       )
       last = re.lastIndex
     }
     const rest = str.slice(last)
-    if (rest) spans.push(<Text key={`b-rest-${last}`} style={styles.paragraph}>{rest}</Text>)
-    return spans.length ? spans : [<Text key={`b-only-${Math.random()}`} style={styles.paragraph}>{str}</Text>]
+    if (rest)
+      spans.push(
+        <Text key={`b-rest-${last}`} style={styles.paragraph}>
+          {rest}
+        </Text>
+      )
+    return spans.length
+      ? spans
+      : [
+          <Text key={`b-only-${Math.random()}`} style={styles.paragraph}>
+            {str}
+          </Text>,
+        ]
   }
 
   const renderSegments = (str) => {
@@ -360,9 +390,10 @@ const FormattedMessage = ({ texto }) => {
           key={`lnk-${m.index}`}
           style={{ color: '#00bfff', textDecorationLine: 'underline' }}
           onPress={() => {
-            try { Linking.openURL(url) } catch (e) {}
-          }}
-        >
+            try {
+              Linking.openURL(url)
+            } catch (e) {}
+          }}>
           {m[1]}
         </Text>
       )
@@ -370,7 +401,13 @@ const FormattedMessage = ({ texto }) => {
     }
     const rest = str.slice(last)
     if (rest) parts.push(...renderBold(rest))
-    return parts.length ? parts : [<Text key={`seg-only-${Math.random()}`} style={styles.paragraph}>{str}</Text>]
+    return parts.length
+      ? parts
+      : [
+          <Text key={`seg-only-${Math.random()}`} style={styles.paragraph}>
+            {str}
+          </Text>,
+        ]
   }
 
   const rows = []
@@ -615,9 +652,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#00bfff',
-    marginBottom:1,
+    marginBottom: 1,
   },
-  closeButtonText: { fontSize: 25, color: '#ff5555', marginLeft:7, marginBottom:35 },
+  closeButtonText: {
+    fontSize: 25,
+    color: '#ff5555',
+    marginLeft: 7,
+    marginBottom: 35,
+  },
   chatBox: { flex: 1, marginBottom: 15 },
   userMsg: {
     alignSelf: 'flex-end',
@@ -640,7 +682,11 @@ const styles = StyleSheet.create({
   h3: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 6 },
   h4: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 6 },
   h5: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 6 },
-  listItem: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: 2 },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: 2,
+  },
   bullet: { color: '#00bfff', marginRight: 6 },
   listText: { color: '#fff', flex: 1, flexWrap: 'wrap' },
   inputRow: { flexDirection: 'row', alignItems: 'center' },

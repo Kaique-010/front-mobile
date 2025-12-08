@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -11,9 +12,9 @@ import {
 } from 'react-native'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
-import { TextInput, List } from 'react-native-paper'
 import { Picker } from '@react-native-picker/picker'
 import { Ionicons } from '@expo/vector-icons'
+import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
 const FORMAS_RECEBIMENTO = [
@@ -31,7 +32,11 @@ const FORMAS_RECEBIMENTO = [
   { codigo: '60', descricao: 'PIX' },
 ]
 
-export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedido }) {
+export default function FinanceiroPedido({
+  pedido = {},
+  totalGeral = 0,
+  setPedido,
+}) {
   const [loading, setLoading] = useState(false)
   const [titulos, setTitulos] = useState([])
   const [formaPagamento, setFormaPagamento] = useState('54')
@@ -58,9 +63,9 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
   // Atualizar o estado do pedido quando formaPagamento mudar
   useEffect(() => {
     if (setPedido && formaPagamento) {
-      setPedido(prev => ({
+      setPedido((prev) => ({
         ...prev,
-        pedi_form_rece: formaPagamento
+        pedi_form_rece: formaPagamento,
       }))
     }
   }, [formaPagamento, setPedido])
@@ -86,10 +91,10 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
       const novoMes = dataVencimento.getMonth() + (i - 1)
       const novoAno = dataVencimento.getFullYear() + Math.floor(novoMes / 12)
       const mesAjustado = novoMes % 12
-      
+
       dataVencimento.setFullYear(novoAno)
       dataVencimento.setMonth(mesAjustado)
-      
+
       // Verificar se o dia é válido para o mês/ano
       const ultimoDiaDoMes = new Date(novoAno, mesAjustado + 1, 0).getDate()
       const diaOriginal = new Date(dataBase).getDate()
@@ -147,12 +152,13 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
   }
 
   const onModalDateChange = (event, selectedDate) => {
-    const currentDate = selectedDate || new Date(tituloEmEdicao?.vencimento || new Date())
+    const currentDate =
+      selectedDate || new Date(tituloEmEdicao?.vencimento || new Date())
     setShowModalDatePicker(Platform.OS === 'ios')
     if (selectedDate && tituloEmEdicao) {
-      setTituloEmEdicao(prev => ({
+      setTituloEmEdicao((prev) => ({
         ...prev,
-        vencimento: selectedDate.toISOString().split('T')[0]
+        vencimento: selectedDate.toISOString().split('T')[0],
       }))
     }
   }
@@ -180,7 +186,9 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
 
       console.log('🔍 Payload gerarTitulos:', payload)
       console.log('📋 Forma de pagamento selecionada:', formaPagamento)
-      const formaDescricao = FORMAS_RECEBIMENTO.find(f => f.codigo === formaPagamento)?.descricao
+      const formaDescricao = FORMAS_RECEBIMENTO.find(
+        (f) => f.codigo === formaPagamento
+      )?.descricao
       console.log('📝 Descrição da forma:', formaDescricao)
       console.log('Payload para gerar títulos:', payload)
 
@@ -259,7 +267,9 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
 
       console.log('🔍 Payload salvarEdicaoTitulo:', payload)
       console.log('📋 Forma de pagamento na edição:', formaPagamento)
-      const formaDescricao = FORMAS_RECEBIMENTO.find(f => f.codigo === formaPagamento)?.descricao
+      const formaDescricao = FORMAS_RECEBIMENTO.find(
+        (f) => f.codigo === formaPagamento
+      )?.descricao
       console.log('📝 Descrição da forma na edição:', formaDescricao)
 
       await apiPostComContexto('pedidos/atualizar-titulo-pedido/', payload)
@@ -331,29 +341,36 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
             }
             keyboardType="numeric"
             style={styles.modalInput}
-            mode="outlined"
-            theme={{ colors: { primary: '#10a2a7' } }}
           />
 
-          <Text style={[styles.pickerLabel, { color: '#10a2a7', marginBottom: 10 }]}>
+          <Text
+            style={[
+              styles.pickerLabel,
+              { color: '#10a2a7', marginBottom: 10 },
+            ]}>
             Data de Vencimento
           </Text>
           <TouchableOpacity
             style={styles.datePickerButton}
             onPress={() => setShowModalDatePicker(true)}>
             <Text style={styles.datePickerText}>
-              {tituloEmEdicao?.vencimento 
-                ? new Date(tituloEmEdicao.vencimento).toLocaleDateString('pt-BR')
-                : 'Selecionar data'
-              }
+              {tituloEmEdicao?.vencimento
+                ? new Date(tituloEmEdicao.vencimento).toLocaleDateString(
+                    'pt-BR'
+                  )
+                : 'Selecionar data'}
             </Text>
             <Ionicons name="calendar" size={20} color="#10a2a7" />
           </TouchableOpacity>
 
           {showModalDatePicker && (
-            <DateTimePicker
+            <DatePickerCrossPlatform
               testID="modalDateTimePicker"
-              value={tituloEmEdicao?.vencimento ? new Date(tituloEmEdicao.vencimento) : new Date()}
+              value={
+                tituloEmEdicao?.vencimento
+                  ? new Date(tituloEmEdicao.vencimento)
+                  : new Date()
+              }
               mode="date"
               is24Hour={true}
               display="default"
@@ -452,8 +469,12 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
                   <Text style={styles.tituloLabel}>Forma de Pagamento:</Text>
                   <Text style={styles.tituloValor}>
                     {(() => {
-                      const forma = FORMAS_RECEBIMENTO.find(f => f.codigo === titulo.forma_pagamento)
-                      return forma ? `${forma.codigo} - ${forma.descricao}` : titulo.forma_pagamento || 'N/A'
+                      const forma = FORMAS_RECEBIMENTO.find(
+                        (f) => f.codigo === titulo.forma_pagamento
+                      )
+                      return forma
+                        ? `${forma.codigo} - ${forma.descricao}`
+                        : titulo.forma_pagamento || 'N/A'
                     })()}
                   </Text>
                 </View>
@@ -509,9 +530,6 @@ export default function FinanceiroPedido({ pedido = {}, totalGeral = 0, setPedid
                 onChangeText={setParcelas}
                 keyboardType="numeric"
                 style={styles.input}
-                mode="outlined"
-                textColor="#fff"
-                theme={{ colors: { primary: '#10a2a7' } }}
                 disabled={loading}
               />
 
@@ -723,12 +741,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 4,
+    backgroundColor: '#232935',
+    borderRadius: 8,
+    padding: 8,
   },
   tituloLabel: {
     color: '#999',
     fontSize: 14,
   },
   tituloValor: {
+    backgroundColor: '#232935',
+    borderRadius: 8,
+    padding: 8,
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',

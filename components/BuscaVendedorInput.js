@@ -71,12 +71,16 @@ export default function BuscaVendedorInput({
 
       try {
         const empresaId = await AsyncStorage.getItem('empresaId')
-        
-        const data = await apiGetComContexto('entidades/entidades/', {
-          search: texto,
-          tipo: 'VE',
-          empresa: empresaId || '1',
-        }, 'enti_')
+
+        const data = await apiGetComContexto(
+          'entidades/entidades/',
+          {
+            search: texto,
+            tipo: 'VE',
+            empresa: empresaId || '1',
+          },
+          'enti_'
+        )
 
         const resultados = data.results.filter(
           (e) => e.enti_tipo_enti === 'VE' || e.enti_tipo_enti === 'Ve'
@@ -102,7 +106,7 @@ export default function BuscaVendedorInput({
       console.warn('Item inválido selecionado:', item)
       return
     }
-    
+
     const texto = `${item.enti_clie} - ${item.enti_nome}`
     setTermo(texto)
     digitando.current = false
@@ -121,7 +125,9 @@ export default function BuscaVendedorInput({
   }
 
   const isSelecionado =
-    typeof termo === 'string' && termo.includes(' - ') && vendedores.length === 0
+    typeof termo === 'string' &&
+    termo.includes(' - ') &&
+    vendedores.length === 0
 
   return (
     <View>
@@ -136,6 +142,7 @@ export default function BuscaVendedorInput({
           onChangeText={(text) => {
             if (!isEdit) {
               setTermo(text)
+              setVendedores([])
               buscar(text)
             }
           }}
