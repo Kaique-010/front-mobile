@@ -125,6 +125,7 @@ export default function ServModalOs({
                 servicoNome: servico.serv_nome,
                 preco: servico.serv_preco?.toString() || '',
                 quantidade: '1',
+                observacao: servico.serv_nome,
               }))
               Toast.show({
                 type: 'success',

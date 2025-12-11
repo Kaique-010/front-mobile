@@ -13,7 +13,7 @@ export const getModulosComPermissao = async () => {
       token: token ? 'Token encontrado' : 'Token não encontrado',
       slug: slug || 'Slug não encontrado',
       empresaId: empresaId || 'EmpresaId não encontrado',
-      filialId: filialId || 'FilialId não encontrado'
+      filialId: filialId || 'FilialId não encontrado',
     })
 
     if (!token || !slug) {
@@ -31,19 +31,11 @@ export const getModulosComPermissao = async () => {
     const responseLiberados = await apiGetComContexto(
       `parametros-admin/modulos_liberados/?empr=${empresaId}&fili=${filialId}`
     )
-
-    console.log('🔍 [DEBUG] Resposta modulos_liberados:', responseLiberados)
-
     // A API retorna { modulos_liberados: [...] } diretamente
     const codigosLiberados = responseLiberados?.modulos_liberados || []
-
-    console.log('📋 Fazendo requisição para modulos_disponiveis...')
     const responseGlobal = await apiGetComContexto(
       'parametros-admin/permissoes-modulos/modulos_disponiveis/'
     )
-
-    console.log('🔍 [DEBUG] Resposta modulos_disponiveis:', responseGlobal)
-
     // A API retorna { modulos: [...] } diretamente
     let modulosGlobais = responseGlobal?.modulos || []
 
@@ -55,13 +47,6 @@ export const getModulosComPermissao = async () => {
 
     // Verificar se codigosLiberados é array
     const codigosArray = Array.isArray(codigosLiberados) ? codigosLiberados : []
-
-    console.log('🔍 [DEBUG] Códigos liberados processados:', codigosArray)
-    console.log(
-      '🔍 [DEBUG] Módulos globais processados:',
-      modulosGlobais.length
-    )
-
     // Se não há módulos globais cadastrados, criar módulos básicos baseados nos códigos liberados
     if (modulosGlobais.length === 0 && codigosArray.length > 0) {
       modulosGlobais = codigosArray.map((codigo) => ({
@@ -80,13 +65,6 @@ export const getModulosComPermissao = async () => {
     const modulosPermitidos = modulosGlobais.filter((modulo) =>
       codigosArray.includes(modulo.modu_codi)
     )
-
-    console.log(
-      '✅ [DEBUG] Módulos permitidos encontrados:',
-      modulosPermitidos.length
-    )
-    console.log('✅ [DEBUG] Módulos permitidos:', modulosPermitidos)
-
     // Salvar os módulos no AsyncStorage para uso futuro
     if (modulosPermitidos.length > 0) {
       await AsyncStorage.setItem('modulos', JSON.stringify(modulosPermitidos))

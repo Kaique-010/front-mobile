@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Image,
 } from 'react-native'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
@@ -37,6 +38,7 @@ export default function AbaTotais({
   os_empr,
   os_fili,
   onFinanceiroGerado, // Novo prop
+  navigation,
 }) {
   useEffect(() => {
     console.log('AbaTotais props:', {
@@ -66,6 +68,9 @@ export default function AbaTotais({
   const [parcelasSimuladas, setParcelasSimuladas] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
   const [tituloEmEdicao, setTituloEmEdicao] = useState(null)
+  const [printVisible, setPrintVisible] = useState(false)
+  const [osDetalhe, setOsDetalhe] = useState(null)
+  const [horasDia, setHorasDia] = useState([])
 
   const totalPecas = pecas.reduce((acc, peca) => {
     const valor = Number(peca.peca_tota) || 0
@@ -157,6 +162,28 @@ export default function AbaTotais({
   useEffect(() => {
     carregarTitulos()
   }, [orde_nume])
+
+  useEffect(() => {
+    const carregarResumo = async () => {
+      if (!orde_nume) return
+      try {
+        const os = await apiGetComContexto(`Os/ordens/${orde_nume}/`)
+        setOsDetalhe(os)
+        const horas = await apiGetComContexto('Os/os-hora/', {
+          os_hora_os: String(orde_nume),
+          os_hora_empr: Number(os_empr),
+          os_hora_fili: Number(os_fili),
+        })
+        const arr = Array.isArray(horas?.results)
+          ? horas.results
+          : Array.isArray(horas)
+          ? horas
+          : []
+        setHorasDia(arr)
+      } catch {}
+    }
+    carregarResumo()
+  }, [orde_nume, os_empr, os_fili])
 
   const gerarTitulos = async () => {
     if (!orde_nume || !os_clie || !totalGeral) {
@@ -374,6 +401,99 @@ export default function AbaTotais({
     </Modal>
   )
 
+  const renderPrint = () => (
+    <Modal
+      visible={printVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setPrintVisible(false)}>
+      <View style={styles.modalContainer}>
+        <View style={styles.printCard}>
+          <Text style={styles.printTitle}>Ordem de Serviço #{orde_nume}</Text>
+          <View style={styles.printRow}>
+            <Text style={styles.printLabel}>Cliente:</Text>
+            <Text style={styles.printValue}>
+              {osDetalhe?.cliente_nome || os_clie}
+            </Text>
+          </View>
+          <View style={styles.printRow}>
+            <Text style={styles.printLabel}>Local de Trabalho:</Text>
+            <Text style={styles.printValue}>
+              {osDetalhe?.os_loca_apli || '-'}
+            </Text>
+          </View>
+          <View style={styles.printRow}>
+            <Text style={styles.printLabel}>Placa:</Text>
+            <Text style={styles.printValue}>{osDetalhe?.os_plac || '-'}</Text>
+          </View>
+          <View style={styles.divisor} />
+          <Text style={styles.printSection}>Diário de Horas</Text>
+          <View style={{ marginBottom: 8 }}>
+            {horasDia.map((h, idx) => (
+              <View key={idx} style={styles.printHoursRow}>
+                <Text style={styles.printHoursCol}>{h.os_hora_data}</Text>
+                <Text style={styles.printHoursCol}>
+                  Manhã: {h.os_hora_manh_ini || '--'} -{' '}
+                  {h.os_hora_manh_fim || '--'}
+                </Text>
+                <Text style={styles.printHoursCol}>
+                  Tarde: {h.os_hora_tard_ini || '--'} -{' '}
+                  {h.os_hora_tard_fim || '--'}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.divisor} />
+          <View style={styles.printRow}>
+            <Text style={styles.printLabel}>Total Peças:</Text>
+            <Text style={styles.printValue}>R$ {totalPecas.toFixed(2)}</Text>
+          </View>
+          <View style={styles.printRow}>
+            <Text style={styles.printLabel}>Total Serviços:</Text>
+            <Text style={styles.printValue}>R$ {totalServicos.toFixed(2)}</Text>
+          </View>
+          <View style={styles.printRow}>
+            <Text style={styles.printLabel}>TOTAL:</Text>
+            <Text style={styles.printValue}>R$ {totalGeral.toFixed(2)}</Text>
+          </View>
+          <View style={styles.divisor} />
+          <Text style={styles.printSection}>Assinaturas</Text>
+          <View style={styles.signRow}>
+            <View style={styles.signBox}>
+              {osDetalhe?.os_assi_clie ? (
+                <Image
+                  source={{
+                    uri: `data:image/png;base64,${osDetalhe.os_assi_clie}`,
+                  }}
+                  style={styles.signImage}
+                />
+              ) : (
+                <Text style={styles.signPlaceholder}>Cliente</Text>
+              )}
+            </View>
+            <View style={styles.signBox}>
+              {osDetalhe?.os_assi_oper ? (
+                <Image
+                  source={{
+                    uri: `data:image/png;base64,${osDetalhe.os_assi_oper}`,
+                  }}
+                  style={styles.signImage}
+                />
+              ) : (
+                <Text style={styles.signPlaceholder}>Operador</Text>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.button, { marginTop: 12 }]}
+            onPress={() => setPrintVisible(false)}>
+            <Text style={styles.buttonText}>Fechar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  )
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.card}>
@@ -403,6 +523,17 @@ export default function AbaTotais({
         <View style={styles.divisor} />
 
         <Text style={styles.cardTitle}>Financeiro</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() =>
+            navigation?.navigate('OsPdfView', {
+              os_os: orde_nume,
+              os_empr,
+              os_fili,
+            })
+          }>
+          <Text style={styles.buttonText}>Gerar/Imprimir O.S.</Text>
+        </TouchableOpacity>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -561,6 +692,7 @@ export default function AbaTotais({
         )}
       </View>
       {renderModalEdicao()}
+      {renderPrint()}
     </ScrollView>
   )
 }
@@ -753,6 +885,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  printCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+  },
+  printTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#000',
+  },
+  printRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 4,
+  },
+  printLabel: { color: '#333' },
+  printValue: { color: '#000', fontWeight: 'bold' },
+  printSection: { color: '#000', fontWeight: 'bold', marginBottom: 6 },
+  printHoursRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  printHoursCol: { color: '#000', fontSize: 12 },
+  signRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  signBox: {
+    width: '48%',
+    height: 100,
+    borderWidth: 1,
+    borderColor: '#999',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signImage: { width: '100%', height: '100%', resizeMode: 'contain' },
+  signPlaceholder: { color: '#999' },
   modalContent: {
     backgroundColor: '#232935',
     borderRadius: 8,

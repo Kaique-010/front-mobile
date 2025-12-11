@@ -13,11 +13,11 @@ export function useEnviarWhats() {
 
     setLoading(true)
     try {
-      const response = await apiPostComContexto('/envio/whatsapp/', {
+      const response = await apiPostComContexto('dashboards/envio/whatsapp/', {
         numero,
         dados,
       })
-      Alert.alert('Sucesso', response.data.mensagem)
+      Alert.alert('Sucesso', response?.mensagem || response?.data?.mensagem || 'WhatsApp enviado com sucesso')
       return true
     } catch (error) {
       Alert.alert(

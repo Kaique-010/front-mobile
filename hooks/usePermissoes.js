@@ -41,9 +41,6 @@ export const usePermissoes = () => {
       const modulosData = modulosResponse?.data || []
       const permissoesData = permissoesResponse?.data || {}
       const configData = configResponse?.data || {}
-
-      console.log('🔍 [DEBUG] Resposta permissões usuário:', permissoesData)
-      console.log('🔍 [DEBUG] Resposta configuração completa:', configData)
       console.log('✅ [DEBUG] Permissões carregadas:', {
         modulos: modulosData.length,
         permissoes: Object.keys(permissoesData).length,

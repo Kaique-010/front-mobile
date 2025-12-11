@@ -12,8 +12,15 @@ import ItensModalOs from './ItensModalOs'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
+import NetInfo from '@react-native-community/netinfo'
+import { enqueueOperation } from 'componentsOrdemServico/services/syncService'
 
-export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado }) {
+export default function AbaPecas({
+  pecas = [],
+  setPecas,
+  os_os,
+  financeiroGerado,
+}) {
   const { empresaId, filialId } = useContextoApp()
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
@@ -21,6 +28,7 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [produtos, setProdutos] = useState(pecas)
+  const [online, setOnline] = useState(true)
 
   // Carrega as peças existentes quando o componente monta ou quando o os_os muda
   useEffect(() => {
@@ -35,6 +43,13 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
       carregarPecasExistentes()
     }
   }, [os_os, empresaId, filialId])
+
+  useEffect(() => {
+    const sub = NetInfo.addEventListener((state) =>
+      setOnline(!!state.isConnected)
+    )
+    return () => sub && sub()
+  }, [])
 
   const carregarPecasExistentes = async () => {
     try {
@@ -126,7 +141,7 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
       Toast.show({
         type: 'error',
         text1: 'Operação não permitida',
-        text2: 'Não é possível modificar peças após gerar o financeiro'
+        text2: 'Não é possível modificar peças após gerar o financeiro',
       })
       return
     }
@@ -260,6 +275,14 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
         'Erro detalhado ao salvar:',
         err.response?.data || err.message
       )
+      try {
+        await enqueueOperation('Os/pecas/update-lista/', 'post', payload)
+        Toast.show({
+          type: 'info',
+          text1: 'Sem conexão',
+          text2: 'Alterações enfileiradas para sincronizar quando online',
+        })
+      } catch {}
       Toast.show({
         type: 'error',
         text1: 'Erro ao salvar peças',
@@ -307,18 +330,11 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
     </View>
   )
 
-  if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#10a2a7" />
-        <Text style={styles.loadingText}>Carregando peças...</Text>
-      </View>
-    )
-  }
+  // Render segue padrão de AbaServicos: loading em ListHeaderComponent
 
   const renderBotaoAdicionar = () => {
     if (financeiroGerado) {
-      return null; // Não renderiza o botão se o financeiro estiver gerado
+      return null // Não renderiza o botão se o financeiro estiver gerado
     }
     return (
       <TouchableOpacity
@@ -327,20 +343,28 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
         <Ionicons name="add-circle" size={24} color="#10a2a7" />
         <Text style={styles.botaoAdicionarTexto}>Adicionar Peça</Text>
       </TouchableOpacity>
-    );
-  };
+    )
+  }
 
   return (
     <View style={styles.container}>
       {renderBotaoAdicionar()}
       <FlatList
-        data={produtos}
+        data={isLoading ? [] : produtos}
+        ListHeaderComponent={
+          isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#10a2a7" />
+              <Text style={styles.loadingText}>Carregando peças...</Text>
+            </View>
+          ) : null
+        }
         keyExtractor={(item) =>
           item.peca_item?.toString() || `temp-${item.peca_prod}-${Date.now()}`
         }
         renderItem={renderItem}
         contentContainerStyle={styles.lista}
-        ListEmptyComponent={
+        ListEmptyComponent={!isLoading ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={48} color="#666" />
             <Text style={styles.emptyText}>Nenhuma peça adicionada</Text>
@@ -348,10 +372,10 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
               Toque no botão acima para adicionar peças
             </Text>
           </View>
-        }
+        ) : null}
       />
 
-      {produtos.length > 0 && !isLoading && (
+      {produtos.length > 0 && (
         <TouchableOpacity
           style={[styles.botaoSalvar, isSubmitting && styles.botaoDesabilitado]}
           onPress={salvarPecas}
@@ -367,6 +391,12 @@ export default function AbaPecas({ pecas = [], setPecas, os_os, financeiroGerado
                 style={styles.icone}
               />
               <Text style={styles.textoBotao}>Salvar Peças</Text>
+              {!online && (
+                <View style={styles.badgeOffline}>
+                  <Ionicons name="cloud-offline" size={16} color="#fff" />
+                  <Text style={styles.badgeText}>Offline</Text>
+                </View>
+              )}
             </>
           )}
         </TouchableOpacity>
@@ -474,6 +504,20 @@ const styles = StyleSheet.create({
   },
   botaoDesabilitado: {
     opacity: 0.7,
+  },
+  badgeOffline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#c0392b',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: '#fff',
+    marginLeft: 4,
+    fontSize: 12,
   },
   textoBotao: {
     color: 'white',

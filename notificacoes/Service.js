@@ -1,29 +1,29 @@
-import { 
-  apiGetComContexto, 
-  apiPostComContexto, 
-  apiPatchComContexto 
+import {
+  apiGetComContexto,
+  apiPostComContexto,
+  apiPatchComContexto,
 } from '../utils/api'
 
 class NotificacaoService {
-  constructor() {
-    console.log('✅ [DEBUG] Serviço de notificações inicializado usando funções padronizadas da API')
-  }
+  constructor() {}
 
   async listarNotificacoes() {
     try {
-      console.log('🔍 [DEBUG] Listando notificações usando apiGetComContexto')
-      
       const response = await apiGetComContexto('notificacoes/listar/')
       return response.notificacoes || []
     } catch (error) {
       if (error.response?.status === 404) {
-        console.error('❌ [DEBUG] Endpoint de notificações não encontrado (404)')
-        throw new Error('Endpoint de notificações não encontrado. Verifique se o serviço está disponível.')
+        console.error(
+          '❌ [DEBUG] Endpoint de notificações não encontrado (404)'
+        )
+        throw new Error(
+          'Endpoint de notificações não encontrado. Verifique se o serviço está disponível.'
+        )
       }
       if (error.response?.status === 401) {
         throw new Error('Não autorizado - verifique suas credenciais')
       }
-      
+
       console.error('Erro ao listar notificações:', error)
       throw error
     }
@@ -31,9 +31,9 @@ class NotificacaoService {
 
   async marcarComoLida(id) {
     try {
-      console.log('🔍 [DEBUG] Marcando notificação como lida:', id)
-      
-      const response = await apiPatchComContexto(`notificacoes/marcar-lida/${id}/`)
+       const response = await apiPatchComContexto(
+        `notificacoes/marcar-lida/${id}/`
+      )
       return response
     } catch (error) {
       console.error('Erro ao marcar notificação como lida:', error)
@@ -54,7 +54,7 @@ class NotificacaoService {
   async gerarNotificacoesEstoque() {
     try {
       console.log('🔍 [DEBUG] Gerando notificações de estoque')
-      
+
       const response = await apiPostComContexto('notificacoes/estoque/')
       return response
     } catch (error) {
@@ -66,7 +66,7 @@ class NotificacaoService {
   async gerarNotificacoesFinanceiro() {
     try {
       console.log('🔍 [DEBUG] Gerando notificações financeiras')
-      
+
       const response = await apiPostComContexto('notificacoes/financeiro/')
       return response
     } catch (error) {
@@ -78,7 +78,7 @@ class NotificacaoService {
   async gerarNotificacoesVendas() {
     try {
       console.log('🔍 [DEBUG] Gerando notificações de vendas')
-      
+
       const response = await apiPostComContexto('notificacoes/vendas/')
       return response
     } catch (error) {
@@ -90,7 +90,7 @@ class NotificacaoService {
   async gerarNotificacoesResumo() {
     try {
       console.log('🔍 [DEBUG] Gerando notificações de resumo')
-      
+
       const response = await apiPostComContexto('notificacoes/resumo/')
       return response
     } catch (error) {

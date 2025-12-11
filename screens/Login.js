@@ -113,10 +113,6 @@ export default function Login({ navigation }) {
 
   const handleLoginFuncionario = async () => {
     const startTime = Date.now()
-    console.log(
-      `🕐 [LOGIN-TIMING] Início do login: ${new Date().toISOString()}`
-    )
-
     if (!docu || !username || !password) {
       setError('Preencha todos os campos.')
       return
@@ -128,36 +124,17 @@ export default function Login({ navigation }) {
     try {
       // Log: Salvando dados no AsyncStorage
       const asyncStartTime = Date.now()
-      console.log(
-        `🕐 [LOGIN-TIMING] Salvando AsyncStorage: ${new Date().toISOString()}`
-      )
 
       await AsyncStorage.multiSet([
         ['docu', docu],
         ['username', username],
         ['setor', setor],
       ])
-
-      console.log(
-        `⏱️ [LOGIN-TIMING] AsyncStorage salvo em: ${
-          Date.now() - asyncStartTime
-        }ms`
-      )
-
       // Log: Buscando SlugMap (agora otimizado)
       setLoadingStep('Buscando configurações...')
       const slugStartTime = Date.now()
-      console.log(
-        `🕐 [LOGIN-TIMING] Buscando SlugMap: ${new Date().toISOString()}`
-      )
-
       const slugMap = await fetchSlugMap() // Usando função otimizada
       const slug = slugMap[docu]
-
-      console.log(
-        `⏱️ [LOGIN-TIMING] SlugMap obtido em: ${Date.now() - slugStartTime}ms`
-      )
-      console.log(`🔍 [LOGIN-TIMING] Slug encontrado: ${slug}`)
 
       if (!slug) {
         setError('CNPJ não encontrado.')
@@ -169,13 +146,6 @@ export default function Login({ navigation }) {
       // Log: Fazendo requisição de login
       setLoadingStep('Conectando ao servidor...')
       const loginStartTime = Date.now()
-      console.log(
-        `🕐 [LOGIN-TIMING] Iniciando requisição login: ${new Date().toISOString()}`
-      )
-      console.log(
-        `🔗 [LOGIN-TIMING] URL: ${BASE_URL}/api/${slug}/licencas/login/`
-      )
-
       const response = await axios.post(
         `${BASE_URL}/api/${slug}/licencas/login/`,
         {
@@ -193,23 +163,12 @@ export default function Login({ navigation }) {
         }
       )
 
-      console.log(
-        `⏱️ [LOGIN-TIMING] Requisição login concluída em: ${
-          Date.now() - loginStartTime
-        }ms`
-      )
-      console.log(`📊 [LOGIN-TIMING] Status da resposta: ${response.status}`)
-
       setModulos(response.data.modulos)
       const { access, refresh, usuario } = response.data
 
       // Log: Salvando dados da sessão
       setLoadingStep('Salvando sessão...')
       const sessionStartTime = Date.now()
-      console.log(
-        `🕐 [LOGIN-TIMING] Salvando dados da sessão: ${new Date().toISOString()}`
-      )
-
       await AsyncStorage.multiSet([
         ['access', access],
         ['refresh', refresh],
@@ -222,14 +181,6 @@ export default function Login({ navigation }) {
         ['modulos', JSON.stringify(response.data.modulos)],
         ['userType', 'funcionario'],
       ])
-
-      console.log(
-        `⏱️ [LOGIN-TIMING] Sessão salva em: ${Date.now() - sessionStartTime}ms`
-      )
-      console.log(
-        `🎉 [LOGIN-TIMING] Login completo em: ${Date.now() - startTime}ms`
-      )
-      console.log(`🕐 [LOGIN-TIMING] Fim do login: ${new Date().toISOString()}`)
 
       navigation.navigate('SelectEmpresa')
     } catch (error) {

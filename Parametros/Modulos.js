@@ -100,7 +100,6 @@ const PermissoesModulos = () => {
         `parametros-admin/atualizapermissoes/?empresa_id=${empresaSelecionada}&filial_id=${filialSelecionada}`
       )
 
-      console.log('✅ [DEBUG] Módulos recebidos:', data)
       setModulos(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Erro ao buscar módulos:', error)

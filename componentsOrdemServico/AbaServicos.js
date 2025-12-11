@@ -12,8 +12,15 @@ import ServModalOs from './ServModalOs'
 import { apiPostComContexto, apiGetComContextoos } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
+import NetInfo from '@react-native-community/netinfo'
+import { enqueueOperation } from 'componentsOrdemServico/services/syncService'
 
-export default function AbaServicos({ servicos = [], setServicos, os_os, financeiroGerado }) {
+export default function AbaServicos({
+  servicos = [],
+  setServicos,
+  os_os,
+  financeiroGerado,
+}) {
   const { empresaId, filialId } = useContextoApp()
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
@@ -21,6 +28,7 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [servicosLista, setServicosLista] = useState(servicos)
+  const [online, setOnline] = useState(true)
 
   useEffect(() => {
     if (os_os !== undefined && os_os !== null && empresaId && filialId) {
@@ -29,6 +37,13 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
       setIsLoading(false)
     }
   }, [os_os, empresaId, filialId])
+
+  useEffect(() => {
+    const sub = NetInfo.addEventListener((state) =>
+      setOnline(!!state.isConnected)
+    )
+    return () => sub && sub()
+  }, [])
 
   const carregarServicosExistentes = async () => {
     try {
@@ -211,6 +226,14 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
       })
     } catch (err) {
       console.error('Erro ao salvar serviços:', err.response?.data || err)
+      try {
+        await enqueueOperation('Os/servicos/update-lista/', 'post', payload)
+        Toast.show({
+          type: 'info',
+          text1: 'Sem conexão',
+          text2: 'Serviços enfileirados para sincronizar quando online',
+        })
+      } catch {}
       Toast.show({
         type: 'error',
         text1: 'Erro ao salvar serviços',
@@ -267,7 +290,7 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
 
   const renderBotaoAdicionar = () => {
     if (financeiroGerado) {
-      return null; 
+      return null
     }
     return (
       <TouchableOpacity
@@ -276,8 +299,8 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
         <Ionicons name="add-circle" size={24} color="#10a2a7" />
         <Text style={styles.botaoAdicionarTexto}>Adicionar Serviço</Text>
       </TouchableOpacity>
-    );
-  };
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -300,12 +323,14 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
 
       <FlatList
         data={isLoading ? [] : servicosLista}
-        ListHeaderComponent={isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#10a2a7" />
-            <Text style={styles.loadingText}>Carregando serviços...</Text>
-          </View>
-        ) : null}
+        ListHeaderComponent={
+          isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#10a2a7" />
+              <Text style={styles.loadingText}>Carregando serviços...</Text>
+            </View>
+          ) : null
+        }
         keyExtractor={(item, index) => {
           if (item?.serv_item) return String(item.serv_item)
           if (item?.serv_prod) return String(item.serv_prod)
@@ -325,9 +350,12 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
           )
         }
         ListFooterComponent={
-          servicosLista.length > 0 && !isLoading ? (
+          servicosLista.length > 0 ? (
             <TouchableOpacity
-              style={[styles.botaoSalvar, isSubmitting && styles.botaoDesabilitado]}
+              style={[
+                styles.botaoSalvar,
+                isSubmitting && styles.botaoDesabilitado,
+              ]}
               onPress={salvarServicos}
               disabled={isSubmitting}>
               {isSubmitting ? (
@@ -341,6 +369,12 @@ export default function AbaServicos({ servicos = [], setServicos, os_os, finance
                     style={styles.icone}
                   />
                   <Text style={styles.textoBotao}>Salvar Serviços</Text>
+                  {!online && (
+                    <View style={styles.badgeOffline}>
+                      <Ionicons name="cloud-offline" size={16} color="#fff" />
+                      <Text style={styles.badgeText}>Offline</Text>
+                    </View>
+                  )}
                 </>
               )}
             </TouchableOpacity>
@@ -467,6 +501,20 @@ const styles = StyleSheet.create({
   },
   botaoDesabilitado: {
     opacity: 0.7,
+  },
+  badgeOffline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#c0392b',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: 'white',
+    marginLeft: 4,
+    fontSize: 12,
   },
   textoBotao: {
     color: 'white',

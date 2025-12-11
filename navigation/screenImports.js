@@ -13,7 +13,6 @@ export { default as AlterarSenhaScreen } from '../componentsUsuarios/AlterarSenh
 export { default as UsuariosList } from '../componentsUsuarios/UsuariosList'
 export { default as UsuarioForm } from '../componentsUsuarios/UsuarioForm'
 
-
 // Telas de produtos
 
 export { default as ProdutoForm } from '../screens/ProdutoForm'
@@ -42,9 +41,6 @@ export { default as ItensListaModal } from '../screens/ItensListaModal'
 export { default as ListaCasamentoForm2 } from '../componentsListaCasamento/ListaCasamentoForm'
 export { default as ListaCasamento2 } from '../componentsListaCasamento/ListaCasamento'
 export { default as ItensListaModal2 } from '../componentsListaCasamento/ItensListaModal'
-
-
-
 
 // Telas de estoque
 export { default as EntradasForm } from '../screens/EntradasForm'
@@ -97,6 +93,11 @@ export { default as WorkflowConfig } from '../screens/WorkflowConfig'
 export { default as OrdensEletroGrafico } from '../componentsRelatoriosEletro/OrdensEletroGrafico'
 export { default as DashOrdensEletro } from '../componentsRelatoriosEletro/DashOrdensEletro'
 export { default as HistoricoWorkflow } from '../componentsRelatoriosEletro/HistoricoWorkflow'
+
+// Telas de ordem de serviço externa
+export { default as PainelAcompanhamentoExterna } from '../componentsOrdemServicoExterna/PainelAcompanhamentoExterna'
+export { default as OrdemDetalheExterna } from '../componentsOrdemServicoExterna/OrdemDetalheExterna'
+export { default as OrdemCriacaoExterna } from '../componentsOrdemServicoExterna/OrdemCriacaoExterna'
 
 // Telas de implantação
 export { default as ImplantacaoForm } from '../screens/ImplantacaoForm'
@@ -154,8 +155,6 @@ export { default as OrcamentosPisos } from '../componetsPisos/OrcamentoPisos'
 export { default as OrcamentosPisosForm } from '../componetsPisos/OrcamentosPisosForm'
 export { default as ResumoOrcamentoPisos } from '../componetsPisos/ResumoOrcamentoPisos'
 
-
-
 // Telas de Cliente
 export { default as ClientePedidosList } from '../componentsClients/ClientePedidosList'
 export { default as ClientePedidosDetalhes } from '../componentsClients/ClientePedidosDetalhes'
@@ -174,4 +173,3 @@ export { default as DashboardFluxo } from '../componentsFloresta/DashboardFluxo'
 export { default as OrdemFlorestalCriacao } from '../componentsFloresta/osFlorestal/OrdemFlorestalCriacao'
 export { default as OrdemListagem } from '../componentsFloresta/osFlorestal/PainelOs'
 export { default as OrdemFlorestalDetalhe } from '../componentsFloresta/osFlorestal/OrdemFlorestalDetalhe'
-

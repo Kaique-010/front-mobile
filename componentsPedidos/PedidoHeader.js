@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { View, TextInput, Text, StyleSheet } from 'react-native'
-import { Picker } from '@react-native-picker/picker'
 import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
+import { Picker } from '@react-native-picker/picker'
 import { MaterialIcons } from '@expo/vector-icons'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import BuscaVendedorInput from '../components/BuscaVendedorInput'

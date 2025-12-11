@@ -6,10 +6,17 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
+  ScrollView,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import useContextoApp from '../hooks/useContextoApp'
-import { apiGetComContexto, apiPostComContexto } from '../utils/api'
+import {
+  apiGetComContexto,
+  apiPostComContexto,
+  apiPatchComContexto,
+} from '../utils/api'
+import { enqueueOperation } from 'componentsOrdemServico/services/syncService'
+import NetInfo from '@react-native-community/netinfo'
 
 export default function AbaHoras({ os_os, embedded = false }) {
   const { empresaId, filialId, usuarioId } = useContextoApp()
@@ -24,6 +31,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
   const [observacao, setObservacao] = useState('')
   const [registros, setRegistros] = useState([])
   const [totalHoras, setTotalHoras] = useState(0)
+  const [online, setOnline] = useState(true)
 
   const fmt = (n) => String(n).padStart(2, '0')
   const agora = () => {
@@ -60,10 +68,18 @@ export default function AbaHoras({ os_os, embedded = false }) {
     carregarRegistros()
   }, [os_os, empresaId, filialId])
 
+  useEffect(() => {
+    const sub = NetInfo.addEventListener((state) =>
+      setOnline(!!state.isConnected)
+    )
+    return () => sub && sub()
+  }, [])
+
   const iniciarManha = () => {
     if (manhaIni) return
     const t = agora()
     setManhaIni(t)
+    salvarParcial({ os_hora_manh_ini: t })
     Toast.show({ type: 'success', text1: 'Manhã iniciada', text2: t })
   }
   const encerrarManha = () => {
@@ -73,12 +89,14 @@ export default function AbaHoras({ os_os, embedded = false }) {
     }
     const t = agora()
     setManhaFim(t)
+    salvarParcial({ os_hora_manh_fim: t })
     Toast.show({ type: 'success', text1: 'Manhã encerrada', text2: t })
   }
   const iniciarTarde = () => {
     if (tardeIni) return
     const t = agora()
     setTardeIni(t)
+    salvarParcial({ os_hora_tard_ini: t })
     Toast.show({ type: 'success', text1: 'Tarde iniciada', text2: t })
   }
   const encerrarTarde = () => {
@@ -88,6 +106,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
     }
     const t = agora()
     setTardeFim(t)
+    salvarParcial({ os_hora_tard_fim: t })
     Toast.show({ type: 'success', text1: 'Tarde encerrada', text2: t })
   }
 
@@ -112,7 +131,21 @@ export default function AbaHoras({ os_os, embedded = false }) {
         os_hora_equi: equipamento || null,
         os_hora_obse: observacao || null,
       }
-      await apiPostComContexto('Os/os-hora/', payload)
+      const existente = encontrarRegistroAtual()
+      if (existente?.os_hora_item) {
+        await apiPatchComContexto(
+          `Os/os-hora/${existente.os_hora_item}/`,
+          payload,
+          '',
+          {
+            os_hora_os: String(os_os),
+            os_hora_empr: Number(empresaId),
+            os_hora_fili: Number(filialId),
+          }
+        )
+      } else {
+        await apiPostComContexto('Os/os-hora/', payload)
+      }
       Toast.show({ type: 'success', text1: 'Horas salvas' })
       setManhaIni('')
       setManhaFim('')
@@ -120,7 +153,70 @@ export default function AbaHoras({ os_os, embedded = false }) {
       setTardeFim('')
       carregarRegistros()
     } catch (e) {
+      try {
+        const existente = encontrarRegistroAtual()
+        const endpoint = existente?.os_hora_item
+          ? `Os/os-hora/${existente.os_hora_item}/?os_hora_os=${String(
+              os_os
+            )}&os_hora_empr=${Number(empresaId)}&os_hora_fili=${Number(
+              filialId
+            )}`
+          : 'Os/os-hora/'
+        const method = existente?.os_hora_item ? 'patch' : 'post'
+        await enqueueOperation(endpoint, method, payload)
+        Toast.show({
+          type: 'info',
+          text1: 'Sem conexão',
+          text2: 'Horas enfileiradas para sincronizar quando online',
+        })
+      } catch {}
       Toast.show({ type: 'error', text1: 'Erro ao salvar horas' })
+    }
+  }
+
+  const encontrarRegistroAtual = () => {
+    return (
+      registros.find((r) => {
+        return (
+          String(r.os_hora_os) === String(os_os) &&
+          String(r.os_hora_empr) === String(empresaId) &&
+          String(r.os_hora_fili) === String(filialId) &&
+          String(r.os_hora_data) === String(data)
+        )
+      }) || null
+    )
+  }
+
+  const salvarParcial = async (campos) => {
+    try {
+      const base = {
+        os_hora_empr: Number(empresaId),
+        os_hora_fili: Number(filialId),
+        os_hora_os: String(os_os),
+        os_hora_data: data,
+        os_hora_oper: usuarioId ? Number(usuarioId) : null,
+      }
+      const existente = encontrarRegistroAtual()
+      if (existente?.os_hora_item) {
+        await apiPatchComContexto(
+          `Os/os-hora/${existente.os_hora_item}/`,
+          {
+            ...base,
+            ...campos,
+          },
+          '',
+          {
+            os_hora_os: String(os_os),
+            os_hora_empr: Number(empresaId),
+            os_hora_fili: Number(filialId),
+          }
+        )
+      } else {
+        await apiPostComContexto('Os/os-hora/', { ...base, ...campos })
+      }
+      carregarRegistros()
+    } catch (e) {
+      // Silencioso para não interromper fluxo do operador
     }
   }
 
@@ -149,7 +245,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
   )
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Horas da O.S</Text>
       <View style={styles.row}>
         <Text style={styles.label}>Data</Text>
@@ -170,6 +266,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
           <TextInput
             value={manhaIni}
             onChangeText={setManhaIni}
+            editable={false}
             style={styles.input}
           />
         </View>
@@ -178,6 +275,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
           <TextInput
             value={manhaFim}
             onChangeText={setManhaFim}
+            editable={false}
             style={styles.input}
           />
         </View>
@@ -198,6 +296,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
           <TextInput
             value={tardeIni}
             onChangeText={setTardeIni}
+            editable={false}
             style={styles.input}
           />
         </View>
@@ -206,6 +305,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
           <TextInput
             value={tardeFim}
             onChangeText={setTardeFim}
+            editable={false}
             style={styles.input}
           />
         </View>
@@ -253,6 +353,11 @@ export default function AbaHoras({ os_os, embedded = false }) {
 
       <TouchableOpacity style={styles.save} onPress={salvarDia}>
         <Text style={styles.saveText}>Salvar Dia</Text>
+        {!online && (
+          <View style={styles.badgeOffline}>
+            <Text style={styles.badgeText}>Offline</Text>
+          </View>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.listTitle}>Registros</Text>
@@ -262,10 +367,12 @@ export default function AbaHoras({ os_os, embedded = false }) {
             <View key={String(item.os_hora_item || idx)} style={styles.itemRow}>
               <Text style={styles.itemText}>{item.os_hora_data}</Text>
               <Text style={styles.itemText}>
-                {item.os_hora_manh_ini || '--'} - {item.os_hora_manh_fim || '--'}
+                {item.os_hora_manh_ini || '--'} -{' '}
+                {item.os_hora_manh_fim || '--'}
               </Text>
               <Text style={styles.itemText}>
-                {item.os_hora_tard_ini || '--'} - {item.os_hora_tard_fim || '--'}
+                {item.os_hora_tard_ini || '--'} -{' '}
+                {item.os_hora_tard_fim || '--'}
               </Text>
             </View>
           ))}
@@ -277,7 +384,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
           renderItem={renderRegistro}
         />
       )}
-    </View>
+    </ScrollView>
   )
 }
 
@@ -329,6 +436,14 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   saveText: { color: '#fff', fontWeight: 'bold' },
+  badgeOffline: {
+    marginTop: 6,
+    backgroundColor: '#c0392b',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeText: { color: '#fff', fontSize: 12 },
   listTitle: { color: '#10a2a7', marginTop: 12, marginBottom: 6 },
   itemRow: {
     flexDirection: 'row',

@@ -6,7 +6,7 @@ import { getStoredData } from '../services/storageService'
 // NetInfo removido - não está instalado
 
 // BASE_URL manual; altere conforme ambiente
-export const BASE_URL = 'https://mobile-sps.site' // Android emulador - dev local
+export const BASE_URL = ' http://192.168.0.237:8000' // Android emulador - dev local
 // export const BASE_URL = 'http://localhost:8000' // iOS/desktop - dev local
 // export const BASE_URL = 'http://192.168.0.10:8000' // Dispositivo físico na rede
 // export const BASE_URL = 'https://mobile-sps.site' // Produção
@@ -66,6 +66,7 @@ export const getAuthHeaders = async () => {
     const empresaId = await AsyncStorage.getItem('empresaId')
     const filialId = await AsyncStorage.getItem('filialId')
     const docu = await AsyncStorage.getItem('docu')
+    const setor = await AsyncStorage.getItem('setor')
     let usuario_setor = await AsyncStorage.getItem('setor')
     const username = await AsyncStorage.getItem('username')
 
@@ -75,25 +76,16 @@ export const getAuthHeaders = async () => {
       if (claims && claims.setor != null) {
         usuario_setor = String(claims.setor)
         await safeSetItem('setor', usuario_setor)
-        console.log(
-          '✅ [AUTH-HEADERS] Setor sincronizado do JWT:',
-          usuario_setor
-        )
       }
     }
-
-    console.log('🔍 [AUTH-HEADERS] empresaId:', empresaId)
-    console.log('🔍 [AUTH-HEADERS] filialId:', filialId)
-
     const headers = {
       'X-Empresa': empresaId || '1',
       'X-Filial': filialId || '1',
       'X-Docu': docu || '',
       setor: usuario_setor || '',
+      setor: setor || '',
       'X-Username': username || '',
     }
-
-    console.log('🔍 [AUTH-HEADERS] Headers enviados:', headers)
 
     return headers
   } catch (error) {
@@ -135,21 +127,7 @@ const apiFetch = async (
     let currentToken = await AsyncStorage.getItem('access')
     let currentRefreshToken = await AsyncStorage.getItem('refresh')
 
-    // LOGS DETALHADOS
-    console.log(
-      '🔍 [DEBUG] Token lido do AsyncStorage:',
-      currentToken ? 'Token encontrado' : 'Token não encontrado'
-    )
-    console.log(
-      '🔍 [DEBUG] Refresh token:',
-      currentRefreshToken ? 'Refresh encontrado' : 'Refresh não encontrado'
-    )
-    console.log('🔍 [DEBUG] Endpoint:', endpoint)
-    console.log('🔍 [DEBUG] Method:', method)
-
     if (currentToken) {
-      console.log('🔍 [DEBUG] Token completo:', currentToken)
-      console.log('🔍 [DEBUG] Authorization header:', `Bearer ${currentToken}`)
     }
 
     if (!currentToken) {
@@ -284,7 +262,6 @@ export const apiGetComContextoos = async (
   params = {},
   prefixo = ''
 ) => {
-  console.log('[apiGetComContextoos] Chamando', endpointSemApi, params)
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
   const paramsComContexto = await addContexto(params, prefixo)
@@ -415,12 +392,18 @@ export const apiPostSemContexto = async (endpoint, data = {}) => {
 export const apiPatchComContexto = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
+  queryParams = null
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
   const paramsComContexto = await addContexto(params, prefixo)
-  const response = await apiFetch(fullEndpoint, 'patch', paramsComContexto)
+  const response = await apiFetch(
+    fullEndpoint,
+    'patch',
+    paramsComContexto,
+    queryParams || null
+  )
   return response.data
 }
 
@@ -431,16 +414,9 @@ const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
 export async function fetchSlugMap() {
   const startTime = Date.now()
-  console.log(
-    `🕐 [SLUG-TIMING] Iniciando fetchSlugMap: ${new Date().toISOString()}`
-  )
-
   // Verificar cache
   const now = Date.now()
   if (slugMapCache && now - slugMapCacheTime < CACHE_DURATION) {
-    console.log(
-      `⚡ [SLUG-TIMING] Usando cache válido em: ${Date.now() - startTime}ms`
-    )
     return slugMapCache
   }
 
@@ -471,17 +447,6 @@ export async function fetchSlugMap() {
     // Atualizar cache
     slugMapCache = map
     slugMapCacheTime = now
-
-    console.log(
-      `✅ [SLUG-TIMING] SlugMap obtido e cacheado em: ${
-        Date.now() - startTime
-      }ms`
-    )
-    console.log(`📊 [SLUG-TIMING] Total de slugs: ${Object.keys(map).length}`)
-    console.log(
-      `📄 [SLUG-MAP] CNPJs disponíveis na API: ${Object.keys(map).join(', ')}`
-    )
-
     return map
   } catch (error) {
     console.error(
@@ -491,15 +456,8 @@ export async function fetchSlugMap() {
 
     // Fallback 1: Cache antigo
     if (slugMapCache) {
-      console.log(`🔄 [SLUG-TIMING] Usando cache antigo como fallback`)
       return slugMapCache
     }
-
-    // Fallback 2: Arquivo local licencas.json
-    console.log(
-      `📁 [SLUG-TIMING] Carregando mapa do arquivo local licencas.json`
-    )
-
     try {
       // Criar mapa de CNPJ -> slug baseado no arquivo local
       const localMap = {}
@@ -509,7 +467,6 @@ export async function fetchSlugMap() {
         }
       })
 
-      // Log dos CNPJs aptos do arquivo local
       console.log(
         `📄 [SLUG-MAP] CNPJs aptos carregados do licencas.json: ${Object.keys(
           localMap
@@ -526,9 +483,6 @@ export async function fetchSlugMap() {
         `❌ [SLUG-TIMING] Erro ao carregar arquivo local:`,
         localError.message
       )
-
-      // Fallback 3: Mapa vazio (comportamento original)
-      console.log(`🔌 [SLUG-TIMING] Retornando mapa vazio como último recurso`)
       return {}
     }
   }
@@ -584,11 +538,6 @@ axios.interceptors.request.use(
       startTime: Date.now(),
       retryCount: config.retryCount || 0,
     }
-    console.log(
-      `🚀 [AXIOS-TIMING] Iniciando requisição: ${config.method?.toUpperCase()} ${
-        config.url
-      } (Tentativa ${config.metadata.retryCount + 1})`
-    )
     return config
   },
   (error) => {
@@ -600,11 +549,6 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
   (response) => {
     const duration = Date.now() - response.config.metadata.startTime
-    console.log(
-      `✅ [AXIOS-TIMING] Resposta recebida em: ${duration}ms - ${response.config.method?.toUpperCase()} ${
-        response.config.url
-      }`
-    )
     console.log(
       `📊 [AXIOS-TIMING] Status: ${response.status}, Tamanho: ${
         JSON.stringify(response.data).length

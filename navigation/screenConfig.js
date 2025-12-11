@@ -349,6 +349,22 @@ export const screenConfigs = [
     options: createHeaderOptions('Painel Ordens de serviço'),
   },
   {
+    name: 'OrdemCriacaoExterna',
+    component: Screens.OrdemCriacaoExterna,
+    options: createHeaderOptions('Abertura O.S Externa'),
+  },
+  {
+    name: 'OrdemDetalheExterna',
+    component: Screens.OrdemDetalheExterna,
+    options: createHeaderOptions('Detalhes da O.S Externa'),
+  },
+  {
+    name: 'PainelAcompanhamentoExterna',
+    component: Screens.PainelAcompanhamentoExterna,
+    options: createHeaderOptions('Painel Ordens de Serviço Externa'),
+  },
+
+  {
     name: 'OrdemDetalhe',
     component: Screens.OrdemDetalhe,
     options: createHeaderOptions('Detalhes da OS'),

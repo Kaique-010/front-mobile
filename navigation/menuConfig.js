@@ -19,10 +19,10 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('Entradas_Estoque'),
         },
         //{
-          //name: 'Entradas de Estoque',
-          //route: 'EntradasForm',
-          //icon: 'arrow-down-circle',
-          //condition: hasModulo('Entradas_Estoque'),
+        //name: 'Entradas de Estoque',
+        //route: 'EntradasForm',
+        //icon: 'arrow-down-circle',
+        //condition: hasModulo('Entradas_Estoque'),
         //},
         {
           name: 'Produtos',
@@ -43,10 +43,10 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('Saidas_Estoque'),
         },
         //{
-         // name: 'Saídas de Estoque',
-          //route: 'SaidasForm',
-          //icon: 'arrow-up-circle',
-          //condition: hasModulo('Saidas_Estoque'),
+        // name: 'Saídas de Estoque',
+        //route: 'SaidasForm',
+        //icon: 'arrow-up-circle',
+        //condition: hasModulo('Saidas_Estoque'),
         //},
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
@@ -286,6 +286,12 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('OrdemdeServico'),
         },
         {
+          name: "Painel de O'S Externa",
+          route: 'PainelAcompanhamentoExterna',
+          icon: 'clipboard',
+          condition: hasModulo('osexterna'),
+        },
+        {
           name: 'Relação de O.S',
           route: 'Ordem de Serviço Geral',
           icon: 'tool',
@@ -321,7 +327,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'file-text',
           condition: hasModulo('Pisos'),
         },
-        
+
         {
           name: 'Dashboard Pisos',
           route: 'DashPedidosPisos',
@@ -340,7 +346,7 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'file-text',
           condition: hasModulo('Pisos'),
         },
-        
+
         {
           name: 'Resumo Orçamento Pisos',
           route: 'ResumoOrcamentoPisos',
@@ -414,11 +420,11 @@ export const getMenuConfig = (hasModulo) => {
           condition: hasModulo('contratos'),
         },
         //{
-          //name: 'Lista de Casamento',
-          //route: 'ListaCasamento',
-          //icon: 'heart-multiple',
-          //iconType: 'MaterialCommunityIcons',
-         // condition: hasModulo('listacasamento'),
+        //name: 'Lista de Casamento',
+        //route: 'ListaCasamento',
+        //icon: 'heart-multiple',
+        //iconType: 'MaterialCommunityIcons',
+        // condition: hasModulo('listacasamento'),
         //},
         {
           name: 'Listas de Casamento',

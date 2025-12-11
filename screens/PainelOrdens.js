@@ -1,3 +1,4 @@
+//OS normal
 import React, { useEffect, useState } from 'react'
 import {
   View,
@@ -83,7 +84,7 @@ const PainelAcompanhamento = ({ navigation }) => {
       if (filtroStatus !== null) params.os_stat_os = filtroStatus
       if (filtroPrioridade !== null) params.os_prio = filtroPrioridade
 
-      const response = await apiGetComContexto('Os/ordens/', { params })
+      const response = await apiGetComContexto('Os/ordens/', params)
       const newData = Array.isArray(response)
         ? response
         : response.results || []

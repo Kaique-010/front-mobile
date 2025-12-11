@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  TextInput,
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import useContextoApp from '../hooks/useContextoApp'
@@ -15,8 +16,16 @@ import { apiPostComContexto } from '../utils/api'
 import AbaPecas from '../componentsOrdemServico/AbaPecas'
 import AbaServicos from '../componentsOrdemServico/AbaServicos'
 import AbaTotais from '../componentsOrdemServico/AbaTotais'
+import AbaHoras from '../componentsOrdemServico/AbaHoras'
+import SignatureField from '../componentsOrdemServico/SignatureField'
 import Toast from 'react-native-toast-message'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import {
+  startSyncLoop,
+  enqueueOperation,
+  startNetInfoBridge,
+  bootstrapMegaCache,
+} from 'componentsOrdemServico/services/syncService'
 
 export default function CriarOrdemServico({ navigation }) {
   // Adicionado navigation como prop
@@ -26,6 +35,7 @@ export default function CriarOrdemServico({ navigation }) {
   const [abaAtiva, setAbaAtiva] = useState('cliente')
   const [numeroOS, setNumeroOS] = useState(null)
   const [financeiroGerado, setFinanceiroGerado] = useState(false)
+  const [scrollLock, setScrollLock] = useState(false)
 
   const [ordemServico, setOrdemServico] = useState({
     os_clie: null,
@@ -33,7 +43,15 @@ export default function CriarOrdemServico({ navigation }) {
     os_data_aber: new Date().toISOString().split('T')[0],
     pecas: [],
     servicos: [],
+    os_assi_clie: '',
+    os_assi_oper: '',
   })
+
+  React.useEffect(() => {
+    startSyncLoop(7000)
+    startNetInfoBridge()
+    bootstrapMegaCache()
+  }, [])
 
   const validarOrdemServico = () => {
     if (!ordemServico.os_clie) {
@@ -63,11 +81,15 @@ export default function CriarOrdemServico({ navigation }) {
     setIsSubmitting(true)
     try {
       console.log('Estado atual do ordemServico:', ordemServico)
+      console.log(ordemServico.os_assi_clie?.slice(0, 30))
+
       const payload = {
         ...ordemServico,
         os_empr: empresaId?.toString() || '',
         os_fili: filialId?.toString() || '',
         usua: usuarioId?.toString() || '',
+        os_assi_clie: ordemServico.os_assi_clie || '',
+        os_assi_oper: ordemServico.os_assi_oper || '',
       }
 
       delete payload.empresaId
@@ -93,6 +115,22 @@ export default function CriarOrdemServico({ navigation }) {
         text2: `Número da O.S: ${data.os_os}. Agora você pode incluir peças.`,
       })
     } catch (error) {
+      try {
+        const payload = {
+          ...ordemServico,
+          os_empr: empresaId?.toString() || '',
+          os_fili: filialId?.toString() || '',
+          usua: usuarioId?.toString() || '',
+          os_assi_clie: ordemServico.os_assi_clie || '',
+          os_assi_oper: ordemServico.os_assi_oper || '',
+        }
+        await enqueueOperation('Os/ordens/', 'post', payload)
+        Toast.show({
+          type: 'info',
+          text1: 'Sem conexão',
+          text2: 'Criação de O.S enfileirada para sincronizar quando online',
+        })
+      } catch {}
       Toast.show({
         type: 'error',
         text1: 'Erro ao criar O.S',
@@ -132,10 +170,12 @@ export default function CriarOrdemServico({ navigation }) {
   }
 
   return (
-    <KeyboardAwareScrollView style={{ backgroundColor: '#1a2f3d' }}>
+    <KeyboardAwareScrollView
+      style={{ backgroundColor: '#1a2f3d' }}
+      scrollEnabled={!scrollLock}>
       <View style={{ padding: 20, backgroundColor: '#1a2f3d' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          {['cliente', 'pecas', 'servicos', 'totais'].map((aba) => (
+          {['cliente', 'pecas', 'servicos', 'horas', 'totais'].map((aba) => (
             <TouchableOpacity
               key={aba}
               onPress={() => {
@@ -208,6 +248,22 @@ export default function CriarOrdemServico({ navigation }) {
                 }}
                 value={ordemServico.os_clie_nome}
               />
+              <SignatureField
+                label="Assinatura do Cliente"
+                value={ordemServico.os_assi_clie}
+                onChange={(base64) =>
+                  setOrdemServico((prev) => ({ ...prev, os_assi_clie: base64 }))
+                }
+                onSigningChange={setScrollLock}
+              />
+              <SignatureField
+                label="Assinatura do Operador"
+                value={ordemServico.os_assi_oper}
+                onChange={(base64) =>
+                  setOrdemServico((prev) => ({ ...prev, os_assi_oper: base64 }))
+                }
+                onSigningChange={setScrollLock}
+              />
               <TouchableOpacity
                 style={[
                   styles.salvarButton,
@@ -245,6 +301,7 @@ export default function CriarOrdemServico({ navigation }) {
               financeiroGerado={financeiroGerado}
             />
           )}
+          {abaAtiva === 'horas' && <AbaHoras os_os={numeroOS} />}
           {abaAtiva === 'totais' && (
             <AbaTotais
               pecas={ordemServico.pecas}
@@ -254,6 +311,7 @@ export default function CriarOrdemServico({ navigation }) {
               os_empr={empresaId}
               os_fili={filialId}
               onFinanceiroGerado={setFinanceiroGerado}
+              navigation={navigation}
             />
           )}
 
@@ -317,6 +375,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  assinaturaInput: {
+    backgroundColor: '#1a2f3d',
+    borderColor: '#2c3e50',
+    borderWidth: 1,
+    color: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   avisoContainer: {
     backgroundColor: '#1a2f3d',
