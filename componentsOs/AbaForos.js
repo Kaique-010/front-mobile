@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
   TouchableOpacity,
   FlatList,
   Image,
+  Animated,
   StyleSheet,
 } from 'react-native'
 import { Modal, Linking, Platform } from 'react-native'
+import {
+  PinchGestureHandler,
+  PanGestureHandler,
+  TapGestureHandler,
+  State,
+} from 'react-native-gesture-handler'
 import {
   tirarFotoComGeo,
   enviarFotoEtapa,
@@ -31,6 +38,14 @@ export default function AbaForos({ orde_nume, codTecnico }) {
   const [slug, setSlug] = useState('')
   const [authHeaders, setAuthHeaders] = useState(null)
   const [secureSources, setSecureSources] = useState({})
+
+  const baseScale = useRef(new Animated.Value(1)).current
+  const pinchScale = useRef(new Animated.Value(1)).current
+  const scale = Animated.multiply(baseScale, pinchScale)
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current
+  const lastScaleRef = useRef(1)
+  const MIN_SCALE = 1
+  const MAX_SCALE = 5
 
   useEffect(() => {
     const getSlug = async () => {
@@ -128,6 +143,51 @@ export default function AbaForos({ orde_nume, codTecnico }) {
     }
     setModalVisible(true)
   }
+
+  const onPinchGestureEvent = Animated.event(
+    [{ nativeEvent: { scale: pinchScale } }],
+    { useNativeDriver: true }
+  )
+
+  const onPanGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: pan.x, translationY: pan.y } }],
+    { useNativeDriver: true }
+  )
+
+  const onPinchHandlerStateChange = (event) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      lastScaleRef.current *= event.nativeEvent.scale
+      if (lastScaleRef.current < MIN_SCALE) lastScaleRef.current = MIN_SCALE
+      if (lastScaleRef.current > MAX_SCALE) lastScaleRef.current = MAX_SCALE
+      baseScale.setValue(lastScaleRef.current)
+      pinchScale.setValue(1)
+    }
+  }
+
+  const onPanHandlerStateChange = (event) => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      pan.extractOffset()
+    }
+  }
+
+  const onDoubleTap = () => {
+    lastScaleRef.current =
+      lastScaleRef.current > MIN_SCALE ? MIN_SCALE : MAX_SCALE
+    baseScale.setValue(lastScaleRef.current)
+    pinchScale.setValue(1)
+    pan.setValue({ x: 0, y: 0 })
+    pan.setOffset({ x: 0, y: 0 })
+  }
+
+  useEffect(() => {
+    if (modalVisible) {
+      lastScaleRef.current = 1
+      baseScale.setValue(1)
+      pinchScale.setValue(1)
+      pan.setValue({ x: 0, y: 0 })
+      pan.setOffset({ x: 0, y: 0 })
+    }
+  }, [modalVisible, imagemSelecionada])
 
   const loadSecureImage = async (imageId, imageUri) => {
     try {
@@ -230,11 +290,26 @@ export default function AbaForos({ orde_nume, codTecnico }) {
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Image
-              source={imagemSelecionada[0]}
-              style={styles.modalImage}
-              resizeMode="contain"
-            />
+            <TapGestureHandler numberOfTaps={2} onActivated={onDoubleTap}>
+              <PanGestureHandler
+                onGestureEvent={onPanGestureEvent}
+                onHandlerStateChange={onPanHandlerStateChange}>
+                <PinchGestureHandler
+                  onGestureEvent={onPinchGestureEvent}
+                  onHandlerStateChange={onPinchHandlerStateChange}>
+                  <Animated.Image
+                    source={imagemSelecionada[0]}
+                    style={[
+                      styles.modalImage,
+                      {
+                        transform: [...pan.getTranslateTransform(), { scale }],
+                      },
+                    ]}
+                    resizeMode="contain"
+                  />
+                </PinchGestureHandler>
+              </PanGestureHandler>
+            </TapGestureHandler>
 
             <Text style={styles.obsText}>
               📝 {imagemSelecionada[1]?.observacao || 'Sem observação'}

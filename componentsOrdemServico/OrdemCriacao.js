@@ -41,10 +41,12 @@ export default function CriarOrdemServico({ navigation }) {
     os_clie: null,
     os_clie_nome: '',
     os_data_aber: new Date().toISOString().split('T')[0],
+    os_resp: '',
     pecas: [],
     servicos: [],
     os_assi_clie: '',
     os_assi_oper: '',
+    os_loca_apli: '',
   })
 
   React.useEffect(() => {
@@ -90,6 +92,7 @@ export default function CriarOrdemServico({ navigation }) {
         usua: usuarioId?.toString() || '',
         os_assi_clie: ordemServico.os_assi_clie || '',
         os_assi_oper: ordemServico.os_assi_oper || '',
+        os_loca_apli: ordemServico.os_loca_apli || '',
       }
 
       delete payload.empresaId
@@ -123,6 +126,7 @@ export default function CriarOrdemServico({ navigation }) {
           usua: usuarioId?.toString() || '',
           os_assi_clie: ordemServico.os_assi_clie || '',
           os_assi_oper: ordemServico.os_assi_oper || '',
+          os_loca_apli: ordemServico.os_loca_apli || '',
         }
         await enqueueOperation('Os/ordens/', 'post', payload)
         Toast.show({
@@ -248,6 +252,25 @@ export default function CriarOrdemServico({ navigation }) {
                 }}
                 value={ordemServico.os_clie_nome}
               />
+              <Text style={styles.label}>Responsável:</Text>
+              <BuscaClienteInput
+                onSelect={(item) => {
+                  setOrdemServico((prev) => ({
+                    ...prev,
+                    os_resp: item.enti_clie,
+                    os_resp_nome: item.enti_nome,
+                  }))
+                }}
+                value={ordemServico.os_resp_nome}
+              />
+              <Text style={styles.label}>Local do Trabalho:</Text>
+              <TextInput
+                style={styles.input}
+                value={ordemServico.os_loca_apli}
+                onChangeText={(text) =>
+                  setOrdemServico((prev) => ({ ...prev, os_loca_apli: text }))
+                }
+              />
               <SignatureField
                 label="Assinatura do Cliente"
                 value={ordemServico.os_assi_clie}
@@ -353,6 +376,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
     marginTop: 15,
+  },
+  input: {
+    backgroundColor: '#1a2f3d',
+    borderColor: '#657586ff',
+    borderWidth: 1,
+    color: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   datePickerButton: {
     backgroundColor: '#1a2f3d',
