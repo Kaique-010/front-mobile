@@ -21,10 +21,11 @@ import { NotificacaoProvider } from './notificacoes/NotificacaoContext'
 import MainStackNavigator from './navigation/MainStackNavigator'
 import NotificationOverlay from './components/NotificationOverlay'
 import { toastConfig } from './config/toastConfig'
-// Removido import direto de ScreenOrientation para evitar crash em binários
-// que não possuem o módulo nativo; será carregado dinamicamente com guarda
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import database from './componentsOrdemServico/schemas/database'
 
 export default function App() {
+  console.log('[Boot] App montou')
   useEffect(() => {
     async function setScreenOrientation() {
       try {
@@ -47,11 +48,70 @@ export default function App() {
         }
       } catch (err) {
         // Falha ao carregar/aplicar orientação — não bloqueia inicialização
-        console.log('[Orientation] módulo indisponível, seguindo sem lock:', err?.message || err)
+        console.log(
+          '[Orientation] módulo indisponível, seguindo sem lock:',
+          err?.message || err
+        )
       }
     }
 
     setScreenOrientation()
+  }, [])
+
+  useEffect(() => {
+    async function initDatabaseIfNeeded() {
+      try {
+        const key = 'db_initialized_v4'
+        const initialized = await AsyncStorage.getItem(key)
+        if (!initialized) {
+          console.log('[DB Init] flag ausente, iniciando reset do banco...')
+          await database.write(async () => {
+            await database.unsafeResetDatabase()
+          })
+          console.log('[DB Init] reset concluído, salvando flag...')
+          await AsyncStorage.setItem(key, '1')
+          console.log('[DB Init] banco inicializado com sucesso (v3)')
+        } else {
+          console.log('[DB Init] flag encontrada, não será feito reset')
+        }
+      } catch (err) {
+        console.log(
+          '[DB Init] falha ao inicializar banco:',
+          err?.message || err
+        )
+      }
+    }
+    initDatabaseIfNeeded()
+  }, [])
+
+  useEffect(() => {
+    async function sqliteSanityCheck() {
+      try {
+        const key = 'db_sanity_v1'
+        const done = await AsyncStorage.getItem(key)
+        if (done) {
+          return
+        }
+        await database.write(async () => {
+          const col = database.collections.get('fila_sincronizacao')
+          await col.create((r) => {
+            r.acao = 'TEST'
+            r.tabelaAlvo = 'sanity'
+            r.registroIdLocal = `sanity-${Date.now()}`
+            r.payloadJson = JSON.stringify({ ok: true })
+            r.tentativas = 0
+            r.criadoEm = Date.now()
+          })
+        })
+        const col = database.collections.get('fila_sincronizacao')
+        const rows = await col.query().fetch()
+        console.log('[DB Sanity] itens na fila_sincronizacao:', rows.length)
+        await AsyncStorage.setItem(key, '1')
+      } catch (err) {
+        console.log('[DB Sanity] erro:', err?.message || err)
+      }
+    }
+    sqliteSanityCheck()
   }, [])
 
   return (
@@ -62,8 +122,7 @@ export default function App() {
             enableWebSocket: false,
             autoRefresh: false,
             interval: 360000,
-          }}
-        >
+          }}>
           <ErrorBoundary>
             <NavigationContainer>
               <MainStackNavigator />

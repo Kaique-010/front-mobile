@@ -12,21 +12,17 @@ import Home from '../screens/Home'
 const Drawer = createDrawerNavigator()
 
 export default function DrawerNavigator() {
-  const [modulos, setModulos] = useState(null)
+  const [modulos, setModulos] = useState([])
 
   useEffect(() => {
     const fetchModulos = async () => {
       const modulosStorage = await AsyncStorage.getItem('modulos')
-      if (modulosStorage) {
-        setModulos(JSON.parse(modulosStorage))
-      }
+      setModulos(modulosStorage ? JSON.parse(modulosStorage) : [])
     }
     fetchModulos()
   }, [])
 
   const isDemoMode = true // Frisia Menu
-
-  if (!modulos) return null
 
   const hasModulo = (mod) => {
     if (!modulos || !Array.isArray(modulos)) {

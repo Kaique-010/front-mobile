@@ -1,5 +1,5 @@
 import { Database } from '@nozbe/watermelondb'
-import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite'
+import { NativeModules, Platform } from 'react-native'
 import schemas from './schemas'
 import migrations from './migrations'
 import Entidade from './Entidade'
@@ -12,11 +12,26 @@ import ProdutoDetalhado from './ProdutoDetalhado'
 import MegaEntidade from './MegaEntidade'
 import MegaProduto from './MegaProduto'
 
-const adapter = new SQLiteAdapter({
-  schema: schemas,
-  migrations,
-  dbName: 'front_mobile_db',
-})
+const hasWMNative = !!NativeModules?.WMDatabaseBridge
+let adapter
+if (hasWMNative) {
+  console.log('[DB Adapter] SQLiteAdapter ativo (WMDatabaseBridge disponível)')
+  const SQLiteAdapter = require('@nozbe/watermelondb/adapters/sqlite').default
+  adapter = new SQLiteAdapter({
+    schema: schemas,
+    migrations,
+    dbName: 'front_mobile_db',
+  })
+} else {
+  console.log('[DB Adapter] LokiJSAdapter ativo (WMDatabaseBridge ausente)')
+  const LokiJSAdapter = require('@nozbe/watermelondb/adapters/lokijs').default
+  adapter = new LokiJSAdapter({
+    schema: schemas,
+    dbName: 'front_mobile_db',
+    useWebWorker: false,
+    useIncrementalIndexedDB: Platform.OS === 'web',
+  })
+}
 
 const database = new Database({
   adapter,
