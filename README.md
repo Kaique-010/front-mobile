@@ -115,7 +115,6 @@ eas build --platform android --profile production
 
 ## deploy na apple com o eas
 
-
 e depois pra produção é
 
 eas build -p ios --profile production
@@ -131,3 +130,9 @@ npx expo install --fix
 para verificar o usuario logado no eas
 eas login
 eas whoami
+
+## Sempre verificar se as versões estão batendo em
+
+npx expo config | Select-String "version|buildNumber|versionCode"
+
+E quando for só código js sem alterar as bibliotecas roda apenas o eas update assim atualiza o app

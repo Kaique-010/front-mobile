@@ -123,6 +123,7 @@ export default function ContasPagarList({ navigation }) {
       setPage((prev) => (reset ? 2 : prev + 1))
     } catch {
       Alert.alert('Erro', 'Erro ao carregar contas')
+      setHasMore(false)
     } finally {
       setIsSearching(false)
       setLoadingMore(false)
@@ -449,21 +450,29 @@ export default function ContasPagarList({ navigation }) {
             />
           </View>
           <View
-            style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <DatePickerCrossPlatform
-              value={dataInicial}
-              onChange={setDataInicial}
-              placeholder="Data Inicial"
-              disabled={isSearching}
-              style={[styles.input, { flex: 1, marginRight: 5 }]}
-            />
-            <DatePickerCrossPlatform
-              value={dataFinal}
-              onChange={setDataFinal}
-              placeholder="Data Final"
-              disabled={isSearching}
-              style={[styles.input, { flex: 1 }]}
-            />
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}>
+            <View style={{ flex: 1, marginRight: 5 }}>
+              <DatePickerCrossPlatform
+                value={dataInicial}
+                onChange={setDataInicial}
+                placeholder="Data Inicial"
+                disabled={isSearching}
+                style={styles.input}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <DatePickerCrossPlatform
+                value={dataFinal}
+                onChange={setDataFinal}
+                placeholder="Data Final"
+                disabled={isSearching}
+                style={styles.input}
+              />
+            </View>
           </View>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

@@ -108,6 +108,7 @@ export default function ContasReceberList({ navigation }) {
     } catch (error) {
       console.log('❌ Erro ao buscar contas:', error.message)
       Alert.alert('Erro', 'Falha ao carregar contas a receber')
+      setHasMore(false)
     } finally {
       setIsSearching(false)
       setLoadingMore(false)
@@ -427,21 +428,29 @@ export default function ContasReceberList({ navigation }) {
             />
           </View>
           <View
-            style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <DatePickerCrossPlatform
-              value={dataInicial}
-              onChange={setDataInicial}
-              placeholder="Data Inicial"
-              disabled={isSearching}
-              style={[styles.input, { flex: 1, marginRight: 5 }]}
-            />
-            <DatePickerCrossPlatform
-              value={dataFinal}
-              onChange={setDataFinal}
-              placeholder="Data Final"
-              disabled={isSearching}
-              style={[styles.input, { flex: 1 }]}
-            />
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}>
+            <View style={{ flex: 1, marginRight: 5 }}>
+              <DatePickerCrossPlatform
+                value={dataInicial}
+                onChange={setDataInicial}
+                placeholder="Data Inicial"
+                disabled={isSearching}
+                style={styles.input}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <DatePickerCrossPlatform
+                value={dataFinal}
+                onChange={setDataFinal}
+                placeholder="Data Final"
+                disabled={isSearching}
+                style={styles.input}
+              />
+            </View>
           </View>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
