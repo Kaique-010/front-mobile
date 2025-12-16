@@ -1,0 +1,95 @@
+[
+  {
+    "slug": "demonstracao",
+    "cnpj": "31108104000148",
+    "db_name": "savexml839",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432",
+    "modulos": []
+  },
+  {
+    "slug": "casaealma",
+    "cnpj": "43131832000150",
+    "db_name": "savexml1014",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432",
+    "modulos": []
+  },
+  {
+    "slug": "operario",
+    "cnpj": "75603316000177",
+    "db_name": "savexml894",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432",
+    "modulos": []
+  },
+
+  {
+    "slug": "itajara",
+    "cnpj": "78071149000159",
+    "db_name": "savexml140",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432",
+    "modulos": []
+  },
+  {
+    "slug": "tratormaq",
+    "cnpj": "7828564000182",
+    "db_name": "savexml43",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432",
+    "modulos": []
+  },
+  {
+    "slug": "dalitz",
+    "cnpj": "05029328000154",
+    "db_name": "savexml903",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432",
+    "modulos": []
+  },
+  {
+    "slug": "casaa",
+    "cnpj": "43131832000155",
+    "db_name": "casaa",
+    "db_host": "localhost",
+    "db_port": "5432"
+  },
+
+  {
+    "slug": "alma",
+    "cnpj": "99999999999999",
+    "db_name": "alma",
+    "db_host": "localhost",
+    "db_port": "5432"
+  },
+  {
+    "slug": "ola",
+    "cnpj": "00000000000000",
+    "db_name": "ola",
+    "db_host": "localhost",
+    "db_port": "5432"
+  },
+  {
+    "slug": "indus",
+    "cnpj": "82223207000270",
+    "db_name": "indus",
+    "db_host": "localhost",
+    "db_port": "5432"
+  },
+
+  {
+    "slug": "g2",
+    "cnpj": "86887486000147",
+    "db_name": "savexml69",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432"
+  },
+  {
+    "slug": "ipa",
+    "cnpj": "37413384000184",
+    "db_name": "savexml952",
+    "db_host": "base.rtalmeida.com.br",
+    "db_port": "5432"
+  }
+]
