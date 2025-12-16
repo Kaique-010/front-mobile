@@ -1,5 +1,5 @@
-const VERSION = '1.0.11'
-const BUILD = 11
+const VERSION = '1.0.12'
+const BUILD = 12
 
 export default {
   expo: {
@@ -8,6 +8,15 @@ export default {
     owner: 'leokaique10',
 
     version: VERSION,
+
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'dark',
+
+    splash: {
+      image: './assets/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#000000',
+    },
 
     ios: {
       bundleIdentifier: 'com.leokaique.SpsMobile',
@@ -33,11 +42,9 @@ export default {
     android: {
       package: 'com.leokaique.SpsMobile',
       versionCode: BUILD,
-    },
-
-    extra: {
-      eas: {
-        projectId: '6da51109-274a-4c0f-b576-6d58f471d972',
+      adaptiveIcon: {
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#000000',
       },
     },
 
@@ -48,5 +55,35 @@ export default {
     runtimeVersion: {
       policy: 'appVersion',
     },
+
+    extra: {
+      eas: {
+        projectId: '6da51109-274a-4c0f-b576-6d58f471d972',
+      },
+    },
+
+    plugins: [
+      'expo-font',
+      'expo-location',
+      'expo-speech-recognition',
+      [
+        'expo-camera',
+        {
+          cameraPermission: 'Permitir acesso à câmera',
+          microphonePermission: 'Permitir acesso ao microfone',
+          recordAudioAndroid: false,
+        },
+      ],
+      [
+        'expo-build-properties',
+        {
+          android: {
+            compileSdkVersion: 35,
+            targetSdkVersion: 35,
+            buildToolsVersion: '35.0.0',
+          },
+        },
+      ],
+    ],
   },
 }
