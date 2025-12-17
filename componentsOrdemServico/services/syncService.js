@@ -39,7 +39,9 @@ export const processSyncQueue = async () => {
   const online = await isOnline()
   if (!online) return
   const filaCollection = database.collections.get('fila_sincronizacao')
-  const itensFila = await filaCollection.query().sortBy('criado_em').fetch()
+  const itensFila = await filaCollection
+    .query(Q.sortBy('criado_em', Q.asc))
+    .fetch()
   if (!itensFila.length) return
   for (const item of itensFila) {
     try {

@@ -47,6 +47,8 @@ export default function CriarOrdemServico({ navigation }) {
     os_assi_clie: '',
     os_assi_oper: '',
     os_loca_apli: '',
+    os_orig: '',
+    os_obje_os: '',
   })
 
   React.useEffect(() => {
@@ -93,6 +95,8 @@ export default function CriarOrdemServico({ navigation }) {
         os_assi_clie: ordemServico.os_assi_clie || '',
         os_assi_oper: ordemServico.os_assi_oper || '',
         os_loca_apli: ordemServico.os_loca_apli || '',
+        os_orig: ordemServico.os_orig || '',
+        os_obje_os: ordemServico.os_obje_os || '',
       }
 
       delete payload.empresaId
@@ -127,6 +131,8 @@ export default function CriarOrdemServico({ navigation }) {
           os_assi_clie: ordemServico.os_assi_clie || '',
           os_assi_oper: ordemServico.os_assi_oper || '',
           os_loca_apli: ordemServico.os_loca_apli || '',
+          os_orig: ordemServico.os_orig || '',
+          os_obje_os: ordemServico.os_obje_os || '',
         }
         await enqueueOperation('Os/ordens/', 'post', payload)
         Toast.show({
@@ -179,7 +185,7 @@ export default function CriarOrdemServico({ navigation }) {
       scrollEnabled={!scrollLock}>
       <View style={{ padding: 20, backgroundColor: '#1a2f3d' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          {['cliente', 'pecas', 'servicos', 'horas', 'totais'].map((aba) => (
+          {['cliente', 'pecas', 'servicos', 'horas'].map((aba) => (
             <TouchableOpacity
               key={aba}
               onPress={() => {
@@ -207,7 +213,7 @@ export default function CriarOrdemServico({ navigation }) {
           ))}
         </View>
 
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, padding: 30, margin: 20 }}>
           {abaAtiva === 'cliente' && (
             <>
               {numeroOS && (
@@ -216,7 +222,6 @@ export default function CriarOrdemServico({ navigation }) {
                   <Text style={styles.osNumero}>{numeroOS}</Text>
                 </View>
               )}
-              {/* Campos do cliente e data */}
               <Text style={styles.label}>Data de Abertura:</Text>
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
@@ -241,6 +246,14 @@ export default function CriarOrdemServico({ navigation }) {
                   }}
                 />
               )}
+              <Text style={styles.label}>O.S de Origem:</Text>
+              <TextInput
+                style={styles.input}
+                value={ordemServico.os_orig}
+                onChangeText={(text) =>
+                  setOrdemServico((prev) => ({ ...prev, os_orig: text }))
+                }
+              />
               <Text style={styles.label}>Cliente:</Text>
               <BuscaClienteInput
                 onSelect={(item) => {
@@ -286,6 +299,14 @@ export default function CriarOrdemServico({ navigation }) {
                   setOrdemServico((prev) => ({ ...prev, os_assi_oper: base64 }))
                 }
                 onSigningChange={setScrollLock}
+              />
+              <Text style={styles.label}>Objeto da O.S (obs.):</Text>
+              <TextInput
+                style={styles.input}
+                value={ordemServico.os_obje_os}
+                onChangeText={(text) =>
+                  setOrdemServico((prev) => ({ ...prev, os_obje_os: text }))
+                }
               />
               <TouchableOpacity
                 style={[

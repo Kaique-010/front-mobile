@@ -209,11 +209,6 @@ const OsDetalhe = ({ route, navigation }) => {
         </View>
 
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Prioridade:</Text>
-          <Text style={styles.value}>{os.os_prio || '-'}</Text>
-        </View>
-
-        <View style={styles.infoRow}>
           <Text style={[styles.label, { flex: 1 }]}>Total:</Text>
           <Text style={[styles.value, styles.totalValue]}>
             R$ {Number(os.os_tota || 0).toFixed(2)}
@@ -239,13 +234,16 @@ const OsDetalhe = ({ route, navigation }) => {
         <Text style={styles.cardTitle}>Descrições</Text>
 
         <View style={styles.descriptionRow}>
-          <Text style={styles.label}>Problema:</Text>
-          <Text style={styles.value}>{os.os_prob || '-'}</Text>
-        </View>
-
-        <View style={styles.descriptionRow}>
           <Text style={styles.label}>Observações:</Text>
-          <Text style={styles.value}>{os.os_obse || '-'}</Text>
+          <Text style={styles.value}>{os.os_obje_os || '-'}</Text>
+        </View>
+        <View style={styles.descriptionRow}>
+          <Text style={styles.label}>Ordem de Origem:</Text>
+          <Text style={styles.value}>{os.os_orig || '-'}</Text>
+        </View>
+        <View style={styles.descriptionRow}>
+          <Text style={styles.label}>Local da Prestação do serviço:</Text>
+          <Text style={styles.value}>{os.os_loca_apli || '-'}</Text>
         </View>
       </View>
 
@@ -348,7 +346,7 @@ const OsDetalhe = ({ route, navigation }) => {
       </View>
 
       <View style={styles.tabs}>
-        {['detalhes', 'pecas', 'servicos', 'totais', 'horas'].map((aba) => (
+        {['detalhes', 'pecas', 'servicos', 'horas'].map((aba) => (
           <TouchableOpacity
             key={aba}
             onPress={() => setAbaAtiva(aba)}

@@ -36,7 +36,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
   const fmt = (n) => String(n).padStart(2, '0')
   const agora = () => {
     const d = new Date()
-    return `${fmt(d.getHours())}:${fmt(d.getMinutes())}`
+    return `${fmt(d.getHours())}:${fmt(d.getMinutes())}:${fmt(d.getSeconds())}`
   }
 
   const carregarRegistros = async () => {
@@ -53,6 +53,36 @@ export default function AbaHoras({ os_os, embedded = false }) {
         ? lista
         : []
       setRegistros(arr)
+
+      // Se houver registros para o dia atual, preencher os campos
+      const registroHoje = arr.find(
+        (r) => String(r.os_hora_data) === String(data)
+      )
+      if (registroHoje) {
+        setManhaIni(registroHoje.os_hora_manh_ini || '')
+        setManhaFim(registroHoje.os_hora_manh_fim || '')
+        setTardeIni(registroHoje.os_hora_tard_ini || '')
+        setTardeFim(registroHoje.os_hora_tard_fim || '')
+        setKmSai(
+          registroHoje.os_hora_km_sai ? String(registroHoje.os_hora_km_sai) : ''
+        )
+        setKmChe(
+          registroHoje.os_hora_km_che ? String(registroHoje.os_hora_km_che) : ''
+        )
+        setEquipamento(registroHoje.os_hora_equi || '')
+        setObservacao(registroHoje.os_hora_obse || '')
+      } else {
+        // Limpar campos se não houver registro para o dia
+        setManhaIni('')
+        setManhaFim('')
+        setTardeIni('')
+        setTardeFim('')
+        setKmSai('')
+        setKmChe('')
+        setEquipamento('')
+        setObservacao('')
+      }
+
       const tot = await apiGetComContexto('Os/os-hora/total-horas/', {
         os_hora_os: String(os_os),
         os_hora_empr: Number(empresaId),
@@ -133,9 +163,27 @@ export default function AbaHoras({ os_os, embedded = false }) {
       }
       const existente = encontrarRegistroAtual()
       if (existente?.os_hora_item) {
+        // Remove campos nulos/vazios para o PATCH
+        const cleanPayload = { ...payload }
+        Object.keys(cleanPayload).forEach((key) => {
+          if (
+            cleanPayload[key] === null ||
+            cleanPayload[key] === undefined ||
+            cleanPayload[key] === ''
+          ) {
+            delete cleanPayload[key]
+          }
+        })
+
         await apiPatchComContexto(
           `Os/os-hora/${existente.os_hora_item}/`,
-          payload,
+          {
+            ...cleanPayload,
+            os_hora_item: undefined,
+            os_hora_empr: undefined,
+            os_hora_fili: undefined,
+            os_hora_os: undefined,
+          },
           '',
           {
             os_hora_os: String(os_os),

@@ -598,6 +598,12 @@ axios.interceptors.response.use(
       console.error(
         `🔴 [AXIOS-TIMING] Erro HTTP ${error.response.status}: ${error.response.statusText}`
       )
+      if (error.response.data) {
+        console.error(
+          `🔴 [AXIOS-ERROR-DATA]`,
+          JSON.stringify(error.response.data, null, 2)
+        )
+      }
     } else if (error.request) {
       console.error('📡 [AXIOS-TIMING] Sem resposta do servidor')
     }
