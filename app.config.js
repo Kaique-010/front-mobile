@@ -18,6 +18,10 @@ export default {
       backgroundColor: '#000000',
     },
 
+    web: {
+      favicon: './assets/favicon.png',
+    },
+
     ios: {
       bundleIdentifier: 'com.leokaique.SpsMobile',
       buildNumber: String(BUILD),
