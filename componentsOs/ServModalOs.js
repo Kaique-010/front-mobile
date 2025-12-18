@@ -20,6 +20,7 @@ export default function ServModalOs({
   onFechar,
   onAdicionar,
   itemEditando,
+  itensExistentes = [],
 }) {
   const [form, setForm] = useState({
     servicoId: '',
@@ -77,7 +78,8 @@ export default function ServModalOs({
     const precoRealNum = parseFloat(form.precoReal)
 
     // Não exigir preço quando há setor; sem setor, preço > 0
-    const precoDigitadoInvalido = !usuarioTemSetor && (isNaN(precoNum) || precoNum <= 0)
+    const precoDigitadoInvalido =
+      !usuarioTemSetor && (isNaN(precoNum) || precoNum <= 0)
 
     if (!form.servicoId || quantidadeNum <= 0 || precoDigitadoInvalido) {
       Toast.show({
@@ -88,10 +90,28 @@ export default function ServModalOs({
       return
     }
 
+    // Validação de Duplicidade
+    if (!itemEditando) {
+      const jaExiste = itensExistentes.some(
+        (item) => String(item.serv_codi) === String(form.servicoId)
+      )
+      if (jaExiste) {
+        return Toast.show({
+          type: 'error',
+          text1: 'Serviço já adicionado',
+          text2: 'Este serviço já consta na lista.',
+        })
+      }
+    }
+
     // Se usuário tem setor, enviar o preço real vindo da API
     const precoFinal = usuarioTemSetor
-      ? (isNaN(precoRealNum) ? 0 : precoRealNum)
-      : (isNaN(precoNum) ? 0 : precoNum)
+      ? isNaN(precoRealNum)
+        ? 0
+        : precoRealNum
+      : isNaN(precoNum)
+      ? 0
+      : precoNum
     const total = quantidadeNum * precoFinal
 
     const novoItem = {
@@ -195,8 +215,10 @@ export default function ServModalOs({
                 />
 
                 <Text style={styles.total}>
-                  Total: R$ {(
-                    (parseFloat(form.quantidade) || 0) * (parseFloat(form.preco) || 0)
+                  Total: R${' '}
+                  {(
+                    (parseFloat(form.quantidade) || 0) *
+                    (parseFloat(form.preco) || 0)
                   ).toFixed(4)}
                 </Text>
               </>
@@ -225,6 +247,7 @@ export default function ServModalOs({
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+      <Toast />
     </Modal>
   )
 }

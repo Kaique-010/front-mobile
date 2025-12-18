@@ -61,7 +61,9 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
           peca_unit: parseFloat(item.peca_unit || 0),
           peca_tota: parseFloat(item.peca_tota || 0),
           // Sempre preservar o preço real do produto
-          peca_unit_real: parseFloat(item.peca_unit_real || item.peca_unit || 0)
+          peca_unit_real: parseFloat(
+            item.peca_unit_real || item.peca_unit || 0
+          ),
         }))
 
         setProdutos(produtosFormatados)
@@ -107,13 +109,16 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
       return false
     }
 
-   
-
     return true
   }
 
   const adicionarOuEditarProduto = (novoItem, itemEditando) => {
     if (!validarProduto(novoItem)) return
+
+    // Proteção extra: não adicionar itens sem nome ou código válido
+    if (!novoItem.produto_nome || !novoItem.peca_codi) {
+      return
+    }
 
     let atualizados
     if (itemEditando?.peca_id) {
@@ -195,7 +200,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
           const precoReal = p.peca_unit_real || p.peca_unit
           const unit = formatarValorNumerico(precoReal)
           const tota = formatarValorNumerico(quan * unit)
-          
+
           return {
             peca_orde: orde_nume,
             peca_codi: p.peca_codi,
@@ -216,7 +221,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
           const precoReal = p.peca_unit_real || p.peca_unit
           const unit = formatarValorNumerico(precoReal)
           const tota = formatarValorNumerico(quan * unit)
-          
+
           return {
             peca_id: p.peca_id,
             peca_orde: orde_nume,
@@ -310,7 +315,9 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
             <>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Preço Unit.:</Text>
-                <Text style={styles.infoValor}>R$ {parseFloat(precoReal).toFixed(2)}</Text>
+                <Text style={styles.infoValor}>
+                  R$ {parseFloat(precoReal).toFixed(2)}
+                </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Total:</Text>
@@ -391,6 +398,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
         onFechar={() => setModalVisivel(false)}
         onAdicionar={adicionarOuEditarProduto}
         itemEditando={itemEditando}
+        itensExistentes={produtos}
       />
     </View>
   )

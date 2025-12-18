@@ -20,6 +20,7 @@ export default function ItensModalOs({
   onFechar,
   onAdicionar,
   itemEditando = null,
+  itensExistentes = [],
 }) {
   // ------------------------------------------
   // FORM
@@ -117,10 +118,22 @@ export default function ItensModalOs({
       })
     }
 
+    // Validação de Duplicidade
+    if (!itemEditando) {
+      const jaExiste = itensExistentes.some(
+        (item) => String(item.peca_codi) === String(form.produtoId)
+      )
+      if (jaExiste) {
+        return Toast.show({
+          type: 'error',
+          text1: 'Produto já adicionado',
+          text2: 'Este produto já consta na lista.',
+        })
+      }
+    }
+
     // Com setor: enviar o preço real da API; sem setor: o digitado
     const precoFinal = usuarioTemSetor ? precoRealNum : precoNum
-
-   
 
     const total = quantidadeNum * precoFinal
 
@@ -222,6 +235,7 @@ export default function ItensModalOs({
           </TouchableOpacity>
         </>
       </KeyboardAwareScrollView>
+      <Toast />
     </Modal>
   )
 }

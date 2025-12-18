@@ -348,7 +348,9 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         </View>
       ) : (
         <FlatList
-          data={lista || []}
+          data={(lista || []).filter(
+            (s) => s && s.servico_nome && s.serv_quan > 0
+          )}
           keyExtractor={(item, index) =>
             (
               item?._local_id ??
@@ -397,6 +399,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         onFechar={() => setModalVisivel(false)}
         onAdicionar={adicionarOuEditarServico}
         itemEditando={itemEditando}
+        itensExistentes={lista}
       />
     </View>
   )
