@@ -21,6 +21,7 @@ export default function ItensModalOs({
   onFechar,
   onAdicionar,
   itemEditando,
+  itensExistentes = [],
 }) {
   const [form, setForm] = useState({
     produtoId: '',
@@ -110,6 +111,20 @@ export default function ItensModalOs({
         text1: 'Preencha todos os campos corretamente',
       })
       return
+    }
+
+    // Validação de Duplicidade
+    if (!itemEditando) {
+      const jaExiste = itensExistentes.some(
+        (item) => String(item.peca_prod) === String(form.produtoId)
+      )
+      if (jaExiste) {
+        return Toast.show({
+          type: 'error',
+          text1: 'Produto já adicionado',
+          text2: 'Este produto já consta na lista.',
+        })
+      }
     }
 
     const total = quantidadeNum * precoNum

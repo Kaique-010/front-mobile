@@ -26,8 +26,8 @@ import * as Print from 'expo-print'
 import * as Sharing from 'expo-sharing'
 import { Linking, Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useEnviarEmail } from '../hooks/useEnviarEmail'
-import { useEnviarWhats } from '../hooks/useEnviarWhats'
+import { useEnviarEmailOs } from '../hooks/useEnviarEmailOs'
+import { useEnviarWhatsOs } from '../hooks/useEnviarWhatsOs'
 
 // Remove o prefixo e retorna só o base64
 function sanitizeSignature(base64) {
@@ -54,10 +54,11 @@ const OsDetalhe = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false)
   const [modalType, setModalType] = useState(null)
   const [inputValue, setInputValue] = useState('')
-  const { enviarEmail, loading: loadingEmail } = useEnviarEmail()
-  const { enviarWhats, loading: loadingWhats } = useEnviarWhats()
+  const { enviarEmailOs, loading: loadingEmail } = useEnviarEmailOs()
+  const { enviarWhatsOs, loading: loadingWhats } = useEnviarWhatsOs()
 
   // AGORA: o state guarda APENAS O BASE64 LIMPO
+  const [cliente_id, setClienteId] = useState(os.os_clie)
   const [assinaturaClie, setAssinaturaClie] = useState(
     sanitizeSignature(os.os_assi_clie)
   )
@@ -151,27 +152,63 @@ const OsDetalhe = ({ route, navigation }) => {
   }
 
   const handleEnviar = async () => {
-    if (!inputValue.trim()) {
+    // Se for email, precisa do input
+    if (modalType === 'email' && !inputValue.trim()) {
+      Alert.alert('Erro', 'Email é obrigatório')
+      return
+    }
+
+    // Se for whats, confirmamos o envio direto para o cliente da OS
+    if (modalType === 'whats') {
+      const numeroExibicao =
+        os.cliente_celular || os.cliente_telefone || 'Número não encontrado'
+
       Alert.alert(
-        'Erro',
-        modalType === 'email' ? 'Email é obrigatório' : 'Número é obrigatório'
+        'Confirmar Envio',
+        `Deseja enviar o WhatsApp para ${os.cliente_nome}?\nNúmero: ${numeroExibicao}`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Enviar',
+            onPress: async () => {
+              await processarEnvioWhats()
+            },
+          },
+        ]
       )
       return
     }
+
+    await processarEnvioEmail()
+  }
+
+  const processarEnvioWhats = async () => {
     const slug = await AsyncStorage.getItem('slug')
     const urlPdf = `${BASE_URL}/api/${slug}/Os/ordens/${os.os_os}/imprimir/`
     const dadosEnviar = {
       os_id: os.os_os,
+      os_clie: os.os_clie, // ID DO CLIENTE DIRETO DA OS
       cliente: os.cliente_nome,
       total: os.os_tota,
       url_pdf: urlPdf,
     }
-    let sucesso = false
-    if (modalType === 'email') {
-      sucesso = await enviarEmail(inputValue.trim(), dadosEnviar)
-    } else if (modalType === 'whats') {
-      sucesso = await enviarWhats(inputValue.trim(), dadosEnviar)
+
+    // Passamos o ID do cliente, não um número digitado
+    const sucesso = await enviarWhatsOs(os.os_clie, dadosEnviar)
+    if (sucesso) fecharModal()
+  }
+
+  const processarEnvioEmail = async () => {
+    const slug = await AsyncStorage.getItem('slug')
+    const urlPdf = `${BASE_URL}/api/${slug}/Os/ordens/${os.os_os}/imprimir/`
+    const dadosEnviar = {
+      os_id: os.os_os,
+      os_clie: os.os_clie,
+      cliente: os.cliente_nome,
+      total: os.os_tota,
+      url_pdf: urlPdf,
     }
+    const sucesso = await enviarEmailOs(inputValue.trim(), dadosEnviar)
     if (sucesso) fecharModal()
   }
 
@@ -303,19 +340,46 @@ const OsDetalhe = ({ route, navigation }) => {
                 ? 'Enviar por Email'
                 : 'Enviar por WhatsApp'}
             </Text>
-            <TextInput
-              style={styles.inputModal}
-              placeholder={
-                modalType === 'email' ? 'Digite o email' : 'Digite o número'
-              }
-              keyboardType={
-                modalType === 'email' ? 'email-address' : 'phone-pad'
-              }
-              value={inputValue}
-              onChangeText={setInputValue}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+
+            {modalType === 'email' ? (
+              <TextInput
+                style={styles.inputModal}
+                placeholder="Digite o email"
+                keyboardType="email-address"
+                value={inputValue}
+                onChangeText={setInputValue}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            ) : (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ color: '#fff', textAlign: 'center' }}>
+                  O envio será feito para o número cadastrado do cliente:
+                </Text>
+                <Text
+                  style={{
+                    color: '#10a2a7',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    fontSize: 16,
+                    marginTop: 5,
+                  }}>
+                  {os.cliente_nome}
+                </Text>
+                <Text
+                  style={{
+                    color: '#faebd7',
+                    textAlign: 'center',
+                    fontSize: 14,
+                    marginTop: 5,
+                  }}>
+                  {os.cliente_celular ||
+                    os.cliente_telefone ||
+                    'Sem número cadastrado'}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.modalBotoes}>
               <TouchableOpacity
                 style={styles.modalBotaoCancelar}

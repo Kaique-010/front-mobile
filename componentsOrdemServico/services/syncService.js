@@ -43,14 +43,32 @@ export const processSyncQueue = async () => {
     .query(Q.sortBy('criado_em', Q.asc))
     .fetch()
   if (!itensFila.length) return
+
+  console.log(
+    `[Sync] Iniciando processamento de ${itensFila.length} itens na fila`
+  )
+
   for (const item of itensFila) {
     try {
       const endpoint = item.tabelaAlvo
       const method = String(item.acao || 'POST').toLowerCase()
       const payload = item.payload
+
+      console.log(
+        `[Sync] Processando item ${
+          item.id
+        }: ${method.toUpperCase()} ${endpoint}`
+      )
+
       const resp = await request({ method, endpoint, data: payload })
       const data = resp?.data || resp
+
+      console.log(`[Sync] Sucesso para item ${item.id}`)
+
       if (data?.local_os_id && data?.remote_os_id) {
+        console.log(
+          `[Sync] Mapeando IDs: ${data.local_os_id} -> ${data.remote_os_id}`
+        )
         await mapIdsAndCleanQueue(item, data)
       } else {
         await database.write(async () => {
@@ -58,6 +76,7 @@ export const processSyncQueue = async () => {
         })
       }
     } catch (e) {
+      console.error(`[Sync] Erro no item ${item.id}:`, e.message)
       await item.update((i) => {
         i.tentativas = (i.tentativas || 0) + 1
       })
@@ -94,6 +113,32 @@ export const clearQueue = async () => {
     const itens = await filaCollection.query().fetch()
     for (const it of itens) await it.destroyPermanently()
   })
+}
+
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+export const checkAndSyncMegaData = async () => {
+  try {
+    const lastSync = await AsyncStorage.getItem('last_mega_sync')
+    const now = Date.now()
+    const twelveHours = 12 * 60 * 60 * 1000
+
+    if (!lastSync || now - Number(lastSync) > twelveHours) {
+      console.log(
+        '[MegaCache] Cache expirado ou inexistente. Iniciando sincronização...'
+      )
+      await bootstrapMegaCache()
+      await AsyncStorage.setItem('last_mega_sync', String(now))
+      console.log('[MegaCache] Sincronização concluída e timestamp atualizado.')
+    } else {
+      console.log(
+        '[MegaCache] Cache válido. Última sincronização:',
+        new Date(Number(lastSync)).toLocaleString()
+      )
+    }
+  } catch (error) {
+    console.error('[MegaCache] Erro ao verificar/sincronizar cache:', error)
+  }
 }
 
 export const bootstrapMegaCache = async () => {
@@ -258,6 +303,8 @@ export async function enqueueNewOs(
       fila.criadoEm = Date.now()
     })
   })
+
+  return osIdLocal
 }
 
 async function mapIdsAndCleanQueue(itemFila, respostaDjango) {

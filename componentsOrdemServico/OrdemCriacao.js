@@ -13,6 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import useContextoApp from '../hooks/useContextoApp'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import { apiPostComContexto } from '../utils/api'
+import { handleApiError } from '../utils/errorHandler'
 import AbaPecas from '../componentsOrdemServico/AbaPecas'
 import AbaServicos from '../componentsOrdemServico/AbaServicos'
 import AbaTotais from '../componentsOrdemServico/AbaTotais'
@@ -82,29 +83,46 @@ export default function CriarOrdemServico({ navigation }) {
   const salvarOrdemServico = async () => {
     if (!validarOrdemServico() || isSubmitting) return
 
+    if (!empresaId || !filialId) {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro de Contexto',
+        text2: 'Empresa ou Filial não identificadas. Reinicie o app.',
+      })
+      return
+    }
+
     setIsSubmitting(true)
     try {
       console.log('Estado atual do ordemServico:', ordemServico)
-      console.log(ordemServico.os_assi_clie?.slice(0, 30))
 
       const payload = {
         ...ordemServico,
-        os_empr: empresaId?.toString() || '',
-        os_fili: filialId?.toString() || '',
-        usua: usuarioId?.toString() || '',
+        os_empr: parseInt(empresaId),
+        os_fili: parseInt(filialId),
+        os_prof_aber: usuarioId ? parseInt(usuarioId) : null,
         os_assi_clie: ordemServico.os_assi_clie || '',
         os_assi_oper: ordemServico.os_assi_oper || '',
         os_loca_apli: ordemServico.os_loca_apli || '',
         os_orig: ordemServico.os_orig || '',
         os_obje_os: ordemServico.os_obje_os || '',
+        os_data_aber: ordemServico.os_data_aber, // Mantém formato YYYY-MM-DD
+        os_stat_os: 0, // 0 = Aberta
       }
 
-      delete payload.empresaId
-      delete payload.filialId
-      delete payload.usuarioId
+      // Remove campos auxiliares que não existem no modelo
+      delete payload.os_clie_nome
+      delete payload.os_resp_nome
       delete payload.os_os
+      delete payload.pecas
+      delete payload.servicos
+      delete payload.horas
+      delete payload.usua
 
-      console.log('Payload a ser enviado:', payload)
+      console.log(
+        'Payload final a ser enviado:',
+        JSON.stringify(payload, null, 2)
+      )
 
       const data = await apiPostComContexto('Os/ordens/', payload)
       console.log('Resposta da API após criar O.S.:', data)
@@ -122,30 +140,38 @@ export default function CriarOrdemServico({ navigation }) {
         text2: `Número da O.S: ${data.os_os}. Agora você pode incluir peças.`,
       })
     } catch (error) {
-      try {
-        const payload = {
-          ...ordemServico,
-          os_empr: empresaId?.toString() || '',
-          os_fili: filialId?.toString() || '',
-          usua: usuarioId?.toString() || '',
-          os_assi_clie: ordemServico.os_assi_clie || '',
-          os_assi_oper: ordemServico.os_assi_oper || '',
-          os_loca_apli: ordemServico.os_loca_apli || '',
-          os_orig: ordemServico.os_orig || '',
-          os_obje_os: ordemServico.os_obje_os || '',
+      console.log('Erro ao criar O.S:', error)
+
+      // Se for erro de conexão (sem response), tenta offline
+      if (!error.response) {
+        try {
+          const payload = {
+            ...ordemServico,
+            os_empr: empresaId ? parseInt(empresaId) : null,
+            os_fili: filialId ? parseInt(filialId) : null,
+            os_prof_aber: usuarioId ? parseInt(usuarioId) : null,
+            os_assi_clie: ordemServico.os_assi_clie || '',
+            os_assi_oper: ordemServico.os_assi_oper || '',
+            os_loca_apli: ordemServico.os_loca_apli || '',
+            os_orig: ordemServico.os_orig || '',
+            os_obje_os: ordemServico.os_obje_os || '',
+            os_data_aber: ordemServico.os_data_aber,
+            os_stat_os: 0,
+          }
+          await enqueueOperation('Os/ordens/', 'post', payload)
+          Toast.show({
+            type: 'info',
+            text1: 'Sem conexão',
+            text2: 'Criação de O.S enfileirada para sincronizar quando online',
+          })
+          return // Sai da função se enfileirou com sucesso
+        } catch (offlineError) {
+          console.log('Erro ao enfileirar offline:', offlineError)
         }
-        await enqueueOperation('Os/ordens/', 'post', payload)
-        Toast.show({
-          type: 'info',
-          text1: 'Sem conexão',
-          text2: 'Criação de O.S enfileirada para sincronizar quando online',
-        })
-      } catch {}
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao criar O.S',
-        text2: error.message || 'Tente novamente mais tarde',
-      })
+      }
+
+      // Usa o handler padronizado para exibir o erro da API (ex: validação)
+      handleApiError(error, 'Não foi possível criar a Ordem de Serviço')
     } finally {
       setIsSubmitting(false)
     }
@@ -183,7 +209,7 @@ export default function CriarOrdemServico({ navigation }) {
     <KeyboardAwareScrollView
       style={{ backgroundColor: '#1a2f3d' }}
       scrollEnabled={!scrollLock}>
-      <View style={{ padding: 20, backgroundColor: '#1a2f3d' }}>
+      <View style={{ padding: 10, backgroundColor: '#1a2f3d' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           {['cliente', 'pecas', 'servicos', 'horas'].map((aba) => (
             <TouchableOpacity
@@ -216,12 +242,31 @@ export default function CriarOrdemServico({ navigation }) {
         <View style={{ flex: 1, padding: 30, margin: 20 }}>
           {abaAtiva === 'cliente' && (
             <>
-              {numeroOS && (
+              {((numeroOS &&
+                numeroOS !== 'Pendente' &&
+                typeof numeroOS !== 'string') ||
+                (typeof numeroOS === 'string' && numeroOS.length < 20)) && (
                 <View style={styles.osNumeroContainer}>
                   <Text style={styles.osNumeroLabel}>Nº O.S:</Text>
                   <Text style={styles.osNumero}>{numeroOS}</Text>
                 </View>
               )}
+              {numeroOS &&
+                typeof numeroOS === 'string' &&
+                numeroOS.length > 20 && (
+                  <View
+                    style={[
+                      styles.osNumeroContainer,
+                      { backgroundColor: '#342222' },
+                    ]}>
+                    <Text style={[styles.osNumeroLabel, { color: '#ff9800' }]}>
+                      OFFLINE:
+                    </Text>
+                    <Text style={[styles.osNumero, { fontSize: 12 }]}>
+                      Sincronização Pendente
+                    </Text>
+                  </View>
+                )}
               <Text style={styles.label}>Data de Abertura:</Text>
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}

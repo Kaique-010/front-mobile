@@ -10,10 +10,13 @@ import {
 import Toast from 'react-native-toast-message'
 import ItensModalOs from './ItensModalOs'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
+import { handleApiError } from '../utils/errorHandler'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
 import NetInfo from '@react-native-community/netinfo'
 import { enqueueOperation } from 'componentsOrdemServico/services/syncService'
+import database from './schemas/database'
+import { Q } from '@nozbe/watermelondb'
 
 export default function AbaPecas({
   pecas = [],
@@ -163,7 +166,7 @@ export default function AbaPecas({
     } else {
       // Adicionando novo produto
       const existe = produtos.some(
-        (p) => !p.peca_item && p.peca_prod === novoItem.peca_prod
+        (p) => String(p.peca_prod) === String(novoItem.peca_prod)
       )
       if (existe) {
         Toast.show({
@@ -275,21 +278,23 @@ export default function AbaPecas({
         'Erro detalhado ao salvar:',
         err.response?.data || err.message
       )
-      try {
-        await enqueueOperation('Os/pecas/update-lista/', 'post', payload)
-        Toast.show({
-          type: 'info',
-          text1: 'Sem conexão',
-          text2: 'Alterações enfileiradas para sincronizar quando online',
-        })
-      } catch {}
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao salvar peças',
-        text2: Array.isArray(err.response?.data)
-          ? err.response.data[0]
-          : 'Tente novamente mais tarde',
-      })
+
+      // Se for erro de rede/conexão, tenta enfileirar
+      if (!err.response) {
+        try {
+          await enqueueOperation('Os/pecas/update-lista/', 'post', payload)
+          Toast.show({
+            type: 'info',
+            text1: 'Sem conexão',
+            text2: 'Alterações enfileiradas para sincronizar quando online',
+          })
+          return
+        } catch (e) {
+          console.log('Falha ao enfileirar:', e)
+        }
+      }
+
+      handleApiError(err, 'Erro ao salvar peças')
     } finally {
       setIsSubmitting(false)
     }
@@ -364,15 +369,17 @@ export default function AbaPecas({
         }
         renderItem={renderItem}
         contentContainerStyle={styles.lista}
-        ListEmptyComponent={!isLoading ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cube-outline" size={48} color="#666" />
-            <Text style={styles.emptyText}>Nenhuma peça adicionada</Text>
-            <Text style={styles.emptySubtext}>
-              Toque no botão acima para adicionar peças
-            </Text>
-          </View>
-        ) : null}
+        ListEmptyComponent={
+          !isLoading ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cube-outline" size={48} color="#666" />
+              <Text style={styles.emptyText}>Nenhuma peça adicionada</Text>
+              <Text style={styles.emptySubtext}>
+                Toque no botão acima para adicionar peças
+              </Text>
+            </View>
+          ) : null
+        }
       />
 
       {produtos.length > 0 && (
@@ -407,6 +414,7 @@ export default function AbaPecas({
         onFechar={() => setModalVisivel(false)}
         onAdicionar={adicionarOuEditarProduto}
         itemEditando={itemEditando}
+        itensExistentes={produtos}
       />
     </View>
   )

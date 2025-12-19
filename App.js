@@ -18,6 +18,7 @@ import Toast from 'react-native-toast-message'
 import { NativeBaseProvider } from 'native-base'
 import { PaperProvider } from 'react-native-paper'
 import { NotificacaoProvider } from './notificacoes/NotificacaoContext'
+import { AuthProvider } from './contexts/AuthContext'
 import MainStackNavigator from './navigation/MainStackNavigator'
 import NotificationOverlay from './components/NotificationOverlay'
 import { toastConfig } from './config/toastConfig'
@@ -117,24 +118,26 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider>
-        <NativeBaseProvider>
-          <NotificacaoProvider
-            config={{
-              enableWebSocket: false,
-              autoRefresh: false,
-              interval: 360000,
-            }}>
-            <ErrorBoundary>
-              <NavigationContainer>
-                <MainStackNavigator />
-                <NotificationOverlay />
-                <Toast config={toastConfig} />
-              </NavigationContainer>
-            </ErrorBoundary>
-          </NotificacaoProvider>
-        </NativeBaseProvider>
-      </PaperProvider>
+      <AuthProvider>
+        <PaperProvider>
+          <NativeBaseProvider>
+            <NotificacaoProvider
+              config={{
+                enableWebSocket: false,
+                autoRefresh: false,
+                interval: 360000,
+              }}>
+              <ErrorBoundary>
+                <NavigationContainer>
+                  <MainStackNavigator />
+                  <NotificationOverlay />
+                  <Toast config={toastConfig} />
+                </NavigationContainer>
+              </ErrorBoundary>
+            </NotificacaoProvider>
+          </NativeBaseProvider>
+        </PaperProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   )
 }

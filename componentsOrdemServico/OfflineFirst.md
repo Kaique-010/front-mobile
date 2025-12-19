@@ -41,6 +41,25 @@
 - Usuário aciona ação de salvar.
 - Se falhar por rede, operação é salva na fila e feedback é exibido.
 - O loop verifica conectividade e processa a fila; ao sucesso, a fila é atualizada.
+- **Componente Monitor**: `SyncStatusMonitor.js` exibe status da fila e conectividade em tempo real.
+
+## Criação de Ordem Offline (OrdemCriacao.js)
+1. Gera UUID para a OS e itens (peças, serviços, horas).
+2. Salva localmente no WatermelonDB com status "pendente".
+3. Enfileira payload completo (`enqueueNewOs`) para sincronização posterior.
+4. UI exibe "OFFLINE: Sincronização Pendente" e bloqueia edição de campos críticos se necessário.
+5. Ao reconectar, `processSyncQueue` envia o payload.
+
+## Mapeamento de IDs (SyncService + Serializers)
+1. O frontend envia UUIDs (strings > 20 chars).
+2. O backend (`serializers.py` e `views.py`) detecta UUIDs:
+   - Gera novos IDs inteiros sequenciais (ou usa AutoField).
+   - Mantém um mapa de `{ local_id (UUID): remote_id (Int) }`.
+3. O backend retorna este mapa na resposta.
+4. O frontend (`syncService.js`) atualiza os registros locais no WatermelonDB:
+   - Substitui chaves estrangeiras (`peca_os`, etc.) pelo novo ID remoto.
+   - Atualiza chaves primárias ou campos de referência (`pecaItem`) com o ID remoto.
+5. A fila é limpa após o sucesso.
 
 ## Integração com Django
 

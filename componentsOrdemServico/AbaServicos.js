@@ -10,6 +10,7 @@ import {
 import Toast from 'react-native-toast-message'
 import ServModalOs from './ServModalOs'
 import { apiPostComContexto, apiGetComContextoos } from '../utils/api'
+import { handleApiError } from '../utils/errorHandler'
 import { Ionicons } from '@expo/vector-icons'
 import useContextoApp from '../hooks/useContextoApp'
 import NetInfo from '@react-native-community/netinfo'
@@ -145,7 +146,7 @@ export default function AbaServicos({
       )
     } else {
       const existe = servicosLista.some(
-        (s) => !s.serv_item && s.serv_prod === novoItem.serv_prod
+        (s) => String(s.serv_prod) === String(novoItem.serv_prod)
       )
       if (existe) {
         Toast.show({
@@ -226,22 +227,22 @@ export default function AbaServicos({
       })
     } catch (err) {
       console.error('Erro ao salvar serviços:', err.response?.data || err)
-      try {
-        await enqueueOperation('Os/servicos/update-lista/', 'post', payload)
-        Toast.show({
-          type: 'info',
-          text1: 'Sem conexão',
-          text2: 'Serviços enfileirados para sincronizar quando online',
-        })
-      } catch {}
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao salvar serviços',
-        text2:
-          err.response?.data?.error ||
-          err.message ||
-          'Tente novamente mais tarde',
-      })
+
+      if (!err.response) {
+        try {
+          await enqueueOperation('Os/servicos/update-lista/', 'post', payload)
+          Toast.show({
+            type: 'info',
+            text1: 'Sem conexão',
+            text2: 'Serviços enfileirados para sincronizar quando online',
+          })
+          return
+        } catch (e) {
+          console.log('Falha ao enfileirar:', e)
+        }
+      }
+
+      handleApiError(err, 'Erro ao salvar serviços')
     } finally {
       setIsSubmitting(false)
     }
@@ -388,6 +389,7 @@ export default function AbaServicos({
         onAdicionar={adicionarOuEditarServico}
         itemEditando={itemEditando}
         os_os={os_os}
+        itensExistentes={servicosLista}
       />
     </View>
   )

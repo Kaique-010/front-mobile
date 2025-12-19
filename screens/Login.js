@@ -17,6 +17,7 @@ import styles from '../styles/loginStyles'
 import { MotiView, MotiText } from 'moti'
 import useClienteAuth from '../hooks/useClienteAuth'
 import Toast from 'react-native-toast-message'
+import { useAuth } from '../contexts/AuthContext'
 
 // Cache para dados de empresas
 const EMPRESAS_CACHE_KEY = 'empresas_login_cache'
@@ -73,6 +74,20 @@ export default function Login({ navigation }) {
     error: clienteAuthError,
   } = useClienteAuth()
 
+  const { signIn } = useAuth()
+
+  // Debug: Verificar se signIn está definido
+  useEffect(() => {
+    if (!signIn) {
+      console.error('CRITICAL: signIn function is undefined in Login.js')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro de Configuração',
+        text2: 'Função de login não disponível. Contate o suporte.',
+      })
+    }
+  }, [signIn])
+
   useEffect(() => {
     const carregarDadosSalvos = async () => {
       try {
@@ -115,10 +130,21 @@ export default function Login({ navigation }) {
     const startTime = Date.now()
     if (!docu || !username || !password) {
       setError('Preencha todos os campos.')
+      Toast.show({
+        type: 'error',
+        text1: 'Campos vazios',
+        text2: 'Preencha CNPJ, Usuário e Senha.',
+      })
       return
     }
 
     setIsLoading(true)
+    Toast.show({
+      type: 'info',
+      text1: 'Conectando',
+      text2: 'Iniciando login...',
+      visibilityTime: 2000,
+    })
     setLoadingStep('Verificando dados...')
 
     try {
@@ -169,6 +195,20 @@ export default function Login({ navigation }) {
       // Log: Salvando dados da sessão
       setLoadingStep('Salvando sessão...')
       const sessionStartTime = Date.now()
+
+      const sessionData = {
+        access,
+        refresh,
+        usuario,
+        usuario_id: usuario.usuario_id.toString(),
+        username: usuario.username,
+        setor,
+        docu,
+        slug,
+        modulos: response.data.modulos,
+        userType: 'funcionario',
+      }
+
       await AsyncStorage.multiSet([
         ['access', access],
         ['refresh', refresh],
@@ -181,6 +221,13 @@ export default function Login({ navigation }) {
         ['modulos', JSON.stringify(response.data.modulos)],
         ['userType', 'funcionario'],
       ])
+
+      // Update Context
+      if (signIn) {
+        signIn(sessionData)
+      } else {
+        console.error('SignIn function missing')
+      }
 
       navigation.navigate('SelectEmpresa')
     } catch (error) {

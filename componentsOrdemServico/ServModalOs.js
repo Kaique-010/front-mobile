@@ -16,13 +16,14 @@ export default function ServModalOs({
   onFechar,
   onAdicionar,
   itemEditando,
+  itensExistentes = [],
 }) {
   const [form, setForm] = useState({
-    servicoProd: '', 
+    servicoProd: '',
     servicoNome: '',
     quantidade: '',
     preco: '',
-    observacao: '', 
+    observacao: '',
   })
 
   useEffect(() => {
@@ -68,6 +69,20 @@ export default function ServModalOs({
       return
     }
 
+    // Validação de Duplicidade
+    if (!itemEditando) {
+      const jaExiste = itensExistentes.some(
+        (item) => String(item.serv_prod) === String(form.servicoProd)
+      )
+      if (jaExiste) {
+        return Toast.show({
+          type: 'error',
+          text1: 'Serviço já adicionado',
+          text2: 'Este serviço já consta na lista.',
+        })
+      }
+    }
+
     const total = quantidadeNum * precoNum
 
     const novoItem = {
@@ -75,7 +90,7 @@ export default function ServModalOs({
       serv_quan: quantidadeNum,
       serv_unit: precoNum,
       serv_tota: total,
-      serv_obse: form.observacao, 
+      serv_obse: form.observacao,
       servico_nome: form.servicoNome,
     }
 
@@ -91,7 +106,7 @@ export default function ServModalOs({
       })
     }
 
-    onFechar() 
+    onFechar()
   }
 
   return (
@@ -121,7 +136,7 @@ export default function ServModalOs({
 
               setForm((f) => ({
                 ...f,
-                servicoProd: servico?.serv_prod?.toString() || '', 
+                servicoProd: servico?.serv_prod?.toString() || '',
                 servicoNome: servico.serv_nome,
                 preco: servico.serv_preco?.toString() || '',
                 quantidade: '1',
