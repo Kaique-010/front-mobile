@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'FaunaOne_400Regular',
     fontSize: 28,
-    color: '#C0C0C0',
+    color: '#faebd7',
     marginBottom: 20,
   },
   toggleContainer: {
@@ -39,12 +39,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#354972',
   },
   toggleText: {
-    color: '#ccc',
+    color: '#faebd7',
     fontSize: 14,
     fontWeight: '500',
   },
   toggleTextActive: {
-    color: '#fff',
+    color: '#faebd7',
     fontWeight: 'bold',
   },
   inputContainer: {
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   label: {
-    color: '#ccc',
+    color: '#faebd7',
     marginBottom: 5,
     marginLeft: 5,
     fontSize: 14,
@@ -71,12 +71,12 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#fff',
+    color: '#faebd7',
     height: 45,
   },
   button: {
     marginTop: 10,
-    backgroundColor: '#354972',
+    backgroundColor: '#1b263bff',
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 10,
@@ -88,9 +88,24 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   buttonText: {
-    color: '#fff',
+    color: '#faebd7',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loaddingContainer: {
+    marginTop: 15,
+    alignItems: 'center',
+    color: '#faebd7',
+    backgroundColor: '#1b263bff',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
   },
   error: {
     marginTop: 15,
@@ -109,7 +124,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#ccc',
+    borderColor: '#faebd7',
     borderRadius: 4,
     marginRight: 10,
     justifyContent: 'center',
@@ -122,8 +137,21 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 10,
-    color: '#fff',
+    color: '#faebd7',
     fontFamily: 'FaunaOne_400Regular',
+  },
+  linkText: {
+    color: '#faebd7',
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    marginTop: 5,
+  },
+  linkText2: {
+    color: '#fff',
+    fontSize: 16,
+    alignItems: 'center',
+    textAlign: 'center',
+    marginTop: 5,
   },
 })
 

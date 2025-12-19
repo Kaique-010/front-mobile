@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
 } from 'react-native'
 import { FontAwesome } from '@expo/vector-icons'
 import axios from 'axios'
@@ -457,6 +458,16 @@ export default function Login({ navigation }) {
               {isClienteLogin ? 'Login Cliente' : 'Login'}
             </Text>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ marginTop: 10 }}
+          onPress={() => Linking.openURL('https://mobile-sps.site/')}>
+          <Text style={styles.linkText}>Spartacus Mobile 2025 ©</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{ marginTop: 10 }}
+          onPress={() => Linking.openURL('https://l1nq.com/i8Hdg')}>
+          <Text style={styles.linkText2}>Atualize o App</Text>
         </TouchableOpacity>
       </MotiView>
 

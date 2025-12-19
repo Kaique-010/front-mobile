@@ -208,9 +208,8 @@ export default function Home() {
           textTransform: 'uppercase',
           fontSize: 6,
         }}>
-        Versão 1.0.12
+        Versão 1.0.13
       </Text>
-
       <TouchableOpacity
         style={styles.logoButton}
         onPress={() => setModalVisible(true)}
