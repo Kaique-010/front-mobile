@@ -19,6 +19,7 @@ import { MotiView, MotiText } from 'moti'
 import useClienteAuth from '../hooks/useClienteAuth'
 import Toast from 'react-native-toast-message'
 import { useAuth } from '../contexts/AuthContext'
+import { handleApiError } from '../utils/errorHandler'
 
 // Cache para dados de empresas
 const EMPRESAS_CACHE_KEY = 'empresas_login_cache'
@@ -52,6 +53,12 @@ const buscarEmpresasComCache = async () => {
     return empresas
   } catch (error) {
     console.log('❌ Erro ao buscar empresas:', error)
+    handleApiError(error, 'Erro ao buscar empresas')
+    Toast.show({
+      type: 'error',
+      text1: 'Erro ao buscar empresas',
+      text2: error.message,
+    })
     return []
   }
 }
@@ -441,7 +448,8 @@ export default function Login({ navigation }) {
       <MotiView
         from={{ scale: 0.95 }}
         animate={{ scale: isLoading ? 0.95 : 1 }}
-        transition={{ type: 'timing', duration: 150 }}>
+        transition={{ type: 'timing', duration: 150 }}
+        style={{ width: '70%', alignItems: 'center' }}>
         <TouchableOpacity
           style={styles.button}
           onPress={handleLogin}

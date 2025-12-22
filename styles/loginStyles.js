@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
   linkText2: {
     color: '#fff',
     fontSize: 16,
-    alignItems: 'center',
     textAlign: 'center',
     marginTop: 5,
   },

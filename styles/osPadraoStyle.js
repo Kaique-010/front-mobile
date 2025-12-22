@@ -1,0 +1,108 @@
+import { StyleSheet } from 'react-native'
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 12, backgroundColor: '#213035ff' },
+  indicadores: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 6,
+    paddingVertical: 6,
+  },
+  indicador: {
+    flex: 1,
+    marginHorizontal: 2,
+    padding: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  indicadorLabel: {
+    fontWeight: 'bold',
+    fontSize: 8,
+    marginBottom: 4,
+    opacity: 0.7,
+  },
+  indicadorValor: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  filtros: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+    backgroundColor: '#234b57ff',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    color: '#fff',
+    borderRadius: 8,
+    elevation: 2,
+  },
+  pickerContainer: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 8,
+  },
+  pickerLabel: {
+    fontSize: 12,
+    color: '#ffffffff',
+    marginBottom: 4,
+  },
+  botaoCriar: {
+    backgroundColor: '#284665',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  botaoCriarTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  card: {
+    flex: 1,
+    margin: 5,
+    padding: 14,
+    borderRadius: 8,
+    borderLeftWidth: 6,
+    elevation: 3,
+    maxWidth: '50%',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  numeroContainer: { flexDirection: 'row', alignItems: 'center' },
+  numeroLabel: { fontSize: 10, color: '#666', marginRight: 4 },
+  numero: { fontWeight: 'bold', fontSize: 12 },
+  prioridadeContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  prioridade: {
+    fontSize: 11,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  cardBody: {},
+  clienteNome: { fontWeight: 'bold', marginBottom: 6 },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statusContainer: { flexDirection: 'row' },
+  statusLabel: { fontWeight: 'bold', marginRight: 4 },
+  status: {},
+  data: { fontSize: 12, color: '#666' },
+  problema: { fontSize: 12, color: '#555' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, color: '#284665', fontSize: 16 },
+})
+
+export default styles

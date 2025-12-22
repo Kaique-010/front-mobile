@@ -209,8 +209,8 @@ export default function CriarOrdemServico({ navigation }) {
     <KeyboardAwareScrollView
       style={{ backgroundColor: '#1a2f3d' }}
       scrollEnabled={!scrollLock}>
-      <View style={{ padding: 10, backgroundColor: '#1a2f3d' }}>
-        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+      <View style={{ padding: 20, backgroundColor: '#1a2f3d' }}>
+        <View style={{ flexDirection: 'row', marginBottom: 2 }}>
           {['cliente', 'pecas', 'servicos', 'horas'].map((aba) => (
             <TouchableOpacity
               key={aba}
@@ -239,7 +239,7 @@ export default function CriarOrdemServico({ navigation }) {
           ))}
         </View>
 
-        <View style={{ flex: 1, padding: 30, margin: 20 }}>
+        <View style={{ flex: 1, padding: 10, margin: 20 }}>
           {abaAtiva === 'cliente' && (
             <>
               {((numeroOS &&

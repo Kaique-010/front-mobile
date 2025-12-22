@@ -9,17 +9,8 @@ import {
   StyleSheet,
 } from 'react-native'
 import { Modal, Linking, Platform } from 'react-native'
-import {
-  PinchGestureHandler,
-  PanGestureHandler,
-  TapGestureHandler,
-  State,
-} from 'react-native-gesture-handler'
-import {
-  tirarFotoComGeo,
-  enviarFotoEtapa,
-  fetchFotos,
-} from '../services/fotosApi'
+import {PinchGestureHandler,PanGestureHandler,TapGestureHandler,State} from 'react-native-gesture-handler'
+import {tirarFotoComGeo,enviarFotoEtapa,fetchFotos} from '../services/fotosApi'
 import { BASE_URL, getAuthHeaders } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 

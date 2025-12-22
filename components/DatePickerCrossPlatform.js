@@ -12,10 +12,20 @@ const DatePickerCrossPlatform = ({
 }) => {
   const [showPicker, setShowPicker] = useState(false)
 
+  const parseDate = (date) => {
+    if (!date) return null
+    // Se for string YYYY-MM-DD, cria data local (meia-noite) para evitar timezone
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [y, m, d] = date.split('-').map(Number)
+      return new Date(y, m - 1, d)
+    }
+    const d = new Date(date)
+    return isNaN(d.getTime()) ? null : d
+  }
+
   const formatDate = (date) => {
-    if (!date) return ''
-    const dateObj = new Date(date)
-    if (isNaN(dateObj.getTime())) return ''
+    const dateObj = parseDate(date)
+    if (!dateObj) return ''
     return dateObj.toLocaleDateString('pt-BR')
   }
 

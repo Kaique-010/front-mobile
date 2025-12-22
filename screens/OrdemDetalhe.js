@@ -17,13 +17,21 @@ import AbaServicos from '../componentsOs/AbaServicos'
 import AbaFotos from '../componentsOs/AbaForos'
 import AbaTotais from '../componentsOs/AbaTotais'
 import WorkflowButton from '../componentsOs/WorkflowButton'
-import { apiGetComContexto, apiPatchComContexto, apiPostComContexto } from '../utils/api'
+import {
+  apiGetComContexto,
+  apiPatchComContexto,
+  apiPostComContexto,
+} from '../utils/api'
+import { handleApiError } from '../utils/errorHandler'
 import useContextoApp from '../hooks/useContextoApp'
 import ErrorBoundary from '../components/ErrorBoundary'
 import BuscaSetorInput from '../components/BuscaSetorInput'
 import BuscaMarcasInput from '../components/BuscaMarcasInput'
 import BuscaVoltagemInput from '../components/BuscaVoltagemInput'
-import { ORDER_FIELDS_CONFIG, TIPOS_ORDEM } from '../componentsOs/orderFieldsConfig'
+import {
+  ORDER_FIELDS_CONFIG,
+  TIPOS_ORDEM,
+} from '../componentsOs/orderFieldsConfig'
 
 const OrdemDetalhe = ({ route }) => {
   const { ordem } = route.params
@@ -39,7 +47,9 @@ const OrdemDetalhe = ({ route }) => {
   const [showRetornarModal, setShowRetornarModal] = useState(false)
   const [setorRetornarNome, setSetorRetornarNome] = useState('')
   const [showTipoModal, setShowTipoModal] = useState(false)
-  const [tipoSelecionado, setTipoSelecionado] = useState(ordemAtual.orde_tipo || '')
+  const [tipoSelecionado, setTipoSelecionado] = useState(
+    ordemAtual.orde_tipo || ''
+  )
   const [camposVisiveis, setCamposVisiveis] = useState([])
   const [formEdicao, setFormEdicao] = useState({ ...ordemAtual })
 
@@ -73,9 +83,19 @@ const OrdemDetalhe = ({ route }) => {
         `ordemdeservico/ordens/${ordemAtual.orde_nume}/atualizar-prioridade/`,
         { orde_prio: nova }
       )
+      Toast.show({
+        type: 'success',
+        text1: 'Prioridade atualizada',
+        text2: resp.mensagem,
+      })
       console.log('✅ Prioridade atualizada:', resp.mensagem)
     } catch (err) {
-      console.error('❌ Erro ao atualizar prioridade', err)
+      handleApiError(err, '❌ Erro ao atualizar prioridade')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao atualizar prioridade',
+        text2: err.message,
+      })
     }
   }
 
@@ -91,11 +111,13 @@ const OrdemDetalhe = ({ route }) => {
       // Campos gerais editáveis (omitimos strings vazias e garantimos tipos)
       if (has(formEdicao.orde_gara)) {
         const v = formEdicao.orde_gara
-        payload.orde_gara = (v === true || v === 'S' || v === 1 || v === '1') ? 1 : 0
+        payload.orde_gara =
+          v === true || v === 'S' || v === 1 || v === '1' ? 1 : 0
       }
       if (has(formEdicao.orde_sem_cons)) {
         const v = formEdicao.orde_sem_cons
-        payload.orde_sem_cons = (v === true || v === 'S' || v === 1 || v === '1') ? 1 : 0
+        payload.orde_sem_cons =
+          v === true || v === 'S' || v === 1 || v === '1' ? 1 : 0
       }
       if (has(formEdicao.orde_data_repr)) {
         const v = formEdicao.orde_data_repr
@@ -106,11 +128,14 @@ const OrdemDetalhe = ({ route }) => {
         }
       }
       if (has(formEdicao.orde_seto_repr)) {
-        const n = Number(formEdicao.orde_seto_repr)
-        if (Number.isFinite(n)) {
-          payload.orde_seto_repr = n
-        } else if (formEdicao.orde_seto_repr === '') {
+        const val = formEdicao.orde_seto_repr
+        if (val === '' || val === null) {
           payload.orde_seto_repr = null
+        } else {
+          const n = Number(val)
+          if (Number.isFinite(n)) {
+            payload.orde_seto_repr = n
+          }
         }
       }
 
@@ -134,12 +159,7 @@ const OrdemDetalhe = ({ route }) => {
       Alert.alert('Sucesso', 'Alterações salvas com sucesso!')
     } catch (err) {
       console.error('❌ Erro ao salvar alterações gerais', err)
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao salvar',
-        text2: err?.message || 'Não foi possível salvar as alterações',
-      })
-      Alert.alert('Erro', err?.message || 'Não foi possível salvar as alterações')
+      handleApiError(err, 'Não foi possível salvar as alterações')
     }
   }
 
@@ -200,38 +220,53 @@ const OrdemDetalhe = ({ route }) => {
             <Text style={styles.rowLabel}>Garantia</Text>
             <CrossCheckbox
               value={Boolean(formEdicao.orde_gara)}
-              onValueChange={(value) => setFormEdicao((prev) => ({ ...prev, orde_gara: value ? 'S' : '' }))}
+              onValueChange={(value) =>
+                setFormEdicao((prev) => ({
+                  ...prev,
+                  orde_gara: value ? 'S' : '',
+                }))
+              }
             />
           </View>
           <View style={styles.rowItem}>
             <Text style={styles.rowLabel}>Sem Conserto</Text>
-              <CrossCheckbox
-                value={Boolean(formEdicao.orde_sem_cons)}
-                onValueChange={(value) => {
-                  setFormEdicao((prev) => ({ ...prev, orde_sem_cons: value ? 'S' : '' }))
-                  if (value) {
-                    const hoje = new Date().toISOString().split('T')[0]
-                    setFormEdicao((prev) => ({ ...prev, orde_data_repr: hoje }))
-                    setShowSetorReprovModal(true)
-                  } else {
-                    setFormEdicao((prev) => ({ ...prev, orde_data_repr: null, orde_seto_repr: null }))
-                    setSetorReprovNome('')
-                    setShowSetorReprovModal(false)
-                  }
-                }}
-              />
+            <CrossCheckbox
+              value={Boolean(formEdicao.orde_sem_cons)}
+              onValueChange={(value) => {
+                setFormEdicao((prev) => ({
+                  ...prev,
+                  orde_sem_cons: value ? 'S' : '',
+                }))
+                if (value) {
+                  const hoje = new Date().toISOString().split('T')[0]
+                  setFormEdicao((prev) => ({ ...prev, orde_data_repr: hoje }))
+                  setShowSetorReprovModal(true)
+                } else {
+                  setFormEdicao((prev) => ({
+                    ...prev,
+                    orde_data_repr: null,
+                    orde_seto_repr: null,
+                  }))
+                  setSetorReprovNome('')
+                  setShowSetorReprovModal(false)
+                }
+              }}
+            />
           </View>
           <View style={styles.rowItemDate}>
             <Text style={styles.rowLabel}>Reprov.:</Text>
-              <TouchableOpacity
-                onPress={() => setShowDatePickerReprov(true)}
-                style={styles.datePill}>
-              <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+            <TouchableOpacity
+              onPress={() => setShowDatePickerReprov(true)}
+              style={styles.datePill}>
+              <Text
+                style={{ color: '#fff' }}
+                numberOfLines={1}
+                ellipsizeMode="tail">
                 {formEdicao.orde_data_repr
                   ? new Date(formEdicao.orde_data_repr).toLocaleDateString()
                   : 'Selecionar'}
               </Text>
-              </TouchableOpacity>
+            </TouchableOpacity>
           </View>
           {Boolean(formEdicao.orde_sem_cons) ? (
             <View style={styles.rowItem}>
@@ -239,8 +274,14 @@ const OrdemDetalhe = ({ route }) => {
               <TouchableOpacity
                 onPress={() => setShowSetorReprovModal(true)}
                 style={styles.datePill}>
-                <Text style={{ color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-                  {setorReprovNome || (formEdicao.orde_seto_repr ? `Código ${formEdicao.orde_seto_repr}` : 'Selecionar')}
+                <Text
+                  style={{ color: '#fff' }}
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
+                  {setorReprovNome ||
+                    (formEdicao.orde_seto_repr
+                      ? `Código ${formEdicao.orde_seto_repr}`
+                      : 'Selecionar')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -249,13 +290,20 @@ const OrdemDetalhe = ({ route }) => {
 
         {showDatePickerReprov && (
           <DateTimePicker
-            value={formEdicao.orde_data_repr ? new Date(formEdicao.orde_data_repr) : new Date()}
+            value={
+              formEdicao.orde_data_repr
+                ? new Date(formEdicao.orde_data_repr)
+                : new Date()
+            }
             mode="date"
             display="default"
             onChange={(event, selectedDate) => {
               setShowDatePickerReprov(false)
               if (selectedDate) {
-                setFormEdicao((prev) => ({ ...prev, orde_data_repr: selectedDate.toISOString().split('T')[0] }))
+                setFormEdicao((prev) => ({
+                  ...prev,
+                  orde_data_repr: selectedDate.toISOString().split('T')[0],
+                }))
               }
             }}
           />
@@ -263,11 +311,15 @@ const OrdemDetalhe = ({ route }) => {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Tipo:</Text>
-          <TouchableOpacity onPress={() => {
-            setShowTipoModal(true)
-            const config = tipoSelecionado ? ORDER_FIELDS_CONFIG[tipoSelecionado] : null
-            setCamposVisiveis(config ? config.campos : [])
-          }} style={styles.valueRow}>
+          <TouchableOpacity
+            onPress={() => {
+              setShowTipoModal(true)
+              const config = tipoSelecionado
+                ? ORDER_FIELDS_CONFIG[tipoSelecionado]
+                : null
+              setCamposVisiveis(config ? config.campos : [])
+            }}
+            style={styles.valueRow}>
             <Text style={styles.value}>{ordemAtual.orde_tipo || '-'}</Text>
           </TouchableOpacity>
         </View>
@@ -357,11 +409,8 @@ const OrdemDetalhe = ({ route }) => {
         onOrdemAtualizada={handleOrdemAtualizada}
         onSalvarAlteracoes={salvarEdicaoGerais}
       />
-
- 
     </ScrollView>
   )
-
 
   return (
     <View style={styles.container}>
@@ -427,8 +476,7 @@ const OrdemDetalhe = ({ route }) => {
           animationType="slide"
           transparent={true}
           visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
+          onRequestClose={() => setModalVisible(false)}>
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Alterar Prioridade</Text>
@@ -489,130 +537,165 @@ const OrdemDetalhe = ({ route }) => {
                 <View style={styles.modalContent}>
                   <Text style={styles.modalTitle}>Editar Tipo da Ordem</Text>
 
-              <View style={{ marginBottom: 10 }}>
-                <Text style={[styles.label, { marginBottom: 6 }]}>Selecione o tipo</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                  {TIPOS_ORDEM.map((tipo) => (
-                    <TouchableOpacity
-                      key={tipo.value}
-                      onPress={() => {
-                        setTipoSelecionado(tipo.value)
-                        const config = ORDER_FIELDS_CONFIG[tipo.value]
-                        setCamposVisiveis(config ? config.campos : [])
-                      }}
-                      style={{
-                        backgroundColor: tipoSelecionado === tipo.value ? '#10a2a7' : '#1a2f3d',
-                        paddingVertical: 8,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        marginRight: 8,
-                        marginBottom: 8,
-                      }}>
-                      <Text style={{ color: '#fff' }}>{tipo.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Campos dinâmicos conforme tipo */}
-              {camposVisiveis.map((campo) => {
-                const valor = formEdicao[campo.key] || ''
-                if (campo.tipo === 'textarea') {
-                  return (
-                    <View key={campo.key} style={{ marginBottom: 12 }}>
-                      <Text style={styles.label}>{campo.label}:</Text>
-                      <TextInput
-                        style={styles.inputInline}
-                        value={valor}
-                        onChangeText={(value) => setFormEdicao((prev) => ({ ...prev, [campo.key]: value }))}
-                        placeholder={`Digite ${campo.label.toLowerCase()}`}
-                        placeholderTextColor="#666"
-                        multiline
-                        numberOfLines={4}
-                      />
-                    </View>
-                  )
-                }
-                
-                if (campo.tipo === 'BuscaMarcasInput') {
-                  return (
-                    <View key={campo.key} style={{ marginBottom: 12 }}>
-                      <Text style={styles.label}>{campo.label}:</Text>
-                      <ErrorBoundary>
-                        <BuscaMarcasInput
-                          initialValue={valor}
-                          onSelect={(valorSelecionado) => {
-                            const codigoMarca =
-                              typeof valorSelecionado === 'object'
-                                ? valorSelecionado?.codigo
-                                : valorSelecionado
-                            setFormEdicao((prev) => ({ ...prev, [campo.key]: codigoMarca || '' }))
+                  <View style={{ marginBottom: 10 }}>
+                    <Text style={[styles.label, { marginBottom: 6 }]}>
+                      Selecione o tipo
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                      {TIPOS_ORDEM.map((tipo) => (
+                        <TouchableOpacity
+                          key={tipo.value}
+                          onPress={() => {
+                            setTipoSelecionado(tipo.value)
+                            const config = ORDER_FIELDS_CONFIG[tipo.value]
+                            setCamposVisiveis(config ? config.campos : [])
                           }}
-                        />
-                      </ErrorBoundary>
+                          style={{
+                            backgroundColor:
+                              tipoSelecionado === tipo.value
+                                ? '#10a2a7'
+                                : '#1a2f3d',
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            borderRadius: 8,
+                            marginRight: 8,
+                            marginBottom: 8,
+                          }}>
+                          <Text style={{ color: '#fff' }}>{tipo.label}</Text>
+                        </TouchableOpacity>
+                      ))}
                     </View>
-                  )
-                }
-
-                if (campo.tipo === 'BuscaVoltagemInput') {
-                  return (
-                    <View key={campo.key} style={{ marginBottom: 12 }}>
-                      <Text style={styles.label}>{campo.label}:</Text>
-                      <ErrorBoundary>
-                        <BuscaVoltagemInput
-                          initialValue={valor}
-                          onSelect={(valorSelecionado) => {
-                            const codigoVoltagem =
-                              typeof valorSelecionado === 'object'
-                                ? valorSelecionado?.osvo_codi
-                                : valorSelecionado
-                            setFormEdicao((prev) => ({ ...prev, [campo.key]: codigoVoltagem || '' }))
-                          }}
-                        />
-                      </ErrorBoundary>
-                    </View>
-                  )
-                }
-                return (
-                  <View key={campo.key} style={{ marginBottom: 12 }}>
-                    <Text style={styles.label}>{campo.label}:</Text>
-                    <TextInput
-                      style={styles.inputInline}
-                      value={valor}
-                      onChangeText={(value) => setFormEdicao((prev) => ({ ...prev, [campo.key]: value }))}
-                      placeholder={`Digite ${campo.label.toLowerCase()}`}
-                      placeholderTextColor="#666"
-                      keyboardType={campo.tipo === 'number' ? 'numeric' : 'default'}
-                    />
                   </View>
-                )
-              })}
 
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={async () => {
-                  try {
-                    const payload = {
-                      orde_tipo: tipoSelecionado,
+                  {/* Campos dinâmicos conforme tipo */}
+                  {camposVisiveis.map((campo) => {
+                    const valor = formEdicao[campo.key] || ''
+                    if (campo.tipo === 'textarea') {
+                      return (
+                        <View key={campo.key} style={{ marginBottom: 12 }}>
+                          <Text style={styles.label}>{campo.label}:</Text>
+                          <TextInput
+                            style={styles.inputInline}
+                            value={valor}
+                            onChangeText={(value) =>
+                              setFormEdicao((prev) => ({
+                                ...prev,
+                                [campo.key]: value,
+                              }))
+                            }
+                            placeholder={`Digite ${campo.label.toLowerCase()}`}
+                            placeholderTextColor="#666"
+                            multiline
+                            numberOfLines={4}
+                          />
+                        </View>
+                      )
                     }
-                    camposVisiveis.forEach((campo) => {
-                      const v = formEdicao[campo.key]
-                      if (v !== undefined && v !== null && `${v}` !== '') {
-                        payload[campo.key] = v
-                      }
-                    })
-                    const resp = await apiPatchComContexto(
-                      `ordemdeservico/ordens/${ordemAtual.orde_nume}/`,
-                      payload
+
+                    if (campo.tipo === 'BuscaMarcasInput') {
+                      return (
+                        <View key={campo.key} style={{ marginBottom: 12 }}>
+                          <Text style={styles.label}>{campo.label}:</Text>
+                          <ErrorBoundary>
+                            <BuscaMarcasInput
+                              initialValue={valor}
+                              onSelect={(valorSelecionado) => {
+                                const codigoMarca =
+                                  typeof valorSelecionado === 'object'
+                                    ? valorSelecionado?.codigo
+                                    : valorSelecionado
+                                setFormEdicao((prev) => ({
+                                  ...prev,
+                                  [campo.key]: codigoMarca || '',
+                                }))
+                              }}
+                            />
+                          </ErrorBoundary>
+                        </View>
+                      )
+                    }
+
+                    if (campo.tipo === 'BuscaVoltagemInput') {
+                      return (
+                        <View key={campo.key} style={{ marginBottom: 12 }}>
+                          <Text style={styles.label}>{campo.label}:</Text>
+                          <ErrorBoundary>
+                            <BuscaVoltagemInput
+                              initialValue={valor}
+                              onSelect={(valorSelecionado) => {
+                                const codigoVoltagem =
+                                  typeof valorSelecionado === 'object'
+                                    ? valorSelecionado?.osvo_codi
+                                    : valorSelecionado
+                                setFormEdicao((prev) => ({
+                                  ...prev,
+                                  [campo.key]: codigoVoltagem || '',
+                                }))
+                              }}
+                            />
+                          </ErrorBoundary>
+                        </View>
+                      )
+                    }
+                    return (
+                      <View key={campo.key} style={{ marginBottom: 12 }}>
+                        <Text style={styles.label}>{campo.label}:</Text>
+                        <TextInput
+                          style={styles.inputInline}
+                          value={valor}
+                          onChangeText={(value) =>
+                            setFormEdicao((prev) => ({
+                              ...prev,
+                              [campo.key]: value,
+                            }))
+                          }
+                          placeholder={`Digite ${campo.label.toLowerCase()}`}
+                          placeholderTextColor="#666"
+                          keyboardType={
+                            campo.tipo === 'number' ? 'numeric' : 'default'
+                          }
+                        />
+                      </View>
                     )
-                    setOrdemAtual((prev) => ({ ...prev, ...payload }))
-                    setShowTipoModal(false)
-                  } catch (err) {
-                    console.error('❌ Erro ao salvar tipo/campos', err)
-                  }
-                }}>
-                <Text style={styles.modalButtonText}>Salvar Tipo e Campos</Text>
-              </TouchableOpacity>
+                  })}
+
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={async () => {
+                      try {
+                        const payload = {
+                          orde_tipo: tipoSelecionado,
+                        }
+                        camposVisiveis.forEach((campo) => {
+                          const v = formEdicao[campo.key]
+                          if (v !== undefined && v !== null && `${v}` !== '') {
+                            payload[campo.key] = v
+                          }
+                        })
+                        const resp = await apiPatchComContexto(
+                          `ordemdeservico/ordens/${ordemAtual.orde_nume}/`,
+                          payload
+                        )
+                        setOrdemAtual((prev) => ({ ...prev, ...payload }))
+                        setShowTipoModal(false)
+                      } catch (err) {
+                        console.error('❌ Erro ao salvar tipo/campos', err)
+
+                        let mensagemErro =
+                          err?.message || 'Não foi possível salvar'
+                        if (err?.response?.data) {
+                          const data = err.response.data
+                          if (data.detail) mensagemErro = data.detail
+                          else if (data.mensagem) mensagemErro = data.mensagem
+                          else if (data.error) mensagemErro = data.error
+                        }
+                        Alert.alert('Erro', mensagemErro)
+                      }
+                    }}>
+                    <Text style={styles.modalButtonText}>
+                      Salvar Tipo e Campos
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </ScrollView>
             </View>
@@ -645,10 +728,15 @@ const OrdemDetalhe = ({ route }) => {
                             { setor_origem: codigo }
                           )
                           setShowRetornarModal(false)
-                          if (response && (response.success || response.ordem)) {
-                            Alert.alert('Sucesso', `Ordem retornada para ${nome}`, [
-                              { text: 'OK' },
-                            ])
+                          if (
+                            response &&
+                            (response.success || response.ordem)
+                          ) {
+                            Alert.alert(
+                              'Sucesso',
+                              `Ordem retornada para ${nome}`,
+                              [{ text: 'OK' }]
+                            )
                             const ordemResp = response.ordem || response
                             handleOrdemAtualizada(ordemResp)
                             // Se selecionar setor 13 (Expedição), força status 4 via PATCH
@@ -658,22 +746,38 @@ const OrdemDetalhe = ({ route }) => {
                                   `ordemdeservico/ordens/${ordemAtual.orde_nume}/`,
                                   { orde_stat_orde: 4 }
                                 )
-                                setOrdemAtual((prev) => ({ ...prev, orde_stat_orde: 4 }))
+                                setOrdemAtual((prev) => ({
+                                  ...prev,
+                                  orde_stat_orde: 4,
+                                }))
                               } catch (e) {
-                                console.error('Erro ao definir status 4 após retorno ao setor 13', e)
+                                console.error(
+                                  'Erro ao definir status 4 após retorno ao setor 13',
+                                  e
+                                )
                               }
                             }
                           } else {
-                            Alert.alert('Processado', `Solicitação de retorno para ${nome} processada`, [
-                              { text: 'OK' },
-                            ])
+                            Alert.alert(
+                              'Processado',
+                              `Solicitação de retorno para ${nome} processada`,
+                              [{ text: 'OK' }]
+                            )
                           }
                         } catch (error) {
                           console.error('Erro ao retornar setor:', error)
-                          Alert.alert(
-                            'Erro',
-                            error.response?.data?.error || error.message || 'Não foi possível retornar a ordem'
-                          )
+
+                          let mensagemErro =
+                            error?.message ||
+                            'Não foi possível retornar a ordem'
+                          if (error?.response?.data) {
+                            const data = error.response.data
+                            if (data.detail) mensagemErro = data.detail
+                            else if (data.mensagem) mensagemErro = data.mensagem
+                            else if (data.error) mensagemErro = data.error
+                          }
+
+                          Alert.alert('Erro', mensagemErro)
                         }
                       }}
                     />
@@ -701,14 +805,21 @@ const OrdemDetalhe = ({ route }) => {
             <View style={styles.modalBounds}>
               <ScrollView keyboardShouldPersistTaps="handled">
                 <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Selecionar Setor da Reprovação</Text>
+                  <Text style={styles.modalTitle}>
+                    Selecionar Setor da Reprovação
+                  </Text>
                   <ErrorBoundary>
                     <BuscaSetorInput
                       initialValue={setorReprovNome}
                       onSelect={(setor) => {
                         const codigo = Number(setor?.osfs_codi ?? null)
                         const nome = setor?.osfs_nome || ''
-                        setFormEdicao((prev) => ({ ...prev, orde_seto_repr: Number.isFinite(codigo) ? codigo : null }))
+                        setFormEdicao((prev) => ({
+                          ...prev,
+                          orde_seto_repr: Number.isFinite(codigo)
+                            ? codigo
+                            : null,
+                        }))
                         setSetorReprovNome(nome)
                         setShowSetorReprovModal(false)
                       }}
@@ -728,7 +839,6 @@ const OrdemDetalhe = ({ route }) => {
     </View>
   )
 }
-
 
 const styles = StyleSheet.create({
   container: {

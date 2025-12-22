@@ -3,16 +3,16 @@ import React, { useEffect, useState } from 'react'
 import {
   View,
   Text,
+  TextInput,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { Picker } from '@react-native-picker/picker'
 import { apiGetComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
-
+import styles from '../styles/osPadraoStyle'
 const STATUS_OPTIONS = [
   { label: 'Todas', value: null },
   { label: 'Aberta', value: 0 },
@@ -25,12 +25,12 @@ const STATUS_OPTIONS = [
 ]
 
 const statusColors = {
-  0: '#d1ecf1',
+  0: '#85b9c2ff',
   1: '#fff3cd',
   2: '#f5c6cb',
   3: '#d1ecf1',
-  4: '#d4edda',
-  5: '#f5c6cb',
+  4: '#40ceaaff',
+  5: '#d3626eff',
   20: '#bee5eb',
 }
 
@@ -55,8 +55,8 @@ const getStatusText = (status) => {
 const PainelAcompanhamento = ({ navigation }) => {
   const [os, setOs] = useState([])
   const [loading, setLoading] = useState(false)
-  const [filtroStatus, setFiltroStatus] = useState(null)
-  const [filtroPrioridade, setFiltroPrioridade] = useState(null)
+  const [filtroOs, setFiltroOs] = useState(null)
+  const [filtroCliente, setFiltroCliente] = useState(null)
   const [contadores, setContadores] = useState({
     abertas: 0,
     atrasadas: 0,
@@ -81,8 +81,8 @@ const PainelAcompanhamento = ({ navigation }) => {
         page: pageNumber,
         page_size: 20,
       }
-      if (filtroStatus !== null) params.os_stat_os = filtroStatus
-      if (filtroPrioridade !== null) params.os_prio = filtroPrioridade
+      if (filtroOs !== null) params.os_os = filtroOs
+      if (filtroCliente !== null) params.cliente_nome = filtroCliente
 
       const response = await apiGetComContexto('Os/ordens/', params)
       const newData = Array.isArray(response)
@@ -108,7 +108,7 @@ const PainelAcompanhamento = ({ navigation }) => {
   useEffect(() => {
     setPage(1)
     fetchOs(1)
-  }, [filtroStatus, filtroPrioridade])
+  }, [filtroOs, filtroCliente])
 
   const onRefresh = () => {
     setRefreshing(true)
@@ -169,7 +169,7 @@ const PainelAcompanhamento = ({ navigation }) => {
           <Text style={styles.data}>{item.os_data_aber || '-'}</Text>
         </View>
         <Text style={styles.problema} numberOfLines={2}>
-          {item.os_prob || 'Sem descrição do problema'}
+          {item.os_prob_rela || 'Sem descrição do problema'}
         </Text>
       </View>
     </TouchableOpacity>
@@ -192,30 +192,35 @@ const PainelAcompanhamento = ({ navigation }) => {
           <Ionicons name="add-circle" size={20} color="#fff" />
           <Text style={styles.botaoCriarTexto}>Nova O.S.</Text>
         </TouchableOpacity>
-        {renderIndicador('Abertas', contadores.abertas, '#d1ecf1')}
+        {renderIndicador('Abertas', contadores.abertas, '#85b9c2ff')}
         {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
-        {renderIndicador('Concluídas', contadores.concluidas, '#d4edda')}
+        {renderIndicador('Concluídas', contadores.concluidas, '#40ceaaff')}
         {renderIndicador('Total', contadores.total, '#eee')}
       </View>
 
       <View style={styles.filtros}>
         <View style={styles.pickerContainer}>
-          <Text style={styles.pickerLabel}>Status</Text>
-          <Picker selectedValue={filtroStatus} onValueChange={setFiltroStatus}>
-            {STATUS_OPTIONS.map(({ label, value }) => (
-              <Picker.Item key={label} label={label} value={value} />
-            ))}
-          </Picker>
+          <Text style={styles.pickerLabel}>Número da OS</Text>
+          <TextInput
+            style={styles.pickerInput}
+            value={filtroOs}
+            onChangeText={setFiltroOs}
+            placeholder="Digite o número da OS"
+            keyboardType="numeric"
+            returnKeyType="done"
+            color="#ffffffff"
+          />
         </View>
         <View style={styles.pickerContainer}>
-          <Text style={styles.pickerLabel}>Prioridade</Text>
-          <Picker
-            selectedValue={filtroPrioridade}
-            onValueChange={setFiltroPrioridade}>
-            {PRIORIDADE_OPTIONS.map(({ label, value }) => (
-              <Picker.Item key={label} label={label} value={value} />
-            ))}
-          </Picker>
+          <Text style={styles.pickerLabel}>Cliente</Text>
+          <TextInput
+            style={styles.pickerInput}
+            value={filtroCliente}
+            onChangeText={setFiltroCliente}
+            placeholder="Digite o nome do cliente"
+            returnKeyType="done"
+            color="#ffffffff"
+          />
         </View>
       </View>
 
@@ -246,107 +251,5 @@ const PainelAcompanhamento = ({ navigation }) => {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12, backgroundColor: '#f7f7f7' },
-  indicadores: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 10,
-    paddingVertical: 8,
-  },
-  indicador: {
-    flex: 1,
-    marginHorizontal: 4,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    elevation: 2,
-  },
-  indicadorLabel: {
-    fontWeight: 'bold',
-    fontSize: 10,
-    marginBottom: 4,
-    opacity: 0.7,
-  },
-  indicadorValor: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  filtros: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
-    elevation: 2,
-  },
-  pickerContainer: {
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  pickerLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  botaoCriar: {
-    backgroundColor: '#284665',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  botaoCriarTexto: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginLeft: 6,
-  },
-  card: {
-    flex: 1,
-    margin: 5,
-    padding: 14,
-    borderRadius: 8,
-    borderLeftWidth: 6,
-    elevation: 3,
-    maxWidth: '48%',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  numeroContainer: { flexDirection: 'row', alignItems: 'center' },
-  numeroLabel: { fontSize: 12, color: '#666', marginRight: 4 },
-  numero: { fontWeight: 'bold', fontSize: 16 },
-  prioridadeContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  prioridade: {
-    fontSize: 11,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  cardBody: {},
-  clienteNome: { fontWeight: 'bold', marginBottom: 6 },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  statusContainer: { flexDirection: 'row' },
-  statusLabel: { fontWeight: 'bold', marginRight: 4 },
-  status: {},
-  data: { fontSize: 12, color: '#666' },
-  problema: { fontSize: 12, color: '#555' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 10, color: '#284665', fontSize: 16 },
-})
 
 export default PainelAcompanhamento

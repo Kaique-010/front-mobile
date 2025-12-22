@@ -3,13 +3,15 @@ import * as Location from 'expo-location'
 import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { Alert } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import Toast from 'react-native-toast-message'
+import { handleApiError } from '../utils/errorHandler'
 
 export const tirarFotoComGeo = () =>
   new Promise(async (resolve, reject) => {
     try {
       // Solicitar permissão da câmera
       const { status } = await ImagePicker.requestCameraPermissionsAsync()
-      
+
       if (status !== 'granted') {
         Alert.alert(
           'Permissão necessária',
@@ -37,14 +39,16 @@ export const tirarFotoComGeo = () =>
       }
 
       // Solicitar permissão de localização
-      const locationPermission = await Location.requestForegroundPermissionsAsync()
-      
+      const locationPermission =
+        await Location.requestForegroundPermissionsAsync()
+
       if (locationPermission.status !== 'granted') {
         resolve({
           imagem_base64: result.assets[0].base64,
           latitude: null,
           longitude: null,
         })
+
         return
       }
 
@@ -54,11 +58,16 @@ export const tirarFotoComGeo = () =>
           accuracy: Location.Accuracy.High,
           timeout: 3000,
         })
-        
+
         resolve({
           imagem_base64: result.assets[0].base64,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+        })
+        Toast.show({
+          type: 'success',
+          text1: 'Foto tirada com sucesso',
+          text2: 'Localização incluída',
         })
       } catch (locationError) {
         console.log('❌ Erro ao obter localização:', locationError)
@@ -70,6 +79,12 @@ export const tirarFotoComGeo = () =>
       }
     } catch (error) {
       console.log('❌ Erro geral:', error)
+      handleApiError(error, 'Erro ao tirar foto')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao tirar foto',
+        text2: error.message,
+      })
       reject(`Erro ao tirar foto: ${error.message}`)
     }
   })
@@ -86,19 +101,21 @@ export const enviarFotoEtapa = async ({
     const empresaId = await AsyncStorage.getItem('empresaId')
     const filialId = await AsyncStorage.getItem('filialId')
 
-    console.log('📤 Enviando foto:', { 
-      etapa, 
-      ordemId, 
-      codTecnico, 
-      empresaId, 
+    console.log('📤 Enviando foto:', {
+      etapa,
+      ordemId,
+      codTecnico,
+      empresaId,
       filialId,
       hasImage: !!data?.imagem_base64,
-      imageSize: data?.imagem_base64?.length || 0
+      imageSize: data?.imagem_base64?.length || 0,
     })
 
     // Validar dados obrigatórios
     if (!ordemId || !empresaId || !filialId) {
-      throw new Error('Dados obrigatórios faltando: ordemId, empresaId ou filialId')
+      throw new Error(
+        'Dados obrigatórios faltando: ordemId, empresaId ou filialId'
+      )
     }
 
     if (!data?.imagem_base64) {
@@ -162,21 +179,20 @@ export const enviarFotoEtapa = async ({
       tamanhoImagem: payload.imagem_upload?.length || 0,
       coordenadas: {
         latitude: payload.img_latitude,
-        longitude: payload.img_longitude
-      }
+        longitude: payload.img_longitude,
+      },
     })
 
     const result = await apiPostComContexto(endpoint, payload)
     console.log('✅ Foto enviada com sucesso:', result)
     return result
-
   } catch (error) {
     console.error('❌ Erro detalhado ao enviar foto:', {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
       etapa,
-      ordemId
+      ordemId,
     })
     throw error
   }

@@ -15,7 +15,8 @@ import {
   apiPostComContexto,
   apiPatchComContexto,
 } from '../utils/api'
-import { enqueueOperation } from 'componentsOrdemServico/services/syncService'
+import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
+import { enqueueOperation } from './services/syncService'
 import NetInfo from '@react-native-community/netinfo'
 
 export default function AbaHoras({ os_os, embedded = false }) {
@@ -264,7 +265,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
       }
       carregarRegistros()
     } catch (e) {
-      // Silencioso para não interromper fluxo do operador
+      
     }
   }
 
@@ -297,7 +298,19 @@ export default function AbaHoras({ os_os, embedded = false }) {
       <Text style={styles.title}>Horas da O.S</Text>
       <View style={styles.row}>
         <Text style={styles.label}>Data</Text>
-        <TextInput value={data} onChangeText={setData} style={styles.input} />
+        <View style={{ flex: 1 }}>
+          <DatePickerCrossPlatform
+            value={data}
+            onChange={(date) => {
+              const year = date.getFullYear()
+              const month = String(date.getMonth() + 1).padStart(2, '0')
+              const day = String(date.getDate()).padStart(2, '0')
+              setData(`${year}-${month}-${day}`)
+            }}
+            style={styles.input}
+            textStyle={{ color: '#fff' }}
+          />
+        </View>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Manhã</Text>
@@ -497,9 +510,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#232935',
-    padding: 8,
+    padding: 25,
     borderRadius: 6,
-    marginBottom: 6,
+    marginBottom: 25,
   },
   itemText: { color: '#fff', fontSize: 12 },
 })
