@@ -142,13 +142,13 @@ const styles = StyleSheet.create({
   },
   linkText: {
     color: '#faebd7',
-    fontSize: 16,
+    fontSize: 12,
     textDecorationLine: 'underline',
     marginTop: 5,
   },
   linkText2: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 12,
     textAlign: 'center',
     marginTop: 5,
   },

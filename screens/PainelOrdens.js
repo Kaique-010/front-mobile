@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { apiGetComContexto, apiPatchComContexto } from '../utils/api'
+import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import styles from '../styles/osPadraoStyle'
 const STATUS_OPTIONS = [
@@ -144,12 +144,16 @@ const PainelAcompanhamento = ({ navigation }) => {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiPatchComContexto(`Os/ordens/${item.os_os}/cancelar/`)
+
+            await apiDeleteComContexto(`Os/ordens/${item.os_os}/`)
 
             Alert.alert('Sucesso', 'OS cancelada')
             fetchOs(1) // recarrega lista
           } catch (e) {
-            Alert.alert('Erro', e?.message || 'Falha ao cancelar OS')
+            Alert.alert(
+              'Erro',
+              e?.message || 'Falha ao cancelar OS'
+            )
           }
         },
       },
