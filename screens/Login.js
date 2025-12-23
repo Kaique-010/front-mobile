@@ -21,9 +21,6 @@ import Toast from 'react-native-toast-message'
 import { useAuth } from '../contexts/AuthContext'
 import { handleApiError } from '../utils/errorHandler'
 
-const EMPRESAS_CACHE_KEY = 'empresas_login_cache'
-const EMPRESAS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
-
 export default function Login({ navigation }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -44,7 +41,19 @@ export default function Login({ navigation }) {
     error: clienteAuthError,
   } = useClienteAuth()
 
-  const { signIn } = useAuth()
+  const { signIn, isOfflineMode } = useAuth()
+
+  // Show offline indicator
+  useEffect(() => {
+    if (isOfflineMode) {
+      Toast.show({
+        type: 'info',
+        text1: '📴 Modo Offline',
+        text2: 'Você pode fazer login com credenciais salvas',
+        visibilityTime: 3000,
+      })
+    }
+  }, [isOfflineMode])
 
   // Verificação crítica do AuthContext
   useEffect(() => {
@@ -56,27 +65,44 @@ export default function Login({ navigation }) {
         text2: 'AuthContext não inicializado. Reinicie o app.',
         visibilityTime: 5000,
       })
+    } else {
+      console.log('✅ [Login] signIn function loaded successfully')
     }
   }, [signIn])
 
   useEffect(() => {
     const carregarDadosSalvos = async () => {
       try {
-        const docuSalvo = await AsyncStorage.getItem('docu')
-        const usernameSalvo = await AsyncStorage.getItem('username')
-        const documentoSalvo = await AsyncStorage.getItem('documento')
-        const usuarioSalvo = await AsyncStorage.getItem('usuario')
-        const senhaSalvo = await AsyncStorage.getItem('senha')
-        const setorSalvo = await AsyncStorage.getItem('setor')
+        const [
+          docuSalvo,
+          usernameSalvo,
+          documentoSalvo,
+          usuarioSalvo,
+          setorSalvo,
+        ] = await AsyncStorage.multiGet([
+          'docu',
+          'username',
+          'documento',
+          'usuario',
+          'setor',
+        ])
 
-        if (docuSalvo) setDocu(docuSalvo)
-        if (usernameSalvo) setUsername(usernameSalvo)
-        if (documentoSalvo) setDocumento(documentoSalvo)
-        if (usuarioSalvo) setUsuario(usuarioSalvo)
-        if (senhaSalvo) setSenha(senhaSalvo)
-        if (setorSalvo) setSetor(setorSalvo)
+        if (docuSalvo[1]) setDocu(docuSalvo[1])
+        if (usernameSalvo[1]) setUsername(usernameSalvo[1])
+        if (documentoSalvo[1]) setDocumento(documentoSalvo[1])
+        if (usuarioSalvo[1]) {
+          try {
+            const parsed = JSON.parse(usuarioSalvo[1])
+            setUsuario(parsed.username || '')
+          } catch {
+            setUsuario('')
+          }
+        }
+        if (setorSalvo[1]) setSetor(setorSalvo[1])
+
+        console.log('✅ [Login] Dados salvos carregados')
       } catch (e) {
-        console.error('Erro ao carregar dados salvos do AsyncStorage', e)
+        console.error('❌ [Login] Erro ao carregar dados salvos:', e)
       }
     }
 
@@ -101,63 +127,94 @@ export default function Login({ navigation }) {
     try {
       console.log('🔄 [OFFLINE] Tentando login offline...')
 
-      const savedUser = await AsyncStorage.getItem('username')
-      const savedPass = await AsyncStorage.getItem('last_password')
-      const savedSessionStr = await AsyncStorage.getItem('usuario')
-      const savedModulosStr = await AsyncStorage.getItem('modulos')
-      const savedSetor = await AsyncStorage.getItem('setor')
-      const savedDocu = await AsyncStorage.getItem('docu')
-      const savedSlug = await AsyncStorage.getItem('slug')
-      const savedAccess = await AsyncStorage.getItem('access')
-      const savedRefresh = await AsyncStorage.getItem('refresh')
+      const [
+        savedUser,
+        savedPass,
+        savedSessionStr,
+        savedModulosStr,
+        savedSetor,
+        savedDocu,
+        savedSlug,
+        savedAccess,
+        savedRefresh,
+      ] = await AsyncStorage.multiGet([
+        'username',
+        'last_password',
+        'usuario',
+        'modulos',
+        'setor',
+        'docu',
+        'slug',
+        'access',
+        'refresh',
+      ])
+
+      console.log('🔍 [OFFLINE] Dados encontrados:', {
+        hasUser: !!savedUser[1],
+        hasPass: !!savedPass[1],
+        hasSession: !!savedSessionStr[1],
+        username: savedUser[1],
+        inputUsername: username,
+      })
 
       if (
-        savedUser &&
-        savedPass &&
-        savedSessionStr &&
-        savedUser.toLowerCase() === username.toLowerCase() &&
-        savedPass === password
+        savedUser[1] &&
+        savedPass[1] &&
+        savedSessionStr[1] &&
+        savedUser[1].toLowerCase() === username.toLowerCase() &&
+        savedPass[1] === password
       ) {
         console.log('✅ [OFFLINE] Credenciais válidas no cache')
 
         Toast.show({
-          type: 'info',
-          text1: 'Modo Offline',
-          text2: 'Conectado com dados salvos',
+          type: 'success',
+          text1: '📴 Modo Offline',
+          text2: 'Login realizado com dados salvos',
           visibilityTime: 3000,
         })
 
-        const usuario = JSON.parse(savedSessionStr)
-        const modulos = savedModulosStr ? JSON.parse(savedModulosStr) : []
+        const usuario = JSON.parse(savedSessionStr[1])
+        const modulos = savedModulosStr[1] ? JSON.parse(savedModulosStr[1]) : []
 
         const sessionData = {
-          access: savedAccess,
-          refresh: savedRefresh,
-          usuario,
+          access: savedAccess[1] || 'offline_token',
+          refresh: savedRefresh[1] || 'offline_refresh',
+          usuario: usuario,
           usuario_id: usuario.usuario_id?.toString() || '',
-          username: savedUser,
-          setor: savedSetor,
-          docu: savedDocu,
-          slug: savedSlug,
-          modulos,
+          username: savedUser[1],
+          setor: savedSetor[1] || '',
+          docu: savedDocu[1] || '',
+          slug: savedSlug[1] || '',
+          modulos: modulos,
           userType: 'funcionario',
-          isOffline: true, // Flag para indicar modo offline
+          isOffline: true,
         }
 
-        // IMPORTANTE: Verificar se signIn existe antes de chamar
-        if (signIn && typeof signIn === 'function') {
-          signIn(sessionData)
+        console.log('📦 [OFFLINE] SessionData preparado:', {
+          hasAccess: !!sessionData.access,
+          hasUsuario: !!sessionData.usuario,
+          username: sessionData.username,
+        })
+
+        // IMPORTANTE: Chamar signIn e aguardar
+        const success = await signIn(sessionData)
+
+        if (success) {
+          console.log('✅ [OFFLINE] signIn executado com sucesso')
           return true
         } else {
-          console.error('❌ signIn não disponível no modo offline')
-          throw new Error('AuthContext não disponível')
+          console.error('❌ [OFFLINE] signIn falhou')
+          return false
         }
       } else {
-        console.log('❌ [OFFLINE] Credenciais não correspondem ao cache')
+        console.log('❌ [OFFLINE] Credenciais não correspondem:', {
+          userMatch: savedUser[1]?.toLowerCase() === username.toLowerCase(),
+          passMatch: savedPass[1] === password,
+        })
         return false
       }
     } catch (offlineError) {
-      console.error('❌ [OFFLINE] Erro ao tentar login offline:', offlineError)
+      console.error('❌ [OFFLINE] Erro:', offlineError)
       return false
     }
   }
@@ -190,14 +247,16 @@ export default function Login({ navigation }) {
 
     setIsLoading(true)
     setLoadingStep('Verificando dados...')
+    setError('') // Limpa erros anteriores
 
     try {
-      // Salvar dados básicos
+      // Salvar dados básicos primeiro
       await AsyncStorage.multiSet([
         ['docu', docu],
         ['username', username],
         ['setor', setor],
       ])
+      console.log('✅ [LOGIN] Dados básicos salvos')
 
       // Buscar slug
       setLoadingStep('Buscando configurações...')
@@ -205,14 +264,10 @@ export default function Login({ navigation }) {
       const slug = slugMap[docu]
 
       if (!slug) {
-        setError('CNPJ não encontrado.')
-        Toast.show({
-          type: 'error',
-          text1: 'CNPJ Inválido',
-          text2: 'CNPJ não cadastrado no sistema',
-        })
-        return
+        throw new Error('CNPJ não encontrado no sistema')
       }
+
+      console.log('✅ [LOGIN] Slug encontrado:', slug)
 
       // Tentar login online
       setLoadingStep('Conectando ao servidor...')
@@ -233,11 +288,31 @@ export default function Login({ navigation }) {
         }
       )
 
+      console.log('✅ [LOGIN] Resposta recebida do servidor')
+
       const { access, refresh, usuario } = response.data
       setModulos(response.data.modulos)
 
-      // Salvar sessão
+      // Salvar sessão COMPLETA
       setLoadingStep('Salvando sessão...')
+
+      await AsyncStorage.multiSet([
+        ['access', access],
+        ['refresh', refresh],
+        ['usuario', JSON.stringify(usuario)],
+        ['usuario_id', usuario.usuario_id.toString()],
+        ['username', usuario.username],
+        ['setor', setor],
+        ['docu', docu],
+        ['slug', slug],
+        ['modulos', JSON.stringify(response.data.modulos)],
+        ['userType', 'funcionario'],
+        ['last_password', password], // CRÍTICO para offline
+      ])
+
+      console.log('✅ [LOGIN] Todos os dados salvos no AsyncStorage')
+
+      // Preparar sessionData
       const sessionData = {
         access,
         refresh,
@@ -252,31 +327,28 @@ export default function Login({ navigation }) {
         isOffline: false,
       }
 
-      await AsyncStorage.multiSet([
-        ['access', access],
-        ['refresh', refresh],
-        ['usuario', JSON.stringify(usuario)],
-        ['usuario_id', usuario.usuario_id.toString()],
-        ['username', usuario.username],
-        ['setor', setor],
-        ['docu', docu],
-        ['slug', slug],
-        ['modulos', JSON.stringify(response.data.modulos)],
-        ['userType', 'funcionario'],
-        ['last_password', password], // Salvar senha para offline
-      ])
+      console.log('📦 [LOGIN] SessionData preparado para signIn')
 
-      console.log('✅ [LOGIN] Login online bem-sucedido')
+      // Atualizar contexto
+      const signInSuccess = await signIn(sessionData)
+
+      if (!signInSuccess) {
+        throw new Error('Falha ao atualizar contexto de autenticação')
+      }
+
+      console.log(`✅ [LOGIN] Login completo em ${Date.now() - startTime}ms`)
+
       Toast.show({
         type: 'success',
         text1: 'Login realizado',
-        text2: 'Bem-vindo!',
+        text2: `Bem-vindo, ${usuario.username}!`,
         visibilityTime: 2000,
       })
 
-      // Atualizar contexto
-      signIn(sessionData)
-      navigation.navigate('SelectEmpresa')
+      // Navegar após pequeno delay para o Toast aparecer
+      setTimeout(() => {
+        navigation.navigate('SelectEmpresa')
+      }, 500)
     } catch (error) {
       console.error(`❌ [LOGIN] Erro após ${Date.now() - startTime}ms:`, error)
 
@@ -285,24 +357,27 @@ export default function Login({ navigation }) {
         !error.response ||
         error.code === 'ECONNABORTED' ||
         error.message === 'Network Error' ||
-        error.code === 'ETIMEDOUT'
+        error.code === 'ETIMEDOUT' ||
+        error.message?.includes('Network request failed')
 
       if (isNetworkError) {
-        console.log(
-          '🔄 [LOGIN] Erro de rede detectado, tentando modo offline...'
-        )
+        console.log('🔄 [LOGIN] Erro de rede detectado, tentando offline...')
+        setLoadingStep('Tentando modo offline...')
 
         const loginOfflineSuccess = await tentarLoginOffline(username, password)
 
         if (loginOfflineSuccess) {
-          navigation.navigate('SelectEmpresa')
-          return
+          console.log('✅ [LOGIN] Login offline bem-sucedido')
+          setTimeout(() => {
+            navigation.navigate('SelectEmpresa')
+          }, 500)
+          return // Exit here on success
         } else {
-          setError('Sem conexão e credenciais não encontradas offline.')
+          setError('Sem conexão e nenhuma sessão salva encontrada.')
           Toast.show({
             type: 'error',
-            text1: 'Sem Conexão',
-            text2: 'Não foi possível fazer login offline',
+            text1: 'Login Offline Falhou',
+            text2: 'Faça login online pelo menos uma vez',
             visibilityTime: 4000,
           })
         }
@@ -324,7 +399,7 @@ export default function Login({ navigation }) {
             text2: 'Tente novamente em alguns instantes',
           })
         } else {
-          setError('Erro inesperado no login')
+          setError(error.message || 'Erro inesperado no login')
           Toast.show({
             type: 'error',
             text1: 'Erro',
@@ -482,6 +557,23 @@ export default function Login({ navigation }) {
         style={styles.title}>
         SPARTACUS MOBILE
       </MotiText>
+
+      {/* Indicador de modo offline */}
+      {isOfflineMode && (
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{
+            backgroundColor: '#FF9500',
+            padding: 8,
+            borderRadius: 8,
+            marginBottom: 10,
+          }}>
+          <Text style={{ color: '#fff', textAlign: 'center', fontSize: 12 }}>
+            📴 Sem conexão - Use credenciais salvas
+          </Text>
+        </MotiView>
+      )}
 
       {renderCheckbox()}
 
