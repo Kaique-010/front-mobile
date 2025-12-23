@@ -18,22 +18,20 @@ const STATUS_OPTIONS = [
   { label: 'Aberta', value: 0 },
   { label: 'Em Orçamento gerado', value: 1 },
   { label: 'Aguardando Liberação', value: 2 },
-  { label: 'Liberada', value: 3 },
+  { label: 'Cancelada', value: 3 },
   { label: 'Finalizada', value: 4 },
   { label: 'Reprovada', value: 5 },
   { label: 'Faturada parcial', value: 20 },
-  { label: 'Cancelada', value: 22 },
 ]
 
 const statusColors = {
   0: '#85b9c2ff',
   1: '#fff3cd',
   2: '#f5c6cb',
-  3: '#d1ecf1',
+  3: '#f73131ff',
   4: '#40ceaaff',
   5: '#d3626eff',
   20: '#bee5eb',
-  22: '#f73131ff',
 }
 
 const PRIORIDADE_OPTIONS = [
@@ -71,7 +69,7 @@ const PainelAcompanhamento = ({ navigation }) => {
 
   const calcularContadores = (osData) => {
     const abertas = osData.filter((o) => o.os_stat_os === 0).length
-    const canceladas = osData.filter((o) => o.os_stat_os === 22).length
+    const canceladas = osData.filter((o) => o.os_stat_os === 3).length
     const concluidas = osData.filter((o) => o.os_stat_os === 4).length
     return { abertas, canceladas, concluidas, total: osData.length }
   }
@@ -144,16 +142,12 @@ const PainelAcompanhamento = ({ navigation }) => {
         style: 'destructive',
         onPress: async () => {
           try {
-
             await apiDeleteComContexto(`Os/ordens/${item.os_os}/`)
 
             Alert.alert('Sucesso', 'OS cancelada')
             fetchOs(1) // recarrega lista
           } catch (e) {
-            Alert.alert(
-              'Erro',
-              e?.message || 'Falha ao cancelar OS'
-            )
+            Alert.alert('Erro', e?.message || 'Falha ao cancelar OS')
           }
         },
       },
