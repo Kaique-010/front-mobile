@@ -21,76 +21,9 @@ import Toast from 'react-native-toast-message'
 import { useAuth } from '../contexts/AuthContext'
 import { handleApiError } from '../utils/errorHandler'
 
-// Cache para dados de empresas
 const EMPRESAS_CACHE_KEY = 'empresas_login_cache'
 const EMPRESAS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
 
-// Função para buscar empresas com cache (rota nova com slug)
-const buscarEmpresasComCache = async () => {
-  try {
-    // Resolve slug a partir do CNPJ salvo
-    const docu = await AsyncStorage.getItem('docu')
-    const slugMap = await fetchSlugMap()
-    const slug = slugMap?.[docu]
-
-    if (!slug) {
-      throw new Error('Slug não encontrado para o CNPJ informado')
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao buscar empresas',
-        text2: 'Slug não encontrado para o CNPJ informado',
-      })
-    }
-
-    const response = await fetch(`${BASE_URL}/api/${slug}/licencas/empresas/`)
-    const empresas = await response.json()
-
-    // Salvar no cache
-    const cacheData = {
-      empresas,
-      timestamp: Date.now(),
-    }
-    await safeSetItem(EMPRESAS_CACHE_KEY, JSON.stringify(cacheData))
-    console.log(
-      `💾 [CACHE-LOGIN] Salvadas ${empresas.length} empresas no cache`
-    )
-    Toast.show({
-      type: 'success',
-      text1: 'Empresas carregadas com sucesso',
-    })
-
-    return empresas
-  } catch (error) {
-    console.log('❌ Erro ao buscar empresas:', error)
-
-    // Tentar recuperar do cache em caso de erro
-    try {
-      const cachedData = await AsyncStorage.getItem(EMPRESAS_CACHE_KEY)
-      if (cachedData) {
-        const { empresas } = JSON.parse(cachedData)
-        console.log(
-          `💾 [CACHE-LOGIN] Recuperado do cache: ${empresas.length} empresas`
-        )
-        Toast.show({
-          type: 'info',
-          text1: 'Modo Offline',
-          text2: 'Empresas carregadas do cache.',
-        })
-        return empresas
-      }
-    } catch (cacheError) {
-      console.log('❌ Erro ao ler cache de empresas:', cacheError)
-    }
-
-    handleApiError(error, 'Erro ao buscar empresas')
-    Toast.show({
-      type: 'error',
-      text1: 'Erro ao buscar empresas',
-      text2: error.message,
-    })
-    return []
-  }
-}
 export default function Login({ navigation }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -99,11 +32,12 @@ export default function Login({ navigation }) {
   const [isLoading, setIsLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState('')
   const [modulos, setModulos] = useState([])
-  const [isClienteLogin, setIsClienteLogin] = useState(false) // Checkbox para cliente
-  const [documento, setDocumento] = useState('') // Para login de cliente
-  const [usuario, setUsuario] = useState('') // Para login de cliente
-  const [senha, setSenha] = useState('') // Para login de cliente
-  const [setor, setSetor] = useState('') // Setor do usuário
+  const [isClienteLogin, setIsClienteLogin] = useState(false)
+  const [documento, setDocumento] = useState('')
+  const [usuario, setUsuario] = useState('')
+  const [senha, setSenha] = useState('')
+  const [setor, setSetor] = useState('')
+
   const {
     login: clienteLogin,
     loading: clienteAuthLoading,
@@ -112,14 +46,15 @@ export default function Login({ navigation }) {
 
   const { signIn } = useAuth()
 
-  // Debug: Verificar se signIn está definido
+  // Verificação crítica do AuthContext
   useEffect(() => {
     if (!signIn) {
-      console.error('CRITICAL: signIn function is undefined in Login.js')
+      console.error('❌ CRITICAL: signIn function is undefined!')
       Toast.show({
         type: 'error',
         text1: 'Erro de Configuração',
-        text2: 'Função de login não disponível. Contate o suporte.',
+        text2: 'AuthContext não inicializado. Reinicie o app.',
+        visibilityTime: 5000,
       })
     }
   }, [signIn])
@@ -162,8 +97,74 @@ export default function Login({ navigation }) {
     setDocumento(text.replace(/\D/g, ''))
   }
 
+  const tentarLoginOffline = async (username, password) => {
+    try {
+      console.log('🔄 [OFFLINE] Tentando login offline...')
+
+      const savedUser = await AsyncStorage.getItem('username')
+      const savedPass = await AsyncStorage.getItem('last_password')
+      const savedSessionStr = await AsyncStorage.getItem('usuario')
+      const savedModulosStr = await AsyncStorage.getItem('modulos')
+      const savedSetor = await AsyncStorage.getItem('setor')
+      const savedDocu = await AsyncStorage.getItem('docu')
+      const savedSlug = await AsyncStorage.getItem('slug')
+      const savedAccess = await AsyncStorage.getItem('access')
+      const savedRefresh = await AsyncStorage.getItem('refresh')
+
+      if (
+        savedUser &&
+        savedPass &&
+        savedSessionStr &&
+        savedUser.toLowerCase() === username.toLowerCase() &&
+        savedPass === password
+      ) {
+        console.log('✅ [OFFLINE] Credenciais válidas no cache')
+
+        Toast.show({
+          type: 'info',
+          text1: 'Modo Offline',
+          text2: 'Conectado com dados salvos',
+          visibilityTime: 3000,
+        })
+
+        const usuario = JSON.parse(savedSessionStr)
+        const modulos = savedModulosStr ? JSON.parse(savedModulosStr) : []
+
+        const sessionData = {
+          access: savedAccess,
+          refresh: savedRefresh,
+          usuario,
+          usuario_id: usuario.usuario_id?.toString() || '',
+          username: savedUser,
+          setor: savedSetor,
+          docu: savedDocu,
+          slug: savedSlug,
+          modulos,
+          userType: 'funcionario',
+          isOffline: true, // Flag para indicar modo offline
+        }
+
+        // IMPORTANTE: Verificar se signIn existe antes de chamar
+        if (signIn && typeof signIn === 'function') {
+          signIn(sessionData)
+          return true
+        } else {
+          console.error('❌ signIn não disponível no modo offline')
+          throw new Error('AuthContext não disponível')
+        }
+      } else {
+        console.log('❌ [OFFLINE] Credenciais não correspondem ao cache')
+        return false
+      }
+    } catch (offlineError) {
+      console.error('❌ [OFFLINE] Erro ao tentar login offline:', offlineError)
+      return false
+    }
+  }
+
   const handleLoginFuncionario = async () => {
     const startTime = Date.now()
+
     if (!docu || !username || !password) {
       setError('Preencha todos os campos.')
       Toast.show({
@@ -174,40 +175,47 @@ export default function Login({ navigation }) {
       return
     }
 
+    // Verificação crítica antes de prosseguir
+    if (!signIn || typeof signIn !== 'function') {
+      console.error('❌ signIn não disponível')
+      setError('Erro de configuração. Reinicie o aplicativo.')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro Crítico',
+        text2: 'Sistema de autenticação não inicializado',
+        visibilityTime: 5000,
+      })
+      return
+    }
+
     setIsLoading(true)
-    Toast.show({
-      type: 'info',
-      text1: 'Conectando',
-      text2: 'Iniciando login...',
-      visibilityTime: 2000,
-    })
     setLoadingStep('Verificando dados...')
 
     try {
-      // Log: Salvando dados no AsyncStorage
-      const asyncStartTime = Date.now()
-
+      // Salvar dados básicos
       await AsyncStorage.multiSet([
         ['docu', docu],
         ['username', username],
         ['setor', setor],
       ])
-      // Log: Buscando SlugMap (agora otimizado)
+
+      // Buscar slug
       setLoadingStep('Buscando configurações...')
-      const slugStartTime = Date.now()
-      const slugMap = await fetchSlugMap() // Usando função otimizada
+      const slugMap = await fetchSlugMap()
       const slug = slugMap[docu]
 
       if (!slug) {
         setError('CNPJ não encontrado.')
-        setIsLoading(false)
-        setLoadingStep('')
+        Toast.show({
+          type: 'error',
+          text1: 'CNPJ Inválido',
+          text2: 'CNPJ não cadastrado no sistema',
+        })
         return
       }
 
-      // Log: Fazendo requisição de login
+      // Tentar login online
       setLoadingStep('Conectando ao servidor...')
-      const loginStartTime = Date.now()
       const response = await axios.post(
         `${BASE_URL}/api/${slug}/licencas/login/`,
         {
@@ -221,17 +229,15 @@ export default function Login({ navigation }) {
             'X-CNPJ': docu,
             'X-Username': username,
           },
-          timeout: 15000, // 15 segundos de timeout (reduzido de 30s)
+          timeout: 15000,
         }
       )
 
-      setModulos(response.data.modulos)
       const { access, refresh, usuario } = response.data
+      setModulos(response.data.modulos)
 
-      // Log: Salvando dados da sessão
+      // Salvar sessão
       setLoadingStep('Salvando sessão...')
-      const sessionStartTime = Date.now()
-
       const sessionData = {
         access,
         refresh,
@@ -243,6 +249,7 @@ export default function Login({ navigation }) {
         slug,
         modulos: response.data.modulos,
         userType: 'funcionario',
+        isOffline: false,
       }
 
       await AsyncStorage.multiSet([
@@ -256,113 +263,74 @@ export default function Login({ navigation }) {
         ['slug', slug],
         ['modulos', JSON.stringify(response.data.modulos)],
         ['userType', 'funcionario'],
-        ['last_password', password], // Salva senha para login offline
+        ['last_password', password], // Salvar senha para offline
       ])
 
-      // Update Context
-      if (signIn) {
-        signIn(sessionData)
-      } else {
-        console.error('SignIn function missing')
-      }
+      console.log('✅ [LOGIN] Login online bem-sucedido')
+      Toast.show({
+        type: 'success',
+        text1: 'Login realizado',
+        text2: 'Bem-vindo!',
+        visibilityTime: 2000,
+      })
 
+      // Atualizar contexto
+      signIn(sessionData)
       navigation.navigate('SelectEmpresa')
     } catch (error) {
-      console.error(`❌ [LOGIN-TIMING] Erro após: ${Date.now() - startTime}ms`)
-      console.error(`❌ [LOGIN-TIMING] Detalhes do erro:`, error)
+      console.error(`❌ [LOGIN] Erro após ${Date.now() - startTime}ms:`, error)
 
-      // TENTATIVA DE LOGIN OFFLINE
-      if (
+      // Verificar se é erro de rede
+      const isNetworkError =
         !error.response ||
         error.code === 'ECONNABORTED' ||
-        error.message === 'Network Error'
-      ) {
-        try {
-          const savedUser = await AsyncStorage.getItem('username')
-          const savedPass = await AsyncStorage.getItem('last_password')
-          const savedSessionStr = await AsyncStorage.getItem('usuario')
-          const savedModulosStr = await AsyncStorage.getItem('modulos')
-          const savedSetor = await AsyncStorage.getItem('setor')
-          const savedDocu = await AsyncStorage.getItem('docu')
-          const savedSlug = await AsyncStorage.getItem('slug')
-          const savedAccess = await AsyncStorage.getItem('access')
-          const savedRefresh = await AsyncStorage.getItem('refresh')
+        error.message === 'Network Error' ||
+        error.code === 'ETIMEDOUT'
 
-          if (
-            savedUser &&
-            savedPass &&
-            savedSessionStr &&
-            savedUser.toLowerCase() === username.toLowerCase() &&
-            savedPass === password
-          ) {
-            console.log('[LOGIN] Entrando em modo offline')
-            Toast.show({
-              type: 'info',
-              text1: 'Modo Offline',
-              text2: 'Logando com dados em cache...',
-              visibilityTime: 2000,
-            })
-
-            const usuario = JSON.parse(savedSessionStr)
-            const modulos = savedModulosStr ? JSON.parse(savedModulosStr) : []
-
-            const sessionData = {
-              access: savedAccess,
-              refresh: savedRefresh,
-              usuario,
-              usuario_id: usuario.usuario_id.toString(),
-              username: savedUser,
-              setor: savedSetor,
-              docu: savedDocu,
-              slug: savedSlug,
-              modulos,
-              userType: 'funcionario',
-            }
-
-            if (signIn) {
-              signIn(sessionData)
-              navigation.navigate('SelectEmpresa')
-              setIsLoading(false)
-              setLoadingStep('')
-              return
-            }
-          }
-        } catch (offlineError) {
-          console.error('Erro ao tentar login offline:', offlineError)
-        }
-      }
-
-      console.log(`🔍 [DEBUG] Senha digitada: "${password}"`) // Debug da senha
-
-      if (error.code === 'ECONNABORTED') {
-        setError('Timeout na conexão. Verifique sua internet.')
-      } else if (error.response) {
-        console.error(`❌ [LOGIN-TIMING] Status HTTP: ${error.response.status}`)
-        console.error(
-          `❌ [LOGIN-TIMING] Dados da resposta:`,
-          error.response.data
+      if (isNetworkError) {
+        console.log(
+          '🔄 [LOGIN] Erro de rede detectado, tentando modo offline...'
         )
 
-        // Toast específico para senha incorreta
-        if (
-          error.response.status === 401 &&
-          error.response.data?.error === 'Senha incorreta.'
-        ) {
+        const loginOfflineSuccess = await tentarLoginOffline(username, password)
+
+        if (loginOfflineSuccess) {
+          navigation.navigate('SelectEmpresa')
+          return
+        } else {
+          setError('Sem conexão e credenciais não encontradas offline.')
           Toast.show({
             type: 'error',
-            text1: 'Senha Incorreta',
-            text2: `Senha informada: "${password}"`,
+            text1: 'Sem Conexão',
+            text2: 'Não foi possível fazer login offline',
             visibilityTime: 4000,
           })
-          setError('Senha incorreta')
-        } else {
-          setError(`Erro do servidor: ${error.response.status}`)
         }
-      } else if (error.request) {
-        console.error(`❌ [LOGIN-TIMING] Sem resposta do servidor`)
-        setError('Sem resposta do servidor. Verifique sua conexão.')
       } else {
-        setError('Erro inesperado no login.')
+        // Erro de credenciais ou servidor
+        if (error.response?.status === 401) {
+          setError('Usuário ou senha incorretos')
+          Toast.show({
+            type: 'error',
+            text1: 'Credenciais Inválidas',
+            text2: 'Verifique seu usuário e senha',
+            visibilityTime: 4000,
+          })
+        } else if (error.response?.status >= 500) {
+          setError('Erro no servidor. Tente novamente.')
+          Toast.show({
+            type: 'error',
+            text1: 'Erro no Servidor',
+            text2: 'Tente novamente em alguns instantes',
+          })
+        } else {
+          setError('Erro inesperado no login')
+          Toast.show({
+            type: 'error',
+            text1: 'Erro',
+            text2: error.message || 'Erro desconhecido',
+          })
+        }
       }
     } finally {
       setIsLoading(false)
@@ -373,6 +341,11 @@ export default function Login({ navigation }) {
   const handleLoginCliente = async () => {
     if (!documento || !usuario || !senha) {
       setError('Preencha todos os campos.')
+      Toast.show({
+        type: 'error',
+        text1: 'Campos vazios',
+        text2: 'Preencha todos os dados',
+      })
       return
     }
 
@@ -383,14 +356,29 @@ export default function Login({ navigation }) {
       const success = await clienteLogin(documento, usuario, senha)
 
       if (success) {
-        console.log('Login cliente sucesso')
+        console.log('✅ Login cliente sucesso')
+        Toast.show({
+          type: 'success',
+          text1: 'Login realizado',
+          text2: 'Bem-vindo!',
+        })
         navigation.navigate('HomeCliente')
       } else {
         setError('Credenciais inválidas')
+        Toast.show({
+          type: 'error',
+          text1: 'Erro',
+          text2: 'Usuário ou senha incorretos',
+        })
       }
     } catch (err) {
       console.error('[LOGIN CLIENTE ERROR]', err)
       setError('Erro no login')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível fazer login',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -476,7 +464,6 @@ export default function Login({ navigation }) {
       style={styles.container}
       behavior="padding"
       keyboardVerticalOffset={100}>
-      {/* Logo animada com bounce */}
       <MotiView
         from={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -488,7 +475,6 @@ export default function Login({ navigation }) {
         />
       </MotiView>
 
-      {/* Título */}
       <MotiText
         from={{ opacity: 0, translateY: -20 }}
         animate={{ opacity: 1, translateY: 0 }}
@@ -497,10 +483,8 @@ export default function Login({ navigation }) {
         SPARTACUS MOBILE
       </MotiText>
 
-      {/* Checkbox para login de cliente */}
       {renderCheckbox()}
 
-      {/* Campos com animação */}
       {fieldsToRender.map(
         ([label, value, onChange, icon, placeholder, keyboard, secure], i) => (
           <MotiView
@@ -521,7 +505,7 @@ export default function Login({ navigation }) {
                 value={value}
                 onChangeText={(text) => {
                   onChange(text)
-                  setError('') // Limpa o erro ao digitar
+                  setError('')
                 }}
                 placeholder={placeholder}
                 placeholderTextColor="#aaa"
@@ -535,7 +519,6 @@ export default function Login({ navigation }) {
         )
       )}
 
-      {/* Botão animado */}
       <MotiView
         from={{ scale: 0.95 }}
         animate={{ scale: isLoading ? 0.95 : 1 }}
@@ -570,7 +553,6 @@ export default function Login({ navigation }) {
         </TouchableOpacity>
       </MotiView>
 
-      {/* Erro */}
       {error ? (
         <MotiText
           from={{ opacity: 0 }}

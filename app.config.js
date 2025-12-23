@@ -1,5 +1,5 @@
-const VERSION = '1.0.12'
-const BUILD = 12
+const VERSION = '1.0.13'
+const BUILD = 13
 
 export default {
   expo: {
