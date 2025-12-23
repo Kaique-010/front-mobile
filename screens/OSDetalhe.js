@@ -28,6 +28,7 @@ import { Linking, Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useEnviarEmailOs } from '../hooks/useEnviarEmailOs'
 import { useEnviarWhatsOs } from '../hooks/useEnviarWhatsOs'
+import Toast from 'react-native-toast-message'
 
 // Remove o prefixo e retorna só o base64
 function sanitizeSignature(base64) {
@@ -135,7 +136,11 @@ const OsDetalhe = ({ route, navigation }) => {
     try {
       await gerarPdfServidorComp(os)
     } catch (e) {
-      Alert.alert('Erro', e?.message || 'Falha ao gerar PDF da OS')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: e?.message || 'Falha ao gerar PDF da OS',
+      })
     }
   }
 

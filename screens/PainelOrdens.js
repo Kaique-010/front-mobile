@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
-import { apiGetComContexto } from '../utils/api'
+import { apiGetComContexto, apiPatchComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import styles from '../styles/osPadraoStyle'
 const STATUS_OPTIONS = [
@@ -22,6 +22,7 @@ const STATUS_OPTIONS = [
   { label: 'Finalizada', value: 4 },
   { label: 'Reprovada', value: 5 },
   { label: 'Faturada parcial', value: 20 },
+  { label: 'Cancelada', value: 22 },
 ]
 
 const statusColors = {
@@ -32,6 +33,7 @@ const statusColors = {
   4: '#40ceaaff',
   5: '#d3626eff',
   20: '#bee5eb',
+  22: '#f73131ff',
 }
 
 const PRIORIDADE_OPTIONS = [
@@ -59,7 +61,7 @@ const PainelAcompanhamento = ({ navigation }) => {
   const [filtroCliente, setFiltroCliente] = useState(null)
   const [contadores, setContadores] = useState({
     abertas: 0,
-    atrasadas: 0,
+    canceladas: 0,
     concluidas: 0,
     total: 0,
   })
@@ -69,9 +71,19 @@ const PainelAcompanhamento = ({ navigation }) => {
 
   const calcularContadores = (osData) => {
     const abertas = osData.filter((o) => o.os_stat_os === 0).length
+    const canceladas = osData.filter((o) => o.os_stat_os === 22).length
     const concluidas = osData.filter((o) => o.os_stat_os === 4).length
-    const atrasadas = osData.filter((o) => o.os_stat_os === 2).length
-    return { abertas, atrasadas, concluidas, total: osData.length }
+    return { abertas, canceladas, concluidas, total: osData.length }
+  }
+
+  const formatarDataBRL = (dataISO) => {
+    if (!dataISO) return '-'
+    const data = new Date(dataISO)
+    return `${data.getDate().toString().padStart(2, '0')}/${(
+      data.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, '0')}/${data.getFullYear()}`
   }
 
   const fetchOs = async (pageNumber = 1) => {
@@ -124,6 +136,26 @@ const PainelAcompanhamento = ({ navigation }) => {
     }
   }
 
+  const cancelarOS = (item) => {
+    Alert.alert('Confirmar Cancelamento', `Cancelar a OS #${item.os_os}?`, [
+      { text: 'Não', style: 'cancel' },
+      {
+        text: 'Sim, cancelar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiPatchComContexto(`Os/ordens/${item.os_os}/cancelar/`)
+
+            Alert.alert('Sucesso', 'OS cancelada')
+            fetchOs(1) // recarrega lista
+          } catch (e) {
+            Alert.alert('Erro', e?.message || 'Falha ao cancelar OS')
+          }
+        },
+      },
+    ])
+  }
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[
@@ -134,7 +166,9 @@ const PainelAcompanhamento = ({ navigation }) => {
         },
       ]}
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('OsDetalhe', { os: item })}>
+      onPress={() => navigation.navigate('OsDetalhe', { os: item })}
+      onLongPress={item.os_stat_os === 22 ? undefined : () => cancelarOS(item)}
+      delayLongPress={600}>
       <View style={styles.cardHeader}>
         <View style={styles.numeroContainer}>
           <Text style={styles.numeroLabel}>OS</Text>
@@ -156,7 +190,6 @@ const PainelAcompanhamento = ({ navigation }) => {
           </Text>
         </View>
       </View>
-
       <View style={styles.cardBody}>
         <Text style={styles.clienteNome} numberOfLines={1}>
           {item.cliente_nome || 'Cliente não informado'}
@@ -166,7 +199,9 @@ const PainelAcompanhamento = ({ navigation }) => {
             <Text style={styles.statusLabel}>Status:</Text>
             <Text style={styles.status}>{getStatusText(item.os_stat_os)}</Text>
           </View>
-          <Text style={styles.data}>{item.os_data_aber || '-'}</Text>
+          <Text style={styles.dataAbertura}>
+            {formatarDataBRL(item.os_data_aber || '-')}
+          </Text>
         </View>
         <Text style={styles.problema} numberOfLines={2}>
           {item.os_prob_rela || 'Sem descrição do problema'}
@@ -193,7 +228,7 @@ const PainelAcompanhamento = ({ navigation }) => {
           <Text style={styles.botaoCriarTexto}>Nova O.S.</Text>
         </TouchableOpacity>
         {renderIndicador('Abertas', contadores.abertas, '#85b9c2ff')}
-        {renderIndicador('Atrasadas', contadores.atrasadas, '#f8d7da')}
+        {renderIndicador('Canceladas', contadores.canceladas, '#c55353ff')}
         {renderIndicador('Concluídas', contadores.concluidas, '#40ceaaff')}
         {renderIndicador('Total', contadores.total, '#eee')}
       </View>
