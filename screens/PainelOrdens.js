@@ -13,6 +13,7 @@ import {
 import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import styles from '../styles/osPadraoStyle'
+import { handleApiError } from '../utils/errorHandler'
 const STATUS_OPTIONS = [
   { label: 'Todas', value: null },
   { label: 'Aberta', value: 0 },
@@ -108,7 +109,12 @@ const PainelAcompanhamento = ({ navigation }) => {
 
       setHasMore(!!response.next)
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao carregar ordens de serviço')
+      handleApiError(error, 'Erro ao carregar ordens de serviço')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Erro ao carregar ordens de serviço',
+      })
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -147,7 +153,12 @@ const PainelAcompanhamento = ({ navigation }) => {
             Alert.alert('Sucesso', 'OS cancelada')
             fetchOs(1) // recarrega lista
           } catch (e) {
-            Alert.alert('Erro', e?.message || 'Falha ao cancelar OS')
+            handleApiError(e, 'Erro ao cancelar OS')
+            Toast.show({
+              type: 'error',
+              text1: 'Erro',
+              text2: e?.message || 'Falha ao cancelar OS',
+            })
           }
         },
       },
