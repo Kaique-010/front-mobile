@@ -8,13 +8,16 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
-import { apiGetComContextoSemFili } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import { useFocusEffect } from '@react-navigation/native'
 import debounce from 'lodash.debounce'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { apiDelete, apiGet } from '../utils/api'
 import styles from '../styles/entidadeStyles'
+import database from '../componentsOrdemServico/schemas/database'
+import { Q } from '@nozbe/watermelondb'
+
+import { apiGetComContexto } from '../utils/api'
+import NetInfo from '@react-native-community/netinfo'
 
 // Cache para entidades
 const ENTIDADES_CACHE_KEY = 'entidades_cache'
@@ -61,7 +64,10 @@ export default function Entidades({ navigation }) {
   )
 
   const buscarEntidades = async (nextPage = false) => {
-    if (!slug || (isFetchingMore && nextPage)) return
+    // Se não tiver slug, não busca (ou busca tudo? melhor garantir slug)
+    // if (!slug) return
+
+    if (isFetchingMore && nextPage) return
 
     if (!nextPage) {
       setLoading(true)
@@ -73,13 +79,79 @@ export default function Entidades({ navigation }) {
 
     try {
       const atualOffset = nextPage ? offset : 0
-      const data = await apiGetComContextoSemFili(
-        `entidades/entidades/`,
-        { limit: 50, offset: atualOffset, search: searchValue },
-        'enti_'
-      )
 
-      const novos = data.results || []
+      // Busca LOCAL (WatermelonDB)
+      const collection = database.collections.get('mega_entidades')
+      let queryConditions = []
+
+      if (searchValue) {
+        const sanitized = Q.sanitizeLikeString(searchValue)
+        queryConditions.push(
+          Q.or(
+            Q.where('enti_nome', Q.like(`%${sanitized}%`)),
+            Q.where('enti_cpf', Q.like(`%${sanitized}%`)),
+            Q.where('enti_cnpj', Q.like(`%${sanitized}%`))
+          )
+        )
+      }
+
+      // Query Base
+      const queryBase = collection.query(...queryConditions)
+      const totalCount = await queryBase.fetchCount()
+
+      // Se banco local estiver vazio e não for uma busca filtrada, tenta API
+      if (totalCount === 0 && !searchValue) {
+        const netState = await NetInfo.fetch()
+        if (netState.isConnected) {
+          console.log('[ENTIDADES] Banco local vazio. Buscando da API...')
+          try {
+            const apiData = await apiGetComContexto('entidades/entidades/', {
+              limit: 50,
+            })
+            const resultsApi = apiData?.results || apiData || []
+
+            if (resultsApi.length > 0) {
+              // Mapear para o formato esperado (compatível com _raw)
+              const mapped = resultsApi.map((cli) => ({
+                enti_nome: cli.enti_nome,
+                enti_clie: String(cli.enti_clie),
+                enti_tipo_enti: cli.enti_tipo_enti,
+                enti_cpf: cli.enti_cpf,
+                enti_cnpj: cli.enti_cnpj,
+                enti_cida: cli.enti_cida,
+                empresa_nome: 'Carregado da API',
+              }))
+
+              setEntidades(mapped)
+              setHasMore(false) // Paginação da API simplificada por enquanto
+
+              // Opcional: Salvar no banco em background?
+              // Melhor deixar o syncService cuidar disso para não duplicar lógica complexa
+              // Mas podemos avisar o usuário
+              Toast.show({
+                type: 'info',
+                text1: 'Modo Online',
+                text2:
+                  'Exibindo dados da API. Sincronização iniciará em breve.',
+              })
+
+              return // Encerra aqui, pois já setou dados
+            }
+          } catch (errApi) {
+            console.error('[ENTIDADES] Erro no fallback da API:', errApi)
+          }
+        }
+      }
+
+      // Paginação
+      const queryPaginated = collection.query(
+        ...queryConditions,
+        Q.skip(atualOffset),
+        Q.take(50)
+      )
+      const results = await queryPaginated.fetch()
+
+      const novos = results.map((item) => item._raw)
 
       if (nextPage) {
         setEntidades((prev) => [...prev, ...novos])
@@ -87,17 +159,26 @@ export default function Entidades({ navigation }) {
         setEntidades(novos)
       }
 
-      if (!data.next) {
+      if (atualOffset + 50 >= totalCount) {
         setHasMore(false)
       } else {
         setOffset(atualOffset + 50)
       }
+
+      console.log(
+        `[ENTIDADES] Busca local: ${results.length} itens encontrados. Total: ${totalCount}`
+      )
     } catch (error) {
-      console.log('❌ Erro ao buscar Entidades:', error.message)
+      console.log('❌ Erro ao buscar Entidades (Local):', error.message)
+      Toast.show({
+        type: 'error',
+        text1: 'Erro na busca',
+        text2: 'Falha ao buscar dados locais',
+      })
     } finally {
       setLoading(false)
       setIsFetchingMore(false)
-      setInitialLoading(false) // <- esse é o pulo do gato
+      setInitialLoading(false)
     }
   }
 

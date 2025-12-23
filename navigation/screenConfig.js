@@ -38,6 +38,11 @@ export const screenConfigs = [
     options: createHeaderOptions('Logs do Sistema'),
   },
   {
+    name: 'DatabaseInspector',
+    component: Screens.DatabaseInspector,
+    options: createHeaderOptions('Inspetor de DB'),
+  },
+  {
     name: 'AlterarSenha',
     component: Screens.AlterarSenhaScreen,
     options: createHeaderOptions('Alterar Senha'),

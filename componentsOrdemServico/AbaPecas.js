@@ -17,6 +17,7 @@ import NetInfo from '@react-native-community/netinfo'
 import { enqueueOperation } from 'componentsOrdemServico/services/syncService'
 import database from './schemas/database'
 import { Q } from '@nozbe/watermelondb'
+import uuid from 'react-native-uuid'
 
 export default function AbaPecas({
   pecas = [],
@@ -54,7 +55,65 @@ export default function AbaPecas({
     return () => sub && sub()
   }, [])
 
+  const carregarDoBanco = async () => {
+    try {
+      setIsLoading(true)
+      console.log('Carregando peças do banco local para OS:', os_os)
+      const pecasCollection = database.collections.get('pecas_os')
+      const produtosCollection = database.collections.get('mega_produtos')
+
+      const localPecas = await pecasCollection
+        .query(Q.where('peca_os', os_os))
+        .fetch()
+
+      const pecasFormatadas = await Promise.all(
+        localPecas.map(async (p) => {
+          let nome = 'Produto'
+          try {
+            const prods = await produtosCollection
+              .query(Q.where('prod_codi', p.pecaProd))
+              .fetch()
+            if (prods.length > 0) nome = prods[0].prodNome
+          } catch (e) {}
+
+          return {
+            peca_item: p.pecaItem,
+            peca_prod: p.pecaProd,
+            peca_quan: p.pecaQuan,
+            peca_unit: p.pecaUnit,
+            peca_tota: p.pecaTota,
+            produto_nome: nome,
+          }
+        })
+      )
+
+      setProdutos(pecasFormatadas)
+      setPecas(pecasFormatadas)
+    } catch (e) {
+      console.log('Erro ao carregar do banco:', e)
+      Toast.show({
+        type: 'error',
+        text1: 'Erro local',
+        text2: 'Falha ao ler dados offline',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const carregarPecasExistentes = async () => {
+    const isLocalOS = String(os_os).startsWith('OFFLINE-')
+
+    if (isLocalOS) {
+      await carregarDoBanco()
+      return
+    }
+
+    if (!online) {
+      await carregarDoBanco()
+      return
+    }
+
     try {
       setIsLoading(true)
       console.log('Carregando peças para OS:', os_os)
@@ -91,13 +150,18 @@ export default function AbaPecas({
         'Erro detalhado ao carregar peças:',
         error.response?.data || error.message
       )
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao carregar peças',
-        text2: Array.isArray(error.response?.data)
-          ? error.response.data[0]
-          : 'Não foi possível carregar as peças existentes',
-      })
+
+      if (!error.response) {
+        console.log('Erro de rede, tentando carregar do banco local...')
+        await carregarDoBanco()
+        return
+      }
+
+      handleApiError(
+        error,
+        'Não foi possível carregar as peças existentes',
+        'Erro ao carregar peças'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -214,46 +278,159 @@ export default function AbaPecas({
     if (isSubmitting) return
     setIsSubmitting(true)
 
+    const isLocalOS = String(os_os).startsWith('OFFLINE-')
+
+    // Preparar listas para API/Fila (removendo IDs locais se for adicionar)
+    const adicionar = produtos
+      .filter(
+        (p) => !p.peca_item || String(p.peca_item).startsWith('OFFLINE-ITEM-')
+      )
+      .map((p) => ({
+        peca_os: os_os,
+        peca_prod: p.peca_prod,
+        peca_quan: p.peca_quan,
+        peca_unit: p.peca_unit,
+        peca_tota: p.peca_quan * p.peca_unit,
+        peca_empr: empresaId,
+        peca_fili: filialId,
+        // Não enviamos peca_item para adição (backend gera)
+      }))
+
+    const editar = produtos
+      .filter(
+        (p) =>
+          p.peca_item &&
+          !String(p.peca_item).startsWith('OFFLINE-ITEM-') && // Apenas itens remotos
+          !removidos.find((r) => r.peca_item === p.peca_item)
+      )
+      .map((p) => ({
+        peca_item: p.peca_item,
+        peca_os: os_os,
+        peca_prod: p.peca_prod,
+        peca_quan: p.peca_quan,
+        peca_unit: p.peca_unit,
+        peca_tota: p.peca_quan * p.peca_unit,
+        peca_empr: empresaId,
+        peca_fili: filialId,
+      }))
+
+    const remover = removidos
+      .filter(
+        (r) => r.peca_item && !String(r.peca_item).startsWith('OFFLINE-ITEM-')
+      )
+      .map((r) => ({
+        peca_empr: empresaId,
+        peca_fili: filialId,
+        peca_os: os_os,
+        peca_item: r.peca_item,
+      }))
+
     try {
-      const adicionar = produtos
-        .filter((p) => !p.peca_item)
-        .map((p) => ({
-          peca_os: os_os,
-          peca_prod: p.peca_prod,
-          peca_quan: p.peca_quan,
-          peca_unit: p.peca_unit,
-          peca_tota: p.peca_quan * p.peca_unit, // Calculando o total
-          peca_empr: empresaId,
-          peca_fili: filialId,
-        }))
+      // 1. Salvar Localmente no WatermelonDB (Sempre, para UI otimista e Offline)
+      await database.write(async () => {
+        const pecasCollection = database.collections.get('pecas_os')
 
-      const editar = produtos
-        .filter(
-          (p) =>
-            p.peca_item && !removidos.find((r) => r.peca_item === p.peca_item)
-        )
-        .map((p) => ({
-          peca_item: p.peca_item,
-          peca_os: os_os,
-          peca_prod: p.peca_prod,
-          peca_quan: p.peca_quan,
-          peca_unit: p.peca_unit,
-          peca_tota: p.peca_quan * p.peca_unit, // Calculando o total
-          peca_empr: empresaId,
-          peca_fili: filialId,
-        }))
+        // Adicionar novos (gerando IDs locais se necessário)
+        // Nota: 'produtos' contém o estado atual da tela.
+        // Precisamos identificar quais são *realmente* novos no banco.
+        // Simplificação: Upsert ou Check existence?
+        // Como 'produtos' pode ter misturado novos e velhos, vamos iterar.
 
-      const remover = removidos
-        .filter((r) => r.peca_item)
-        .map((r) => ({
-          peca_empr: empresaId,
-          peca_fili: filialId,
-          peca_os: os_os,
-          peca_item: r.peca_item,
-        }))
+        for (const p of produtos) {
+          const isNewLocal = !p.peca_item
+          const isExistingLocal = String(p.peca_item).startsWith(
+            'OFFLINE-ITEM-'
+          )
 
+          if (isNewLocal) {
+            // Criar novo registro local
+            const novoId = `OFFLINE-ITEM-${uuid.v4()}`
+            await pecasCollection.create((rec) => {
+              rec.pecaOs = os_os
+              rec.pecaEmpr = String(empresaId)
+              rec.pecaFili = String(filialId)
+              rec.pecaProd = String(p.peca_prod)
+              rec.pecaQuan = p.peca_quan
+              rec.pecaUnit = p.peca_unit
+              rec.pecaTota = p.peca_quan * p.peca_unit
+              rec.pecaItem = novoId
+            })
+            // Atualizar objeto em memória para ter o ID (hacky, mas útil para o reload não duplicar)
+            p.peca_item = novoId
+          } else if (isExistingLocal) {
+            // Atualizar registro local existente
+            const recs = await pecasCollection
+              .query(
+                Q.where('peca_os', os_os),
+                Q.where('peca_item', p.peca_item)
+              )
+              .fetch()
+            if (recs.length > 0) {
+              await recs[0].update((rec) => {
+                rec.pecaQuan = p.peca_quan
+                rec.pecaUnit = p.peca_unit
+                rec.pecaTota = p.peca_quan * p.peca_unit
+              })
+            }
+          }
+          // Se for item remoto (não começa com OFFLINE), o sync cuida, mas podemos atualizar localmente também?
+          // Sim, para manter cache atualizado.
+          else if (p.peca_item) {
+            const recs = await pecasCollection
+              .query(
+                Q.where('peca_os', os_os),
+                Q.where('peca_item', p.peca_item)
+              )
+              .fetch()
+            if (recs.length > 0) {
+              await recs[0].update((rec) => {
+                rec.pecaQuan = p.peca_quan
+                rec.pecaUnit = p.peca_unit
+                rec.pecaTota = p.peca_quan * p.peca_unit
+              })
+            }
+          }
+        }
+
+        // Remover deletados
+        for (const r of removidos) {
+          const recs = await pecasCollection
+            .query(Q.where('peca_os', os_os), Q.where('peca_item', r.peca_item))
+            .fetch()
+          if (recs.length > 0) {
+            await recs[0].markAsDeleted() // ou destroyPermanently
+          }
+        }
+      })
+
+      // 2. Se for Offline ou OS Local, Enfileirar
+      if (isLocalOS || !online) {
+        const payload = { adicionar, editar, remover }
+
+        // Só enfileira se houver algo para fazer
+        if (adicionar.length > 0 || editar.length > 0 || remover.length > 0) {
+          await enqueueOperation(
+            'Os/pecas/update-lista/',
+            'post',
+            payload,
+            isLocalOS ? os_os : null
+          )
+        }
+
+        Toast.show({
+          type: 'success',
+          text1: 'Salvo offline',
+          text2: 'Alterações salvas localmente e enfileiradas',
+        })
+
+        await carregarDoBanco() // Recarrega do banco para garantir consistência
+        setRemovidos([])
+        setIsSubmitting(false)
+        return
+      }
+
+      // 3. Se Online e OS Remota, enviar para API
       const payload = { adicionar, editar, remover }
-
       console.log('Enviando payload:', payload)
 
       const response = await apiPostComContexto(
@@ -278,16 +455,36 @@ export default function AbaPecas({
         'Erro detalhado ao salvar:',
         err.response?.data || err.message
       )
+      handleApiError(err, 'Erro ao salvar peças')
 
-      // Se for erro de rede/conexão, tenta enfileirar
+      // Fallback de erro de rede (caso caia aqui mesmo achando que estava online)
       if (!err.response) {
         try {
-          await enqueueOperation('Os/pecas/update-lista/', 'post', payload)
+          const payload = { adicionar, editar, remover }
+          await enqueueOperation(
+            'Os/pecas/update-lista/',
+            'post',
+            payload,
+            isLocalOS ? os_os : null
+          )
           Toast.show({
             type: 'info',
             text1: 'Sem conexão',
             text2: 'Alterações enfileiradas para sincronizar quando online',
           })
+
+          // Também salvar localmente se falhou na rede
+          // (Idealmente o bloco de salvar localmente deveria ser executado antes da API,
+          // mas aqui estamos no catch. Vamos simplificar e assumir que o usuário tentará novamente
+          // ou o enqueue resolve.)
+          // Para garantir, poderíamos chamar o bloco de escrita DB aqui também, mas ficaria duplicado.
+          // Melhor estratégia: Sempre salvar no DB local PRIMEIRO (como fiz acima), depois tentar API.
+
+          // Como movi o "Salvar Localmente" para o início do try, os dados JÁ ESTÃO no banco local!
+          // Então basta recarregar.
+          await carregarDoBanco()
+          setRemovidos([])
+
           return
         } catch (e) {
           console.log('Falha ao enfileirar:', e)

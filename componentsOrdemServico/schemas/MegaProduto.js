@@ -1,7 +1,7 @@
 import { Model } from '@nozbe/watermelondb'
 import { field, text } from '@nozbe/watermelondb/decorators'
 
-class MegaProduto extends Model {
+export default class MegaProduto extends Model {
   static table = 'mega_produtos'
 
   @field('prod_codi') prodCodi
@@ -12,6 +12,4 @@ class MegaProduto extends Model {
   @field('marca_nome') marcaNome
   @text('imagem_base64') imagemBase64
 }
-
-export default MegaProduto
 

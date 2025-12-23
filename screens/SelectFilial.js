@@ -42,7 +42,6 @@ export default function SelectFilial({ route, navigation }) {
           return
         }
 
-        // Ajuste na URL para refletir o parâmetro correto
         const response = await axios.get(
           `${BASE_URL}/api/${slug}/licencas/filiais/?empresa_id=${empresaId}`,
           {
@@ -54,12 +53,22 @@ export default function SelectFilial({ route, navigation }) {
         )
 
         setFiliais(response.data)
+        await AsyncStorage.setItem(
+          `CACHED_FILIAIS_${empresaId}`,
+          JSON.stringify(response.data)
+        )
       } catch (error) {
         console.error(
           'Erro ao carregar filiais:',
           error.response?.data || error.message
         )
-        Alert.alert('Erro', 'Erro ao carregar filiais. Tente novamente.')
+        const cached = await AsyncStorage.getItem(`CACHED_FILIAIS_${empresaId}`)
+        if (cached) {
+          console.log('📦 Usando cache de filiais')
+          setFiliais(JSON.parse(cached))
+        } else {
+          Alert.alert('Erro', 'Erro ao carregar filiais e sem cache.')
+        }
       } finally {
         setLoading(false)
       }

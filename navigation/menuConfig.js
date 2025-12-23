@@ -372,6 +372,12 @@ export const getMenuConfig = (hasModulo) => {
       icon: 'settings',
       items: [
         {
+          name: 'Inspetor de DB',
+          route: 'DatabaseInspector',
+          icon: 'database',
+          condition: true,
+        },
+        {
           name: 'Alterar Senha',
           route: 'AlterarSenha',
           icon: 'lock',
@@ -387,6 +393,7 @@ export const getMenuConfig = (hasModulo) => {
           name: 'Coletor de Estoque',
           route: 'ColetorEstoque',
           icon: 'barcode-scan',
+          iconType: 'MaterialCommunityIcons',
           condition: hasModulo('Produtos'),
         },
         {

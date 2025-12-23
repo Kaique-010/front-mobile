@@ -1,6 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { checkAndSyncMegaData } from '../componentsOrdemServico/services/syncService'
+import { 
+  checkAndSyncMegaData, 
+  startSyncLoop, 
+  stopSyncLoop, 
+  startNetInfoBridge 
+} from '../componentsOrdemServico/services/syncService'
 
 const AuthContext = createContext({})
 
@@ -11,6 +16,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     loadStorageData()
+    startNetInfoBridge()
+    return () => stopSyncLoop()
   }, [])
 
   const loadStorageData = async () => {
@@ -31,8 +38,10 @@ export const AuthProvider = ({ children }) => {
           type: userType[1] || 'funcionario'
         })
         
+        // Start Sync Loop
+        startSyncLoop()
+
         // Trigger background sync for Mega Data (respecting 12h cache)
-        // We don't await this so it doesn't block the UI
         checkAndSyncMegaData().catch(console.error)
       }
     } catch (error) {
@@ -44,22 +53,18 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async (data) => {
     // data should contain: access, refresh, usuario, etc.
-    // Logic to save is assumed to be done by Login.js OR we move it here.
-    // To keep it flexible with the existing complex Login.js, we accept the user object
-    // and assume storage is handled or we handle it here.
-    
-    // Let's handle the state update here.
-    // The Login.js is doing the heavy lifting of AsyncStorage.multiSet
-    // So we just update the state to reflect "Logged In"
-    
     setUser(data.usuario)
     
+    // Start Sync Loop
+    startSyncLoop()
+
     // Trigger Sync
     checkAndSyncMegaData().catch(console.error)
   }
 
   const signOut = async () => {
     try {
+      stopSyncLoop()
       await AsyncStorage.multiRemove([
         'access',
         'refresh',

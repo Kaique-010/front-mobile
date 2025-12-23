@@ -33,9 +33,11 @@ export const handleApiError = (
         // e.g. { field_name: ["Error 1"], other_field: ["Error 2"] }
         // or { detail: "Error message" }
         
-        if (data.detail && typeof data.detail === 'string') {
+        if (data.detalhes && Array.isArray(data.detalhes) && data.detalhes.length > 0) {
+        message = data.detalhes.map(d => d.message || JSON.stringify(d)).join('\n')
+      } else if (data.detail && typeof data.detail === 'string') {
            message = data.detail
-        } else {
+      } else {
            // Map field errors
            const errorMessages = []
            Object.entries(data).forEach(([key, value]) => {

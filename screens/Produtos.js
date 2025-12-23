@@ -9,11 +9,15 @@ import {
   Image,
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
-import { apiGetComContextoSemFili, safeSetItem } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 import Toast from 'react-native-toast-message'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../styles/produtosStyles'
+import database from '../componentsOrdemServico/schemas/database'
+import { Q } from '@nozbe/watermelondb'
+
+import { apiGetComContextoSemFili } from '../utils/api'
+import NetInfo from '@react-native-community/netinfo'
 
 const ITEM_HEIGHT = 140
 
@@ -40,10 +44,18 @@ const ProdutoCard = memo(({ item, navigation }) => (
       )}
       <View style={styles.infoContainer}>
         <Text style={styles.codigo}>Código: {item.prod_codi}</Text>
-        <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
-        <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
-        <Text style={styles.saldo}>Saldo: {item.saldo_estoque}</Text>
-        <Text style={styles.saldo}>Preço: {item.prod_preco_vista}</Text>
+        {item.prod_unme && (
+          <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
+        )}
+        {item.prod_loca && (
+          <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
+        )}
+        <Text style={styles.saldo}>
+          Saldo: {item.saldo || item.saldo_estoque || 0}
+        </Text>
+        <Text style={styles.saldo}>
+          Preço: {item.preco_vista || item.prod_preco_vista || '0.00'}
+        </Text>
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.botao}
@@ -85,124 +97,97 @@ export default function Produtos({ navigation }) {
 
   const buscarProdutos = useCallback(
     async ({ reset = false, forceRefresh = false }) => {
-      // ✨ 1. Adicione forceRefresh
       if (!slug || (isFetchingMore && !reset)) return
 
-      // Opcional, mas recomendado: invalidar o cache se for forçado
-      if (forceRefresh) {
-        const cacheKey = searchTerm
-          ? PRODUTOS_BUSCA_CACHE_KEY
-          : PRODUTOS_BASICOS_CACHE_KEY
-        try {
-          console.log(
-            `🗑️ Forçando atualização, invalidando cache para: "${
-              searchTerm || 'inicial'
-            }"`
-          )
-          await AsyncStorage.removeItem(
-            `${cacheKey}_${searchTerm || 'inicial'}`
-          )
-        } catch (e) {
-          console.log('⚠️ Erro ao invalidar o cache:', e)
-        }
-      }
-
-      const cacheKey = searchTerm
-        ? PRODUTOS_BUSCA_CACHE_KEY
-        : PRODUTOS_BASICOS_CACHE_KEY
-      const cacheDuration = searchTerm
-        ? PRODUTOS_BUSCA_CACHE_DURATION
-        : PRODUTOS_BASICOS_CACHE_DURATION
-
-      // ✨ 2. Altere a condição para não verificar o cache se forceRefresh for true
-      if (reset && !forceRefresh) {
-        try {
-          const cacheData = await AsyncStorage.getItem(
-            `${cacheKey}_${searchTerm || 'inicial'}`
-          )
-          if (cacheData) {
-            const { results, timestamp } = JSON.parse(cacheData)
-            const now = Date.now()
-
-            if (now - timestamp < cacheDuration) {
-              console.log(
-                `📦 [CACHE-OTIMIZADO] Usando cache para: ${
-                  searchTerm || 'listagem inicial'
-                }`
-              )
-              setProdutos(results || [])
-              setInitialLoading(false)
-              setIsSearching(false)
-              return
-            }
-          }
-        } catch (error) {
-          console.log('⚠️ Erro ao ler cache otimizado:', error)
-        }
-      }
-
       const atualOffset = reset ? 0 : offset
-      // Otimização: Menos itens para busca, mais para listagem inicial
-      const limitePorRequisicao = searchTerm ? 5 : 20
 
       if (reset) {
-        setInitialLoading(produtos.length === 0)
         setIsSearching(true)
-        setOffset(0)
         setHasMore(true)
+        if (produtos.length === 0) setInitialLoading(true)
       } else {
         setIsFetchingMore(true)
       }
 
       try {
-        console.log(
-          `🚀 [BUSCA-OTIMIZADA] Buscando ${limitePorRequisicao} produtos${
-            searchTerm ? ` para: "${searchTerm}"` : ''
-          }`
-        )
+        const collection = database.collections.get('mega_produtos')
+        let queryConditions = []
 
-        const data = await apiGetComContextoSemFili(
-          'produtos/produtos/',
-          {
-            limit: limitePorRequisicao,
-            offset: atualOffset,
-            search: searchTerm,
-          },
-          'prod_'
-        )
+        if (searchTerm) {
+          const sanitized = Q.sanitizeLikeString(searchTerm)
+          queryConditions.push(
+            Q.or(
+              Q.where('prod_nome', Q.like(`%${sanitized}%`)),
+              Q.where('prod_codi', Q.like(`%${sanitized}%`))
+            )
+          )
+        }
 
-        const novos = data.results || []
-        console.log(
-          `✅ [BUSCA-OTIMIZADA] Recebidos ${novos.length} produtos em ${
-            searchTerm ? 'busca' : 'listagem'
-          }`
-        )
+        const queryBase = collection.query(...queryConditions)
+        const count = await queryBase.fetchCount()
 
-        setProdutos(reset ? novos : [...produtos, ...novos])
-        setOffset(atualOffset + limitePorRequisicao)
-        setHasMore(data.next !== null)
+        // Se banco local vazio e online, tenta API
+        if (count === 0 && !searchTerm) {
+          const netState = await NetInfo.fetch()
+          if (netState.isConnected) {
+            console.log('[PRODUTOS] Banco local vazio. Buscando da API...')
+            try {
+              // Usando endpoint detalhado que retorna saldo e imagem
+              const apiData = await apiGetComContextoSemFili(
+                'produtos/produtosdetalhados/',
+                { limit: 50 }
+              )
+              const resultsApi = apiData?.results || apiData || []
 
-        // Salvar no cache otimizado
-        if (reset) {
-          try {
-            const cacheData = {
-              results: novos,
-              timestamp: Date.now(),
+              if (resultsApi.length > 0) {
+                const mapped = resultsApi.map((p) => ({
+                  prod_nome: p.nome || p.prod_nome,
+                  prod_codi: String(p.codigo || p.prod_codi),
+                  prod_unme: p.unidade || p.prod_unme,
+                  prod_loca: p.localizacao || p.prod_loca,
+                  saldo: Number(p.saldo ?? 0),
+                  preco_vista: Number(p.preco_vista ?? p.prod_preco_vista ?? 0),
+                  imagem_base64: p.imagem_base64 || null,
+                }))
+
+                setProdutos(mapped)
+                setHasMore(false)
+                Toast.show({
+                  type: 'info',
+                  text1: 'Modo Online',
+                  text2: 'Exibindo dados da API.',
+                })
+                return
+              }
+            } catch (errApi) {
+              console.error('[PRODUTOS] Erro no fallback da API:', errApi)
             }
-            await safeSetItem(
-              `${cacheKey}_${searchTerm || 'inicial'}`,
-              JSON.stringify(cacheData)
-            )
-            console.log(
-              `💾 [CACHE-OTIMIZADO] Salvos ${novos.length} produtos no cache`
-            )
-          } catch (error) {
-            console.log('⚠️ Erro ao salvar cache otimizado:', error)
           }
         }
+
+        const queryPaginated = collection.query(
+          ...queryConditions,
+          Q.skip(atualOffset),
+          Q.take(50)
+        )
+        const results = await queryPaginated.fetch()
+
+        const novos = results.map((item) => item._raw)
+
+        setProdutos(reset ? novos : [...produtos, ...novos])
+        setOffset(atualOffset + 50)
+        setHasMore(atualOffset + 50 < count)
+
+        console.log(
+          `[PRODUTOS] Busca local: ${novos.length} itens. Total: ${count}`
+        )
       } catch (error) {
-        console.log('❌ Erro ao buscar produtos:', error.message)
-        Toast.show({ type: 'error', text1: 'Erro ao buscar produtos' })
+        console.error('Erro buscar produtos local:', error)
+        Toast.show({
+          type: 'error',
+          text1: 'Erro ao buscar produtos',
+          text2: error.message,
+        })
       } finally {
         setInitialLoading(false)
         setIsSearching(false)

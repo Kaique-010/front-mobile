@@ -35,6 +35,11 @@ const buscarEmpresasComCache = async () => {
 
     if (!slug) {
       throw new Error('Slug não encontrado para o CNPJ informado')
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao buscar empresas',
+        text2: 'Slug não encontrado para o CNPJ informado',
+      })
     }
 
     const response = await fetch(`${BASE_URL}/api/${slug}/licencas/empresas/`)
@@ -49,10 +54,34 @@ const buscarEmpresasComCache = async () => {
     console.log(
       `💾 [CACHE-LOGIN] Salvadas ${empresas.length} empresas no cache`
     )
+    Toast.show({
+      type: 'success',
+      text1: 'Empresas carregadas com sucesso',
+    })
 
     return empresas
   } catch (error) {
     console.log('❌ Erro ao buscar empresas:', error)
+
+    // Tentar recuperar do cache em caso de erro
+    try {
+      const cachedData = await AsyncStorage.getItem(EMPRESAS_CACHE_KEY)
+      if (cachedData) {
+        const { empresas } = JSON.parse(cachedData)
+        console.log(
+          `💾 [CACHE-LOGIN] Recuperado do cache: ${empresas.length} empresas`
+        )
+        Toast.show({
+          type: 'info',
+          text1: 'Modo Offline',
+          text2: 'Empresas carregadas do cache.',
+        })
+        return empresas
+      }
+    } catch (cacheError) {
+      console.log('❌ Erro ao ler cache de empresas:', cacheError)
+    }
+
     handleApiError(error, 'Erro ao buscar empresas')
     Toast.show({
       type: 'error',
@@ -62,7 +91,6 @@ const buscarEmpresasComCache = async () => {
     return []
   }
 }
-
 export default function Login({ navigation }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -228,6 +256,7 @@ export default function Login({ navigation }) {
         ['slug', slug],
         ['modulos', JSON.stringify(response.data.modulos)],
         ['userType', 'funcionario'],
+        ['last_password', password], // Salva senha para login offline
       ])
 
       // Update Context
@@ -241,6 +270,68 @@ export default function Login({ navigation }) {
     } catch (error) {
       console.error(`❌ [LOGIN-TIMING] Erro após: ${Date.now() - startTime}ms`)
       console.error(`❌ [LOGIN-TIMING] Detalhes do erro:`, error)
+
+      // TENTATIVA DE LOGIN OFFLINE
+      if (
+        !error.response ||
+        error.code === 'ECONNABORTED' ||
+        error.message === 'Network Error'
+      ) {
+        try {
+          const savedUser = await AsyncStorage.getItem('username')
+          const savedPass = await AsyncStorage.getItem('last_password')
+          const savedSessionStr = await AsyncStorage.getItem('usuario')
+          const savedModulosStr = await AsyncStorage.getItem('modulos')
+          const savedSetor = await AsyncStorage.getItem('setor')
+          const savedDocu = await AsyncStorage.getItem('docu')
+          const savedSlug = await AsyncStorage.getItem('slug')
+          const savedAccess = await AsyncStorage.getItem('access')
+          const savedRefresh = await AsyncStorage.getItem('refresh')
+
+          if (
+            savedUser &&
+            savedPass &&
+            savedSessionStr &&
+            savedUser.toLowerCase() === username.toLowerCase() &&
+            savedPass === password
+          ) {
+            console.log('[LOGIN] Entrando em modo offline')
+            Toast.show({
+              type: 'info',
+              text1: 'Modo Offline',
+              text2: 'Logando com dados em cache...',
+              visibilityTime: 2000,
+            })
+
+            const usuario = JSON.parse(savedSessionStr)
+            const modulos = savedModulosStr ? JSON.parse(savedModulosStr) : []
+
+            const sessionData = {
+              access: savedAccess,
+              refresh: savedRefresh,
+              usuario,
+              usuario_id: usuario.usuario_id.toString(),
+              username: savedUser,
+              setor: savedSetor,
+              docu: savedDocu,
+              slug: savedSlug,
+              modulos,
+              userType: 'funcionario',
+            }
+
+            if (signIn) {
+              signIn(sessionData)
+              navigation.navigate('SelectEmpresa')
+              setIsLoading(false)
+              setLoadingStep('')
+              return
+            }
+          }
+        } catch (offlineError) {
+          console.error('Erro ao tentar login offline:', offlineError)
+        }
+      }
+
       console.log(`🔍 [DEBUG] Senha digitada: "${password}"`) // Debug da senha
 
       if (error.code === 'ECONNABORTED') {

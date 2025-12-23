@@ -1,7 +1,7 @@
 import { Model } from '@nozbe/watermelondb'
 import { field } from '@nozbe/watermelondb/decorators'
 
-class MegaEntidade extends Model {
+export default class MegaEntidade extends Model {
   static table = 'mega_entidades'
 
   @field('enti_clie') entiClie
@@ -12,6 +12,4 @@ class MegaEntidade extends Model {
   @field('enti_cnpj') entiCnpj
   @field('enti_cida') entiCida
 }
-
-export default MegaEntidade
 

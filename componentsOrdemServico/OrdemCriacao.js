@@ -27,6 +27,8 @@ import {
   startNetInfoBridge,
   bootstrapMegaCache,
 } from 'componentsOrdemServico/services/syncService'
+import database from '../componentsOrdemServico/schemas/database'
+import uuid from 'react-native-uuid'
 
 export default function CriarOrdemServico({ navigation }) {
   // Adicionado navigation como prop
@@ -145,6 +147,7 @@ export default function CriarOrdemServico({ navigation }) {
       // Se for erro de conexão (sem response), tenta offline
       if (!error.response) {
         try {
+          const localId = `OFFLINE-${uuid.v4()}`
           const payload = {
             ...ordemServico,
             os_empr: empresaId ? parseInt(empresaId) : null,
@@ -157,16 +160,42 @@ export default function CriarOrdemServico({ navigation }) {
             os_obje_os: ordemServico.os_obje_os || '',
             os_data_aber: ordemServico.os_data_aber,
             os_stat_os: 0,
+            local_os_id: localId, // Passamos o ID para mapeamento
           }
-          await enqueueOperation('Os/ordens/', 'post', payload)
+
+          // Salvar localmente no WatermelonDB para permitir adição de peças
+          await database.write(async () => {
+            const osCollection = database.collections.get('os_servico')
+            await osCollection.create((os) => {
+              os._raw.id = localId
+              os.osEmpr = String(empresaId)
+              os.osFili = String(filialId)
+              os.osOs = localId
+              os.osClie = String(ordemServico.os_clie || '')
+              os.osAssiClie = ordemServico.os_assi_clie || ''
+              os.osAssiOper = ordemServico.os_assi_oper || ''
+              os.osDataAber = ordemServico.os_data_aber
+            })
+          })
+
+          await enqueueOperation('Os/ordens/', 'post', payload, localId)
+
+          setNumeroOS(localId)
+          setAbaAtiva('pecas')
+
           Toast.show({
             type: 'info',
-            text1: 'Sem conexão',
-            text2: 'Criação de O.S enfileirada para sincronizar quando online',
+            text1: 'Modo Offline',
+            text2: 'O.S criada localmente. Você pode adicionar peças.',
           })
           return // Sai da função se enfileirou com sucesso
         } catch (offlineError) {
           console.log('Erro ao enfileirar offline:', offlineError)
+          Toast.show({
+            type: 'error',
+            text1: 'Erro Offline',
+            text2: 'Não foi possível salvar a OS localmente.',
+          })
         }
       }
 

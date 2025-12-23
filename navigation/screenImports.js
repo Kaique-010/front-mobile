@@ -98,6 +98,7 @@ export { default as HistoricoWorkflow } from '../componentsRelatoriosEletro/Hist
 export { default as PainelAcompanhamentoExterna } from '../componentsOrdemServicoExterna/PainelAcompanhamentoExterna'
 export { default as OrdemDetalheExterna } from '../componentsOrdemServicoExterna/OrdemDetalheExterna'
 export { default as OrdemCriacaoExterna } from '../componentsOrdemServicoExterna/OrdemCriacaoExterna'
+export { default as DatabaseInspector } from '../screens/DatabaseInspector'
 
 // Telas de implantação
 export { default as ImplantacaoForm } from '../screens/ImplantacaoForm'

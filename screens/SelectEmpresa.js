@@ -59,6 +59,10 @@ export default function SelectEmpresa({ navigation }) {
 
           if (response.data && Array.isArray(response.data)) {
             setEmpresas(response.data)
+            await AsyncStorage.setItem(
+              'CACHED_EMPRESAS',
+              JSON.stringify(response.data)
+            )
           } else {
             setError('Nenhuma empresa encontrada.')
           }
@@ -71,7 +75,14 @@ export default function SelectEmpresa({ navigation }) {
           'Erro ao carregar empresas:',
           error.response || error.message
         )
-        setError('Erro ao carregar empresas. Tente novamente.')
+        const cached = await AsyncStorage.getItem('CACHED_EMPRESAS')
+        if (cached) {
+          console.log('📦 Usando cache de empresas')
+          setEmpresas(JSON.parse(cached))
+          setError(null)
+        } else {
+          setError('Erro ao carregar empresas e sem cache disponível.')
+        }
       } finally {
         setLoading(false)
       }

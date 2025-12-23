@@ -4,6 +4,8 @@ import { request, BASE_URL } from '../../utils/api'
 import { Q } from '@nozbe/watermelondb'
 import NetInfo from '@react-native-community/netinfo'
 import { apiGetComContexto, apiGetComContextoSemFili } from '../../utils/api'
+import { Toast } from 'react-native-toast-message'
+import handleApiError from '../../utils/errorHandler'
 
 let syncIntervalId = null
 
@@ -27,12 +29,8 @@ export const enqueueOperation = async (
 }
 
 const isOnline = async () => {
-  try {
-    const res = await fetch(`${BASE_URL}/`, { method: 'HEAD' })
-    return res && (res.ok || res.status < 500)
-  } catch {
-    return false
-  }
+  const state = await NetInfo.fetch()
+  return !!state.isConnected
 }
 
 export const processSyncQueue = async () => {
@@ -65,11 +63,17 @@ export const processSyncQueue = async () => {
 
       console.log(`[Sync] Sucesso para item ${item.id}`)
 
-      if (data?.local_os_id && data?.remote_os_id) {
-        console.log(
-          `[Sync] Mapeando IDs: ${data.local_os_id} -> ${data.remote_os_id}`
-        )
-        await mapIdsAndCleanQueue(item, data)
+      const localId = data?.local_os_id || item.registroIdLocal
+      const remoteId = data?.remote_os_id || data?.os_os || data?.id
+
+      if (localId && remoteId) {
+        console.log(`[Sync] Mapeando IDs: ${localId} -> ${remoteId}`)
+        // Passamos os IDs normalizados para a função de mapeamento
+        await mapIdsAndCleanQueue(item, {
+          ...data,
+          local_os_id: localId,
+          remote_os_id: remoteId,
+        })
       } else {
         await database.write(async () => {
           await item.destroyPermanently()
@@ -77,6 +81,7 @@ export const processSyncQueue = async () => {
       }
     } catch (e) {
       console.error(`[Sync] Erro no item ${item.id}:`, e.message)
+      handleApiError(e)
       await item.update((i) => {
         i.tentativas = (i.tentativas || 0) + 1
       })
@@ -123,9 +128,26 @@ export const checkAndSyncMegaData = async () => {
     const now = Date.now()
     const twelveHours = 12 * 60 * 60 * 1000
 
-    if (!lastSync || now - Number(lastSync) > twelveHours) {
+    // Verificar se o banco está vazio, independente do timestamp
+    const countEntidades = await database.collections
+      .get('mega_entidades')
+      .query()
+      .fetchCount()
+    const countProdutos = await database.collections
+      .get('mega_produtos')
+      .query()
+      .fetchCount()
+    const isDbEmpty = countEntidades === 0 || countProdutos === 0
+
+    if (isDbEmpty) {
       console.log(
-        '[MegaCache] Cache expirado ou inexistente. Iniciando sincronização...'
+        '[MegaCache] Banco local incompleto. Forçando sincronização...'
+      )
+    }
+
+    if (isDbEmpty || !lastSync || now - Number(lastSync) > twelveHours) {
+      console.log(
+        '[MegaCache] Cache expirado, inexistente ou banco vazio. Iniciando sincronização...'
       )
       await bootstrapMegaCache()
       await AsyncStorage.setItem('last_mega_sync', String(now))
@@ -138,12 +160,14 @@ export const checkAndSyncMegaData = async () => {
     }
   } catch (error) {
     console.error('[MegaCache] Erro ao verificar/sincronizar cache:', error)
+    handleApiError(error)
   }
 }
 
 export const bootstrapMegaCache = async () => {
   try {
-    const entidades = await apiGetComContexto('Os/entidades/mega/', {
+    // Fallback para endpoint padrão se o mega falhar ou for removido
+    const entidades = await apiGetComContexto('entidades/entidades/', {
       limit: 500,
     })
     const entResults = entidades?.results || entidades || []
@@ -179,12 +203,26 @@ export const bootstrapMegaCache = async () => {
         }
       }
     })
-  } catch {}
+  } catch (error) {
+    console.error('[MegaCache] Erro ao sincronizar entidades:', error)
+
+    if (Toast && typeof Toast.show === 'function') {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao sincronizar entidades',
+        text2: error.message,
+      })
+    }
+  }
 
   try {
-    const produtos = await apiGetComContextoSemFili('Os/produtos/mega/', {
-      limit: 500,
-    })
+    // Usar produtosdetalhados que traz saldo e preços corretos
+    const produtos = await apiGetComContextoSemFili(
+      'produtos/produtosdetalhados/',
+      {
+        limit: 500,
+      }
+    )
     const prodResults = produtos?.results || produtos || []
     await database.write(async () => {
       const col = database.collections.get('mega_produtos')
@@ -340,6 +378,30 @@ async function mapIdsAndCleanQueue(itemFila, respostaDjango) {
     await updateItemIds('pecas_os', pecas_ids, 'pecaItem')
     await updateItemIds('servicos_os', servicos_ids, 'servItem')
     await updateItemIds('os_hora', horas_ids, 'osHoraItem')
+
+    // 4. Atualizar itens pendentes na fila que referenciam o ID local (Dependência de Chave Estrangeira)
+    // Se criamos uma OS com ID "OFFLINE-123" e agora ela virou "100",
+    // os itens na fila que mandam pecas para "OFFLINE-123" devem ser atualizados para "100"
+    if (local_os_id && remote_os_id) {
+      const filaCollection = database.collections.get('fila_sincronizacao')
+      const itensPendentes = await filaCollection.query().fetch()
+
+      for (const itemPendente of itensPendentes) {
+        if (itemPendente.id === itemFila.id) continue // Pula o próprio item
+
+        let payloadStr = itemPendente.payloadJson
+        if (payloadStr && payloadStr.includes(local_os_id)) {
+          console.log(
+            `[Sync] Atualizando dependência no item ${itemPendente.id}: ${local_os_id} -> ${remote_os_id}`
+          )
+          // Substituição segura: replaceAll
+          const novoPayload = payloadStr.split(local_os_id).join(remote_os_id)
+          await itemPendente.update((i) => {
+            i.payloadJson = novoPayload
+          })
+        }
+      }
+    }
 
     await itemFila.destroyPermanently()
   })
