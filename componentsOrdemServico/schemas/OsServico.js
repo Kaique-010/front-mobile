@@ -1,6 +1,5 @@
 // OsServico.js
-import { Model } from '@nozbe/watermelondb'
-import { field, date, text, children } from '@nozbe/watermelondb/decorators'
+import { Model, Q } from '@nozbe/watermelondb'
 
 class OsServico extends Model {
   static table = 'os_servico'
@@ -12,31 +11,81 @@ class OsServico extends Model {
     os_hora: { type: 'has_many', foreignKey: 'os_hora_os' },
   }
 
-  @field('os_empr') osEmpr
-  @field('os_fili') osFili
-  @field('os_os') osOs // Chave Primária Lógica
-  @field('os_clie') osClie
-  @field('os_vend') osVend
-  @date('os_data_abert') osDataAbert
-  @date('os_data_fech') osDataFech
-  @field('os_tipo') osTipo
-  @field('os_situa') osSitua
+  get osEmpr() { return this._getRaw('os_empr') }
+  set osEmpr(value) { this._setRaw('os_empr', value) }
 
-  @text('os_defeito') osDefeito
-  @text('os_serv_exec') osServExec
-  @text('os_obs') osObs
+  get osFili() { return this._getRaw('os_fili') }
+  set osFili(value) { this._setRaw('os_fili', value) }
 
-  @text('os_assi_clie') osAssiClie // Base64
-  @text('os_assi_oper') osAssiOper // Base64
+  get osOs() { return this._getRaw('os_os') }
+  set osOs(value) { this._setRaw('os_os', value) }
 
-  @field('os_valor_tota') osValorTota
-  @field('os_valor_pecas') osValorPecas
-  @field('os_valor_serv') osValorServ
-  @field('os_valor_desc') osValorDesc
+  get osClie() { return this._getRaw('os_clie') }
+  set osClie(value) { this._setRaw('os_clie', value) }
+
+  get osVend() { return this._getRaw('os_vend') }
+  set osVend(value) { this._setRaw('os_vend', value) }
+
+  get osDataAbert() { 
+    const raw = this._getRaw('os_data_abert')
+    return raw ? new Date(raw) : null
+  }
+  set osDataAbert(value) { 
+    this._setRaw('os_data_abert', value ? value.getTime() : null) 
+  }
+
+  get osDataFech() { 
+    const raw = this._getRaw('os_data_fech')
+    return raw ? new Date(raw) : null
+  }
+  set osDataFech(value) { 
+    this._setRaw('os_data_fech', value ? value.getTime() : null) 
+  }
+
+  get osTipo() { return this._getRaw('os_tipo') }
+  set osTipo(value) { this._setRaw('os_tipo', value) }
+
+  get osSitua() { return this._getRaw('os_situa') }
+  set osSitua(value) { this._setRaw('os_situa', value) }
+
+  get osDefeito() { return this._getRaw('os_defeito') }
+  set osDefeito(value) { this._setRaw('os_defeito', value) }
+
+  get osServExec() { return this._getRaw('os_serv_exec') }
+  set osServExec(value) { this._setRaw('os_serv_exec', value) }
+
+  get osObs() { return this._getRaw('os_obs') }
+  set osObs(value) { this._setRaw('os_obs', value) }
+
+  get osAssiClie() { return this._getRaw('os_assi_clie') }
+  set osAssiClie(value) { this._setRaw('os_assi_clie', value) }
+
+  get osAssiOper() { return this._getRaw('os_assi_oper') }
+  set osAssiOper(value) { this._setRaw('os_assi_oper', value) }
+
+  get osValorTota() { return this._getRaw('os_valor_tota') }
+  set osValorTota(value) { this._setRaw('os_valor_tota', value) }
+
+  get osValorPecas() { return this._getRaw('os_valor_pecas') }
+  set osValorPecas(value) { this._setRaw('os_valor_pecas', value) }
+
+  get osValorServ() { return this._getRaw('os_valor_serv') }
+  set osValorServ(value) { this._setRaw('os_valor_serv', value) }
+
+  get osValorDesc() { return this._getRaw('os_valor_desc') }
+  set osValorDesc(value) { this._setRaw('os_valor_desc', value) }
 
   // Coleções para acessar itens
-  @children('pecas_os') pecas
-  @children('servicos_os') servicos
-  @children('os_hora') horas
+  get pecas() {
+    return this.collections.get('pecas_os').query(Q.where('peca_os', this.osOs))
+  }
+
+  get servicos() {
+    return this.collections.get('servicos_os').query(Q.where('serv_os', this.osOs))
+  }
+
+  get horas() {
+    return this.collections.get('os_hora').query(Q.where('os_hora_os', this.osOs))
+  }
 }
 export default OsServico

@@ -94,6 +94,8 @@ export default function App() {
         if (done) {
           return
         }
+        // Código de teste removido para evitar problemas de sincronização (CORS/Método inválido)
+        /*
         await database.write(async () => {
           const col = database.collections.get('fila_sincronizacao')
           await col.create((r) => {
@@ -105,6 +107,7 @@ export default function App() {
             r.criadoEm = Date.now()
           })
         })
+        */
         const col = database.collections.get('fila_sincronizacao')
         const rows = await col.query().fetch()
         console.log('[DB Sanity] itens na fila_sincronizacao:', rows.length)

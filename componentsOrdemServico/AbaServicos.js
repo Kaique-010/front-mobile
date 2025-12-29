@@ -112,7 +112,7 @@ export default function AbaServicos({
       setServicosLista([])
       setServicos([])
     } finally {
-      // setIsLoading(false)
+      setIsLoading(false)
     }
   }
 
@@ -245,8 +245,66 @@ export default function AbaServicos({
       return
     }
     setIsSubmitting(true)
+
+    let payload = null
+    const isLocalOS = String(os_os).startsWith('OFFLINE-')
+
     try {
-      const isLocalOS = String(os_os).startsWith('OFFLINE-')
+      // Preparar listas para API/Fila
+      const prepararServicos = (servicosArray) =>
+        servicosArray.map((s) => ({
+          serv_os: os_os,
+          serv_empr: empresaId,
+          serv_fili: filialId,
+          serv_prod: s.serv_prod,
+          serv_quan: Number(s.serv_quan),
+          serv_unit: Number(s.serv_unit),
+          serv_tota: Number(s.serv_quan) * Number(s.serv_unit),
+          serv_obse: s.serv_obse || '',
+          serv_stat: 1,
+          // Inclui serv_item apenas se já existir e não for offline (tratado depois)
+          ...(s.serv_item ? { serv_item: s.serv_item } : {}),
+        }))
+
+      const adicionar = prepararServicos(
+        servicosLista.filter(
+          (s) => !s.serv_item || String(s.serv_item).startsWith('OFFLINE-ITEM-')
+        )
+      )
+
+      // Remove IDs offline antes de enviar/enfileirar para o backend gerar os reais
+      const adicionarLimpo = adicionar.map((a) => {
+        const copia = { ...a }
+        delete copia.serv_item
+        return copia
+      })
+
+      const editar = prepararServicos(
+        servicosLista.filter(
+          (s) =>
+            s.serv_item &&
+            !String(s.serv_item).startsWith('OFFLINE-ITEM-') &&
+            !removidos.includes(s)
+        )
+      )
+      const remover = removidos
+        .filter(
+          (r) => r.serv_item && !String(r.serv_item).startsWith('OFFLINE-ITEM-')
+        )
+        .map((r) => ({
+          serv_empr: Number(empresaId),
+          serv_fili: Number(filialId),
+          serv_os: String(os_os),
+          serv_item: r.serv_item,
+        }))
+
+      payload = {
+        adicionar: adicionarLimpo,
+        editar,
+        remover,
+        empr: Number(empresaId),
+        fili: Number(filialId),
+      }
 
       // 1. Salvar localmente no WatermelonDB
       await database.write(async () => {
@@ -317,52 +375,6 @@ export default function AbaServicos({
         }
       })
 
-      const prepararServicos = (servicosArray) =>
-        servicosArray.map((s) => ({
-          ...s,
-          serv_os: String(os_os),
-          serv_empr: Number(empresaId),
-          serv_fili: Number(filialId),
-          serv_prod: s.serv_prod,
-          serv_quan: s.serv_quan,
-          serv_unit: s.serv_unit,
-          serv_tota: s.serv_tota,
-          serv_obse: s.serv_obse || '',
-          serv_stat: 0,
-        }))
-
-      const adicionar = prepararServicos(
-        servicosLista.filter((s) =>
-          String(s.serv_item).startsWith('OFFLINE-ITEM-')
-        )
-      )
-
-      // Remove IDs offline antes de enviar/enfileirar para o backend gerar os reais
-      const adicionarLimpo = adicionar.map((a) => {
-        const copia = { ...a }
-        delete copia.serv_item
-        return copia
-      })
-
-      const editar = prepararServicos(
-        servicosLista.filter(
-          (s) =>
-            !String(s.serv_item).startsWith('OFFLINE-ITEM-') &&
-            !removidos.includes(s)
-        )
-      )
-      const remover = removidos
-        .map((s) => s.serv_item)
-        .filter((id) => !String(id).startsWith('OFFLINE-ITEM-'))
-
-      const payload = {
-        adicionar: adicionarLimpo,
-        editar,
-        remover,
-        empr: Number(empresaId),
-        fili: Number(filialId),
-      }
-
       if (isLocalOS || !online) {
         await enqueueOperation(
           'Os/servicos/update-lista/',
@@ -400,34 +412,26 @@ export default function AbaServicos({
     } catch (err) {
       console.error('Erro ao salvar serviços:', err.response?.data || err)
 
-      if (!err.response) {
+      if (!err.response && payload) {
         try {
-          // Recalcular payload se necessário ou usar o escopo acima
-          // Mas aqui precisamos ter certeza que as vars estão acessíveis. Estão.
-          // Se falhar rede aqui, enfileira.
-          // Mas atenção: se falhar aqui, já salvamos no banco local no início da função.
-          // Então só precisamos enfileirar a request.
-
-          // Nota: Recalculando payload só pra garantir (mesmo do bloco try)
-          // Mas como estamos no catch, as vars do try podem não estar acessíveis se fossem let/const dentro de bloco restrito
-          // Mas estão no escopo da função ou do try. Var/Const no try não vaza pro catch.
-          // Vamos simplificar: se der erro de rede, assumimos que o banco local tá ok (foi o primeiro passo)
-          // E apenas enfileiramos uma nova tentativa se tivermos os dados.
-          // Para evitar duplicidade de código complexo, o ideal seria ter o payload fora.
-          // Mas vou simplificar o catch:
+          // Fallback para enfileirar se falhar rede (igual ao AbaPecas)
+          await enqueueOperation(
+            'Os/servicos/update-lista/',
+            'post',
+            payload,
+            null,
+            isLocalOS ? os_os : null
+          )
 
           Toast.show({
-            type: 'error',
-            text1: 'Erro de conexão',
-            text2:
-              'Não foi possível sincronizar agora. Tente novamente mais tarde.',
+            type: 'info',
+            text1: 'Sem conexão',
+            text2: 'Alterações enfileiradas para sincronizar quando online',
           })
-          // Idealmente chamaríamos o enqueue aqui também se fosse garantido ter o payload.
-          // Como o bloco try é grande, vamos deixar o usuário tentar de novo (clicar em salvar de novo).
-          // Como salvou no banco local, quando ele clicar de novo, vai pegar do banco e tentar enviar.
-          // O isLocalOS || !online já cobre o caso de estar offline declarado.
-          // O caso aqui é "estava online, mas falhou".
-          // O usuário pode clicar em salvar de novo.
+
+          await carregarServicosExistentes()
+          setRemovidos([])
+          return
         } catch (e) {
           console.log('Falha ao tratar erro:', e)
         }

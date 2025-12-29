@@ -20,6 +20,7 @@ import styles from '../styles/listaStyles'
 import debounce from 'lodash/debounce'
 import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
+import { buscarEntidades } from '../repositorios/entidadeRepository'
 
 // Cache para clientes
 const CLIENTES_CACHE_KEY = 'clientes_cache'
@@ -35,23 +36,25 @@ export default function BuscaClienteInput({
   const [termo, setTermo] = useState(value)
   const [clientes, setClientes] = useState([])
   const [slug, setSlug] = useState('')
+  const [empresaId, setEmpresaId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
 
   useEffect(() => {
-    const carregarSlug = async () => {
+    const carregarDadosIniciais = async () => {
       try {
         const data = await getStoredData()
-        if (data && data.slug) {
-          setSlug(data.slug)
+        if (data) {
+          if (data.slug) setSlug(data.slug)
+          if (data.empresaId) setEmpresaId(data.empresaId)
         } else {
-          console.warn('Slug não encontrado')
+          console.warn('Dados iniciais não encontrados')
         }
       } catch (err) {
-        console.error('Erro ao carregar slug:', err.message)
+        console.error('Erro ao carregar dados iniciais:', err.message)
       }
     }
-    carregarSlug()
+    carregarDadosIniciais()
   }, [])
 
   useEffect(() => {
@@ -64,202 +67,31 @@ export default function BuscaClienteInput({
 
   const buscar = useCallback(
     debounce(async (texto) => {
-      if (!slug || !texto || texto.length < 3) {
+      if (!texto || texto.length < 3) {
         setClientes([])
-        setLoading(false)
         setShowResults(false)
         return
       }
 
-      const empresaId = await AsyncStorage.getItem('empresaId')
-      const cacheKey = `clientes_cache_${empresaId}_${tipo}_${texto.toLowerCase()}`
-
-      try {
-        const cacheData = await AsyncStorage.getItem(cacheKey)
-        if (cacheData) {
-          const { results, timestamp } = JSON.parse(cacheData)
-          const now = Date.now()
-
-          if (now - timestamp < CLIENTES_CACHE_DURATION) {
-            console.log(
-              '📦 [CACHE-ASYNC] Usando dados em cache para clientes:',
-              texto
-            )
-            setClientes(results || [])
-            if (results && results.length > 0) {
-              setShowResults(true)
-            }
-            setLoading(false)
-            return
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Erro ao ler cache de clientes:', error)
-      }
-
       setLoading(true)
-      setShowResults(false)
 
       try {
-        const data = await apiGetComContexto('entidades/entidades/', {
-          search: texto,
-          empresa: empresaId || '1',
+        const resultados = await buscarEntidades({
+          termo: texto,
+          tipo,
+          empresaId,
         })
 
-        let resultados = data.results || []
-        console.log('resultados', resultados)
-
-        // Filtrar por empresa primeiro
-        resultados = resultados.filter(
-          (e) => e.enti_empr.toString() === (empresaId || '1').toString()
-        )
-
-        if (tipo === 'fornecedor') {
-          resultados = resultados.filter((e) => e.enti_tipo_enti === 'FO')
-        } else if (tipo === 'vendedor') {
-          resultados = resultados.filter((e) => e.enti_tipo_enti === 'VE')
-        } else if (tipo === 'cliente') {
-          resultados = resultados.filter((e) => e.enti_tipo_enti === 'CL')
-        }
-
         setClientes(resultados)
-        if (resultados.length > 0) {
-          setShowResults(true)
-        }
-
-        // Persistir no WatermelonDB
-        try {
-          await database.write(async () => {
-            const col = database.collections.get('entidades')
-            const megaCol = database.collections.get('mega_entidades')
-            for (const cli of resultados) {
-              const id = `${cli.enti_clie}-${cli.enti_empr}`
-              const existentes = await col
-                .query(
-                  Q.where('enti_clie', cli.enti_clie),
-                  Q.where('enti_empr', String(cli.enti_empr))
-                )
-                .fetch()
-              if (existentes.length) {
-                await existentes[0].update((e) => {
-                  e.entiNome = cli.enti_nome
-                  e.entiTipoEnti = cli.enti_tipo_enti
-                  e.entiCpf = cli.enti_cpf || null
-                  e.entiCnpj = cli.enti_cnpj || null
-                  e.entiCida = cli.enti_cida || null
-                })
-              } else {
-                await col.create((e) => {
-                  e._raw.id = id
-                  e.entiClie = String(cli.enti_clie)
-                  e.entiEmpr = String(cli.enti_empr)
-                  e.entiNome = cli.enti_nome
-                  e.entiTipoEnti = cli.enti_tipo_enti
-                  e.entiCpf = cli.enti_cpf || null
-                  e.entiCnpj = cli.enti_cnpj || null
-                  e.entiCida = cli.enti_cida || null
-                })
-              }
-              const megaExist = await megaCol
-                .query(
-                  Q.where('enti_clie', String(cli.enti_clie)),
-                  Q.where('enti_empr', String(cli.enti_empr))
-                )
-                .fetch()
-              if (megaExist.length) {
-                await megaExist[0].update((e) => {
-                  e.entiNome = cli.enti_nome
-                  e.entiTipoEnti = cli.enti_tipo_enti
-                  e.entiCpf = cli.enti_cpf || null
-                  e.entiCnpj = cli.enti_cnpj || null
-                  e.entiCida = cli.enti_cida || null
-                })
-              } else {
-                await megaCol.create((e) => {
-                  e._raw.id = id
-                  e.entiClie = String(cli.enti_clie)
-                  e.entiEmpr = String(cli.enti_empr)
-                  e.entiNome = cli.enti_nome
-                  e.entiTipoEnti = cli.enti_tipo_enti
-                  e.entiCpf = cli.enti_cpf || null
-                  e.entiCnpj = cli.enti_cnpj || null
-                  e.entiCida = cli.enti_cida || null
-                })
-              }
-            }
-          })
-        } catch {}
-
-        // Salvar no cache persistente
-        try {
-          const cacheData = {
-            results: resultados,
-            timestamp: Date.now(),
-          }
-          await safeSetItem(cacheKey, JSON.stringify(cacheData))
-          console.log('💾 [CACHE-ASYNC] Clientes salvos no cache:', texto)
-        } catch (error) {
-          console.log('⚠️ Erro ao salvar cache de clientes:', error)
-        }
-      } catch (err) {
-        console.error('Erro ao buscar entidades:', err.message)
-        try {
-          const mega = database.collections.get('mega_entidades')
-          const termos = texto.split(/\s+/).filter(Boolean)
-          const likeClauses = termos.map((t) => Q.like('enti_nome', `%${t}%`))
-          const filtros = [Q.where('enti_empr', String(empresaId || '1'))]
-          if (tipo === 'fornecedor')
-            filtros.push(Q.where('enti_tipo_enti', 'FO'))
-          if (tipo === 'vendedor') filtros.push(Q.where('enti_tipo_enti', 'VE'))
-          if (tipo === 'cliente') filtros.push(Q.where('enti_tipo_enti', 'CL'))
-          const query = mega.query(...filtros, ...likeClauses)
-          const rows = await query.fetch()
-          const resultados = rows.map((r) => ({
-            enti_clie: r.entiClie,
-            enti_empr: r.entiEmpr,
-            enti_nome: r.entiNome,
-            enti_tipo_enti: r.entiTipoEnti,
-            enti_cpf: r.entiCpf,
-            enti_cnpj: r.entiCnpj,
-            enti_cida: r.entiCida,
-          }))
-          setClientes(resultados)
-          setShowResults(resultados.length > 0)
-        } catch (e) {
-          try {
-            const col = database.collections.get('entidades')
-            const termos = texto.split(/\s+/).filter(Boolean)
-            const likeClauses = termos.map((t) => Q.like('enti_nome', `%${t}%`))
-            const filtros = [Q.where('enti_empr', String(empresaId || '1'))]
-            if (tipo === 'fornecedor')
-              filtros.push(Q.where('enti_tipo_enti', 'FO'))
-            if (tipo === 'vendedor')
-              filtros.push(Q.where('enti_tipo_enti', 'VE'))
-            if (tipo === 'cliente')
-              filtros.push(Q.where('enti_tipo_enti', 'CL'))
-            const query = col.query(...filtros, ...likeClauses)
-            const rows = await query.fetch()
-            const resultados = rows.map((r) => ({
-              enti_clie: r.entiClie,
-              enti_empr: r.entiEmpr,
-              enti_nome: r.entiNome,
-              enti_tipo_enti: r.entiTipoEnti,
-              enti_cpf: r.entiCpf,
-              enti_cnpj: r.entiCnpj,
-              enti_cida: r.entiCida,
-            }))
-            setClientes(resultados)
-            setShowResults(resultados.length > 0)
-          } catch {
-            setClientes([])
-            setShowResults(false)
-          }
-        }
+        setShowResults(resultados.length > 0)
+      } catch {
+        setClientes([])
+        setShowResults(false)
       } finally {
         setLoading(false)
       }
     }, 500),
-    [slug, tipo]
+    [tipo]
   )
 
   const selecionar = (item) => {

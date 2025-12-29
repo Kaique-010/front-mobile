@@ -8,7 +8,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native'
-import { apiGetComContexto } from '../utils/api'
+import { buscarServicos as buscarServicosRepo } from '../repositorios/servicosRepository'
+import { getStoredData } from '../services/storageService'
 import debounce from 'lodash/debounce'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Ionicons } from '@expo/vector-icons'
@@ -22,6 +23,7 @@ export default function BuscaServicoInput({ valorAtual = '', onSelect, initialVa
   const [showResults, setShowResults] = useState(false)
   const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
   const [setorCarregado, setSetorCarregado] = useState(false)
+  const [empresaId, setEmpresaId] = useState(null)
 
 useEffect(() => {
   const verificarSetor = async () => {
@@ -32,6 +34,11 @@ useEffect(() => {
       setUsuarioTemSetor(temSetor)
       console.log('👤 [BuscaServico] Valor do setor bruto:', setorBruto)
       console.log('👤 [BuscaServico] Usuário tem setor?', temSetor)
+
+      const data = await getStoredData()
+      if (data && data.empresaId) {
+        setEmpresaId(data.empresaId)
+      }
     } catch (error) {
       console.error('Erro ao verificar setor:', error)
       setUsuarioTemSetor(false)
@@ -52,7 +59,7 @@ useEffect(() => {
 
 
   const buscarServicos = useCallback(
-  debounce(async (texto) => {
+  debounce(async (texto, empId) => {
     if (!texto.trim()) {
       setServicos([])
       return
@@ -60,13 +67,11 @@ useEffect(() => {
 
     try {
       setLoading(true)
-      const response = await apiGetComContexto(
-        'produtos/produtos/busca/',
-        { q: texto, tipo: 'S' },
-        'prod_'
-      )
-      const servicosArray = response?.results || response || []
-      setServicos(servicosArray)
+      const resultados = await buscarServicosRepo({
+        termo: texto,
+        empresaId: empId
+      })
+      setServicos(resultados)
     } catch (error) {
       console.error('Erro ao buscar serviços:', error)
       setServicos([])
@@ -97,7 +102,7 @@ useEffect(() => {
   const handleChangeText = (texto) => {
     setQuery(texto)
     setShowResults(true)
-    buscarServicos(texto)
+    buscarServicos(texto, empresaId)
   }
 
   return (

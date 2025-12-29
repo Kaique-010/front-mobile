@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { FlatList, View, ActivityIndicator } from 'react-native'
 import { TextInput, Card, Snackbar } from 'react-native-paper'
-import { apiGetComContexto } from '../utils/api'
+import { buscarPecas } from '../repositorios/pecasRepository'
+import { getStoredData } from '../services/storageService'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // Hook de debounce otimizado
@@ -23,21 +24,27 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
+  const [empresaId, setEmpresaId] = useState(null)
 
-  // ✅ CORRIGIDO: Verificar setor do usuário
+  // ✅ CORRIGIDO: Verificar setor do usuário e carregar empresaId
   useEffect(() => {
-    const verificarSetor = async () => {
+    const carregarDados = async () => {
       try {
         const setor = await AsyncStorage.getItem('setor')
         const temSetor = setor && setor !== '0' && setor !== 'null'
         setUsuarioTemSetor(temSetor)
         console.log('👤 [BuscaProduto] Usuário tem setor:', temSetor)
+
+        const data = await getStoredData()
+        if (data && data.empresaId) {
+          setEmpresaId(data.empresaId)
+        }
       } catch (error) {
-        console.error('Erro ao verificar setor:', error)
+        console.error('Erro ao carregar dados:', error)
         setUsuarioTemSetor(false)
       }
     }
-    verificarSetor()
+    carregarDados()
   }, [])
 
   useEffect(() => {
@@ -61,16 +68,12 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
           `🔍 [BUSCA-OTIMIZADA] Buscando produtos para: "${debouncedSearchTerm}"`
         )
 
-        const data = await apiGetComContexto(
-          'produtos/produtos/',
-          {
-            search: debouncedSearchTerm,
-            limit: 10,
-          },
-          'prod_'
-        )
+        const resultados = await buscarPecas({
+          termo: debouncedSearchTerm,
+          empresaId
+        })
 
-        const validos = data.results.filter(
+        const validos = resultados.filter(
           (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
         )
 
@@ -87,7 +90,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
     }
 
     buscar()
-  }, [debouncedSearchTerm])
+  }, [debouncedSearchTerm, empresaId])
 
   const handleSelecionarProduto = (produto) => {
     if (!produto?.prod_codi || isNaN(Number(produto.prod_codi))) {

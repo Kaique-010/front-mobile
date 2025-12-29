@@ -301,7 +301,7 @@ export default function SelectFilial({ route, navigation }) {
   }
 
   const renderHeader = () => (
-    <View style={{ padding: 16, backgroundColor: '#f8f9fa' }}>
+    <View style={{ padding: 25, backgroundColor: '#182C39' }}>
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         style={{
@@ -310,13 +310,19 @@ export default function SelectFilial({ route, navigation }) {
           marginBottom: 16,
         }}>
         <FontAwesome name="chevron-left" size={16} color="#007AFF" />
-        <Text style={{ color: '#007AFF', marginLeft: 8, fontSize: 16 }}>
+        <Text style={{ color: '#007AFF', marginLeft: 8, fontSize: 12 }}>
           Voltar
         </Text>
       </TouchableOpacity>
 
-      <Text style={[styles.text, { marginBottom: 8 }]}>Selecione a Filial</Text>
-      <Text style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
+      <Text
+        style={[
+          styles.text,
+          { marginBottom: 8, fontSize: 12, color: '#a5a5a5ff' },
+        ]}>
+        Selecione a Filial
+      </Text>
+      <Text style={{ fontSize: 12, color: '#fff', marginBottom: 8 }}>
         Empresa: {empresaNome}
       </Text>
 
@@ -429,7 +435,7 @@ export default function SelectFilial({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#fff' }]}>
+    <View style={[styles.container, { backgroundColor: '#182C39' }]}>
       <FlatList
         data={filiais}
         keyExtractor={(item) =>
@@ -446,9 +452,9 @@ export default function SelectFilial({ route, navigation }) {
               {
                 marginHorizontal: 16,
                 marginVertical: 6,
-                backgroundColor: '#fff',
+                backgroundColor: '#182C39',
                 borderWidth: 1,
-                borderColor: '#e0e0e0',
+                borderColor: '#000000ff',
                 borderRadius: 12,
                 padding: 16,
                 shadowColor: '#000',
@@ -474,7 +480,7 @@ export default function SelectFilial({ route, navigation }) {
                   ]}>
                   {item.empr_nome}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: '#fff', marginTop: 4 }}>
                   Código: {item.empr_codi}
                 </Text>
               </View>
@@ -490,7 +496,7 @@ export default function SelectFilial({ route, navigation }) {
             tintColor="#007AFF"
           />
         }
-        contentContainerStyle={{ paddingBottom: 16 }}
+        contentContainerStyle={{ paddingBottom: 15 }}
       />
     </View>
   )

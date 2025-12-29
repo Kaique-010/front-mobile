@@ -52,6 +52,15 @@ export const processSyncQueue = async () => {
       const method = String(item.acao || 'POST').toLowerCase()
       const payload = item.payload
 
+      // Ignorar e limpar itens de "Sanity Check" ou métodos inválidos
+      if (method === 'test' || endpoint === 'sanity') {
+        console.log(`[Sync] Removendo item de teste/sanity: ${item.id}`)
+        await database.write(async () => {
+          await item.destroyPermanently()
+        })
+        continue
+      }
+
       console.log(
         `[Sync] Processando item ${
           item.id
@@ -363,15 +372,40 @@ async function mapIdsAndCleanQueue(itemFila, respostaDjango) {
       })
     } catch {}
 
+    // Buscar itens pendentes uma vez para processar substituições
+    const filaCollection = database.collections.get('fila_sincronizacao')
+    const itensPendentes = await filaCollection.query().fetch()
+
     const updateItemIds = async (collectionName, idMappings, idFieldName) => {
       const collection = database.collections.get(collectionName)
       for (const mapping of idMappings) {
         try {
+          // Atualizar BD local
           const itemLocal = await collection.find(mapping.local_id)
           await itemLocal.update((item) => {
             item[idFieldName] = mapping.remote_id
           })
-        } catch {}
+
+          // Atualizar IDs dos itens na fila
+          for (const itemPendente of itensPendentes) {
+            if (itemPendente.id === itemFila.id) continue
+
+            let payloadStr = itemPendente.payloadJson
+            if (payloadStr && payloadStr.includes(mapping.local_id)) {
+              console.log(
+                `[Sync] Atualizando Item ID ${mapping.local_id} -> ${mapping.remote_id} na fila ${itemPendente.id}`
+              )
+              const novoPayload = payloadStr
+                .split(mapping.local_id)
+                .join(mapping.remote_id)
+              await itemPendente.update((i) => {
+                i.payloadJson = novoPayload
+              })
+            }
+          }
+        } catch (e) {
+          console.log(`[Sync] Erro ao atualizar item ${mapping.local_id}:`, e)
+        }
       }
     }
 
@@ -379,13 +413,8 @@ async function mapIdsAndCleanQueue(itemFila, respostaDjango) {
     await updateItemIds('servicos_os', servicos_ids, 'servItem')
     await updateItemIds('os_hora', horas_ids, 'osHoraItem')
 
-    // 4. Atualizar itens pendentes na fila que referenciam o ID local (Dependência de Chave Estrangeira)
-    // Se criamos uma OS com ID "OFFLINE-123" e agora ela virou "100",
-    // os itens na fila que mandam pecas para "OFFLINE-123" devem ser atualizados para "100"
+    // 4. Atualizar itens pendentes na fila que referenciam o ID da OS local
     if (local_os_id && remote_os_id) {
-      const filaCollection = database.collections.get('fila_sincronizacao')
-      const itensPendentes = await filaCollection.query().fetch()
-
       for (const itemPendente of itensPendentes) {
         if (itemPendente.id === itemFila.id) continue // Pula o próprio item
 

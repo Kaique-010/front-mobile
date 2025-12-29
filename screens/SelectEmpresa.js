@@ -260,8 +260,16 @@ export default function SelectEmpresa({ navigation }) {
   }
 
   const renderHeader = () => (
-    <View style={{ padding: 16, backgroundColor: '#f8f9fa' }}>
-      <Text style={styles.text}>Selecione a Empresa</Text>
+    <View style={{ padding: 16, backgroundColor: '#182C39', color: '#fff' }}>
+      <Text
+        style={{
+          color: '#fff',
+          fontSize: 12,
+          textAlign: 'center',
+          verticalAlign: 'middle',
+        }}>
+        Selecione a Empresa
+      </Text>
 
       {/* Offline indicator */}
       {isOffline && (
@@ -311,7 +319,7 @@ export default function SelectEmpresa({ navigation }) {
       {error && (
         <View
           style={{
-            backgroundColor: '#FFE5E5',
+            backgroundColor: '#182C39',
             padding: 12,
             borderRadius: 8,
             marginTop: 8,
@@ -364,7 +372,7 @@ export default function SelectEmpresa({ navigation }) {
           { justifyContent: 'center', alignItems: 'center' },
         ]}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={{ marginTop: 16, color: '#666' }}>
+        <Text style={{ marginTop: 16, color: '#fffefeff' }}>
           Carregando empresas...
         </Text>
       </View>
@@ -372,7 +380,7 @@ export default function SelectEmpresa({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#fff' }]}>
+    <View style={[styles.container, { backgroundColor: '#072436ff' }]}>
       <FlatList
         data={empresas}
         keyExtractor={(item) => item.empr_codi.toString()}
@@ -387,9 +395,9 @@ export default function SelectEmpresa({ navigation }) {
               {
                 marginHorizontal: 16,
                 marginVertical: 6,
-                backgroundColor: '#fff',
+                backgroundColor: '#182C39',
                 borderWidth: 1,
-                borderColor: '#e0e0e0',
+                borderColor: '#000000ff',
                 borderRadius: 12,
                 padding: 16,
                 shadowColor: '#000',
@@ -415,7 +423,8 @@ export default function SelectEmpresa({ navigation }) {
                   ]}>
                   {item.empr_nome}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                <Text
+                  style={{ fontSize: 12, color: '#ffffffff', marginTop: 4 }}>
                   Código: {item.empr_codi}
                 </Text>
               </View>
