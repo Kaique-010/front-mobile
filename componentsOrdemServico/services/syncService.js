@@ -8,6 +8,7 @@ import { Toast } from 'react-native-toast-message'
 import handleApiError from '../../utils/errorHandler'
 
 let syncIntervalId = null
+let isSyncing = false
 
 export const enqueueOperation = async (
   endpointSemApi,
@@ -34,67 +35,79 @@ const isOnline = async () => {
 }
 
 export const processSyncQueue = async () => {
-  const online = await isOnline()
-  if (!online) return
-  const filaCollection = database.collections.get('fila_sincronizacao')
-  const itensFila = await filaCollection
-    .query(Q.sortBy('criado_em', Q.asc))
-    .fetch()
-  if (!itensFila.length) return
+  if (isSyncing) {
+    console.log('[Sync] Sincronização já em andamento. Ignorando chamada.')
+    return
+  }
 
-  console.log(
-    `[Sync] Iniciando processamento de ${itensFila.length} itens na fila`
-  )
+  try {
+    isSyncing = true
+    const online = await isOnline()
+    if (!online) return
+    const filaCollection = database.collections.get('fila_sincronizacao')
+    const itensFila = await filaCollection
+      .query(Q.sortBy('criado_em', Q.asc))
+      .fetch()
+    if (!itensFila.length) return
 
-  for (const item of itensFila) {
-    try {
-      const endpoint = item.tabelaAlvo
-      const method = String(item.acao || 'POST').toLowerCase()
-      const payload = item.payload
+    console.log(
+      `[Sync] Iniciando processamento de ${itensFila.length} itens na fila`
+    )
 
-      // Ignorar e limpar itens de "Sanity Check" ou métodos inválidos
-      if (method === 'test' || endpoint === 'sanity') {
-        console.log(`[Sync] Removendo item de teste/sanity: ${item.id}`)
-        await database.write(async () => {
-          await item.destroyPermanently()
+    for (const item of itensFila) {
+      try {
+        const endpoint = item.tabelaAlvo
+        const method = String(item.acao || 'POST').toLowerCase()
+        const payload = item.payload
+
+        // Ignorar e limpar itens de "Sanity Check" ou métodos inválidos
+        if (method === 'test' || endpoint === 'sanity') {
+          console.log(`[Sync] Removendo item de teste/sanity: ${item.id}`)
+          await database.write(async () => {
+            await item.destroyPermanently()
+          })
+          continue
+        }
+
+        console.log(
+          `[Sync] Processando item ${
+            item.id
+          }: ${method.toUpperCase()} ${endpoint}`
+        )
+
+        const resp = await request({ method, endpoint, data: payload })
+        const data = resp?.data || resp
+
+        console.log(`[Sync] Sucesso para item ${item.id}`)
+
+        const localId = data?.local_os_id || item.registroIdLocal
+        const remoteId = data?.remote_os_id || data?.os_os || data?.id
+
+        if (localId && remoteId) {
+          console.log(`[Sync] Mapeando IDs: ${localId} -> ${remoteId}`)
+          // Passamos os IDs normalizados para a função de mapeamento
+          await mapIdsAndCleanQueue(item, {
+            ...data,
+            local_os_id: localId,
+            remote_os_id: remoteId,
+          })
+        } else {
+          await database.write(async () => {
+            await item.destroyPermanently()
+          })
+        }
+      } catch (e) {
+        console.error(`[Sync] Erro no item ${item.id}:`, e.message)
+        handleApiError(e)
+        await item.update((i) => {
+          i.tentativas = (i.tentativas || 0) + 1
         })
-        continue
       }
-
-      console.log(
-        `[Sync] Processando item ${
-          item.id
-        }: ${method.toUpperCase()} ${endpoint}`
-      )
-
-      const resp = await request({ method, endpoint, data: payload })
-      const data = resp?.data || resp
-
-      console.log(`[Sync] Sucesso para item ${item.id}`)
-
-      const localId = data?.local_os_id || item.registroIdLocal
-      const remoteId = data?.remote_os_id || data?.os_os || data?.id
-
-      if (localId && remoteId) {
-        console.log(`[Sync] Mapeando IDs: ${localId} -> ${remoteId}`)
-        // Passamos os IDs normalizados para a função de mapeamento
-        await mapIdsAndCleanQueue(item, {
-          ...data,
-          local_os_id: localId,
-          remote_os_id: remoteId,
-        })
-      } else {
-        await database.write(async () => {
-          await item.destroyPermanently()
-        })
-      }
-    } catch (e) {
-      console.error(`[Sync] Erro no item ${item.id}:`, e.message)
-      handleApiError(e)
-      await item.update((i) => {
-        i.tentativas = (i.tentativas || 0) + 1
-      })
     }
+  } catch (error) {
+    console.error('[Sync] Erro fatal no processo de sincronização:', error)
+  } finally {
+    isSyncing = false
   }
 }
 
@@ -185,7 +198,7 @@ export const bootstrapMegaCache = async () => {
       for (const cli of entResults) {
         const clieId = cli.enti_clie || cli.id || cli.pk
         if (!clieId) continue
-        
+
         const id = `${clieId}-${cli.enti_empr}`
         const existentes = await col
           .query(
