@@ -380,7 +380,7 @@ export default function SelectEmpresa({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#072436ff' }]}>
+    <View style={{ flex: 1, backgroundColor: '#072436ff' }}>
       <FlatList
         data={empresas}
         keyExtractor={(item) => item.empr_codi.toString()}
@@ -405,6 +405,12 @@ export default function SelectEmpresa({ navigation }) {
                 shadowOpacity: 0.1,
                 shadowRadius: 2,
                 elevation: 2,
+                width: 'auto', // Override width: 100% from styles.button to allow margins to work properly if needed, or keep 100% and margins work too?
+                // With width: '100%' and marginHorizontal, it might overflow or shrink. 
+                // In RN, width: '100%' + margin causes overflow. 
+                // Better to remove width: '100%' or set it to auto/undefined since it's a flex item (kinda) or block.
+                // styles.button has width: '100%'. 
+                // Let's override width to undefined so it respects margins.
               },
               botaoDesabilitado && { opacity: 0.5 },
             ]}>

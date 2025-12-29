@@ -435,7 +435,7 @@ export default function SelectFilial({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#182C39' }]}>
+    <View style={{ flex: 1, backgroundColor: '#182C39' }}>
       <FlatList
         data={filiais}
         keyExtractor={(item) =>
@@ -462,6 +462,7 @@ export default function SelectFilial({ route, navigation }) {
                 shadowOpacity: 0.1,
                 shadowRadius: 2,
                 elevation: 2,
+                width: 'auto', // Override styles.button width
               },
               botaoDesabilitado && { opacity: 0.5 },
             ]}>
