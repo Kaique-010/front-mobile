@@ -183,10 +183,13 @@ export const bootstrapMegaCache = async () => {
     await database.write(async () => {
       const col = database.collections.get('mega_entidades')
       for (const cli of entResults) {
-        const id = `${cli.enti_clie}-${cli.enti_empr}`
+        const clieId = cli.enti_clie || cli.id || cli.pk
+        if (!clieId) continue
+        
+        const id = `${clieId}-${cli.enti_empr}`
         const existentes = await col
           .query(
-            Q.where('enti_clie', String(cli.enti_clie)),
+            Q.where('enti_clie', String(clieId)),
             Q.where('enti_empr', String(cli.enti_empr))
           )
           .fetch()
@@ -201,7 +204,7 @@ export const bootstrapMegaCache = async () => {
         } else {
           await col.create((e) => {
             e._raw.id = id
-            e.entiClie = String(cli.enti_clie)
+            e.entiClie = String(clieId)
             e.entiEmpr = String(cli.enti_empr)
             e.entiNome = cli.enti_nome
             e.entiTipoEnti = cli.enti_tipo_enti

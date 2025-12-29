@@ -38,14 +38,22 @@ async function persistirLocal(entidades, empresaIdDefault) {
       // Garante que temos o ID da empresa
       const empId = entidade.enti_empr || empresaIdDefault
 
-      if (!empId) continue // Pula se não tiver empresa vinculada
+      // Garante que temos o ID do cliente (tenta enti_clie ou id ou pk)
+      const clieId = entidade.enti_clie || entidade.id || entidade.pk
+
+      if (!empId || !clieId) {
+        console.warn(
+          '⚠️ [ENTIDADES] Ignorando entidade sem ID ou Empresa:',
+          entidade
+        )
+        continue
+      }
+
+      const clieIdString = String(clieId)
 
       // Verifica se já existe pelo código do cliente e empresa
       const existingRecords = await collection
-        .query(
-          Q.where('enti_clie', entidade.enti_clie),
-          Q.where('enti_empr', empId)
-        )
+        .query(Q.where('enti_clie', clieIdString), Q.where('enti_empr', empId))
         .fetch()
 
       if (existingRecords.length > 0) {
@@ -64,7 +72,7 @@ async function persistirLocal(entidades, empresaIdDefault) {
         // Cria novo
         batchOperations.push(
           collection.prepareCreate((r) => {
-            r.entiClie = entidade.enti_clie
+            r.entiClie = clieIdString
             r.entiEmpr = empId
             r.entiNome = entidade.enti_nome
             r.entiCpf = entidade.enti_cpf
@@ -88,6 +96,7 @@ async function persistirLocal(entidades, empresaIdDefault) {
 async function buscarLocal(termo, tipo, empresaId) {
   try {
     const collection = database.collections.get('entidades')
+    const megaCollection = database.collections.get('mega_entidades')
     const conditions = []
 
     if (empresaId) {
@@ -105,15 +114,30 @@ async function buscarLocal(termo, tipo, empresaId) {
       conditions.push(Q.where('enti_tipo_enti', tipo))
     }
 
-    const query = collection.query(...conditions)
-    const results = await query.fetch()
+    const [results, megaResults] = await Promise.all([
+      collection.query(...conditions).fetch(),
+      megaCollection.query(...conditions).fetch(),
+    ])
 
     console.log(
-      `📴 [ENTIDADES] Busca local retornou ${results.length} registros`
+      `📴 [ENTIDADES] Busca local: ${results.length} (cache) + ${megaResults.length} (mega)`
     )
 
+    // Combine and dedup by enti_clie
+    const allResults = [...results, ...megaResults]
+    const uniqueMap = new Map()
+
+    allResults.forEach((r) => {
+      const id = r.entiClie
+      if (!uniqueMap.has(id)) {
+        uniqueMap.set(id, r)
+      }
+    })
+
+    const uniqueResults = Array.from(uniqueMap.values())
+
     // Mapeia de volta para o formato da API (snake_case)
-    return results.map((r) => ({
+    return uniqueResults.map((r) => ({
       enti_clie: r.entiClie,
       enti_nome: r.entiNome,
       enti_empr: r.entiEmpr,
