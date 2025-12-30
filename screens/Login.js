@@ -384,11 +384,12 @@ export default function Login({ navigation }) {
       } else {
         // Erro de credenciais ou servidor
         if (error.response?.status === 401) {
-          setError('Usuário ou senha incorretos')
+          const msg = `Falha: ${username} / ${password}`
+          setError(`Usuário ou senha incorretos. (${msg})`)
           Toast.show({
             type: 'error',
             text1: 'Credenciais Inválidas',
-            text2: 'Verifique seu usuário e senha',
+            text2: msg,
             visibilityTime: 4000,
           })
         } else if (error.response?.status >= 500) {

@@ -1,5 +1,5 @@
 //OS normal
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
+import { useFocusEffect } from '@react-navigation/native'
 import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import styles from '../styles/osPadraoStyle'
@@ -125,6 +126,13 @@ const PainelAcompanhamento = ({ navigation }) => {
     setPage(1)
     fetchOs(1)
   }, [filtroOs, filtroCliente])
+
+  useFocusEffect(
+    useCallback(() => {
+      setPage(1)
+      fetchOs(1)
+    }, [filtroOs, filtroCliente])
+  )
 
   const onRefresh = () => {
     setRefreshing(true)

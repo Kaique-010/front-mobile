@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import AbaPecas from '../componentsOrdemServico/AbaPecas'
 import AbaServicos from '../componentsOrdemServico/AbaServicos'
 import AbaTotais from '../componentsOrdemServico/AbaTotais'
 import AbaHoras from '../componentsOrdemServico/AbaHoras'
+import { useFocusEffect } from '@react-navigation/native'
 import SignatureField from '../componentsOrdemServico/SignatureField'
 import { gerarPdfServidor as gerarPdfServidorComp } from '../componentsOrdemServico/OsPdfView'
 import {
@@ -49,6 +50,7 @@ const OsDetalhe = ({ route, navigation }) => {
   const [pecas, setPecas] = useState([])
   const [servicos, setServicos] = useState([])
   const [horas, setHoras] = useState([])
+  const [osDetalhe, setOsDetalhe] = useState(os)
   const [dadosModificados, setDadosModificados] = useState(false)
   const [financeiroGerado, setFinanceiroGerado] = useState(false)
   const [scrollLock, setScrollLock] = useState(false)
@@ -69,6 +71,25 @@ const OsDetalhe = ({ route, navigation }) => {
 
   console.log('Assinatura Cliente (state):', assinaturaClie?.slice(0, 30))
   console.log('Assinatura Operador (state):', assinaturaOper?.slice(0, 30))
+
+  const carregarDetalhes = async () => {
+    try {
+      const response = await apiGetComContexto('Os/ordens/', {
+        os_os: os.os_os,
+        os_empr: os.os_empr,
+        os_fili: os.os_fili,
+      })
+      setOsDetalhe(response?.results?.[0] || os)
+    } catch (error) {
+      console.error('Erro ao carregar detalhes da OS:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (abaAtiva === 'detalhes') {
+      carregarDetalhes()
+    }
+  }, [abaAtiva])
 
   useEffect(() => {
     carregarPecas()
@@ -253,7 +274,7 @@ const OsDetalhe = ({ route, navigation }) => {
         <View style={styles.infoRow}>
           <Text style={[styles.label, { flex: 1 }]}>Total:</Text>
           <Text style={[styles.value, styles.totalValue]}>
-            R$ {Number(os.os_tota || 0).toFixed(2)}
+            R$ {Number(osDetalhe.os_tota || 0).toFixed(2)}
           </Text>
         </View>
       </View>
@@ -320,12 +341,7 @@ const OsDetalhe = ({ route, navigation }) => {
         <TouchableOpacity style={styles.button} onPress={gerarPdfServidor}>
           <Text style={styles.buttonText}>Gerar PDF (servidor)</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => abrirModal('whats')}
-          disabled={loadingWhats}>
-          <Text style={styles.actionText}>Enviar WhatsApp</Text>
-        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => abrirModal('email')}
