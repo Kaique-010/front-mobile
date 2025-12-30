@@ -221,7 +221,10 @@ const PainelAcompanhamento = ({ navigation }) => {
           </Text>
         </View>
         <Text style={styles.problema} numberOfLines={2}>
-          {item.os_prob_rela || 'Sem descrição do problema'}
+          {item.os_obje_os || 'Sem descrição da O.S'}
+        </Text>
+        <Text style={styles.total}>
+          Total: R$ {Number(item.os_tota || 0).toFixed(2)}
         </Text>
       </View>
     </TouchableOpacity>

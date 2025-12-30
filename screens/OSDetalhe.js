@@ -23,6 +23,7 @@ import {
   BASE_URL,
   getAuthHeaders,
 } from '../utils/api'
+import { handleApiError } from '../utils/errorHandler'
 import * as Print from 'expo-print'
 import * as Sharing from 'expo-sharing'
 import { Linking, Platform } from 'react-native'
@@ -80,8 +81,14 @@ const OsDetalhe = ({ route, navigation }) => {
         os_fili: os.os_fili,
       })
       setOsDetalhe(response?.results?.[0] || os)
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso',
+        text2: 'Detalhes carregados',
+      })
     } catch (error) {
       console.error('Erro ao carregar detalhes da OS:', error)
+      handleApiError(error)
     }
   }
 
@@ -111,8 +118,14 @@ const OsDetalhe = ({ route, navigation }) => {
         peca_fili: os.os_fili,
       })
       setPecas(response?.results || [])
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso',
+        text2: 'Peças carregadas',
+      })
     } catch (error) {
       console.error('Erro ao carregar peças:', error)
+      handleApiError(error)
     }
   }
 
@@ -124,6 +137,11 @@ const OsDetalhe = ({ route, navigation }) => {
         serv_fili: os.os_fili,
       })
       setServicos(response?.results || [])
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso',
+        text2: 'Serviços carregados',
+      })
     } catch (error) {
       console.error('Erro ao carregar serviços:', error)
     }
@@ -145,11 +163,20 @@ const OsDetalhe = ({ route, navigation }) => {
         os_assi_oper: payload.os_assi_oper?.slice(0, 30),
       })
 
-      await apiPatchComContexto('Os/ordens/', payload)
-      Alert.alert('Sucesso', 'Assinaturas salvas')
+      await apiPatchComContexto('Os/ordens/patch/', payload)
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso',
+        text2: 'Assinaturas salvas',
+      })
     } catch (e) {
       console.error('Erro ao salvar assinaturas:', e)
-      Alert.alert('Erro', 'Falha ao salvar assinaturas')
+      handleApiError(e)
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: e?.message || 'Falha ao salvar assinaturas',
+      })
     }
   }
 
@@ -162,6 +189,7 @@ const OsDetalhe = ({ route, navigation }) => {
         text1: 'Erro',
         text2: e?.message || 'Falha ao gerar PDF da OS',
       })
+      handleApiError(e)
     }
   }
 

@@ -88,6 +88,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  total: {
+    fontSize: 14,
+    color: '#162331ff',
+    fontWeight: 'bold',
+    marginTop: 6,
+    marginBottom: 6,
+    textAlign: 'right',
+  },
   cardBody: {},
   clienteNome: { fontWeight: 'bold', marginBottom: 6 },
   infoRow: {
