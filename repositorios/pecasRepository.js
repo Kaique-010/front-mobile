@@ -1,10 +1,13 @@
-import { isOnline } from '../services/conectividadeService'
+import { isOnlineAsync } from '../services/conectividadeService'
 import { apiGetComContexto } from '../utils/api'
 import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
 
 export async function buscarPecas({ termo, empresaId }) {
-  if (isOnline()) {
+  // Check online status properly
+  let online = await isOnlineAsync()
+
+  if (online) {
     try {
       const data = await apiGetComContexto(
         'produtos/produtos/',
@@ -25,6 +28,14 @@ export async function buscarPecas({ termo, empresaId }) {
       }
     } catch (error) {
       console.error('Erro ao buscar peças online, tentando local:', error)
+      // Se der erro de rede, assume offline para a próxima tentativa imediata
+      if (
+        error.code === 'ECONNABORTED' ||
+        error.message === 'Network Error' ||
+        error.message.includes('Network request failed')
+      ) {
+        console.log('🌐 Falha de conexão detectada. Usando fallback local.')
+      }
     }
   }
 
@@ -47,7 +58,7 @@ async function persistirLocal(produtos, empresaIdDefault) {
       // Verifica se já existe
       const existingRecords = await collection
         .query(
-          Q.where('prod_codi', produto.prod_codi),
+          Q.where('prod_codi', String(produto.prod_codi)),
           Q.where('prod_empr', empId)
         )
         .fetch()
@@ -57,6 +68,8 @@ async function persistirLocal(produtos, empresaIdDefault) {
         batchOperations.push(
           record.prepareUpdate((r) => {
             r.prodNome = produto.prod_nome
+            r.prodTipo = produto.prod_tipo
+            r.prodUnme = produto.prod_unme
             r.precoVista = produto.prod_preco_vista || 0
             r.saldoEstoque = produto.prod_saldo || 0
             r.marcaNome = produto.marca_nome || ''
@@ -69,6 +82,8 @@ async function persistirLocal(produtos, empresaIdDefault) {
             r.prodCodi = produto.prod_codi
             r.prodEmpr = empId
             r.prodNome = produto.prod_nome
+            r.prodTipo = produto.prod_tipo
+            r.prodUnme = produto.prod_unme
             r.precoVista = produto.prod_preco_vista || 0
             r.saldoEstoque = produto.prod_saldo || 0
             r.marcaNome = produto.marca_nome || ''
@@ -101,21 +116,17 @@ async function buscarLocal(termo, empresaId) {
       )
     }
 
-    conditions.push(
-      Q.or(
-        Q.where('prod_tipo', 'P'),
-        Q.where('prod_tipo', null),
-        Q.where('prod_tipo', '')
-      )
-    )
+    // conditions.push(Q.where('prod_tipo', 'P'))
 
     const resultados = await collection.query(...conditions).fetch()
 
     // Mapear para o formato esperado pelo componente (campos snake_case da API)
+    return resultados.map((r) => {
       // Tentar pegar saldoEstoque, se não existir tentar saldo (antigo)
-      const saldoFinal = r.saldoEstoque !== null && r.saldoEstoque !== undefined 
-        ? r.saldoEstoque 
-        : (r._getRaw('saldo') || 0)
+      const saldoFinal =
+        r.saldoEstoque !== null && r.saldoEstoque !== undefined
+          ? r.saldoEstoque
+          : r._getRaw('saldo') || 0
 
       return {
         prod_codi: r.prodCodi,
@@ -125,9 +136,11 @@ async function buscarLocal(termo, empresaId) {
         prod_unme: r.prodUnme,
         saldo_estoque: saldoFinal,
         prod_preco_vista: r.precoVista,
+        prod_preco_normal: r.precoNormal,
         prod_saldo: saldoFinal,
         marca_nome: r.marcaNome,
       }
+    })
   } catch (error) {
     console.error('Erro ao buscar peças localmente:', error)
     return []

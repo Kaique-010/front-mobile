@@ -1,10 +1,13 @@
-import { isOnline } from '../services/conectividadeService'
+import { isOnlineAsync } from '../services/conectividadeService'
 import { apiGetComContexto } from '../utils/api'
 import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
+import { handleApiError } from '../utils/errorHandler'
 
 export async function buscarServicos({ termo, empresaId }) {
-  if (isOnline()) {
+  const online = await isOnlineAsync()
+
+  if (online) {
     try {
       const data = await apiGetComContexto(
         'produtos/produtos/busca/',
@@ -25,6 +28,13 @@ export async function buscarServicos({ termo, empresaId }) {
       }
     } catch (error) {
       console.error('Erro ao buscar serviços online, tentando local:', error)
+      if (
+        error.code === 'ECONNABORTED' ||
+        error.message === 'Network Error' ||
+        error.message.includes('Network request failed')
+      ) {
+        console.log('🌐 Falha de conexão detectada. Usando fallback local.')
+      }
     }
   }
 
@@ -45,7 +55,7 @@ async function persistirLocal(servicos, empresaIdDefault) {
 
       const existingRecords = await collection
         .query(
-          Q.where('prod_codi', servico.prod_codi),
+          Q.where('prod_codi', String(servico.prod_codi)),
           Q.where('prod_empr', empId)
         )
         .fetch()
@@ -55,8 +65,9 @@ async function persistirLocal(servicos, empresaIdDefault) {
         batchOperations.push(
           record.prepareUpdate((r) => {
             r.prodNome = servico.prod_nome
+            r.prodTipo = servico.prod_tipo || 'S' // ✅ Garantir que seja 'S'
+            r.prodUnme = servico.prod_unme
             r.precoVista = servico.prod_preco_vista || 0
-            // Serviços geralmente não tem saldo ou marca, mas mantemos compatibilidade
             r.saldoEstoque = servico.prod_saldo || 0
             r.marcaNome = servico.marca_nome || ''
           })
@@ -67,6 +78,8 @@ async function persistirLocal(servicos, empresaIdDefault) {
             r.prodCodi = servico.prod_codi
             r.prodEmpr = empId
             r.prodNome = servico.prod_nome
+            r.prodTipo = servico.prod_tipo || 'S' // ✅ Garantir que seja 'S'
+            r.prodUnme = servico.prod_unme
             r.precoVista = servico.prod_preco_vista || 0
             r.saldoEstoque = servico.prod_saldo || 0
             r.marcaNome = servico.marca_nome || ''
@@ -89,6 +102,8 @@ async function buscarLocal(termo, empresaId) {
     const collection = database.collections.get('mega_produtos')
     const conditions = []
 
+    // conditions.push(Q.where('prod_tipo', 'S'))
+
     if (empresaId) {
       conditions.push(Q.where('prod_empr', empresaId))
     }
@@ -99,32 +114,30 @@ async function buscarLocal(termo, empresaId) {
       )
     }
 
-    conditions.push(
-      Q.or(
-        Q.where('prod_tipo', 'S'),
-        Q.where('prod_tipo', null),
-        Q.where('prod_tipo', '')
-      )
-    )
-
     const resultados = await collection.query(...conditions).fetch()
 
-    // Tentar pegar saldoEstoque, se não existir tentar saldo (antigo)
-    const saldoFinal =
-      r.saldoEstoque !== null && r.saldoEstoque !== undefined
-        ? r.saldoEstoque
-        : r._getRaw('saldo') || 0
+    console.log(`💾 [SERVIÇOS LOCAL] Encontrados ${resultados.length} serviços`)
 
-    return {
-      prod_codi: r.prodCodi,
-      prod_empr: r.prodEmpr,
-      prod_nome: r.prodNome,
-      prod_preco_vista: r.precoVista,
-      prod_saldo: saldoFinal,
-      marca_nome: r.marcaNome,
-    }
+    return resultados.map((r) => {
+      const saldoFinal =
+        r.saldoEstoque !== null && r.saldoEstoque !== undefined
+          ? r.saldoEstoque
+          : r._getRaw('saldo') || 0
+
+      return {
+        prod_codi: r.prodCodi,
+        prod_empr: r.prodEmpr,
+        prod_nome: r.prodNome,
+        prod_preco_vista: r.precoVista,
+        prod_preco_normal: r.precoNormal,
+        saldo_estoque: saldoFinal,
+        prod_saldo: saldoFinal,
+        marca_nome: r.marcaNome,
+      }
+    })
   } catch (error) {
     console.error('Erro ao buscar serviços localmente:', error)
+    // handleApiError(error)
     return []
   }
 }

@@ -72,12 +72,21 @@ const migrations = schemaMigrations({
           table: 'mega_produtos',
           columns: [
             { name: 'prod_unme', type: 'string', isOptional: true },
-
-            { name: 'prod_tipo', type: 'string', isIndexed: true },
-   
+            // ✅ CRÍTICO: prod_tipo DEVE ser opcional para não quebrar registros existentes
+            { name: 'prod_tipo', type: 'string', isOptional: true },
             { name: 'preco_normal', type: 'number', isOptional: true },
-
             { name: 'saldo_estoque', type: 'number', isOptional: true },
+          ],
+        }),
+      ],
+    },
+    {
+      toVersion: 6,
+      steps: [
+        addColumns({
+          table: 'os_servico',
+          columns: [
+            { name: 'os_servico_status', type: 'string', isOptional: true },
           ],
         }),
       ],

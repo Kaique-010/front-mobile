@@ -52,7 +52,7 @@ useEffect(() => {
 
 
   useEffect(() => {
-    // Inicializa o input com o valor vindo de props, permitindo limpeza completa depois
+ 
     const inicial = initialValue ?? valorAtual
     if (inicial) setQuery(inicial)
   }, [initialValue, valorAtual])
@@ -122,7 +122,7 @@ useEffect(() => {
         </TouchableOpacity>
       )}
 
-      {showResults && setorCarregado && (loading || servicos.length > 0) && (
+      {showResults && (loading || servicos.length > 0) && (
         <View style={styles.resultados}>
           {loading ? (
             <ActivityIndicator color="#10a2a7" style={styles.loading} />
@@ -133,7 +133,7 @@ useEffect(() => {
                 `servico-${item.prod_codi}-${item.prod_nome}-${item.prod_empr}`
               }
               renderItem={({ item }) => {
-                // ✅ CORRIGIDO: Ocultar preço quando usuário tem setor (igual ao AbaPecas)
+       
                 const precoOculto = usuarioTemSetor
                 
                 console.log('🔍 [BuscaServico] Item:', item.prod_nome)

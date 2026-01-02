@@ -11,3 +11,9 @@ export function verificarConexao() {
 export function isOnline() {
   return online
 }
+
+export async function isOnlineAsync() {
+  const state = await netInfo.fetch()
+  online = state.isConnected
+  return state.isConnected
+}

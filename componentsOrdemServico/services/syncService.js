@@ -112,10 +112,14 @@ export const processSyncQueue = async () => {
           errorMsg &&
           typeof errorMsg === 'string' &&
           (errorMsg.includes('estoque negativo') ||
-            errorMsg.includes('negativo para o produto'))
+            errorMsg.includes('negativo para o produto') ||
+            errorMsg.includes(
+              'duplicate key value violates unique constraint'
+            ) ||
+            errorMsg.includes('os_pkey'))
         ) {
           console.log(
-            `[Sync] Erro de estoque negativo detectado. Removendo item ${item.id} da fila.`
+            `[Sync] Erro fatal detectado (Estoque/Duplicidade). Removendo item ${item.id} da fila.`
           )
           await database.write(async () => {
             await item.destroyPermanently()
@@ -124,8 +128,10 @@ export const processSyncQueue = async () => {
           if (Toast && typeof Toast.show === 'function') {
             Toast.show({
               type: 'error',
-              text1: 'Erro de Estoque',
-              text2: errorMsg,
+              text1: 'Erro na Sincronização',
+              text2: errorMsg.includes('duplicate')
+                ? 'Registro já existe no servidor.'
+                : errorMsg,
               visibilityTime: 6000,
             })
           }
@@ -324,6 +330,9 @@ export const bootstrapMegaCache = async () => {
             row.marcaNome = p.marca_nome || null
             row.imagemBase64 = p.imagem_base64 || null
           })
+          console.log(
+            `📦 [MegaCache] API retornou ${prodResults.length} produtos`
+          )
         } else {
           await col.create((row) => {
             row._raw.id = id
