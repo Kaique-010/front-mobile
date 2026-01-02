@@ -10,13 +10,11 @@ export async function buscarPecas({ termo, empresaId }) {
         'produtos/produtos/',
         {
           search: termo,
-          limit: 20, // Aumentei um pouco o limit
+          tipo: 'P',
+          limit: 20,
         },
         'prod_'
       )
-
-      // A API pode retornar { results: [...] } ou direto [...] dependendo do endpoint/wrapper
-      // No BuscaProdutoInput usava data.results
       const resultados = data.results || data
 
       if (resultados && Array.isArray(resultados)) {
@@ -60,7 +58,7 @@ async function persistirLocal(produtos, empresaIdDefault) {
           record.prepareUpdate((r) => {
             r.prodNome = produto.prod_nome
             r.precoVista = produto.prod_preco_vista || 0
-            r.saldo = produto.prod_saldo || 0
+            r.saldoEstoque = produto.prod_saldo || 0
             r.marcaNome = produto.marca_nome || ''
             // r.imagemBase64 = produto.imagem_base64 // Se vier da API
           })
@@ -72,7 +70,7 @@ async function persistirLocal(produtos, empresaIdDefault) {
             r.prodEmpr = empId
             r.prodNome = produto.prod_nome
             r.precoVista = produto.prod_preco_vista || 0
-            r.saldo = produto.prod_saldo || 0
+            r.saldoEstoque = produto.prod_saldo || 0
             r.marcaNome = produto.marca_nome || ''
           })
         )
@@ -103,17 +101,33 @@ async function buscarLocal(termo, empresaId) {
       )
     }
 
+    conditions.push(
+      Q.or(
+        Q.where('prod_tipo', 'P'),
+        Q.where('prod_tipo', null),
+        Q.where('prod_tipo', '')
+      )
+    )
+
     const resultados = await collection.query(...conditions).fetch()
 
     // Mapear para o formato esperado pelo componente (campos snake_case da API)
-    return resultados.map((r) => ({
-      prod_codi: r.prodCodi,
-      prod_empr: r.prodEmpr,
-      prod_nome: r.prodNome,
-      prod_preco_vista: r.precoVista,
-      prod_saldo: r.saldo,
-      marca_nome: r.marcaNome,
-    }))
+      // Tentar pegar saldoEstoque, se não existir tentar saldo (antigo)
+      const saldoFinal = r.saldoEstoque !== null && r.saldoEstoque !== undefined 
+        ? r.saldoEstoque 
+        : (r._getRaw('saldo') || 0)
+
+      return {
+        prod_codi: r.prodCodi,
+        prod_empr: r.prodEmpr,
+        prod_nome: r.prodNome,
+        prod_tipo: r.prodTipo,
+        prod_unme: r.prodUnme,
+        saldo_estoque: saldoFinal,
+        prod_preco_vista: r.precoVista,
+        prod_saldo: saldoFinal,
+        marca_nome: r.marcaNome,
+      }
   } catch (error) {
     console.error('Erro ao buscar peças localmente:', error)
     return []

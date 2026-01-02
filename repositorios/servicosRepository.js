@@ -10,13 +10,13 @@ export async function buscarServicos({ termo, empresaId }) {
         'produtos/produtos/busca/',
         {
           q: termo,
-          tipo: 'S'
+          tipo: 'S',
         },
         'prod_'
       )
-      
+
       const resultados = data.results || data
-      
+
       if (resultados && Array.isArray(resultados)) {
         persistirLocal(resultados, empresaId).catch((err) =>
           console.error('Erro ao persistir serviços:', err)
@@ -40,7 +40,7 @@ async function persistirLocal(servicos, empresaIdDefault) {
   await database.write(async () => {
     for (const servico of servicos) {
       const empId = servico.prod_empr || empresaIdDefault
-      
+
       if (!servico.prod_codi) continue
 
       const existingRecords = await collection
@@ -57,7 +57,7 @@ async function persistirLocal(servicos, empresaIdDefault) {
             r.prodNome = servico.prod_nome
             r.precoVista = servico.prod_preco_vista || 0
             // Serviços geralmente não tem saldo ou marca, mas mantemos compatibilidade
-            r.saldo = servico.prod_saldo || 0
+            r.saldoEstoque = servico.prod_saldo || 0
             r.marcaNome = servico.marca_nome || ''
           })
         )
@@ -68,7 +68,7 @@ async function persistirLocal(servicos, empresaIdDefault) {
             r.prodEmpr = empId
             r.prodNome = servico.prod_nome
             r.precoVista = servico.prod_preco_vista || 0
-            r.saldo = servico.prod_saldo || 0
+            r.saldoEstoque = servico.prod_saldo || 0
             r.marcaNome = servico.marca_nome || ''
           })
         )
@@ -99,20 +99,30 @@ async function buscarLocal(termo, empresaId) {
       )
     }
 
-    // Nota: Aqui não estamos filtrando por tipo 'S' pois MegaProduto não tem esse campo.
-    // Retornará produtos e serviços que derem match no nome.
-    
-    const resultados = await collection.query(...conditions).fetch()
-    
-    return resultados.map(r => ({
-        prod_codi: r.prodCodi,
-        prod_empr: r.prodEmpr,
-        prod_nome: r.prodNome,
-        prod_preco_vista: r.precoVista,
-        prod_saldo: r.saldo,
-        marca_nome: r.marcaNome
-    }))
+    conditions.push(
+      Q.or(
+        Q.where('prod_tipo', 'S'),
+        Q.where('prod_tipo', null),
+        Q.where('prod_tipo', '')
+      )
+    )
 
+    const resultados = await collection.query(...conditions).fetch()
+
+    // Tentar pegar saldoEstoque, se não existir tentar saldo (antigo)
+    const saldoFinal =
+      r.saldoEstoque !== null && r.saldoEstoque !== undefined
+        ? r.saldoEstoque
+        : r._getRaw('saldo') || 0
+
+    return {
+      prod_codi: r.prodCodi,
+      prod_empr: r.prodEmpr,
+      prod_nome: r.prodNome,
+      prod_preco_vista: r.precoVista,
+      prod_saldo: saldoFinal,
+      marca_nome: r.marcaNome,
+    }
   } catch (error) {
     console.error('Erro ao buscar serviços localmente:', error)
     return []

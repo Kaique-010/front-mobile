@@ -21,6 +21,7 @@ if (hasWMNative) {
     schema: schemas,
     migrations,
     dbName: 'front_mobile_db',
+    jsi: true,
   })
 } else {
   console.log('[DB Adapter] LokiJSAdapter ativo (WMDatabaseBridge ausente)')

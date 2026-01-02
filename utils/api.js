@@ -6,8 +6,8 @@ import { getStoredData } from '../services/storageService'
 // NetInfo removido - não está instalado
 
 // BASE_URL manual; altere conforme ambiente
-export const BASE_URL = 'https://mobile-sps.site' // Android emulador - dev local
-// export const BASE_URL = 'http://localhost:8000' // iOS/desktop - dev local
+export const BASE_URL = 'https://mobile-sps.site' // Produção
+// export const BASE_URL = 'http://localhost:8000' // Android emulador - dev local
 // export const BASE_URL = 'http://192.168.0.10:8000' // Dispositivo físico na rede
 // export const BASE_URL = 'https://mobile-sps.site' // Produção
 
@@ -516,7 +516,9 @@ export const request = async ({ method, endpoint, data = {}, params = {} }) => {
     const fullEndpoint = `/api/${slug}/${endpoint}`
     return await apiFetch(fullEndpoint, method, data, params)
   } catch (error) {
-    throw error.response?.data || { message: 'Erro inesperado' }
+    // Se tiver resposta com dados, retorna os dados do erro (padrão antigo)
+    // Se não, retorna o erro original (para pegar Network Error, Timeout, etc)
+    throw error.response?.data || error
   }
 }
 

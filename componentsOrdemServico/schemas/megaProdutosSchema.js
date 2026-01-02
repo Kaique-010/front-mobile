@@ -6,8 +6,11 @@ const megaProdutosSchema = tableSchema({
     { name: 'prod_codi', type: 'string', isIndexed: true },
     { name: 'prod_empr', type: 'string', isIndexed: true },
     { name: 'prod_nome', type: 'string', isIndexed: true },
+    { name: 'prod_unme', type: 'string', isOptional: true }, // ✅ NOVO
+    { name: 'prod_tipo', type: 'string', isIndexed: true }, // ✅ NOVO
     { name: 'preco_vista', type: 'number', isOptional: true },
-    { name: 'saldo', type: 'number', isOptional: true },
+    { name: 'preco_normal', type: 'number', isOptional: true }, // ✅ NOVO
+    { name: 'saldo_estoque', type: 'number', isOptional: true }, // ✅ NOVO (renomeado)
     { name: 'marca_nome', type: 'string', isOptional: true },
     { name: 'imagem_base64', type: 'string', isOptional: true },
     { name: 'created_at', type: 'number' },

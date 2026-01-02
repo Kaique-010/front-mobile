@@ -5,7 +5,7 @@ import { Q } from '@nozbe/watermelondb'
 import NetInfo from '@react-native-community/netinfo'
 import { apiGetComContexto, apiGetComContextoSemFili } from '../../utils/api'
 import { Toast } from 'react-native-toast-message'
-import handleApiError from '../../utils/errorHandler'
+import { handleApiError } from '../../utils/errorHandler'
 
 let syncIntervalId = null
 let isSyncing = false
@@ -97,10 +97,65 @@ export const processSyncQueue = async () => {
           })
         }
       } catch (e) {
-        console.error(`[Sync] Erro no item ${item.id}:`, e.message)
+        console.error(`[Sync] Erro no item ${item.id}:`, e)
+
+        // Verifica se é erro de estoque negativo
+        const errorMsg =
+          e.mensagem ||
+          e.detail ||
+          e.response?.data?.mensagem ||
+          e.response?.data?.detail ||
+          e.message ||
+          JSON.stringify(e) ||
+          ''
+        if (
+          errorMsg &&
+          typeof errorMsg === 'string' &&
+          (errorMsg.includes('estoque negativo') ||
+            errorMsg.includes('negativo para o produto'))
+        ) {
+          console.log(
+            `[Sync] Erro de estoque negativo detectado. Removendo item ${item.id} da fila.`
+          )
+          await database.write(async () => {
+            await item.destroyPermanently()
+          })
+
+          if (Toast && typeof Toast.show === 'function') {
+            Toast.show({
+              type: 'error',
+              text1: 'Erro de Estoque',
+              text2: errorMsg,
+              visibilityTime: 6000,
+            })
+          }
+
+          continue
+        }
+
+        // Verifica erro de conexão/offline
+        const isNetwork =
+          e.message === 'Network Error' ||
+          e.code === 'ECONNABORTED' ||
+          e.code === 'ERR_NETWORK' ||
+          e.code === 'ERR_CONNECTION_REFUSED' ||
+          e.message?.includes('Network request failed') ||
+          (e.isAxiosError && !e.response)
+
+        if (isNetwork) {
+          console.log(
+            `[Sync] Conexão perdida ao processar item ${item.id}. Pausando fila.`
+          )
+
+          break
+        }
+
         handleApiError(e)
-        await item.update((i) => {
-          i.tentativas = (i.tentativas || 0) + 1
+
+        await database.write(async () => {
+          await item.update((i) => {
+            i.tentativas = (i.tentativas || 0) + 1
+          })
         })
       }
     }
@@ -261,8 +316,11 @@ export const bootstrapMegaCache = async () => {
         if (existentes.length) {
           await existentes[0].update((row) => {
             row.prodNome = p.nome || p.prod_nome
+            row.prodTipo = p.prod_tipo || p.tipo || null
+            row.prodUnme = p.prod_unme || p.unme || null
             row.precoVista = Number(p.preco_vista ?? p.prod_preco_vista ?? 0)
-            row.saldo = Number(p.saldo ?? 0)
+            row.precoNormal = Number(p.preco_normal ?? 0)
+            row.saldoEstoque = Number(p.saldo ?? p.saldo_estoque ?? 0)
             row.marcaNome = p.marca_nome || null
             row.imagemBase64 = p.imagem_base64 || null
           })
@@ -272,8 +330,11 @@ export const bootstrapMegaCache = async () => {
             row.prodCodi = codigo
             row.prodEmpr = empr
             row.prodNome = p.nome || p.prod_nome
+            row.prodTipo = p.prod_tipo || p.tipo || null
+            row.prodUnme = p.prod_unme || p.unme || null
             row.precoVista = Number(p.preco_vista ?? p.prod_preco_vista ?? 0)
-            row.saldo = Number(p.saldo ?? 0)
+            row.precoNormal = Number(p.preco_normal ?? 0)
+            row.saldoEstoque = Number(p.saldo ?? p.saldo_estoque ?? 0)
             row.marcaNome = p.marca_nome || null
             row.imagemBase64 = p.imagem_base64 || null
           })

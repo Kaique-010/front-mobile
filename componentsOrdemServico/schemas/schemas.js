@@ -13,14 +13,14 @@ import osHoraSchema from './osHoraSchema'
 import filaSyncSchema from './filaSyncSchema'
 
 const schemas = appSchema({
-  version: 3,
+  version: 4,
   tables: [
     entidadesSchema,
     osServicoSchema,
     pecasOsSchema,
     servicosOsSchema,
     osHoraSchema,
-    filaSyncSchema, // <-- A fila de sincronização
+    filaSyncSchema,
     produtosDetalhadosSchema,
     megaEntidadesSchema,
     megaProdutosSchema,

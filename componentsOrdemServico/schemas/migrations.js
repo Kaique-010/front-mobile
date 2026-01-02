@@ -65,6 +65,23 @@ const migrations = schemaMigrations({
         }),
       ],
     },
+    {
+      toVersion: 4,
+      steps: [
+        addColumns({
+          table: 'mega_produtos',
+          columns: [
+            { name: 'prod_unme', type: 'string', isOptional: true },
+
+            { name: 'prod_tipo', type: 'string', isIndexed: true },
+   
+            { name: 'preco_normal', type: 'number', isOptional: true },
+
+            { name: 'saldo_estoque', type: 'number', isOptional: true },
+          ],
+        }),
+      ],
+    },
   ],
 })
 

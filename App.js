@@ -1,10 +1,10 @@
+// App.js COMPLETO ATUALIZADO
 import React, { useEffect } from 'react'
 import { BackHandler, Platform, StatusBar, NativeModules } from 'react-native'
 import { LogBox } from 'react-native'
 LogBox.ignoreLogs(['Warning: ...'])
 LogBox.ignoreAllLogs()
 
-// Polyfill for BackHandler compatibility
 if (!BackHandler.removeEventListener) {
   BackHandler.removeEventListener = (eventType, handler) => {
     const subscription = BackHandler.addEventListener(eventType, handler)
@@ -24,16 +24,55 @@ import NotificationOverlay from './components/NotificationOverlay'
 import { toastConfig } from './config/toastConfig'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import database from './componentsOrdemServico/schemas/database'
+import schema from './componentsOrdemServico/schemas/schemas'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 export default function App() {
   console.log('[Boot] App montou')
+
+  // ✅ SUBSTITUIR O useEffect DE INICIALIZAÇÃO
+  useEffect(() => {
+    async function checkDatabaseVersion() {
+      try {
+        const currentVersion = schema.version
+        const storedVersion = await AsyncStorage.getItem('db_version')
+
+        if (storedVersion !== String(currentVersion)) {
+          console.log(
+            `[DB] Versão mudou: ${
+              storedVersion || 'nenhuma'
+            } → ${currentVersion}`
+          )
+          console.log('[DB] Resetando banco...')
+
+          await database.write(async () => {
+            await database.unsafeResetDatabase()
+          })
+
+          await AsyncStorage.setItem('db_version', String(currentVersion))
+          console.log(`[DB] ✅ Banco resetado para v${currentVersion}`)
+        } else {
+          console.log(`[DB] ✅ Já está na v${currentVersion}`)
+        }
+      } catch (err) {
+        console.error('[DB] ❌ Erro:', err?.message || err)
+      }
+    }
+    checkDatabaseVersion()
+  }, [])
+
+  // ❌ REMOVER ESTE useEffect ANTIGO:
+  // useEffect(() => {
+  //   async function initDatabaseIfNeeded() { ... }
+  //   initDatabaseIfNeeded()
+  // }, [])
+
+  // ... resto do código permanece igual
   useEffect(() => {
     async function setScreenOrientation() {
       try {
         const hasOrientationModule = !!NativeModules.ExpoScreenOrientation
         if (!hasOrientationModule) {
-          // Módulo não presente no binário atual; segue sem aplicar lock
           return
         }
 
@@ -49,7 +88,6 @@ export default function App() {
           )
         }
       } catch (err) {
-        // Falha ao carregar/aplicar orientação — não bloqueia inicialização
         console.log(
           '[Orientation] módulo indisponível, seguindo sem lock:',
           err?.message || err
@@ -61,32 +99,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    async function initDatabaseIfNeeded() {
-      try {
-        const key = 'db_initialized_v4'
-        const initialized = await AsyncStorage.getItem(key)
-        if (!initialized) {
-          console.log('[DB Init] flag ausente, iniciando reset do banco...')
-          await database.write(async () => {
-            await database.unsafeResetDatabase()
-          })
-          console.log('[DB Init] reset concluído, salvando flag...')
-          await AsyncStorage.setItem(key, '1')
-          console.log('[DB Init] banco inicializado com sucesso (v3)')
-        } else {
-          console.log('[DB Init] flag encontrada, não será feito reset')
-        }
-      } catch (err) {
-        console.log(
-          '[DB Init] falha ao inicializar banco:',
-          err?.message || err
-        )
-      }
-    }
-    initDatabaseIfNeeded()
-  }, [])
-
-  useEffect(() => {
     async function sqliteSanityCheck() {
       try {
         const key = 'db_sanity_v1'
@@ -94,20 +106,6 @@ export default function App() {
         if (done) {
           return
         }
-        // Código de teste removido para evitar problemas de sincronização (CORS/Método inválido)
-        /*
-        await database.write(async () => {
-          const col = database.collections.get('fila_sincronizacao')
-          await col.create((r) => {
-            r.acao = 'TEST'
-            r.tabelaAlvo = 'sanity'
-            r.registroIdLocal = `sanity-${Date.now()}`
-            r.payloadJson = JSON.stringify({ ok: true })
-            r.tentativas = 0
-            r.criadoEm = Date.now()
-          })
-        })
-        */
         const col = database.collections.get('fila_sincronizacao')
         const rows = await col.query().fetch()
         console.log('[DB Sanity] itens na fila_sincronizacao:', rows.length)
