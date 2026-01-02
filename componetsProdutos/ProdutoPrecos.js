@@ -14,18 +14,17 @@ import Toast from 'react-native-toast-message'
 import { apiPutComContexto, apiPostComContexto } from '../utils/api'
 
 export default function ProdutoPrecos({
+  produto: propProduto,
+  slug: propSlug,
   atualizarProduto: propAtualizarProduto,
 }) {
   const navigation = useNavigation()
-  const { params } = useRoute()
-  const {
-    produto = {},
-    slug = {},
-    atualizarProduto: paramAtualizarProduto,
-  } = params || {}
-
-  // Use the function from params if available, otherwise use the prop
-  const atualizarProduto = paramAtualizarProduto || propAtualizarProduto
+  const route = useRoute()
+  const params = route.params || {}
+  
+  const produto = propProduto || params.produto || {}
+  const slug = propSlug || params.slug || ''
+  const atualizarProduto = propAtualizarProduto || params.atualizarProduto
 
   const [precoCompra, setPrecoCompra] = useState('')
   const [percentualAVista, setPercentualAVista] = useState('5')

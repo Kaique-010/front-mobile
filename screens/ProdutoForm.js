@@ -3,6 +3,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import ProdutoDados from '../componetsProdutos/ProdutoDados'
 import ProdutoPrecos from '../componetsProdutos/ProdutoPrecos'
 import ProdutoPisos from '../componetsProdutos/ProdutoPisos'
+import ProdutoServicos from '../componetsProdutos/ProdutoServicos'
 
 const Tab = createMaterialTopTabNavigator()
 
@@ -34,6 +35,16 @@ export default function ProdutoFormTabs({ route, navigation }) {
       <Tab.Screen name="Preços">
         {(props) => (
           <ProdutoPrecos
+            {...props}
+            produto={produto}
+            atualizarProduto={atualizarProduto}
+            slug={slug}
+          />
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="Serviço">
+        {(props) => (
+          <ProdutoServicos
             {...props}
             produto={produto}
             atualizarProduto={atualizarProduto}

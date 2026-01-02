@@ -8,6 +8,7 @@ const megaProdutosSchema = tableSchema({
     { name: 'prod_nome', type: 'string', isIndexed: true },
     { name: 'prod_unme', type: 'string', isOptional: true }, // ✅ NOVO
     { name: 'prod_tipo', type: 'string', isIndexed: true }, // ✅ NOVO
+    { name: 'prod_ncm', type: 'string', isOptional: true }, // ✅ NOVO (NCM)
     { name: 'preco_vista', type: 'number', isOptional: true },
     { name: 'preco_normal', type: 'number', isOptional: true }, // ✅ NOVO
     { name: 'saldo_estoque', type: 'number', isOptional: true }, // ✅ NOVO (renomeado)

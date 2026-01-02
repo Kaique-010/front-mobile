@@ -13,7 +13,7 @@ import osHoraSchema from './osHoraSchema'
 import filaSyncSchema from './filaSyncSchema'
 
 const schemas = appSchema({
-  version: 6,
+  version: 7,
   tables: [
     entidadesSchema,
     osServicoSchema,

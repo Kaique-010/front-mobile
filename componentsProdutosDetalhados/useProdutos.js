@@ -256,6 +256,7 @@ const useProdutos = () => {
             saldo: r.saldo,
             preco_vista: r.precoVista,
             imagem_base64: r.imagemBase64,
+            prod_ncm: r.prodNcm,
           }))
           setProdutos(reset ? mapped : [...produtos, ...mapped])
           setHasMore(false)

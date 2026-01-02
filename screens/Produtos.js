@@ -17,7 +17,7 @@ import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
 
 import { apiGetComContextoSemFili } from '../utils/api'
-import NetInfo from '@react-native-community/netinfo'
+import { isOnlineAsync } from '../services/conectividadeService'
 
 const ITEM_HEIGHT = 140
 
@@ -126,42 +126,50 @@ export default function Produtos({ navigation }) {
         const queryBase = collection.query(...queryConditions)
         const count = await queryBase.fetchCount()
 
-        // Se banco local vazio e online, tenta API
-        if (count === 0 && !searchTerm) {
-          const netState = await NetInfo.fetch()
-          if (netState.isConnected) {
-            console.log('[PRODUTOS] Banco local vazio. Buscando da API...')
-            try {
-              // Usando endpoint detalhado que retorna saldo e imagem
-              const apiData = await apiGetComContextoSemFili(
-                'produtos/produtosdetalhados/',
-                { limit: 50 }
-              )
-              const resultsApi = apiData?.results || apiData || []
+        const isOnline = await isOnlineAsync()
 
-              if (resultsApi.length > 0) {
-                const mapped = resultsApi.map((p) => ({
-                  prod_nome: p.nome || p.prod_nome,
-                  prod_codi: String(p.codigo || p.prod_codi),
-                  prod_unme: p.unidade || p.prod_unme,
-                  prod_loca: p.localizacao || p.prod_loca,
-                  saldo: Number(p.saldo ?? 0),
-                  preco_vista: Number(p.preco_vista ?? p.prod_preco_vista ?? 0),
-                  imagem_base64: p.imagem_base64 || null,
-                }))
-
-                setProdutos(mapped)
-                setHasMore(false)
-                Toast.show({
-                  type: 'info',
-                  text1: 'Modo Online',
-                  text2: 'Exibindo dados da API.',
-                })
-                return
-              }
-            } catch (errApi) {
-              console.error('[PRODUTOS] Erro no fallback da API:', errApi)
+        // Se banco local vazio e online, OU se forçado refresh (busca explícita), tenta API
+        if (isOnline && ((count === 0 && !searchTerm) || forceRefresh)) {
+          console.log(
+            `[PRODUTOS] Buscando da API (forceRefresh: ${forceRefresh}, count: ${count})...`
+          )
+          try {
+            // Usando endpoint detalhado que retorna saldo e imagem
+            const params = { limit: 50 }
+            if (searchTerm) {
+              params.search = searchTerm
             }
+
+            const apiData = await apiGetComContextoSemFili(
+              'produtos/produtosdetalhados/',
+              params
+            )
+            const resultsApi = apiData?.results || apiData || []
+
+            if (resultsApi.length > 0) {
+              const mapped = resultsApi.map((p) => ({
+                prod_nome: p.nome || p.prod_nome,
+                prod_codi: String(p.codigo || p.prod_codi),
+                prod_unme: p.unidade || p.prod_unme,
+                prod_loca: p.localizacao || p.prod_loca,
+                prod_ncm: p.ncm || p.prod_ncm,
+                marca_nome: p.marca_nome || p.prod_marca_nome || '',
+                saldo: Number(p.saldo ?? 0),
+                preco_vista: Number(p.preco_vista ?? p.prod_preco_vista ?? 0),
+                imagem_base64: p.imagem_base64 || null,
+              }))
+
+              setProdutos(mapped)
+              setHasMore(false)
+              Toast.show({
+                type: 'info',
+                text1: 'Modo Online',
+                text2: 'Exibindo dados atualizados da API.',
+              })
+              return
+            }
+          } catch (errApi) {
+            console.error('[PRODUTOS] Erro no fallback da API:', errApi)
           }
         }
 

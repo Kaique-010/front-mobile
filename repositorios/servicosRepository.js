@@ -105,7 +105,7 @@ async function buscarLocal(termo, empresaId) {
     // conditions.push(Q.where('prod_tipo', 'S'))
 
     if (empresaId) {
-      conditions.push(Q.where('prod_empr', empresaId))
+      conditions.push(Q.where('prod_empr', String(empresaId)))
     }
 
     if (termo) {

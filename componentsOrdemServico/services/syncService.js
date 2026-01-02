@@ -329,6 +329,7 @@ export const bootstrapMegaCache = async () => {
             row.saldoEstoque = Number(p.saldo ?? p.saldo_estoque ?? 0)
             row.marcaNome = p.marca_nome || null
             row.imagemBase64 = p.imagem_base64 || null
+            row.prodNcm = p.ncm || p.prod_ncm || null
           })
           console.log(
             `📦 [MegaCache] API retornou ${prodResults.length} produtos`
@@ -346,6 +347,7 @@ export const bootstrapMegaCache = async () => {
             row.saldoEstoque = Number(p.saldo ?? p.saldo_estoque ?? 0)
             row.marcaNome = p.marca_nome || null
             row.imagemBase64 = p.imagem_base64 || null
+            row.prodNcm = p.ncm || p.prod_ncm || null
           })
         }
       }
