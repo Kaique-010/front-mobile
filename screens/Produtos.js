@@ -47,6 +47,9 @@ const ProdutoCard = memo(({ item, navigation }) => (
         {item.prod_unme && (
           <Text style={styles.unidade}>Unidade: {item.prod_unme}</Text>
         )}
+        {(item.prod_ncm || item.ncm) && (
+          <Text style={styles.unidade}>NCM: {item.prod_ncm || item.ncm}</Text>
+        )}
         {item.prod_loca && (
           <Text style={styles.unidade}>Localidade: {item.prod_loca}</Text>
         )}
@@ -148,15 +151,20 @@ export default function Produtos({ navigation }) {
 
             if (resultsApi.length > 0) {
               const mapped = resultsApi.map((p) => ({
+                ...p, // Mantém todos os campos originais
                 prod_nome: p.nome || p.prod_nome,
                 prod_codi: String(p.codigo || p.prod_codi),
                 prod_unme: p.unidade || p.prod_unme,
                 prod_loca: p.localizacao || p.prod_loca,
-                prod_ncm: p.ncm || p.prod_ncm,
+                ncm: p.ncm || p.prod_ncm,
                 marca_nome: p.marca_nome || p.prod_marca_nome || '',
                 saldo: Number(p.saldo ?? 0),
                 preco_vista: Number(p.preco_vista ?? p.prod_preco_vista ?? 0),
                 imagem_base64: p.imagem_base64 || null,
+                // Garantir campos de serviço
+                prod_e_serv: p.prod_e_serv || p.prod_eserv || false,
+                prod_list_tabe_prec:
+                  p.prod_list_tabe_prec || p.prod_list_tabe_prod || false,
               }))
 
               setProdutos(mapped)

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { handleApiError } from '../utils/errorHandler'
 import { Picker } from '@react-native-picker/picker'
 import {
   View,
@@ -24,8 +25,8 @@ export default function ProdutoServicos({
   const atualizarProduto = propAtualizarProduto
 
   const [prodEServico, setProdEServico] = useState(false)
-  const [prodExigIss, setProdExigIss] = useState('Exigivel')
-  const [prodIss, setProdIss] = useState('')
+  const [prodExigIss, setProdExigIss] = useState(1)
+  const [prodIss, setProdIss] = useState('0,00')
   const [prodCodiServ, setProdCodiServ] = useState('')
   const [prodDescServ, setProdDescServ] = useState('')
   const [prodCnae, setProdCnae] = useState('')
@@ -48,33 +49,53 @@ export default function ProdutoServicos({
 
   useEffect(() => {
     try {
+      console.log('📦 [ProdutoServicos] Recebendo produto:', produto)
       if (produto) {
-        if (produto.prod_eserv !== undefined && produto.prod_eserv !== null) {
+        // Mapeando prod_e_serv (backend) ou prod_eserv (possível legado)
+        if (produto.prod_e_serv !== undefined && produto.prod_e_serv !== null) {
+          setProdEServico(Boolean(produto.prod_e_serv))
+        } else if (
+          produto.prod_eserv !== undefined &&
+          produto.prod_eserv !== null
+        ) {
           setProdEServico(Boolean(produto.prod_eserv))
         }
+
         if (
           produto.prod_exig_iss !== undefined &&
           produto.prod_exig_iss !== null
         ) {
           setProdExigIss(Number(produto.prod_exig_iss))
         }
+
         if (produto.prod_iss !== undefined && produto.prod_iss !== null) {
           setProdIss(String(produto.prod_iss).replace('.', ','))
         }
+
         if (
           produto.prod_codi_serv !== undefined &&
           produto.prod_codi_serv !== null
         ) {
-          setProdCodiServ(Number(produto.prod_codi_serv))
+          setProdCodiServ(String(produto.prod_codi_serv))
         }
+
         if (
           produto.prod_desc_serv !== undefined &&
           produto.prod_desc_serv !== null
         ) {
           setProdDescServ(String(produto.prod_desc_serv))
         }
+
         if (produto.prod_cnae !== undefined && produto.prod_cnae !== null) {
           setProdCnae(String(produto.prod_cnae))
+        }
+
+        // Mapeando prod_list_tabe_prec (backend)
+        if (
+          produto.prod_list_tabe_prec !== undefined &&
+          produto.prod_list_tabe_prec !== null
+        ) {
+          setProdListTabeProd(Boolean(produto.prod_list_tabe_prec))
         }
       }
     } catch (error) {
@@ -123,12 +144,12 @@ export default function ProdutoServicos({
       prod_e_serv: Boolean(prodEServico),
       prod_exig_iss: Number(prodExigIss),
       prod_iss: parseFloat(prodIss.replace(',', '.')) || 0,
-      prod_codi_serv: Number(prodCodiServ),
+      prod_codi_serv: String(prodCodiServ),
       prod_desc_serv: String(prodDescServ),
       prod_cnae: String(prodCnae),
-      prod_list_tabe_prod: Boolean(prodListTabeProd),
+      prod_list_tabe_prec: Boolean(prodListTabeProd),
     }
-    console.log('payload', payload)
+    console.log('payload na aba de serviços', payload)
 
     const empresa = produto?.prod_empr || payload.prod_empr
     const codigo = String(produto.prod_codi)
@@ -156,13 +177,13 @@ export default function ProdutoServicos({
 
       // Atualizar o produto localmente com os campos salvos
       const novosCampos = {
-        prod_eserv: payload.prod_eserv,
+        prod_e_serv: payload.prod_e_serv,
         prod_exig_iss: payload.prod_exig_iss,
         prod_iss: payload.prod_iss,
         prod_codi_serv: payload.prod_codi_serv,
         prod_desc_serv: payload.prod_desc_serv,
         prod_cnae: payload.prod_cnae,
-        prod_list_tabe_prod: payload.prod_list_tabe_prod,
+        prod_list_tabe_prec: payload.prod_list_tabe_prec,
       }
       atualizarProduto({
         ...produto,
@@ -172,27 +193,7 @@ export default function ProdutoServicos({
       setTimeout(() => navigation.goBack(), 1000)
     } catch (error) {
       console.error('Erro ao salvar serviço:', error)
-      const status = error?.response?.status
-      const data = error?.response?.data
-      let mensagem = 'Não foi possível salvar os dados de Serviços.'
-
-      if (status === 404) {
-        mensagem = 'Produto não encontrado para atualização.'
-      } else if (status === 400) {
-        if (data && typeof data === 'object') {
-          const detalhes = Object.entries(data)
-            .map(
-              ([campo, msgs]) =>
-                `${campo}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`
-            )
-            .join('\n')
-          mensagem = `Dados inválidos:\n${detalhes}`
-        } else {
-          mensagem = data || mensagem
-        }
-      }
-
-      Toast.show({ type: 'error', text1: 'Erro', text2: mensagem })
+      handleApiError(error, 'Não foi possível salvar os dados de Serviços.')
     } finally {
       setLoading(false)
     }
@@ -223,14 +224,16 @@ export default function ProdutoServicos({
       <Campo
         label="Código do Serviço"
         value={prodCodiServ}
-        onChange={(valor) => setProdCodiServ(formatarNumero(valor))}
+        onChange={(valor) => setProdCodiServ(valor)}
         placeholder="Código do Serviço"
+        keyboardType="default"
       />
       <Campo
         label="Descrição do Serviço"
         value={prodDescServ}
         onChange={(valor) => setProdDescServ(valor)}
         placeholder="Descrição do Serviço"
+        keyboardType="default"
       />
       <Campo
         label="CNAE"
@@ -290,6 +293,7 @@ function Campo({
   editable = true,
   dark = false,
   placeholder,
+  keyboardType = 'decimal-pad',
 }) {
   return (
     <>
@@ -298,7 +302,7 @@ function Campo({
         value={value}
         onChangeText={onChange}
         editable={editable}
-        keyboardType="decimal-pad"
+        keyboardType={keyboardType}
         placeholder={placeholder}
         placeholderTextColor={dark ? '#666' : '#999'}
         style={[
