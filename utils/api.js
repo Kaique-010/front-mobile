@@ -570,7 +570,8 @@ axios.interceptors.response.use(
       )
     }
 
-    // Lógica de retry para erros de rede
+    // Lógica de retry DESATIVADA a pedido do usuário para falhar rápido e usar offline
+    /*
     if (
       config &&
       !config.__isRetryRequest &&
@@ -593,6 +594,7 @@ axios.interceptors.response.use(
       await delay(RETRY_DELAY * config.retryCount) // Delay progressivo
       return axios(config)
     }
+    */
 
     if (error.code === 'ECONNABORTED') {
       console.error('⏰ [AXIOS-TIMING] Timeout na requisição')

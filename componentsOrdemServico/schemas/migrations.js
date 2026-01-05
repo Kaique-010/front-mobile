@@ -83,16 +83,7 @@ const migrations = schemaMigrations({
     {
       toVersion: 5,
       steps: [
-        addColumns({
-          table: 'mega_produtos',
-          columns: [
-            { name: 'prod_unme', type: 'string', isOptional: true },
-            // ✅ CRÍTICO: prod_tipo DEVE ser opcional para não quebrar registros existentes
-            { name: 'prod_tipo', type: 'string', isOptional: true },
-            { name: 'preco_normal', type: 'number', isOptional: true },
-            { name: 'saldo_estoque', type: 'number', isOptional: true },
-          ],
-        }),
+        // Migração vazia para corrigir duplicidade anterior
       ],
     },
     {
@@ -111,9 +102,7 @@ const migrations = schemaMigrations({
       steps: [
         addColumns({
           table: 'mega_produtos',
-          columns: [
-            { name: 'prod_ncm', type: 'string', isOptional: true },
-          ],
+          columns: [{ name: 'prod_ncm', type: 'string', isOptional: true }],
         }),
       ],
     },

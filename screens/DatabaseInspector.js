@@ -7,6 +7,7 @@ import {
   Alert,
   FlatList,
   StyleSheet,
+  Platform,
 } from 'react-native'
 import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
@@ -54,13 +55,69 @@ export default function DatabaseInspector() {
     }
   }
 
+  const handleDeleteRecord = async (item) => {
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm(
+        'Tem certeza que deseja remover este registro permanentemente?'
+      )
+      if (confirm) {
+        try {
+          await database.write(async () => {
+            await item.destroyPermanently()
+          })
+          setRecords((prev) => prev.filter((r) => r.id !== item.id))
+          window.alert('Registro deletado.')
+        } catch (e) {
+          window.alert('Erro: ' + e.message)
+        }
+      }
+      return
+    }
+
+    Alert.alert(
+      'Deletar Registro',
+      'Tem certeza que deseja remover este registro permanentemente?',
+      [
+        { text: 'Cancelar' },
+        {
+          text: 'Deletar',
+          onPress: async () => {
+            try {
+              await database.write(async () => {
+                await item.destroyPermanently()
+              })
+              setRecords((prev) => prev.filter((r) => r.id !== item.id))
+              Alert.alert('Sucesso', 'Registro deletado.')
+            } catch (e) {
+              Alert.alert('Erro', e.message)
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    )
+  }
+
+  const renderDeleteButton = (item) => (
+    <TouchableOpacity
+      style={styles.deleteBtn}
+      onPress={() => handleDeleteRecord(item)}>
+      <Text style={styles.deleteBtnText}>Deletar</Text>
+    </TouchableOpacity>
+  )
+
   const renderRecord = ({ item }) => {
     const raw = item._raw
 
     if (selectedTable === 'mega_entidades') {
       return (
         <View style={styles.record}>
-          <Text style={styles.recordTitle}>{raw.enti_nome || 'Sem Nome'}</Text>
+          <View style={styles.recordHeader}>
+            <Text style={styles.recordTitle}>
+              {raw.enti_nome || 'Sem Nome'}
+            </Text>
+            {renderDeleteButton(item)}
+          </View>
           <Text style={styles.recordDetail}>
             Doc: {raw.enti_cpf || raw.enti_cnpj || 'N/A'}
           </Text>
@@ -78,7 +135,12 @@ export default function DatabaseInspector() {
     if (selectedTable === 'mega_produtos') {
       return (
         <View style={styles.record}>
-          <Text style={styles.recordTitle}>{raw.prod_nome || 'Sem Nome'}</Text>
+          <View style={styles.recordHeader}>
+            <Text style={styles.recordTitle}>
+              {raw.prod_nome || 'Sem Nome'}
+            </Text>
+            {renderDeleteButton(item)}
+          </View>
           <Text style={styles.recordDetail}>Cód: {raw.prod_codi}</Text>
           <Text style={styles.recordDetail}>
             Saldo: {raw.saldo} | Preço: R$ {raw.preco_vista?.toFixed(2)}
@@ -93,7 +155,12 @@ export default function DatabaseInspector() {
 
     return (
       <View style={styles.record}>
-        <Text style={{ fontSize: 10 }}>{JSON.stringify(raw, null, 2)}</Text>
+        <View style={styles.recordHeader}>
+          <Text style={{ fontSize: 10, flex: 1 }}>
+            {JSON.stringify(raw, null, 2)}
+          </Text>
+          {renderDeleteButton(item)}
+        </View>
       </View>
     )
   }
@@ -232,4 +299,21 @@ const styles = StyleSheet.create({
   recordTitle: { fontWeight: 'bold', fontSize: 14, marginBottom: 2 },
   recordDetail: { fontSize: 12, color: '#444' },
   recordJson: { fontSize: 9, color: '#aaa', marginTop: 4 },
+  recordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  deleteBtn: {
+    backgroundColor: '#ff4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  deleteBtnText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
 })

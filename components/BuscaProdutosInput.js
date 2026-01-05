@@ -26,7 +26,6 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
   const [empresaId, setEmpresaId] = useState(null)
 
-  // ✅ CORRIGIDO: Verificar setor do usuário e carregar empresaId
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -70,18 +69,15 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
 
         const resultados = await buscarPecas({
           termo: debouncedSearchTerm,
-          empresaId
+          empresaId,
         })
 
-        const validos = resultados.filter(
-          (p) => p?.prod_codi && !isNaN(Number(p.prod_codi))
-        )
+        const validos = resultados.filter((p) => p?.prod_codi)
 
         console.log(
           `✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} produtos válidos`
         )
         setProdutos(validos)
-
       } catch (err) {
         console.error('❌ Erro ao buscar produtos:', err.message)
       } finally {
@@ -93,7 +89,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   }, [debouncedSearchTerm, empresaId])
 
   const handleSelecionarProduto = (produto) => {
-    if (!produto?.prod_codi || isNaN(Number(produto.prod_codi))) {
+    if (!produto?.prod_codi) {
       console.warn('❌ Produto inválido selecionado:', produto)
       return
     }
@@ -147,10 +143,18 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
           maxToRenderPerBatch={10}
           windowSize={10}
           renderItem={({ item }) => {
-            const mostrarPreco = !usuarioTemSetor && (item.prod_preco_vista > 0 || item.prod_preco_normal > 0)
-            
+            const mostrarPreco =
+              !usuarioTemSetor &&
+              (item.prod_preco_vista > 0 || item.prod_preco_normal > 0)
+
             const subtitle = mostrarPreco
-              ? `Código: ${item.prod_codi} | UM: ${item.prod_unme} | Saldo: ${item.saldo_estoque} | Preço: R$ ${(item.prod_preco_vista || item.prod_preco_normal || 0).toFixed(2)}`
+              ? `Código: ${item.prod_codi} | UM: ${item.prod_unme} | Saldo: ${
+                  item.saldo_estoque
+                } | Preço: R$ ${(
+                  item.prod_preco_vista ||
+                  item.prod_preco_normal ||
+                  0
+                ).toFixed(2)}`
               : `Código: ${item.prod_codi} | UM: ${item.prod_unme} | Saldo: ${item.saldo_estoque}`
 
             return (

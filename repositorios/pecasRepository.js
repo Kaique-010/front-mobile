@@ -2,6 +2,7 @@ import { isOnlineAsync } from '../services/conectividadeService'
 import { apiGetComContexto } from '../utils/api'
 import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
+import { apiHandleError } from '../utils/errorHandler'
 
 export async function buscarPecas({ termo, empresaId }) {
   // Check online status properly
@@ -28,7 +29,6 @@ export async function buscarPecas({ termo, empresaId }) {
       }
     } catch (error) {
       console.error('Erro ao buscar peças online, tentando local:', error)
-      // Se der erro de rede, assume offline para a próxima tentativa imediata
       if (
         error.code === 'ECONNABORTED' ||
         error.message === 'Network Error' ||
@@ -53,7 +53,7 @@ async function persistirLocal(produtos, empresaIdDefault) {
       const empId = produto.prod_empr || empresaIdDefault
 
       // Filtrar inválidos como feito no componente original
-      if (!produto.prod_codi || isNaN(Number(produto.prod_codi))) continue
+      if (!produto.prod_codi) continue
 
       // Verifica se já existe
       const existingRecords = await collection
@@ -116,12 +116,27 @@ async function buscarLocal(termo, empresaId) {
       )
     }
 
-    // conditions.push(Q.where('prod_tipo', 'P'))
+    // conditions.push(Q.where('prod_tipo', 'P')) // Remove strict DB filter
 
     const resultados = await collection.query(...conditions).fetch()
 
+    console.log(
+      `📦 [PEÇAS LOCAL] Total encontrado (antes filtro tipo): ${resultados.length}`
+    )
+    if (resultados.length > 0) {
+      console.log(
+        `📦 [PEÇAS LOCAL] Exemplo Tipo: ${resultados[0].prodTipo} | Nome: ${resultados[0].prodNome}`
+      )
+    }
+
+    const filtrados = resultados.filter((r) => r.prodTipo !== 'S') // Accept anything that is NOT a service
+
+    console.log(
+      `📦 [PEÇAS LOCAL] Total após filtro (!= S): ${filtrados.length}`
+    )
+
     // Mapear para o formato esperado pelo componente (campos snake_case da API)
-    return resultados.map((r) => {
+    return filtrados.map((r) => {
       // Tentar pegar saldoEstoque, se não existir tentar saldo (antigo)
       const saldoFinal =
         r.saldoEstoque !== null && r.saldoEstoque !== undefined

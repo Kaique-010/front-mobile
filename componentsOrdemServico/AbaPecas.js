@@ -296,6 +296,7 @@ export default function AbaPecas({
         // Não enviamos peca_item para adição (backend gera)
       }))
 
+    // Filtra itens para edição, garantindo que peca_os esteja presente
     const editar = produtos
       .filter(
         (p) =>
@@ -305,7 +306,7 @@ export default function AbaPecas({
       )
       .map((p) => ({
         peca_item: p.peca_item,
-        peca_os: os_os,
+        peca_os: p.peca_os || os_os, // Garante peca_os
         peca_prod: p.peca_prod,
         peca_quan: p.peca_quan,
         peca_unit: p.peca_unit,

@@ -102,7 +102,7 @@ async function buscarLocal(termo, empresaId) {
     const collection = database.collections.get('mega_produtos')
     const conditions = []
 
-    // conditions.push(Q.where('prod_tipo', 'S'))
+    conditions.push(Q.where('prod_tipo', 'S'))
 
     if (empresaId) {
       conditions.push(Q.where('prod_empr', String(empresaId)))
