@@ -208,7 +208,7 @@ export default function Home() {
           textTransform: 'uppercase',
           fontSize: 6,
         }}>
-        Versão 1.0.15
+        Versão 1.0.16
       </Text>
       <TouchableOpacity
         style={styles.logoButton}
