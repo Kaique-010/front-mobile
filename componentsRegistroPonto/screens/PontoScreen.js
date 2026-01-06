@@ -17,7 +17,8 @@ import ListarPontos from '../listarPontos'
 export default function PontoScreen() {
   const [entidade, setEntidade] = useState(null)
   const colaboradorId = entidade?.enti_clie
-  const { pontos, registrarPonto, loading } = usePonto(colaboradorId)
+  const { pontos, registrarPonto, loading, bancoDeHoras } =
+    usePonto(colaboradorId)
 
   async function baterPonto(tipo_movimento) {
     if (!entidade) {
@@ -29,9 +30,6 @@ export default function PontoScreen() {
       colaborador_id: entidade.enti_clie,
       tipo: tipo_movimento,
     })
-  }
-
-  if (loading && !pontos.length) {
   }
 
   // If we want a "cool" loading screen
@@ -70,6 +68,40 @@ export default function PontoScreen() {
 
         {entidade && (
           <View style={styles.actionsContainer}>
+            {bancoDeHoras && (
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryTitle}>Resumo do Dia</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Trabalhado:</Text>
+                  <Text style={styles.summaryValue}>
+                    {bancoDeHoras.total_trabalhado || '00:00:00'}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Jornada:</Text>
+                  <Text style={styles.summaryValue}>
+                    {bancoDeHoras.jornada || '00:00:00'}
+                  </Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Saldo:</Text>
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      {
+                        color:
+                          bancoDeHoras.banco_de_horas &&
+                          bancoDeHoras.banco_de_horas.startsWith('-')
+                            ? '#e74c3c'
+                            : '#2ecc71',
+                      },
+                    ]}>
+                    {bancoDeHoras.banco_de_horas || '00:00:00'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             <View style={styles.buttonsRow}>
               <TouchableOpacity
                 style={[styles.button, styles.buttonEntrada]}
@@ -251,5 +283,34 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden', // Ensures list doesn't overflow rounded corners
     padding: 5,
+  },
+  summaryCard: {
+    backgroundColor: '#2c3e50',
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  summaryTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  summaryLabel: {
+    color: '#bdc3c7',
+    fontSize: 14,
+  },
+  summaryValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 })

@@ -2,40 +2,52 @@ import { useState, useEffect } from 'react'
 import {
   listarPontos,
   registrarPonto as registrarPontoService,
+  bancoDeHoras as bancoDeHorasService,
+  totalPorDia as totalPorDiaService,
 } from '../services/servicePonto'
 import { handleApiError } from '../../utils/errorHandler'
 
 export function usePonto(colaboradorId) {
   const [pontos, setPontos] = useState([])
   const [loading, setLoading] = useState(false)
+  const [bancoDeHoras, setBancoDeHoras] = useState(null)
+  const [totalPorDia, setTotalPorDia] = useState(null)
 
-  const carregarPontos = () => {
+  const carregarPontos = async () => {
     if (!colaboradorId) return
 
     setLoading(true)
-    listarPontos(colaboradorId)
-      .then((response) => {
-        let listaPontos = []
+    const hoje = new Date().toISOString().split('T')[0]
 
-        // Padrão de tratamento de resposta similar ao PainelOs.js
-        if (Array.isArray(response)) {
-          listaPontos = response
-        } else if (response?.dados && Array.isArray(response.dados)) {
-          listaPontos = response.dados
-        } else if (response?.results && Array.isArray(response.results)) {
-          listaPontos = response.results
-        } else if (response && typeof response === 'object') {
-          const possibleArrays = Object.values(response).filter(Array.isArray)
-          if (possibleArrays.length > 0) listaPontos = possibleArrays[0]
-        }
+    try {
+      const [pontosRes, bancoRes, totalRes] = await Promise.all([
+        listarPontos(colaboradorId),
+        bancoDeHorasService(colaboradorId, hoje),
+        totalPorDiaService(colaboradorId, hoje),
+      ])
 
-        setPontos(listaPontos)
-        setLoading(false)
-      })
-      .catch((error) => {
-        handleApiError(error)
-        setLoading(false)
-      })
+      let listaPontos = []
+
+      // Padrão de tratamento de resposta similar ao PainelOs.js
+      if (Array.isArray(pontosRes)) {
+        listaPontos = pontosRes
+      } else if (pontosRes?.dados && Array.isArray(pontosRes.dados)) {
+        listaPontos = pontosRes.dados
+      } else if (pontosRes?.results && Array.isArray(pontosRes.results)) {
+        listaPontos = pontosRes.results
+      } else if (pontosRes && typeof pontosRes === 'object') {
+        const possibleArrays = Object.values(pontosRes).filter(Array.isArray)
+        if (possibleArrays.length > 0) listaPontos = possibleArrays[0]
+      }
+
+      setPontos(listaPontos)
+      setBancoDeHoras(bancoRes)
+      setTotalPorDia(totalRes)
+    } catch (error) {
+      handleApiError(error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const registrarPonto = (dados) => {
@@ -60,5 +72,7 @@ export function usePonto(colaboradorId) {
     loading,
     carregarPontos,
     registrarPonto,
+    bancoDeHoras,
+    totalPorDia,
   }
 }
