@@ -82,7 +82,11 @@ export const handleApiError = (
     message = 'Não foi possível conectar ao servidor. Verifique sua internet.'
   } else {
     // Other errors
-    message = error.message || message
+    if (typeof error === 'string') {
+      message = error
+    } else {
+      message = error.message || message
+    }
   }
 
   // Ensure message is not too long for Toast

@@ -174,3 +174,7 @@ export { default as DashboardFluxo } from '../componentsFloresta/DashboardFluxo'
 export { default as OrdemFlorestalCriacao } from '../componentsFloresta/osFlorestal/OrdemFlorestalCriacao'
 export { default as OrdemListagem } from '../componentsFloresta/osFlorestal/PainelOs'
 export { default as OrdemFlorestalDetalhe } from '../componentsFloresta/osFlorestal/OrdemFlorestalDetalhe'
+
+// Telas de Registro de Ponto
+export { default as PontoScreen } from '../componentsRegistroPonto/screens/PontoScreen'
+export { default as ListarPontos } from '../componentsRegistroPonto/listarPontos'

@@ -367,6 +367,20 @@ export const getMenuConfig = (hasModulo) => {
         },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
+
+    // Telas de Registro de Ponto
+    registroPonto: {
+      name: 'Registro de Ponto',
+      icon: 'clock',
+      items: [
+        {
+          name: 'Registro de Ponto',
+          route: 'PontoScreen',
+          icon: 'clock',
+          condition: true,
+        },
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    },
     utilitarios: {
       name: 'Utilitários',
       icon: 'settings',

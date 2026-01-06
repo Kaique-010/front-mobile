@@ -658,4 +658,16 @@ export const screenConfigs = [
     component: Screens.ClienteOrdensServicoDetalhes,
     options: createHeaderOptions('Detalhes da Ordem de Serviço'),
   },
+
+  // Telas de Registro de Ponto
+  {
+    name: 'PontoScreen',
+    component: Screens.PontoScreen,
+    options: createHeaderOptions('Registro de Ponto'),
+  },
+  {
+    name: 'ListarPontos',
+    component: Screens.ListarPontos,
+    options: createHeaderOptions('Listar Pontos'),
+  },
 ]
