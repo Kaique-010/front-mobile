@@ -34,6 +34,7 @@ export default function Login({ navigation }) {
   const [usuario, setUsuario] = useState('')
   const [senha, setSenha] = useState('')
   const [setor, setSetor] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     login: clienteLogin,
@@ -579,7 +580,10 @@ export default function Login({ navigation }) {
       {renderCheckbox()}
 
       {fieldsToRender.map(
-        ([label, value, onChange, icon, placeholder, keyboard, secure], i) => (
+        (
+          [label, value, onChange, icon, placeholder, keyboard, isSecure],
+          i
+        ) => (
           <MotiView
             key={`${isClienteLogin ? 'cliente' : 'funcionario'}-${label}`}
             from={{ opacity: 0, translateY: 30 }}
@@ -603,10 +607,21 @@ export default function Login({ navigation }) {
                 placeholder={placeholder}
                 placeholderTextColor="#aaa"
                 keyboardType={keyboard}
-                secureTextEntry={secure}
+                secureTextEntry={isSecure && !showPassword}
                 autoCapitalize="none"
-                style={styles.input}
+                style={[styles.input, { flex: 1 }]}
               />
+              {isSecure && (
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={{ padding: 10 }}>
+                  <FontAwesome
+                    name={showPassword ? 'eye' : 'eye-slash'}
+                    size={20}
+                    color="#ccc"
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           </MotiView>
         )
