@@ -277,6 +277,12 @@ export const apiGetComContexto = async (
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
   const paramsComContexto = await addContexto(params, prefixo)
+
+  console.log(
+    `[DEBUG apiGetComContexto] endpoint=${fullEndpoint}, params=`,
+    paramsComContexto
+  )
+
   const response = await apiFetch(fullEndpoint, 'get', null, paramsComContexto)
   return response.data
 }

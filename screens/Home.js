@@ -19,6 +19,8 @@ import { getStoredData } from '../services/storageService'
 import { fetchDashboardData } from '../services/apiService'
 import SaldosChart from '../components/SaldosChart'
 import PedidosChart from '../components/PedidosChart'
+import OrdensSetorView from '../components/OrdensSetorView'
+import EstoqueMarcasView from '../components/EstoqueMarcasView'
 import { apiPostComContexto } from '../utils/api'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useNotificacoes } from '../notificacoes/NotificacaoContext'
@@ -182,16 +184,24 @@ export default function Home() {
 
       {dashboardData ? (
         <>
-          <Text style={styles.chartTitle}>Saldos de Produtos</Text>
-          <SaldosChart
-            data={dashboardData.saldos_produto || []}
-            chartConfig={chartConfig}
-          />
-          <Text style={styles.chartTitle}>Pedidos por Cliente</Text>
-          <PedidosChart
-            data={dashboardData.pedidos_por_cliente || []}
-            chartConfig={chartConfig}
-          />
+          {dashboardData.ordens_por_setor ? (
+            <OrdensSetorView data={dashboardData.ordens_por_setor} />
+          ) : dashboardData.ordens_eletro ? (
+            <EstoqueMarcasView data={dashboardData.ordens_eletro} />
+          ) : (
+            <>
+              <Text style={styles.chartTitle}>Saldos de Produtos</Text>
+              <SaldosChart
+                data={dashboardData.saldos_produto || []}
+                chartConfig={chartConfig}
+              />
+              <Text style={styles.chartTitle}>Pedidos por Cliente</Text>
+              <PedidosChart
+                data={dashboardData.pedidos_por_cliente || []}
+                chartConfig={chartConfig}
+              />
+            </>
+          )}
         </>
       ) : (
         <Text style={styles.noDataText}>
@@ -204,7 +214,7 @@ export default function Home() {
           marginLeft: 10,
           width: '100%',
           textAlign: 'center',
-          marginBottom: 10,
+          marginBottom: 30,
           textTransform: 'uppercase',
           fontSize: 6,
         }}>
@@ -603,6 +613,12 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 15,
     alignItems: 'center',
+    borderWidth: 1.5,
+    shadowColor: '#92f0f0ff',
+    shadowOffset: { width: 4, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
   },
   label: { fontSize: 12, color: '#aaa', marginBottom: 4 },
   value: {

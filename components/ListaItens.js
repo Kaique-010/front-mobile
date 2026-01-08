@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     marginTop: 16,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#444',
   },
   resumoTitulo: {

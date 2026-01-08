@@ -44,25 +44,31 @@ export default function AbaServicos({
         serv_fili: Number(filialId),
       })
 
+      console.log(
+        'Resposta RAW API Servicos:',
+        JSON.stringify(response, null, 2)
+      )
+
       const servicosArray = response?.results || response || []
 
       if (Array.isArray(servicosArray)) {
         const servicosFormatados = servicosArray
-          .filter((s) => s.serv_prod)
+          // Filter was removing items because serv_prod does not exist in Servicososexterna
+          .filter((s) => s.serv_sequ)
           .map((servico) => ({
-            serv_item: servico.serv_item,
-            serv_prod: servico.serv_prod,
+            serv_item: servico.serv_sequ, // Using serv_sequ as item ID
+            serv_prod: servico.serv_desc, // Using description as product/service name
             serv_quan: parseFloat(servico.serv_quan || 0),
-            serv_unit: parseFloat(servico.serv_unit || 0),
+            serv_unit: parseFloat(servico.serv_valo_unit || 0),
             serv_tota: parseFloat(
-              servico.serv_tota != null
-                ? servico.serv_tota
+              servico.serv_valo_tota != null
+                ? servico.serv_valo_tota
                 : servico.serv_valo_tota || 0
             ),
-            serv_desc: servico.serv_desc || servico.serv_obse || '',
-            servico_nome: servico.servico_nome || 'Serviço',
+            serv_desc: servico.serv_desc || servico.serv_comp || '',
+            servico_nome: servico.serv_desc || 'Serviço',
+            serv_sequ: servico.serv_sequ,
           }))
-
         console.log('Serviços formatados:', servicosFormatados)
         setServicosLista(servicosFormatados)
         setServicos(servicosFormatados)
@@ -268,22 +274,6 @@ export default function AbaServicos({
   return (
     <View style={styles.container}>
       {renderBotaoAdicionar()}
-      {/* Remover este botão duplicado */}
-      {/* <TouchableOpacity
-        style={styles.botaoAdicionar}
-        onPress={() => {
-          setItemEditando(null)
-          setModalVisivel(true)
-        }}>
-        <Ionicons
-          name="add-circle"
-          size={24}
-          color="white"
-          style={styles.icone}
-        />
-        <Text style={styles.textoBotao}>Adicionar Serviço</Text>
-      </TouchableOpacity> */}
-
       <FlatList
         data={isLoading ? [] : servicosLista}
         ListHeaderComponent={

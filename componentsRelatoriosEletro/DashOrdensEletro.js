@@ -11,6 +11,8 @@ import {
   TextInput,
   Platform,
 } from 'react-native'
+import Toast from 'react-native-toast-message'
+import { handleApiError } from '../utils/errorHandler'
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { apiGetComContexto } from '../utils/api'
@@ -35,8 +37,15 @@ export default function DashOrdensEletro({ navigation }) {
   const [responsavelNome, setResponsavelNome] = useState('')
   const [statusOs, setStatusOs] = useState('')
   const [potencia, setPotencia] = useState('')
-  const [dataInicio, setDataInicio] = useState(new Date())
-  const [dataFim, setDataFim] = useState(new Date())
+
+  // Inicializar datas: Início = 1º dia do mês atual, Fim = Hoje
+  const hoje = new Date()
+  const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+
+  const [dataInicio, setDataInicio] = useState(primeiroDiaMes)
+  const [dataFim, setDataFim] = useState(hoje)
+  const [nfEntrada, setNfEntrada] = useState('')
+  const [pedidoCompra, setPedidoCompra] = useState('')
   const [showDatePickerInicio, setShowDatePickerInicio] = useState(false)
   const [showDatePickerFim, setShowDatePickerFim] = useState(false)
 
@@ -53,10 +62,11 @@ export default function DashOrdensEletro({ navigation }) {
     try {
       const empresa = (await AsyncStorage.getItem('empresaId')) || ''
       const filial = (await AsyncStorage.getItem('filialId')) || ''
+      console.log('Contexto obtido do Storage:', { empresa, filial })
       setEmpresaId(empresa)
       setFilialId(filial)
     } catch (error) {
-      console.log('Erro ao obter contexto:', error)
+      handleApiError(error, 'Erro ao obter contexto')
     }
   }
 
@@ -72,26 +82,16 @@ export default function DashOrdensEletro({ navigation }) {
   }
 
   const onChangeDataInicio = (event, selectedDate) => {
-    const currentDate = selectedDate || dataInicio
     setShowDatePickerInicio(Platform.OS === 'ios')
-    setDataInicio(currentDate)
-
-    if (empresaId && filialId) {
-      setTimeout(() => {
-        buscarDados()
-      }, 300)
+    if (selectedDate) {
+      setDataInicio(selectedDate)
     }
   }
 
   const onChangeDataFim = (event, selectedDate) => {
-    const currentDate = selectedDate || dataFim
     setShowDatePickerFim(Platform.OS === 'ios')
-    setDataFim(currentDate)
-
-    if (empresaId && filialId) {
-      setTimeout(() => {
-        buscarDados()
-      }, 300)
+    if (selectedDate) {
+      setDataFim(selectedDate)
     }
   }
 
@@ -186,6 +186,20 @@ export default function DashOrdensEletro({ navigation }) {
       )
     }
 
+    // Filtro por número da NF Entrada
+    if (nfEntrada) {
+      dadosFiltrados = dadosFiltrados.filter((item) =>
+        item.nf_entrada?.toString().includes(nfEntrada)
+      )
+    }
+
+    // Filtro por número do Pedido de Compra
+    if (pedidoCompra) {
+      dadosFiltrados = dadosFiltrados.filter((item) =>
+        item.pedido_compra?.toString().includes(pedidoCompra)
+      )
+    }
+
     return dadosFiltrados
   }, [
     dados,
@@ -195,6 +209,8 @@ export default function DashOrdensEletro({ navigation }) {
     buscaResponsavel,
     statusOs,
     potencia,
+    nfEntrada,
+    pedidoCompra,
   ])
 
   useEffect(() => {
@@ -209,6 +225,12 @@ export default function DashOrdensEletro({ navigation }) {
 
   useEffect(() => {
     if (empresaId && filialId) {
+      console.log('Contexto carregado, buscando dados...', {
+        empresaId,
+        filialId,
+        dataInicio,
+        dataFim,
+      })
       buscarDados()
     }
   }, [empresaId, filialId, dataInicio, dataFim])
@@ -242,30 +264,42 @@ export default function DashOrdensEletro({ navigation }) {
       if (buscaSetor) params.setor_nome = buscaSetor
       if (buscaResponsavel) params.responsavel_nome = buscaResponsavel
       if (potencia) params.potencia = potencia
+      if (nfEntrada) params.nf_entrada = nfEntrada
+      if (pedidoCompra) params.pedido_compra = pedidoCompra
       if (statusOs) params.status_ordem = statusOs
+
+      console.log('Buscando dados com params:', params)
 
       const res = await apiGetComContexto(
         'ordemdeservico/ordens-eletro/',
         params
       )
 
+      console.log('Resposta da API:', res)
+
       let dadosProcessados = res.results || res
       if (!Array.isArray(dadosProcessados)) {
         dadosProcessados = []
       }
 
-      // Log para verificar estrutura dos dados
       if (dadosProcessados.length > 0) {
+        Toast.show({
+          text1: 'Dados carregados com sucesso',
+          type: 'success',
+          visibilityTime: 2000,
+        })
         console.log('Primeiro item dos dados:', dadosProcessados[0])
         console.log('Campos disponíveis:', Object.keys(dadosProcessados[0]))
       }
 
       setDados(dadosProcessados)
     } catch (e) {
-      console.error('Erro detalhado:', e)
-      const errorMessage =
-        e.response?.data?.detail || e.message || 'Erro desconhecido'
-      setErro(`Erro ao buscar dados: ${errorMessage}`)
+      handleApiError(e, 'Erro ao buscar dados')
+      Toast.show({
+        text1: 'Erro ao buscar dados',
+        type: 'error',
+        visibilityTime: 2000,
+      })
     } finally {
       setLoading(false)
     }
@@ -282,6 +316,8 @@ export default function DashOrdensEletro({ navigation }) {
         cliente: buscaCliente,
         setor: buscaSetor,
         responsavel: buscaResponsavel,
+        nfEntrada,
+        pedidoCompra,
         status: statusOs,
         potencia,
       },
@@ -357,6 +393,18 @@ export default function DashOrdensEletro({ navigation }) {
         {item.potencia && (
           <Text style={styles.itemPotencia}>Potência: {item.potencia}</Text>
         )}
+        {item.nf_entrada && (
+          <Text style={styles.itemNfEntrada}>
+            <Text style={styles.itemValorLabel}>NF Entrada:</Text>{' '}
+            {item.nf_entrada}
+          </Text>
+        )}
+        {item.pedido_compra && (
+          <Text style={styles.itemPedidoCompra}>
+            <Text style={styles.itemValorLabel}>Pedido Compra:</Text>{' '}
+            {item.pedido_compra}
+          </Text>
+        )}
       </View>
 
       <View style={styles.itemFooter}>
@@ -391,35 +439,6 @@ export default function DashOrdensEletro({ navigation }) {
       </View>
     </View>
   )
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Carregando ordens de serviço...</Text>
-      </View>
-    )
-  }
-
-  if (erro) {
-    return (
-      <View style={styles.erroContainer}>
-        <MaterialIcons name="error-outline" size={48} color="#e74c3c" />
-        <Text style={styles.erroTexto}>{erro}</Text>
-        <TouchableOpacity
-          onPress={buscarDados}
-          style={styles.botaoTentarNovamente}>
-          <MaterialIcons
-            name="refresh"
-            size={20}
-            color="#fff"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.botaoTentarNovamenteTexto}>Tentar novamente</Text>
-        </TouchableOpacity>
-      </View>
-    )
-  }
 
   return (
     <View style={styles.container}>
@@ -510,6 +529,21 @@ export default function DashOrdensEletro({ navigation }) {
             keyboardType="numeric"
           />
         </View>
+
+        <View style={styles.filtrosBuscaContainer}>
+          <TextInput
+            style={styles.inputBuscaInline}
+            placeholder="📄 NF Entrada..."
+            value={nfEntrada}
+            onChangeText={setNfEntrada}
+          />
+          <TextInput
+            style={styles.inputBuscaInline}
+            placeholder="📄 Pedido Compra..."
+            value={pedidoCompra}
+            onChangeText={setPedidoCompra}
+          />
+        </View>
       </View>
 
       {/* DatePickers */}
@@ -538,7 +572,7 @@ export default function DashOrdensEletro({ navigation }) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.resumoContainer}>
+        contentContainerStyle={styles.resumoContainer}>
         <ResumoCard
           titulo="Total Geral"
           valor={resumo.totalGeral}
@@ -589,24 +623,51 @@ export default function DashOrdensEletro({ navigation }) {
       </ScrollView>
 
       {/* Lista de ordens */}
-      <FlatList
-        data={filtrarDados}
-        keyExtractor={(item, index) =>
-          `${item.ordem_de_servico}-${item.cliente}-${index}`
-        }
-        renderItem={renderItem}
-        style={styles.lista}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listaContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <MaterialIcons name="build" size={64} color="#bdc3c7" />
-            <Text style={styles.emptyText}>
-              Nenhuma ordem de serviço encontrada
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={styles.loadingText}>
+            Carregando ordens de serviço...
+          </Text>
+        </View>
+      ) : erro ? (
+        <View style={styles.erroContainer}>
+          <MaterialIcons name="error-outline" size={48} color="#e74c3c" />
+          <Text style={styles.erroTexto}>{erro}</Text>
+          <TouchableOpacity
+            onPress={buscarDados}
+            style={styles.botaoTentarNovamente}>
+            <MaterialIcons
+              name="refresh"
+              size={20}
+              color="#fff"
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.botaoTentarNovamenteTexto}>
+              Tentar novamente
             </Text>
-          </View>
-        }
-      />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={filtrarDados}
+          keyExtractor={(item, index) =>
+            `${item.ordem_de_servico}-${item.cliente}-${index}-${item.empresa}=${item.filial}`
+          }
+          renderItem={renderItem}
+          style={styles.lista}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listaContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="build" size={64} color="#bdc3c7" />
+              <Text style={styles.emptyText}>
+                Nenhuma ordem de serviço encontrada
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   )
 }

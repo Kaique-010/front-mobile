@@ -18,9 +18,11 @@ export const getStoredData = async () => {
   const cliente_nome = await AsyncStorage.getItem('cliente_nome')
   const documento = await AsyncStorage.getItem('documento')
   const usuario_cliente = await AsyncStorage.getItem('usuario_cliente')
+  const usuario_id = await AsyncStorage.getItem('usuario_id')
 
   return {
     usuario: usuario ? JSON.parse(usuario) : null,
+    usuario_id: usuario_id ? parseInt(usuario_id, 10) : null,
     empresaNome,
     empresaId: empresaId ? parseInt(empresaId, 10) : null,
     filialNome,

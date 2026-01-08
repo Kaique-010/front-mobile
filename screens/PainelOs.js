@@ -116,9 +116,14 @@ const PainelAcompanhamento = ({ navigation }) => {
       if (filtros.cliente_nome) {
         params.append('cliente_nome', filtros.cliente_nome)
       }
+      if (filtros.orde_nume) {
+        params.append('orde_nume', filtros.orde_nume)
+      }
 
       const queryString = params.toString()
-      const url = `ordemdeservico/ordens/${queryString ? `?${queryString}` : ''}`
+      const url = `ordemdeservico/ordens/${
+        queryString ? `?${queryString}` : ''
+      }`
 
       console.log('🔍 FRONTEND - URL da requisição:', url)
 
@@ -146,10 +151,26 @@ const PainelAcompanhamento = ({ navigation }) => {
     }
   }
 
-  // Debounced search — dispara fetch após digitar
+  const executarBusca = (term) => {
+    const filtros = {}
+    if (!term) {
+      fetchOrdens()
+      return
+    }
+
+    // Se for número, busca por número da OS
+    if (/^\d+$/.test(term.toString().trim())) {
+      filtros.orde_nume = term.trim()
+    } else {
+      // Se não, busca por nome do cliente
+      filtros.cliente_nome = term
+    }
+    fetchOrdens(filtros)
+  }
+
   const debouncedFetch = useCallback(
     debounce((term) => {
-      fetchOrdens({ cliente_nome: term })
+      executarBusca(term)
     }, 600),
     []
   )
@@ -678,9 +699,9 @@ const PainelAcompanhamento = ({ navigation }) => {
 
         <Text
           style={
-            modoAtual === 'mobile' ? styles.filtrosMobileFiltro : styles.titulo 
+            modoAtual === 'mobile' ? styles.filtrosMobileFiltro : styles.titulo
           }>
-         🤵Filtragem por Clientes
+          🤵Filtragem por Clientes e por Nº de ordem
         </Text>
         <View
           style={
@@ -689,19 +710,21 @@ const PainelAcompanhamento = ({ navigation }) => {
               : styles.searchContainer
           }>
           <TextInput
-            placeholder="Buscar por nome do cliente..."
+            placeholder="Buscar por cliente ou Nº OS..."
             placeholderTextColor="#ffffffff"
-            style={[modoAtual === 'tv' ? styles.inputTV : styles.input, { color: '#fff' }]}
-            value={searchTerm} 
+            style={[
+              modoAtual === 'tv' ? styles.inputTV : styles.input,
+              { color: '#fff' },
+            ]}
+            value={searchTerm}
             onChangeText={handleSearch}
             returnKeyType="search"
-            
           />
           <TouchableOpacity
             style={
               modoAtual === 'tv' ? styles.searchButtonTV : styles.searchButton
             }
-            onPress={() => fetchOrdens({ cliente_nome: searchTerm })}>
+            onPress={() => executarBusca(searchTerm)}>
             <Text
               style={
                 modoAtual === 'tv'

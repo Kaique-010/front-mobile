@@ -48,8 +48,8 @@ export default StyleSheet.create({
   },
   filtrosContainer: {
     backgroundColor: '#fff',
-    padding: 15,
-    marginBottom: 10,
+    padding: 45,
+    marginBottom: 5,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -88,7 +88,7 @@ export default StyleSheet.create({
   filtrosBuscaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 3,
     marginTop: 5,
   },
   inputBuscaInline: {
@@ -102,9 +102,9 @@ export default StyleSheet.create({
     backgroundColor: '#fff',
   },
   resumoContainer: {
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    marginTop: 15,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    maxHeight: 120,
   },
   resumoCard: {
     backgroundColor: '#fff',
@@ -252,6 +252,24 @@ export default StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#27ae60',
+  },
+  itemValorLabel: {
+    fontSize: 11,
+    color: '#95a5a6',
+    fontWeight: '600',
+  },
+  itemNfEntrada: {
+    fontSize: 13,
+    color: '#34495e',
+    marginBottom: 4,
+    fontStyle: 'italic',
+    alignItems: 'flex-end',
+  },
+  itemPedidoCompra: {
+    fontSize: 13,
+    color: '#34495e',
+    marginBottom: 4,
+    fontStyle: 'italic',
   },
   loadingContainer: {
     flex: 1,

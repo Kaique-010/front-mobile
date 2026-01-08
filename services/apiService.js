@@ -3,7 +3,7 @@ import axios from 'axios'
 import { apiGetComContexto, BASE_URL, fetchSlugMap } from '../utils/api'
 import { getStoredData } from '../services/storageService'
 
-export const fetchDashboardData = async () => {
+export const fetchDashboardData = async (overrides = {}) => {
   // Obtém os dados do storage
   const stored = await getStoredData()
 
@@ -23,26 +23,37 @@ export const fetchDashboardData = async () => {
   // Busca o slug no mapa usando o CNPJ
   const slugMap = await fetchSlugMap()
   const slug = slugMap[cnpj]
-  
+
   if (!slug) {
     console.error('[ERROR] Slug não encontrado para o CNPJ:', cnpj)
     return null
   }
 
   const params = {
-    empresa_id: stored?.empresaId || null,
-    filial_id: stored?.filialId || null,
-    usuario_id: stored?.user?.usuario_id || null,
+    empresa_id: overrides.empresa_id || stored?.empresaId || null,
+    filial_id: overrides.filial_id || stored?.filialId || null,
+    empresa: overrides.empresa_id || stored?.empresaId || null, // Adiciona 'empresa' para compatibilidade
+    filial: overrides.filial_id || stored?.filialId || null, // Adiciona 'filial' para compatibilidade
+    usuario_id:
+      overrides.usuario_id ||
+      stored?.usuario_id ||
+      stored?.user?.usuario_id ||
+      null,
     cliente_id: stored?.cliente_id || null,
     setor: stored?.setor || null,
     userType: stored?.userType || null,
     accessToken: stored?.accessToken || null,
     refreshToken: stored?.refreshToken || null,
+    ...overrides,
   }
-  console.log('params', params)
+  console.log('fetchDashboardData params:', JSON.stringify(params, null, 2))
 
   // CORREÇÃO: Usar await e passar params diretamente
   const response = await apiGetComContexto(`dashboards/dashboard/`, params)
+  console.log(
+    'fetchDashboardData response:',
+    response ? 'Data received' : 'No data'
+  )
   return response
 }
 
