@@ -654,11 +654,18 @@ export default function Login({ navigation }) {
           onPress={() => Linking.openURL('https://mobile-sps.site/')}>
           <Text style={styles.linkText}>Spartacus Mobile 2025 ©</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={{ marginTop: 10 }}
-          onPress={() => Linking.openURL('https://l1nq.com/i8Hdg')}>
-          <Text style={styles.linkText2}>Atualize o App</Text>
-        </TouchableOpacity>
+        <Text
+          style={{
+            color: '#aaa',
+            marginLeft: 10,
+            width: '100%',
+            textAlign: 'center',
+            marginBottom: 30,
+            textTransform: 'uppercase',
+            fontSize: 6,
+          }}>
+          Versão 1.0.17
+        </Text>
       </MotiView>
 
       {error ? (
