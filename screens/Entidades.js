@@ -63,10 +63,7 @@ export default function Entidades({ navigation }) {
     []
   )
 
-  const buscarEntidades = async (nextPage = false) => {
-    // Se não tiver slug, não busca (ou busca tudo? melhor garantir slug)
-    // if (!slug) return
-
+  const buscarEntidades = async (nextPage = false, forceRefresh = false) => {
     if (isFetchingMore && nextPage) return
 
     if (!nextPage) {
@@ -79,6 +76,59 @@ export default function Entidades({ navigation }) {
 
     try {
       const atualOffset = nextPage ? offset : 0
+
+      // Se forçar atualização, busca direto da API
+      if (forceRefresh) {
+        const netState = await NetInfo.fetch()
+        if (netState.isConnected) {
+          console.log('[ENTIDADES] Forçando busca da API...')
+          try {
+            const apiData = await apiGetComContexto('entidades/entidades/', {
+              limit: 50,
+              search: searchValue, // Passa o termo de busca para a API
+            })
+            const resultsApi = apiData?.results || apiData || []
+
+            if (resultsApi.length > 0) {
+              // Mapear para o formato esperado (compatível com _raw)
+              const mapped = resultsApi.map((cli) => ({
+                enti_nome: cli.enti_nome,
+                enti_clie: String(cli.enti_clie),
+                enti_tipo_enti: cli.enti_tipo_enti,
+                enti_cpf: cli.enti_cpf,
+                enti_cnpj: cli.enti_cnpj,
+                enti_cida: cli.enti_cida,
+                empresa_nome: cli.empresa_nome || 'Não informada',
+                enti_empr: cli.enti_empr, // Necessário para keyExtractor
+              }))
+
+              setEntidades(mapped)
+              setHasMore(false) // Paginação da API simplificada por enquanto
+
+              Toast.show({
+                type: 'info',
+                text1: 'Atualizado',
+                text2: 'Dados recarregados da API.',
+              })
+
+              return // Encerra aqui, pois já setou dados
+            }
+          } catch (errApi) {
+            console.error('[ENTIDADES] Erro na busca forçada da API:', errApi)
+            Toast.show({
+              type: 'error',
+              text1: 'Erro',
+              text2: 'Falha ao buscar dados da API',
+            })
+          }
+        } else {
+          Toast.show({
+            type: 'warning',
+            text1: 'Sem conexão',
+            text2: 'Não é possível atualizar sem internet.',
+          })
+        }
+      }
 
       // Busca LOCAL (WatermelonDB)
       const collection = database.collections.get('mega_entidades')
@@ -224,6 +274,17 @@ export default function Entidades({ navigation }) {
     </View>
   )
 
+  const handleSearch = () => {
+    if (searchTerm === searchValue) {
+      setEntidades([])
+      setOffset(0)
+      setHasMore(true)
+      buscarEntidades(false, true) // Force refresh
+    } else {
+      setSearchValue(searchTerm)
+    }
+  }
+
   return (
     <View style={styles.container}>
       {!slug || initialLoading ? (
@@ -251,11 +312,17 @@ export default function Entidades({ navigation }) {
                 debouncedSetSearchValue(text)
               }}
               returnKeyType="search"
-              onSubmitEditing={() => setSearchValue(searchTerm)}
+              onSubmitEditing={handleSearch}
             />
             <TouchableOpacity
               style={styles.searchButton}
-              onPress={() => setSearchValue(searchTerm)}>
+              onPress={() => {
+                setSearchValue(searchTerm)
+                setEntidades([])
+                setOffset(0)
+                setHasMore(true)
+                buscarEntidades(false, true)
+              }}>
               <Text style={styles.searchButtonText}>Buscar</Text>
             </TouchableOpacity>
           </View>

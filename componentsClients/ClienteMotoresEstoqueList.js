@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { fetchClienteOrdensServico } from '../services/clienteService'
+import { fetchClienteOrdensServicoEmEstoque } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 
 const ClienteOrdensServicoList = ({ navigation }) => {
@@ -24,7 +24,7 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   const carregarOrdens = async () => {
     try {
       setLoading(true)
-      const data = await fetchClienteOrdensServico({
+      const data = await fetchClienteOrdensServicoEmEstoque({
         ordering: '-data_abertura',
       })
       setOrdens(data || [])
@@ -144,13 +144,9 @@ const ClienteOrdensServicoList = ({ navigation }) => {
       case 'X':
         return 'Cancelada'
       default:
-        // Verifica se status é string antes de tentar usar métodos de string
-        if (typeof status === 'string') {
-          return (
-            status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
-          )
-        }
-        return 'Desconhecido'
+        return status
+          ? status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
+          : 'Desconhecido'
     }
   }
 

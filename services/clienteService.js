@@ -1,6 +1,7 @@
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { BASE_URL } from '../utils/api'
+import { handleApiError } from '../utils/errorHandler'
 import { getStoredData } from './storageService'
 
 // Criar instância axios com session_id
@@ -46,7 +47,7 @@ export const fetchClientePedidos = async (params = {}) => {
     const response = await api.get('entidades/pedidos/', { params })
     return response.data.results || []
   } catch (error) {
-    console.error('[ERROR] Erro ao buscar pedidos:', error)
+    handleApiError(error)
     return []
   }
 }
@@ -60,7 +61,7 @@ export const fetchClienteOrcamentos = async (params = {}) => {
     const response = await api.get('entidades/orcamentos/', { params })
     return response.data.results || []
   } catch (error) {
-    console.error('[ERROR] Erro ao buscar orçamentos:', error)
+    handleApiError(error)
     return []
   }
 }
@@ -74,7 +75,22 @@ export const fetchClienteOrdensServico = async (params = {}) => {
     const response = await api.get('entidades/ordem-servico/', { params })
     return response.data.results || []
   } catch (error) {
-    console.error('[ERROR] Erro ao buscar ordens:', error)
+    handleApiError(error)
+    return []
+  }
+}
+
+export const fetchClienteOrdensServicoEmEstoque = async (params = {}) => {
+  try {
+    const api = await createClienteAxios()
+    if (!api) return []
+
+    const response = await api.get('entidades/ordem-servico/em-estoque/', {
+      params,
+    })
+    return response.data.results || []
+  } catch (error) {
+    handleApiError(error)
     return []
   }
 }
@@ -88,6 +104,7 @@ export const fetchClienteDashboard = async () => {
     const response = await api.get('dashboards/cliente-dashboard/')
     return response.data
   } catch (error) {
+    handleApiError(error)
     return null
   }
 }

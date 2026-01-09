@@ -7,13 +7,21 @@ import {
   Alert,
   ScrollView,
 } from 'react-native'
-import { Picker } from '@react-native-picker/picker'
-import { TextInputMask } from 'react-native-masked-text'
 import Toast from 'react-native-toast-message'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { getStoredData } from '../services/storageService'
-import { apiPostComContexto, apiPutComContexto, BASE_URL } from '../utils/api'
+import AbaControleClientes from '../componentsLoginClientes/abaControleClientes'
+import AbaDados from '../componentsEntidades/AbaDados'
+import AbaEndereco from '../componentsEntidades/AbaEndereco'
+import AbaContato from '../componentsEntidades/AbaContato'
+import {
+  apiPostComContexto,
+  apiPutComContexto,
+  apiGetComContexto,
+  BASE_URL,
+} from '../utils/api'
 import styles from '../styles/entidadeStyles'
+import { handleApiError } from '../utils/errorHandler'
 
 export default function EntidadeForm({ navigation, route }) {
   const entidade = route.params?.entidade
@@ -26,9 +34,9 @@ export default function EntidadeForm({ navigation, route }) {
       try {
         const { slug } = await getStoredData()
         if (slug) setSlug(slug)
-        else console.warn('Slug não encontrado')
+        else handleApiError(null, 'Slug não encontrado', 'Erro de Slug')
       } catch (err) {
-        console.error('Erro ao carregar slug:', err.message)
+        handleApiError(err, 'Erro ao carregar slug', 'Erro de Slug')
       }
     }
     carregarSlug()
@@ -52,28 +60,86 @@ export default function EntidadeForm({ navigation, route }) {
     enti_celu: '',
     enti_emai: '',
     enti_empr: '',
+    enti_mobi_usua: '',
+    enti_mobi_senh: '',
   })
 
   const [abaAtual, setAbaAtual] = useState('dados')
 
   useEffect(() => {
     if (isEdicao && entidade) {
-      setFormData((prev) => ({
-        ...prev,
-        ...entidade,
-        enti_pais: entidade.enti_pais || prev.enti_pais || '1058',
-        enti_codi_pais:
-          entidade.enti_codi_pais || prev.enti_codi_pais || '1058',
-        enti_codi_cida: entidade.enti_codi_cida || prev.enti_codi_cida || '',
-      }))
-    } else {
-      const carregarEmpresaFilial = async () => {
-        const empresaId = await AsyncStorage.getItem('empresaId')
+      console.log(
+        'Dados recebidos da navegação (route.params):',
+        JSON.stringify(entidade, null, 2)
+      )
 
+      // Se for edição, garante que enti_empr também seja carregado se não vier no objeto entidade
+      const carregarDadosEdicao = async () => {
+        let empresaId = entidade.enti_empr
+        if (!empresaId) {
+          empresaId = await AsyncStorage.getItem('empresaId')
+        }
+
+        // 1. Carrega dados iniciais da navegação para não ficar vazio
         setFormData((prev) => ({
           ...prev,
+          ...entidade,
           enti_empr: empresaId,
+          enti_pais: entidade.enti_pais || prev.enti_pais || '1058',
+          enti_codi_pais:
+            entidade.enti_codi_pais || prev.enti_codi_pais || '1058',
+          enti_codi_cida: entidade.enti_codi_cida || prev.enti_codi_cida || '',
         }))
+
+        // 2. Busca dados completos na API
+        try {
+          console.log(
+            `Buscando dados completos da entidade ${entidade.enti_clie} na API...`
+          )
+          const dadosCompletos = await apiGetComContexto(
+            `entidades/entidades/${entidade.enti_clie}/`
+          )
+          console.log(
+            'Dados completos recebidos da API:',
+            JSON.stringify(dadosCompletos, null, 2)
+          )
+
+          if (dadosCompletos) {
+            setFormData((prev) => ({
+              ...prev,
+              ...dadosCompletos,
+              // Mantemos o ID da empresa se a API não trouxer ou trouxer vazio (precaução)
+              enti_empr: dadosCompletos.enti_empr || empresaId,
+              enti_pais: dadosCompletos.enti_pais || prev.enti_pais || '1058',
+              enti_codi_pais:
+                dadosCompletos.enti_codi_pais || prev.enti_codi_pais || '1058',
+              enti_codi_cida:
+                dadosCompletos.enti_codi_cida || prev.enti_codi_cida || '',
+            }))
+          }
+        } catch (error) {
+          console.error('Erro ao buscar detalhes da entidade:', error)
+          handleApiError(
+            error,
+            'Não foi possível carregar os detalhes completos.',
+            'Erro de Carregamento'
+          )
+        }
+      }
+      carregarDadosEdicao()
+    } else {
+      const carregarEmpresaFilial = async () => {
+        try {
+          const empresaId = await AsyncStorage.getItem('empresaId')
+          console.log('[DEBUG] Carregando empresaId do Storage:', empresaId)
+
+          setFormData((prev) => ({
+            ...prev,
+            enti_empr: empresaId,
+          }))
+        } catch (err) {
+          handleApiError(err, 'Erro ao carregar empresaId', 'Erro de Empresa')
+        }
       }
       carregarEmpresaFilial()
     }
@@ -100,23 +166,23 @@ export default function EntidadeForm({ navigation, route }) {
   }
 
   const validarFormulario = () => {
-    if (!formData.enti_nome.trim()) {
-      Alert.alert('Validação', 'O nome é obrigatório.')
-      return false
-    }
-    if (!formData.enti_emai.trim()) {
-      Alert.alert('Validação', 'O e-mail é obrigatório.')
+    if (!formData.enti_nome?.trim()) {
+      handleApiError(null, 'O nome é obrigatório.', 'Erro de Validação')
       return false
     }
     if (!formData.enti_empr) {
-      Alert.alert('Erro', 'Empresa nã definida.')
+      handleApiError(null, 'Empresa não definida.', 'Erro de Validação')
       return false
     }
     return true
   }
 
   const salvarEntidade = async () => {
-    if (!validarFormulario()) return
+    console.log('Botão salvar pressionado')
+    if (!validarFormulario()) {
+      handleApiError(null, 'Validação falhou.', 'Erro de Validação')
+      return
+    }
     setIsSalvando(true)
 
     const { enti_clie, ...dadosEntidade } = formData
@@ -126,38 +192,54 @@ export default function EntidadeForm({ navigation, route }) {
     dadosEntidade.enti_codi_pais = dadosEntidade.enti_codi_pais || '1058'
     dadosEntidade.enti_codi_cida = dadosEntidade.enti_codi_cida || ''
 
+    // Garantir número (enti_nume)
+    if (!dadosEntidade.enti_nume || dadosEntidade.enti_nume.trim() === '') {
+      dadosEntidade.enti_nume = 'S/N'
+    }
+
     try {
       if (!slug) throw new Error('Slug ainda não carregado')
 
+      let responseData
+
       if (isEdicao) {
-        console.log('Dados enviados para salvar entidade:', dadosEntidade)
-        await apiPutComContexto(
+        handleApiError(
+          null,
+          'Dados enviados para salvar entidade (PUT):',
+          dadosEntidade
+        )
+        responseData = await apiPutComContexto(
           `entidades/entidades/${entidade.enti_clie}/`,
           dadosEntidade
         )
       } else {
-        console.log('Dados enviados para salvar entidade:', dadosEntidade)
-        await apiPostComContexto(`entidades/entidades/`, dadosEntidade)
+        handleApiError(
+          null,
+          'Dados enviados para salvar entidade (POST):',
+          dadosEntidade
+        )
+        responseData = await apiPostComContexto(
+          `entidades/entidades/`,
+          dadosEntidade
+        )
       }
+
+      const idEntidade = responseData?.enti_clie || entidade?.enti_clie || 'ID'
 
       Toast.show({
         type: 'success',
         text1: 'Sucesso!',
-        text2: `Entidade: #${enti_clie} salva com sucesso 👌`,
+        text2: `Entidade: #${idEntidade} salva com sucesso 👌`,
       })
       navigation.navigate('Entidades', {
-        mensagemSucesso: `Entidade: #${enti_clie} salva com sucesso 👌`,
+        mensagemSucesso: `Entidade: #${idEntidade} salva com sucesso 👌`,
       })
     } catch (error) {
-      console.log(
-        'Erro ao salvar entidade:',
-        error.response?.data || error.message
+      handleApiError(
+        error,
+        'Não foi possível salvar a entidade 😞',
+        'Erro ao Salvar'
       )
-      Toast.show({
-        type: 'error',
-        text1: 'Erro!',
-        text2: 'Não foi possível salvar a entidade 😞',
-      })
     } finally {
       setIsSalvando(false)
     }
@@ -169,8 +251,12 @@ export default function EntidadeForm({ navigation, route }) {
 
       // ✅ ADICIONAR VALIDAÇÃO
       if (!slug || !accessToken) {
-        console.error('Slug ou token não encontrados:', { slug, accessToken })
-        throw new Error('Dados de autenticação não encontrados')
+        handleApiError(
+          new Error('Dados de autenticação não encontrados'),
+          'Erro ao buscar endereço',
+          'Dados de Autenticação'
+        )
+        return
       }
 
       const response = await fetch(
@@ -187,7 +273,7 @@ export default function EntidadeForm({ navigation, route }) {
       const data = await response.json()
 
       if (data.erro) {
-        Alert.alert('CEP não encontrado')
+        handleApiError(data.erro, 'CEP não encontrado', 'Erro de CEP')
         return
       }
 
@@ -202,15 +288,14 @@ export default function EntidadeForm({ navigation, route }) {
         enti_codi_cida: data.codi_cidade || prev.enti_codi_cida || '',
       }))
     } catch (error) {
-      console.error('Erro ao buscar endereço:', error)
-      Alert.alert('Erro na busca do CEP', error.message)
+      handleApiError(error, 'Erro ao buscar endereço', 'Erro de CEP')
     }
   }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.tabsContainer}>
-        {['dados', 'endereco', 'contato'].map((aba) => (
+        {['dados', 'endereco', 'contato', 'clientes'].map((aba) => (
           <TouchableOpacity
             key={aba}
             style={[
@@ -223,148 +308,33 @@ export default function EntidadeForm({ navigation, route }) {
               {aba === 'dados' && 'Dados'}
               {aba === 'endereco' && 'Endereço'}
               {aba === 'contato' && 'Contato'}
+              {aba === 'clientes' && 'Acesso'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {abaAtual === 'dados' && (
-        <View style={styles.innerContainer}>
-          <Text style={styles.label}>Nome</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_nome}
-            onChangeText={(text) => handleChange('enti_nome', text)}
-          />
-
-          <Text style={styles.label}>Tipo</Text>
-          <Picker
-            selectedValue={formData.enti_tipo_enti}
-            onValueChange={(value) => handleChange('enti_tipo_enti', value)}
-            style={styles.input}>
-            <Picker.Item label="Cliente" value="CL" />
-            <Picker.Item label="Fornecedor" value="FO" />
-            <Picker.Item label="Ambos" value="AM" />
-            <Picker.Item label="Funcionário" value="FU" />
-            <Picker.Item label="Vendedor" value="VE" />
-            <Picker.Item label="Outros" value="OU" />
-          </Picker>
-
-          <Text style={styles.label}>CPF</Text>
-          <TextInputMask
-            type={'cpf'}
-            value={formData.enti_cpf}
-            onChangeText={(text) => handleChange('enti_cpf', text)}
-            style={styles.input}
-            keyboardType="numeric"
-          />
-
-          <Text style={styles.label}>CNPJ</Text>
-          <TextInputMask
-            type={'cnpj'}
-            value={formData.enti_cnpj}
-            onChangeText={(text) => handleChange('enti_cnpj', text)}
-            style={styles.input}
-            keyboardType="numeric"
-          />
-        </View>
+        <AbaDados formData={formData} handleChange={handleChange} />
       )}
 
       {abaAtual === 'endereco' && (
-        <View style={styles.innerContainer}>
-          <Text style={styles.label}>CEP</Text>
-          <TextInputMask
-            type={'zip-code'}
-            value={formData.enti_cep}
-            onChangeText={(text) => {
-              const cepLimpo = text.replace(/\D/g, '')
-              handleChange('enti_cep', text)
-              if (cepLimpo.length === 8) buscarEnderecoPorCep(cepLimpo)
-            }}
-            style={styles.input}
-          />
-
-          <Text style={styles.label}>Endereço</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_ende}
-            onChangeText={(text) => handleChange('enti_ende', text)}
-          />
-
-          <Text style={styles.label}>Número</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_nume}
-            onChangeText={(text) => handleChange('enti_nume', text)}
-            keyboardType="numeric"
-          />
-
-          <Text style={styles.label}>Bairro</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_bair}
-            onChangeText={(text) => handleChange('enti_bair', text)}
-          />
-
-          <Text style={styles.label}>País</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_pais}
-            onChangeText={(text) => handleChange('enti_pais', text)}
-          />
-
-          <Text style={styles.label}>Cidade</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_cida}
-            onChangeText={(text) => handleChange('enti_cida', text)}
-          />
-
-          <Text style={styles.label}>Código da Cidade (IBGE)</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_codi_cida}
-            onChangeText={(text) => handleChange('enti_codi_cida', text)}
-            keyboardType="numeric"
-          />
-
-          <Text style={styles.label}>Estado</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_esta}
-            onChangeText={(text) => handleChange('enti_esta', text)}
-            maxLength={2}
-          />
-        </View>
+        <AbaEndereco
+          formData={formData}
+          handleChange={handleChange}
+          buscarEnderecoPorCep={buscarEnderecoPorCep}
+        />
       )}
 
       {abaAtual === 'contato' && (
-        <View style={styles.innerContainer}>
-          <Text style={styles.label}>Telefone</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_fone}
-            onChangeText={(text) => handleChange('enti_fone', text)}
-            keyboardType="phone-pad"
-          />
-
-          <Text style={styles.label}>Celular</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_celu}
-            onChangeText={(text) => handleChange('enti_celu', text)}
-            keyboardType="phone-pad"
-          />
-
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.enti_emai}
-            onChangeText={(text) => handleChange('enti_emai', text)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
+        <AbaContato formData={formData} handleChange={handleChange} />
+      )}
+      {abaAtual === 'clientes' && (
+        <AbaControleClientes
+          abaAtual={abaAtual}
+          formData={formData}
+          handleChange={handleChange}
+        />
       )}
 
       <TouchableOpacity

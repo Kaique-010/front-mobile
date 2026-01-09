@@ -112,7 +112,7 @@ const HomeCliente = () => {
       <View style={styles.header}>
         <View style={styles.logo}>
           <Image
-            source={require('../assets/logo.png')}
+            source={require('../assets/eletro.png')}
             style={styles.logoImage}
           />
         </View>
@@ -169,6 +169,12 @@ const HomeCliente = () => {
         <Text style={styles.sectionTitle}>Resumo</Text>
         <View style={styles.cardsContainer}>
           <DashboardCard
+            title="Ordens de Serviço"
+            value={ordensServico.length.toString()}
+            color="#87dfb6ff"
+            onPress={() => navigation.navigate('ClienteOrdensServicoList')}
+          />
+          <DashboardCard
             title="Pedidos"
             value={pedidos.length.toString()}
             color="#00D4FF"
@@ -177,14 +183,8 @@ const HomeCliente = () => {
           <DashboardCard
             title="Orçamentos"
             value={orcamentos.length.toString()}
-            color="#FFD700"
+            color="#c4af3bff"
             onPress={() => navigation.navigate('ClienteOrcamentosList')}
-          />
-          <DashboardCard
-            title="Ordens de Serviço"
-            value={ordensServico.length.toString()}
-            color="#00FF88"
-            onPress={() => navigation.navigate('ClienteOrdensServicoList')}
           />
         </View>
       </View>
@@ -193,6 +193,11 @@ const HomeCliente = () => {
       <View style={styles.quickActionsSection}>
         <Text style={styles.sectionTitle}>Ações</Text>
         <View style={styles.quickActionsGrid}>
+          <QuickActionButton
+            title="Ordens de Serviço"
+            color="#00FF88"
+            onPress={() => navigation.navigate('ClienteOrdensServicoList')}
+          />
           <QuickActionButton
             title="Meus Pedidos"
             color="#00D4FF"
@@ -204,12 +209,15 @@ const HomeCliente = () => {
             onPress={() => navigation.navigate('ClienteOrcamentosList')}
           />
           <QuickActionButton
-            title="Ordens de Serviço"
-            color="#00FF88"
-            onPress={() => navigation.navigate('ClienteOrdensServicoList')}
+            title="Motores em Estoque"
+            color="#FFD700"
+            onPress={() => navigation.navigate('ClienteMotoresEstoqueList')}
           />
         </View>
       </View>
+      <Text style={styles.footer}>
+        Desenvolvido por Spartacus Sistemas 2026
+      </Text>
 
       <View style={styles.bottomSpacing} />
     </ScrollView>
@@ -223,16 +231,15 @@ const styles = StyleSheet.create({
   },
   logo: {
     alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 20,
-    paddingVertical: 1,
-    marginBottom: 10,
-    marginTop: 50,
-    marginVertical: 50,
+    justifyContent: 'center',
+    marginBottom: 20,
+    marginTop: 20,
+    marginLeft: 20,
   },
   logoImage: {
-    width: 50,
-    height: 50,
+    width: 180,
+    height: 60,
+    resizeMode: 'contain',
   },
 
   loadingContainer: {
@@ -265,6 +272,7 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     flex: 1,
+    marginLeft: 20,
   },
   welcomeText: {
     fontSize: 13,
@@ -275,7 +283,7 @@ const styles = StyleSheet.create({
   clienteName: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#2Df',
+    color: '#BB8526',
   },
   logoutButton: {
     backgroundColor: '#1A1A2E',
@@ -292,11 +300,15 @@ const styles = StyleSheet.create({
   },
   clienteInfoCard: {
     backgroundColor: '#1A1A2E',
+    height: 150,
+    width: '80%',
     marginHorizontal: 20,
-    marginTop: -20,
+    marginLeft: 60,
+    marginTop: -10,
+    marginBottom: 20,
     borderRadius: 12,
     borderWidth: 0.8,
-    borderColor: '#2Df',
+    borderColor: '#BB8526',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -307,7 +319,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D44',
+    borderBottomColor: '#BB8526',
   },
   clienteInfoTitle: {
     fontSize: 16,
@@ -321,7 +333,7 @@ const styles = StyleSheet.create({
   infoItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D44',
+    borderBottomColor: '#BB8526',
   },
   infoDetails: {
     flex: 1,
@@ -339,7 +351,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   dashboardSection: {
-    marginTop: 32,
+    marginTop: 50,
+    marginBottom: 20,
     paddingHorizontal: 20,
   },
   sectionTitle: {
@@ -361,7 +374,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderLeftWidth: 3,
     borderWidth: 0.8,
-    borderColor: '#2Df',
+    borderColor: '#BB8526',
     elevation: 2,
     shadowColor: '#fff',
     shadowOffset: { width: 10, height: 10 },
@@ -410,7 +423,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A2E',
     borderRadius: 12,
     borderWidth: 0.8,
-    borderColor: '#2Df',
+    borderColor: '#BB8526',
     padding: 16,
     elevation: 2,
     shadowColor: '#000',
@@ -428,7 +441,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 12,
     borderWidth: 0.8,
-    borderColor: '#2Df',
+    borderColor: '#BB8526',
   },
   quickActionContent: {
     flexDirection: 'row',
@@ -447,6 +460,14 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 32,
+  },
+  footer: {
+    margin: 20,
+    alignSelf: 'center',
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#8B8BA7',
+    marginBottom: 20,
   },
 })
 

@@ -658,6 +658,11 @@ export const screenConfigs = [
     component: Screens.ClienteOrdensServicoDetalhes,
     options: createHeaderOptions('Detalhes da Ordem de Serviço'),
   },
+  {
+    name: 'ClienteMotoresEstoqueList',
+    component: Screens.ClienteMotoresEstoqueList,
+    options: createHeaderOptions('Motores em Estoque'),
+  },
 
   // Telas de Registro de Ponto
   {

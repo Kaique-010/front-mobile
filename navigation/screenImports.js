@@ -163,6 +163,7 @@ export { default as ClienteOrcamentosList } from '../componentsClients/ClienteOr
 export { default as ClienteOrcamentosDetalhes } from '../componentsClients/ClienteOrcamentosDetalhes'
 export { default as ClienteOrdensServicoList } from '../componentsClients/ClienteOrdensServicoList'
 export { default as ClienteOrdensServicoDetalhes } from '../componentsClients/ClienteOrdensServicoDetalhes'
+export { default as ClienteMotoresEstoqueList } from '../componentsClients/ClienteMotoresEstoqueList'
 
 // Telas de Propriedade
 export { default as PropriedadeForm } from '../componentsFloresta/PropriedadeForm'
