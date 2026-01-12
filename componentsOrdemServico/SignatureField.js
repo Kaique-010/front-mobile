@@ -91,14 +91,14 @@ const webStyle = `
 `
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 12 },
+  container: { marginBottom: 30 },
   label: { color: '#fff', fontSize: 16, marginBottom: 6, marginTop: 10 },
   pad: {
     height: 180,
     backgroundColor: '#1a2f3d',
     borderRadius: 8,
     overflow: 'hidden',
-    marginBottom: 6,
+    marginBottom: 10,
     marginTop: 10,
     borderWidth: 1,
     borderColor: '#2c3e50',
