@@ -15,7 +15,6 @@ import AbaServicos from '../componentsOrdemServico/AbaServicos'
 import AbaTotais from '../componentsOrdemServico/AbaTotais'
 import AbaHoras from '../componentsOrdemServico/AbaHoras'
 import { useFocusEffect } from '@react-navigation/native'
-import SignatureField from '../componentsOrdemServico/SignatureField'
 import { gerarPdfServidor as gerarPdfServidorComp } from '../componentsOrdemServico/OsPdfView'
 import {
   apiGetComContexto,
@@ -31,18 +30,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useEnviarEmailOs } from '../hooks/useEnviarEmailOs'
 import { useEnviarWhatsOs } from '../hooks/useEnviarWhatsOs'
 import Toast from 'react-native-toast-message'
-
-// Remove o prefixo e retorna só o base64
-function sanitizeSignature(base64) {
-  if (!base64) return ''
-  return base64.replace(/^data:image\/[a-zA-Z]+;base64,/, '')
-}
-
-// Coloca prefixo antes de enviar
-function addPrefix(base64) {
-  if (!base64) return null
-  return `data:image/png;base64,${base64}`
-}
 
 const OsDetalhe = ({ route, navigation }) => {
   const { os } = route.params
@@ -60,18 +47,6 @@ const OsDetalhe = ({ route, navigation }) => {
   const [inputValue, setInputValue] = useState('')
   const { enviarEmailOs, loading: loadingEmail } = useEnviarEmailOs()
   const { enviarWhatsOs, loading: loadingWhats } = useEnviarWhatsOs()
-
-  // AGORA: o state guarda APENAS O BASE64 LIMPO
-  const [cliente_id, setClienteId] = useState(os.os_clie)
-  const [assinaturaClie, setAssinaturaClie] = useState(
-    sanitizeSignature(os.os_assi_clie)
-  )
-  const [assinaturaOper, setAssinaturaOper] = useState(
-    sanitizeSignature(os.os_assi_oper)
-  )
-
-  console.log('Assinatura Cliente (state):', assinaturaClie?.slice(0, 30))
-  console.log('Assinatura Operador (state):', assinaturaOper?.slice(0, 30))
 
   const carregarDetalhes = async () => {
     try {
@@ -144,39 +119,6 @@ const OsDetalhe = ({ route, navigation }) => {
       })
     } catch (error) {
       console.error('Erro ao carregar serviços:', error)
-    }
-  }
-
-  const salvarAssinaturas = async () => {
-    try {
-      const payload = {
-        os_os: os.os_os,
-        os_empr: os.os_empr,
-        os_fili: os.os_fili,
-        os_assi_clie: addPrefix(assinaturaClie),
-        os_assi_oper: addPrefix(assinaturaOper),
-      }
-
-      console.log('Payload de PATCH (com prefixo):', {
-        ...payload,
-        os_assi_clie: payload.os_assi_clie?.slice(0, 30),
-        os_assi_oper: payload.os_assi_oper?.slice(0, 30),
-      })
-
-      await apiPatchComContexto('Os/ordens/patch/', payload)
-      Toast.show({
-        type: 'success',
-        text1: 'Sucesso',
-        text2: 'Assinaturas salvas',
-      })
-    } catch (e) {
-      console.error('Erro ao salvar assinaturas:', e)
-      handleApiError(e)
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: e?.message || 'Falha ao salvar assinaturas',
-      })
     }
   }
 
@@ -329,42 +271,11 @@ const OsDetalhe = ({ route, navigation }) => {
           <Text style={styles.value}>{os.os_obje_os || '-'}</Text>
         </View>
         <View style={styles.descriptionRow}>
-          <Text style={styles.label}>Ordem de Origem:</Text>
-          <Text style={styles.value}>{os.os_orig || '-'}</Text>
-        </View>
-        <View style={styles.descriptionRow}>
           <Text style={styles.label}>Local da Prestação do serviço:</Text>
           <Text style={styles.value}>{os.os_loca_apli || '-'}</Text>
         </View>
       </View>
 
-      <View style={styles.infoCard}>
-        <Text style={styles.cardTitle}>Assinaturas</Text>
-
-        <SignatureField
-          label="Assinatura do Cliente"
-          value={assinaturaClie} // agora 100% correto
-          onChange={(b64) => {
-            console.log('Cliente (b64 puro):', b64?.slice(0, 30))
-            setAssinaturaClie(sanitizeSignature(b64))
-          }}
-          onSigningChange={setScrollLock}
-        />
-
-        <SignatureField
-          label="Assinatura do Operador"
-          value={assinaturaOper}
-          onChange={(b64) => {
-            console.log('Operador (b64 puro):', b64?.slice(0, 30))
-            setAssinaturaOper(sanitizeSignature(b64))
-          }}
-          onSigningChange={setScrollLock}
-        />
-
-        <TouchableOpacity style={styles.saveAssin} onPress={salvarAssinaturas}>
-          <Text style={styles.saveAssinText}>Salvar Assinaturas</Text>
-        </TouchableOpacity>
-      </View>
       <View style={styles.actionsRow}>
         <TouchableOpacity style={styles.button} onPress={gerarPdfServidor}>
           <Text style={styles.buttonText}>Gerar PDF (Whatsapp)</Text>
@@ -459,7 +370,7 @@ const OsDetalhe = ({ route, navigation }) => {
       </View>
 
       <View style={styles.tabs}>
-        {['detalhes', 'pecas', 'servicos', 'horas'].map((aba) => (
+        {['detalhes', 'horas'].map((aba) => (
           <TouchableOpacity
             key={aba}
             onPress={() => setAbaAtiva(aba)}
@@ -512,13 +423,10 @@ const OsDetalhe = ({ route, navigation }) => {
             )}
             {abaAtiva === 'horas' && (
               <AbaHoras
-                horas={horas}
-                setHoras={setHoras}
                 os_os={os.os_os}
-                os_clie={os.os_enti}
-                os_empr={os.os_empr}
-                os_fili={os.os_fili}
-                financeiroGerado={financeiroGerado}
+                ordemServico={osDetalhe}
+                setOrdemServico={setOsDetalhe}
+                setScrollLock={setScrollLock}
               />
             )}
           </View>
@@ -609,14 +517,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#fff', fontWeight: 'bold' },
-  saveAssin: {
-    backgroundColor: '#10a2a7',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  saveAssinText: { color: '#fff', fontWeight: 'bold' },
   modalFundo: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

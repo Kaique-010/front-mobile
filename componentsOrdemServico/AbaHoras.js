@@ -8,6 +8,7 @@ import {
   FlatList,
   ScrollView,
   Platform,
+  Switch,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -92,6 +93,7 @@ export default function AbaHoras({
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
   const [manhaIni, setManhaIni] = useState('')
   const [manhaFim, setManhaFim] = useState('')
+  const [intervalo, setIntervalo] = useState('')
   const [tardeIni, setTardeIni] = useState('')
   const [tardeFim, setTardeFim] = useState('')
   const [kmSai, setKmSai] = useState('')
@@ -130,6 +132,7 @@ export default function AbaHoras({
       if (registroHoje) {
         setManhaIni(registroHoje.os_hora_manh_ini || '')
         setManhaFim(registroHoje.os_hora_manh_fim || '')
+        setIntervalo(registroHoje.os_hora_manh_inte || '')
         setTardeIni(registroHoje.os_hora_tard_ini || '')
         setTardeFim(registroHoje.os_hora_tard_fim || '')
         setKmSai(
@@ -201,6 +204,7 @@ export default function AbaHoras({
         os_hora_fili: Number(filialId),
         os_hora_os: String(os_os),
         os_hora_data: data,
+        os_hora_manh_inte: intervalo || null,
         os_hora_manh_ini: manhaIni || null,
         os_hora_manh_fim: manhaFim || null,
         os_hora_tard_ini: tardeIni || null,
@@ -245,6 +249,7 @@ export default function AbaHoras({
         await apiPostComContexto('Os/os-hora/', payload)
       }
       Toast.show({ type: 'success', text1: 'Horas salvas' })
+      setIntervalo('')
       setManhaIni('')
       setManhaFim('')
       setTardeIni('')
@@ -337,6 +342,9 @@ export default function AbaHoras({
         {item.os_hora_manh_ini || '--'} - {item.os_hora_manh_fim || '--'}
       </Text>
       <Text style={styles.itemText}>
+        {String(item.os_hora_manh_inte) === 'true' ? 'Intervalo Almoço' : ''}
+      </Text>
+      <Text style={styles.itemText}>
         {item.os_hora_tard_ini || '--'} - {item.os_hora_tard_fim || '--'}
       </Text>
     </View>
@@ -380,7 +388,14 @@ export default function AbaHoras({
           />
         </View>
       </View>
-
+      <View style={styles.intervalo}>
+        <Text style={styles.label}>Intervalo</Text>
+        <Switch
+          value={String(intervalo) === 'true'}
+          onValueChange={(value) => setIntervalo(value ? 'true' : 'false')}
+          style={styles.switch}
+        />
+      </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tarde</Text>
         <View style={styles.row}>
@@ -461,6 +476,11 @@ export default function AbaHoras({
                 {item.os_hora_manh_fim || '--'}
               </Text>
               <Text style={styles.itemText}>
+                {String(item.os_hora_manh_inte) === 'true'
+                  ? 'Intervalo Almoço'
+                  : ''}
+              </Text>
+              <Text style={styles.itemText}>
                 {item.os_hora_tard_ini || '--'} -{' '}
                 {item.os_hora_tard_fim || '--'}
               </Text>
@@ -478,7 +498,7 @@ export default function AbaHoras({
         <>
           <SignatureField
             label="Assinatura do Cliente"
-            value={ordemServico.os_assi_clie}
+            value={sanitizeSignature(ordemServico.os_assi_clie)}
             onChange={(base64) =>
               setOrdemServico((prev) => ({ ...prev, os_assi_clie: base64 }))
             }

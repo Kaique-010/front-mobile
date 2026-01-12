@@ -76,10 +76,6 @@ export default function SignatureField({
           <TouchableOpacity style={styles.clear} onPress={handleClear}>
             <Text style={styles.clearText}>Limpar</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.save} onPress={handleSave}>
-            <Text style={styles.saveText}>Salvar</Text>
-          </TouchableOpacity>
         </View>
       )}
     </View>
