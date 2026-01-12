@@ -337,16 +337,24 @@ export default function AbaHoras({
 
   const renderRegistro = ({ item }) => (
     <View style={styles.itemRow}>
-      <Text style={styles.itemText}>{item.os_hora_data}</Text>
-      <Text style={styles.itemText}>
-        {item.os_hora_manh_ini || '--'} - {item.os_hora_manh_fim || '--'}
-      </Text>
-      <Text style={styles.itemText}>
-        {String(item.os_hora_manh_inte) === 'true' ? 'Intervalo Almoço' : ''}
-      </Text>
-      <Text style={styles.itemText}>
-        {item.os_hora_tard_ini || '--'} - {item.os_hora_tard_fim || '--'}
-      </Text>
+      <View>
+        <Text style={[styles.itemText, { fontWeight: 'bold', fontSize: 14 }]}>
+          {item.os_hora_data}
+        </Text>
+        {String(item.os_hora_manh_inte) === 'true' && (
+          <Text style={[styles.itemText, { color: '#ffa726', marginTop: 4 }]}>
+            Com Intervalo
+          </Text>
+        )}
+      </View>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Text style={styles.itemText}>
+          M: {item.os_hora_manh_ini || '--'} - {item.os_hora_manh_fim || '--'}
+        </Text>
+        <Text style={[styles.itemText, { marginTop: 4 }]}>
+          T: {item.os_hora_tard_ini || '--'} - {item.os_hora_tard_fim || '--'}
+        </Text>
+      </View>
     </View>
   )
 
@@ -470,20 +478,34 @@ export default function AbaHoras({
         <View>
           {registros.map((item, idx) => (
             <View key={String(item.os_hora_item || idx)} style={styles.itemRow}>
-              <Text style={styles.itemText}>{item.os_hora_data}</Text>
-              <Text style={styles.itemText}>
-                {item.os_hora_manh_ini || '--'} -{' '}
-                {item.os_hora_manh_fim || '--'}
-              </Text>
-              <Text style={styles.itemText}>
-                {String(item.os_hora_manh_inte) === 'true'
-                  ? 'Intervalo Almoço'
-                  : ''}
-              </Text>
-              <Text style={styles.itemText}>
-                {item.os_hora_tard_ini || '--'} -{' '}
-                {item.os_hora_tard_fim || '--'}
-              </Text>
+              <View>
+                <Text
+                  style={[
+                    styles.itemText,
+                    { fontWeight: 'bold', fontSize: 14 },
+                  ]}>
+                  {item.os_hora_data}
+                </Text>
+                {String(item.os_hora_manh_inte) === 'true' && (
+                  <Text
+                    style={[
+                      styles.itemText,
+                      { color: '#ffa726', marginTop: 4 },
+                    ]}>
+                    Com Intervalo
+                  </Text>
+                )}
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.itemText}>
+                  M: {item.os_hora_manh_ini || '--'} -{' '}
+                  {item.os_hora_manh_fim || '--'}
+                </Text>
+                <Text style={[styles.itemText, { marginTop: 4 }]}>
+                  T: {item.os_hora_tard_ini || '--'} -{' '}
+                  {item.os_hora_tard_fim || '--'}
+                </Text>
+              </View>
             </View>
           ))}
         </View>
@@ -573,13 +595,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   itemRow: {
-    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#232935',
-    padding: 40,
+    padding: 12,
     borderRadius: 6,
-    marginBottom: 25,
+    marginBottom: 12,
   },
   itemText: { color: '#fff', fontSize: 12 },
 })
