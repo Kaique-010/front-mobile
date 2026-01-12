@@ -7,20 +7,88 @@ import {
   TextInput,
   FlatList,
   ScrollView,
+  Platform,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import useContextoApp from '../hooks/useContextoApp'
 import {
   apiGetComContexto,
   apiPostComContexto,
   apiPatchComContexto,
 } from '../utils/api'
+import SignatureField from '../componentsOrdemServico/SignatureField'
 import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 import { enqueueOperation } from './services/syncService'
 import NetInfo from '@react-native-community/netinfo'
 
-export default function AbaHoras({ os_os, embedded = false }) {
+function sanitizeSignature(base64) {
+  if (!base64) return ''
+  return base64.replace(/^data:image\/[a-zA-Z]+;base64,/, '')
+}
+
+function addPrefix(base64) {
+  if (!base64) return null
+  return `data:image/png;base64,${base64}`
+}
+
+const TimePickerInput = ({ value, onChange, style, placeholder = '00:00' }) => {
+  const [show, setShow] = useState(false)
+
+  const handleChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      setShow(false)
+    }
+
+    if (selectedDate) {
+      const hours = String(selectedDate.getHours()).padStart(2, '0')
+      const minutes = String(selectedDate.getMinutes()).padStart(2, '0')
+      onChange(`${hours}:${minutes}`)
+    }
+  }
+
+  const getDateFromValue = () => {
+    const d = new Date()
+    if (value) {
+      const [h, m] = value.split(':').map(Number)
+      if (!isNaN(h) && !isNaN(m)) {
+        d.setHours(h)
+        d.setMinutes(m)
+        d.setSeconds(0)
+      }
+    }
+    return d
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <TouchableOpacity onPress={() => setShow(!show)} style={style}>
+        <Text style={{ color: value ? '#fff' : '#666' }}>
+          {value || placeholder}
+        </Text>
+      </TouchableOpacity>
+      {show && (
+        <DateTimePicker
+          value={getDateFromValue()}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={handleChange}
+        />
+      )}
+    </View>
+  )
+}
+
+export default function AbaHoras({
+  os_os,
+  embedded = false,
+  ordemServico,
+  setOrdemServico,
+  setScrollLock,
+}) {
   const { empresaId, filialId, usuarioId } = useContextoApp()
+  const Container = embedded ? View : ScrollView
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
   const [manhaIni, setManhaIni] = useState('')
   const [manhaFim, setManhaFim] = useState('')
@@ -106,46 +174,27 @@ export default function AbaHoras({ os_os, embedded = false }) {
     return () => sub && sub()
   }, [])
 
-  const iniciarManha = () => {
-    if (manhaIni) return
-    const t = agora()
-    setManhaIni(t)
-    salvarParcial({ os_hora_manh_ini: t })
-    Toast.show({ type: 'success', text1: 'Manhã iniciada', text2: t })
-  }
-  const encerrarManha = () => {
-    if (!manhaIni) {
-      Toast.show({ type: 'error', text1: 'Inicie a manhã antes' })
-      return
-    }
-    const t = agora()
-    setManhaFim(t)
-    salvarParcial({ os_hora_manh_fim: t })
-    Toast.show({ type: 'success', text1: 'Manhã encerrada', text2: t })
-  }
-  const iniciarTarde = () => {
-    if (tardeIni) return
-    const t = agora()
-    setTardeIni(t)
-    salvarParcial({ os_hora_tard_ini: t })
-    Toast.show({ type: 'success', text1: 'Tarde iniciada', text2: t })
-  }
-  const encerrarTarde = () => {
-    if (!tardeIni) {
-      Toast.show({ type: 'error', text1: 'Inicie a tarde antes' })
-      return
-    }
-    const t = agora()
-    setTardeFim(t)
-    salvarParcial({ os_hora_tard_fim: t })
-    Toast.show({ type: 'success', text1: 'Tarde encerrada', text2: t })
-  }
-
   const salvarDia = async () => {
     if (!os_os) {
       Toast.show({ type: 'error', text1: 'OS inválida' })
       return
     }
+
+    if (ordemServico) {
+      try {
+        const payloadAssi = {
+          os_os: String(os_os),
+          os_empr: Number(empresaId),
+          os_fili: Number(filialId),
+          os_assi_clie: addPrefix(sanitizeSignature(ordemServico.os_assi_clie)),
+          os_assi_oper: addPrefix(sanitizeSignature(ordemServico.os_assi_oper)),
+        }
+        await apiPatchComContexto('Os/ordens/patch/', payloadAssi)
+      } catch (e) {
+        console.error('Erro ao salvar assinaturas', e)
+      }
+    }
+
     try {
       const payload = {
         os_hora_empr: Number(empresaId),
@@ -237,6 +286,8 @@ export default function AbaHoras({ os_os, embedded = false }) {
   }
 
   const salvarParcial = async (campos) => {
+    // Função mantida para compatibilidade, mas agora o salvamento é manual via botão "Salvar Dia"
+    // Pode ser removida se não houver uso futuro.
     try {
       const base = {
         os_hora_empr: Number(empresaId),
@@ -264,9 +315,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
         await apiPostComContexto('Os/os-hora/', { ...base, ...campos })
       }
       carregarRegistros()
-    } catch (e) {
-      
-    }
+    } catch (e) {}
   }
 
   const calcularPreviewTotal = () => {
@@ -294,7 +343,7 @@ export default function AbaHoras({ os_os, embedded = false }) {
   )
 
   return (
-    <ScrollView style={styles.container}>
+    <Container style={styles.container}>
       <Text style={styles.title}>Horas da O.S</Text>
       <View style={styles.row}>
         <Text style={styles.label}>Data</Text>
@@ -314,29 +363,19 @@ export default function AbaHoras({ os_os, embedded = false }) {
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Manhã</Text>
-        <View style={styles.rowButtons}>
-          <TouchableOpacity style={styles.btn} onPress={iniciarManha}>
-            <Text style={styles.btnText}>Iniciar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btn} onPress={encerrarManha}>
-            <Text style={styles.btnText}>Encerrar</Text>
-          </TouchableOpacity>
-        </View>
         <View style={styles.row}>
           <Text style={styles.label}>Início</Text>
-          <TextInput
+          <TimePickerInput
             value={manhaIni}
-            onChangeText={setManhaIni}
-            editable={false}
+            onChange={setManhaIni}
             style={styles.input}
           />
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Fim</Text>
-          <TextInput
+          <TimePickerInput
             value={manhaFim}
-            onChangeText={setManhaFim}
-            editable={false}
+            onChange={setManhaFim}
             style={styles.input}
           />
         </View>
@@ -344,29 +383,19 @@ export default function AbaHoras({ os_os, embedded = false }) {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tarde</Text>
-        <View style={styles.rowButtons}>
-          <TouchableOpacity style={styles.btn} onPress={iniciarTarde}>
-            <Text style={styles.btnText}>Iniciar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btn} onPress={encerrarTarde}>
-            <Text style={styles.btnText}>Encerrar</Text>
-          </TouchableOpacity>
-        </View>
         <View style={styles.row}>
           <Text style={styles.label}>Início</Text>
-          <TextInput
+          <TimePickerInput
             value={tardeIni}
-            onChangeText={setTardeIni}
-            editable={false}
+            onChange={setTardeIni}
             style={styles.input}
           />
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Fim</Text>
-          <TextInput
+          <TimePickerInput
             value={tardeFim}
-            onChangeText={setTardeFim}
-            editable={false}
+            onChange={setTardeFim}
             style={styles.input}
           />
         </View>
@@ -445,7 +474,19 @@ export default function AbaHoras({ os_os, embedded = false }) {
           renderItem={renderRegistro}
         />
       )}
-    </ScrollView>
+      {ordemServico && setOrdemServico && (
+        <>
+          <SignatureField
+            label="Assinatura do Cliente"
+            value={ordemServico.os_assi_clie}
+            onChange={(base64) =>
+              setOrdemServico((prev) => ({ ...prev, os_assi_clie: base64 }))
+            }
+            onSigningChange={setScrollLock}
+          />
+        </>
+      )}
+    </Container>
   )
 }
 
@@ -505,7 +546,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: { color: '#fff', fontSize: 12 },
-  listTitle: { color: '#10a2a7', marginTop: 12, marginBottom: 6 },
+  listTitle: { color: '#10a2a7', marginTop: 12, marginBottom: 20 },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

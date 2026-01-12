@@ -367,7 +367,7 @@ const OsDetalhe = ({ route, navigation }) => {
       </View>
       <View style={styles.actionsRow}>
         <TouchableOpacity style={styles.button} onPress={gerarPdfServidor}>
-          <Text style={styles.buttonText}>Gerar PDF (servidor)</Text>
+          <Text style={styles.buttonText}>Gerar PDF (Whatsapp)</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

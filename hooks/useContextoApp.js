@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 export default function useContextoApp() {
   const [contexto, setContexto] = useState({
     usuarioId: null,
+    username: null,
     empresaId: null,
     filialId: null,
     carregando: true,
@@ -13,21 +14,28 @@ export default function useContextoApp() {
   useEffect(() => {
     const carregar = async () => {
       try {
-        const [usuarioRaw, empresaId, filialId, modulosRaw] = await Promise.all(
-          [
+        const [usuarioRaw, empresaId, filialId, modulosRaw, usernameRaw] =
+          await Promise.all([
             AsyncStorage.getItem('usuario'),
             AsyncStorage.getItem('empresaId'),
             AsyncStorage.getItem('filialId'),
             AsyncStorage.getItem('modulos'),
-          ]
-        )
+            AsyncStorage.getItem('username'),
+          ])
 
         const usuarioObj = usuarioRaw ? JSON.parse(usuarioRaw) : null
         const usuarioId = usuarioObj?.usuario_id ?? null
+        // Prioriza username salvo diretamente, depois tenta pegar do objeto usuario
+        const usuarioNome =
+          usernameRaw ||
+          usuarioObj?.username ||
+          usuarioObj?.usuario_nome ||
+          null
         const modulosArray = modulosRaw ? JSON.parse(modulosRaw) : []
-        
+
         setContexto({
           usuarioId,
+          username: usuarioNome,
           empresaId,
           filialId,
           carregando: false,
@@ -46,13 +54,22 @@ export default function useContextoApp() {
     if (!modulos || !Array.isArray(modulos)) {
       return false
     }
-    
+
     if (modulos.length > 0 && typeof modulos[0] === 'object') {
       return modulos.some((modulo) => {
         // Verificação mais robusta para o campo ativo
-        const isAtivo = modulo.ativo === true || modulo.ativo === 'true' || modulo.ativo === 1 || modulo.ativo === undefined;
+        const isAtivo =
+          modulo.ativo === true ||
+          modulo.ativo === 'true' ||
+          modulo.ativo === 1 ||
+          modulo.ativo === undefined
         // Verificar por nome, código ou ID do módulo
-        return (modulo.modu_nome === mod || modulo.nome === mod || modulo.modu_codi === mod) && isAtivo;
+        return (
+          (modulo.modu_nome === mod ||
+            modulo.nome === mod ||
+            modulo.modu_codi === mod) &&
+          isAtivo
+        )
       })
     }
     return modulos.includes(mod)
@@ -68,6 +85,7 @@ export default function useContextoApp() {
       ])
       setContexto({
         usuarioId: null,
+        username: null,
         empresaId: null,
         filialId: null,
         carregando: false,

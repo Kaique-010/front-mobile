@@ -14,11 +14,11 @@ import useContextoApp from '../hooks/useContextoApp'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import { apiPostComContexto } from '../utils/api'
 import { handleApiError } from '../utils/errorHandler'
+import SignatureField from '../componentsOrdemServico/SignatureField'
 import AbaPecas from '../componentsOrdemServico/AbaPecas'
 import AbaServicos from '../componentsOrdemServico/AbaServicos'
 import AbaTotais from '../componentsOrdemServico/AbaTotais'
 import AbaHoras from '../componentsOrdemServico/AbaHoras'
-import SignatureField from '../componentsOrdemServico/SignatureField'
 import Toast from 'react-native-toast-message'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import {
@@ -32,7 +32,8 @@ import uuid from 'react-native-uuid'
 
 export default function CriarOrdemServico({ navigation }) {
   // Adicionado navigation como prop
-  const { usuarioId, empresaId, filialId, carregando } = useContextoApp()
+  const { usuarioId, username, empresaId, filialId, carregando } =
+    useContextoApp()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState('cliente')
@@ -44,13 +45,12 @@ export default function CriarOrdemServico({ navigation }) {
     os_clie: null,
     os_clie_nome: '',
     os_data_aber: new Date().toISOString().split('T')[0],
-    os_resp: '',
+    os_resp: usuarioId ? parseInt(usuarioId) : null,
     pecas: [],
     servicos: [],
     os_assi_clie: '',
     os_assi_oper: '',
     os_loca_apli: '',
-    os_orig: '',
     os_obje_os: '',
   })
 
@@ -106,7 +106,6 @@ export default function CriarOrdemServico({ navigation }) {
         os_assi_clie: ordemServico.os_assi_clie || '',
         os_assi_oper: ordemServico.os_assi_oper || '',
         os_loca_apli: ordemServico.os_loca_apli || '',
-        os_orig: ordemServico.os_orig || '',
         os_obje_os: ordemServico.os_obje_os || '',
         os_data_aber: ordemServico.os_data_aber, // Mantém formato YYYY-MM-DD
         os_stat_os: 0, // 0 = Aberta
@@ -156,7 +155,7 @@ export default function CriarOrdemServico({ navigation }) {
             os_assi_clie: ordemServico.os_assi_clie || '',
             os_assi_oper: ordemServico.os_assi_oper || '',
             os_loca_apli: ordemServico.os_loca_apli || '',
-            os_orig: ordemServico.os_orig || '',
+
             os_obje_os: ordemServico.os_obje_os || '',
             os_data_aber: ordemServico.os_data_aber,
             os_stat_os: 0,
@@ -240,7 +239,7 @@ export default function CriarOrdemServico({ navigation }) {
       scrollEnabled={!scrollLock}>
       <View style={{ padding: 20, backgroundColor: '#1a2f3d' }}>
         <View style={{ flexDirection: 'row', marginBottom: 2 }}>
-          {['cliente', 'pecas', 'servicos', 'horas'].map((aba) => (
+          {['cliente', 'horas'].map((aba) => (
             <TouchableOpacity
               key={aba}
               onPress={() => {
@@ -320,14 +319,7 @@ export default function CriarOrdemServico({ navigation }) {
                   }}
                 />
               )}
-              <Text style={styles.label}>O.S de Origem:</Text>
-              <TextInput
-                style={styles.input}
-                value={ordemServico.os_orig}
-                onChangeText={(text) =>
-                  setOrdemServico((prev) => ({ ...prev, os_orig: text }))
-                }
-              />
+
               <Text style={styles.label}>Cliente:</Text>
               <BuscaClienteInput
                 onSelect={(item) => {
@@ -340,16 +332,10 @@ export default function CriarOrdemServico({ navigation }) {
                 value={ordemServico.os_clie_nome}
               />
               <Text style={styles.label}>Responsável:</Text>
-              <BuscaClienteInput
-                onSelect={(item) => {
-                  setOrdemServico((prev) => ({
-                    ...prev,
-                    os_resp: item.enti_clie,
-                    os_resp_nome: item.enti_nome,
-                  }))
-                }}
-                value={ordemServico.os_resp_nome}
-              />
+              <Text style={styles.input}>
+                {usuarioId}- {username}
+              </Text>
+
               <Text style={styles.label}>Local do Trabalho:</Text>
               <TextInput
                 style={styles.input}
@@ -358,23 +344,8 @@ export default function CriarOrdemServico({ navigation }) {
                   setOrdemServico((prev) => ({ ...prev, os_loca_apli: text }))
                 }
               />
-              <SignatureField
-                label="Assinatura do Cliente"
-                value={ordemServico.os_assi_clie}
-                onChange={(base64) =>
-                  setOrdemServico((prev) => ({ ...prev, os_assi_clie: base64 }))
-                }
-                onSigningChange={setScrollLock}
-              />
-              <SignatureField
-                label="Assinatura do Operador"
-                value={ordemServico.os_assi_oper}
-                onChange={(base64) =>
-                  setOrdemServico((prev) => ({ ...prev, os_assi_oper: base64 }))
-                }
-                onSigningChange={setScrollLock}
-              />
-              <Text style={styles.label}>Objeto da O.S (obs.):</Text>
+
+              <Text style={styles.label}>Descrição dos serviços (obs.):</Text>
               <TextInput
                 style={styles.input}
                 value={ordemServico.os_obje_os}
@@ -419,7 +390,15 @@ export default function CriarOrdemServico({ navigation }) {
               financeiroGerado={financeiroGerado}
             />
           )}
-          {abaAtiva === 'horas' && <AbaHoras os_os={numeroOS} />}
+          {abaAtiva === 'horas' && (
+            <AbaHoras
+              os_os={numeroOS}
+              embedded={true}
+              ordemServico={ordemServico}
+              setOrdemServico={setOrdemServico}
+              setScrollLock={setScrollLock}
+            />
+          )}
           {abaAtiva === 'totais' && (
             <AbaTotais
               pecas={ordemServico.pecas}
