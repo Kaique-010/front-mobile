@@ -41,6 +41,9 @@ const OrdemDetalhe = ({ route }) => {
   const [servicos, setServicos] = useState([])
   const [ordemAtual, setOrdemAtual] = useState(ordem)
   const [prioridade, setPrioridade] = useState(ordemAtual.orde_prio)
+  const [motorEmEstoque, setMotorEmEstoque] = useState(
+    ordemAtual.orde_stat_orde === 22
+  )
   const [showDatePickerReprov, setShowDatePickerReprov] = useState(false)
   const [showSetorReprovModal, setShowSetorReprovModal] = useState(false)
   const [setorReprovNome, setSetorReprovNome] = useState('')
@@ -63,6 +66,7 @@ const OrdemDetalhe = ({ route }) => {
     { label: 'Reprovada', value: 5 },
     { label: 'Faturada parcial', value: 20 },
     { label: 'Em atraso', value: 21 },
+    { label: 'Em estoque', value: 22 },
   ]
 
   const prioridadeValor =
@@ -209,6 +213,32 @@ const OrdemDetalhe = ({ route }) => {
     setTipoSelecionado(ordemAtualizada.orde_tipo || '')
   }
 
+  const verificarMotorEmEstoque = async () => {
+    try {
+      const response = await apiPatchComContexto(
+        `ordemdeservico/ordens/${ordemAtual.orde_nume}/motor-em-estoque/`
+      )
+      setMotorEmEstoque(response?.motor_em_estoque)
+
+      if (response?.motor_em_estoque) {
+        setOrdemAtual((prev) => ({ ...prev, orde_stat_orde: 22 }))
+        Toast.show({
+          type: 'success',
+          text1: 'Motor em estoque',
+          text2: 'Status atualizado para Em Estoque',
+        })
+      } else {
+        Toast.show({
+          type: 'info',
+          text1: 'Status',
+          text2: 'Motor não está em estoque',
+        })
+      }
+    } catch (err) {
+      handleApiError(err, '❌ Erro ao verificar motor em estoque')
+    }
+  }
+
   const renderDetalhes = () => (
     <ScrollView style={styles.detalhesContainer}>
       <View style={styles.infoCard}>
@@ -326,11 +356,15 @@ const OrdemDetalhe = ({ route }) => {
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>
-            {STATUS_OPTIONS.find(
-              (item) => item.value === ordemAtual.orde_stat_orde
-            )?.label || '-'}
-          </Text>
+          <TouchableOpacity
+            onPress={verificarMotorEmEstoque}
+            style={styles.valueRow}>
+            <Text style={[styles.value, { color: '#10a2a7' }]}>
+              {STATUS_OPTIONS.find(
+                (item) => item.value === ordemAtual.orde_stat_orde
+              )?.label || '-'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.infoRow}>
@@ -357,7 +391,6 @@ const OrdemDetalhe = ({ route }) => {
             <Text style={styles.value}>{prioridadeLabel}</Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.infoRow}>
           <Text style={styles.label}>Total:</Text>
           <Text style={[styles.value, styles.totalValue]}>

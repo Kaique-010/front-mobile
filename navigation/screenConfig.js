@@ -419,6 +419,11 @@ export const screenConfigs = [
     component: Screens.HistoricoWorkflow,
     options: createHeaderOptions('Histórico Workflow'),
   },
+  {
+    name: 'OrdensEmEstoque',
+    component: Screens.OrdensEmEstoque,
+    options: createHeaderOptions('Ordens em Estoque'),
+  },
 
   // Telas de Ordem de Produção
   {

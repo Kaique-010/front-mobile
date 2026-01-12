@@ -93,6 +93,7 @@ export { default as WorkflowConfig } from '../screens/WorkflowConfig'
 export { default as OrdensEletroGrafico } from '../componentsRelatoriosEletro/OrdensEletroGrafico'
 export { default as DashOrdensEletro } from '../componentsRelatoriosEletro/DashOrdensEletro'
 export { default as HistoricoWorkflow } from '../componentsRelatoriosEletro/HistoricoWorkflow'
+export { default as OrdensEmEstoque } from '../componentsOs/OrdensEmEstoque'
 
 // Telas de ordem de serviço externa
 export { default as PainelAcompanhamentoExterna } from '../componentsOrdemServicoExterna/PainelAcompanhamentoExterna'

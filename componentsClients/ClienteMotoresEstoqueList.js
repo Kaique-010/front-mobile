@@ -9,10 +9,13 @@ import {
   Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { fetchClienteOrdensServicoEmEstoque } from '../services/clienteService'
+import {
+  fetchClienteOrdensServicoEmEstoque,
+  fetchClienteOrdensServico,
+} from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 
-const ClienteOrdensServicoList = ({ navigation }) => {
+const ClienteMotoresEstoqueList = ({ navigation }) => {
   const [ordens, setOrdens] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -24,9 +27,9 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   const carregarOrdens = async () => {
     try {
       setLoading(true)
-      const data = await fetchClienteOrdensServicoEmEstoque({
-        ordering: '-data_abertura',
-      })
+      // Removed ordering param as it might not be supported by custom action
+      const data = await fetchClienteOrdensServicoEmEstoque()
+      console.log('Dados recebidos no componente:', data)
       setOrdens(data || [])
     } catch (error) {
       console.error('Erro ao carregar ordens de serviço:', error)
@@ -111,18 +114,30 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   }
 
   const getStatusColor = (status) => {
-    switch (status) {
+    // Handle numeric status codes
+    const statusStr = String(status)
+
+    // Status code 22 is "Em estoque"
+    if (status === 22 || statusStr === '22') return '#00D4FF'
+
+    switch (statusStr) {
       case 'aberta':
       case 'A':
+      case '0':
         return '#FFD700'
       case 'em_andamento':
       case 'E':
+      case '1': // Orçamento gerado
+      case '2': // Aguardando liberação
+      case '3': // Liberada
         return '#00D4FF'
       case 'concluida':
       case 'C':
+      case '4': // Finalizada
         return '#00FF88'
       case 'cancelada':
       case 'X':
+      case '5': // Reprovada
         return '#FF4757'
       default:
         return '#8B8BA7'
@@ -130,22 +145,38 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   }
 
   const formatStatus = (status) => {
-    switch (status) {
+    // Handle numeric status codes
+    if (status === 22 || String(status) === '22') return 'Em Estoque'
+
+    // Convert to string safely
+    const statusStr = String(status || '')
+
+    switch (statusStr) {
       case 'aberta':
       case 'A':
+      case '0':
         return 'Aberta'
+      case '1':
+        return 'Orçamento Gerado'
+      case '2':
+        return 'Aguardando Liberação'
+      case '3':
+        return 'Liberada'
       case 'em_andamento':
       case 'E':
         return 'Em Andamento'
       case 'concluida':
       case 'C':
+      case '4':
         return 'Concluída'
       case 'cancelada':
       case 'X':
-        return 'Cancelada'
+      case '5':
+        return 'Cancelada' // Reprovada might be better?
       default:
-        return status
-          ? status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
+        return statusStr
+          ? statusStr.charAt(0).toUpperCase() +
+              statusStr.slice(1).replace('_', ' ')
           : 'Desconhecido'
     }
   }
@@ -298,4 +329,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default ClienteOrdensServicoList
+export default ClienteMotoresEstoqueList

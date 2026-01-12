@@ -9,6 +9,8 @@ const createClienteAxios = async () => {
   const session_id = await AsyncStorage.getItem('session_id')
   const banco = await AsyncStorage.getItem('banco')
 
+  console.log('[DEBUG] createClienteAxios:', { session_id, banco })
+
   if (!session_id || !banco) {
     console.error('[ERROR] Session ID ou banco não encontrado')
     return null
@@ -88,8 +90,30 @@ export const fetchClienteOrdensServicoEmEstoque = async (params = {}) => {
     const response = await api.get('entidades/ordem-servico/em-estoque/', {
       params,
     })
-    return response.data.results || []
+
+    console.log(
+      'Motores em Estoque Response:',
+      JSON.stringify(response.data, null, 2)
+    )
+
+    if (Array.isArray(response.data)) {
+      return response.data
+    }
+
+    // Check common wrapper fields including Portuguese 'dados'
+    const listData =
+      response.data.results ||
+      response.data.data ||
+      response.data.result ||
+      response.data.dados ||
+      response.data.items ||
+      response.data.response ||
+      response.data.payload ||
+      []
+
+    return Array.isArray(listData) ? listData : []
   } catch (error) {
+    console.error('[fetchClienteOrdensServicoEmEstoque] Error:', error)
     handleApiError(error)
     return []
   }
@@ -104,6 +128,13 @@ export const fetchClienteDashboard = async () => {
     const response = await api.get('dashboards/cliente-dashboard/')
     return response.data
   } catch (error) {
+    // Suppress 401 errors for dashboard to avoid user annoyance
+    if (error.response && error.response.status === 401) {
+      console.warn(
+        '[fetchClienteDashboard] 401 Unauthorized - Dashboard access denied'
+      )
+      return null
+    }
     handleApiError(error)
     return null
   }

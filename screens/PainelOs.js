@@ -29,6 +29,7 @@ const STATUS_OPTIONS = [
   { label: 'Reprovada', value: 5 },
   { label: 'Faturada parcial', value: 20 },
   { label: 'Em atraso', value: 21 },
+  { label: 'Em Estoque', value: 22 },
 ]
 
 const statusColors = {
@@ -38,6 +39,7 @@ const statusColors = {
   3: '#0dec41ff',
   5: '#f3ef00ff',
   20: '#0c616eff',
+  22: '#10a2a7',
 }
 
 const PRIORIDADE_OPTIONS = [

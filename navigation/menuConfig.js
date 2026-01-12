@@ -315,6 +315,12 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'bar-chart',
           condition: hasModulo('OrdemdeServico'),
         },
+        {
+          name: 'Ordens em Estoque',
+          route: 'OrdensEmEstoque',
+          icon: 'tool',
+          condition: hasModulo('OrdemdeServico'),
+        },
       ].sort((a, b) => a.name.localeCompare(b.name)),
     },
     pisos: {

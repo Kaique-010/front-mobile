@@ -43,7 +43,7 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   }
 
   const renderItem = ({ item }) => {
-    const statusColor = getStatusColor(item.status)
+    const statusColor = getStatusColor(item.orde_stat_orde)
 
     return (
       <TouchableOpacity
@@ -111,29 +111,63 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   }
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'aberta':
-      case 'A':
-        return '#FFD700'
-      case 'em_andamento':
-      case 'E':
-        return '#00D4FF'
-      case 'concluida':
-      case 'C':
-        return '#00FF88'
-      case 'cancelada':
-      case 'X':
-        return '#FF4757'
-      default:
-        return '#8B8BA7'
-    }
+    // Handle string or number status
+    const statusStr = String(status)
+    const statusNum = Number(status)
+
+    if (
+      statusNum === 0 ||
+      statusStr === '0' ||
+      statusStr === 'A' ||
+      statusStr === 'aberta'
+    )
+      return '#93e0d6ff'
+    if (statusNum === 1 || statusStr === '1') return '#FFD700'
+    if (statusNum === 2 || statusStr === '2') return '#00D4FF'
+    if (statusNum === 3 || statusStr === '3') return '#00FF88'
+    if (
+      statusNum === 4 ||
+      statusStr === '4' ||
+      statusStr === 'C' ||
+      statusStr === 'Finalizada'
+    )
+      return '#47ff5fff'
+    if (
+      statusNum === 5 ||
+      statusStr === '5' ||
+      statusStr === 'X' ||
+      statusStr === 'cancelada'
+    )
+      return '#FF4757'
+    if (statusNum === 20 || statusStr === '20') return '#FFD700'
+    if (statusNum === 21 || statusStr === '21') return '#FF4757'
+    if (statusNum === 22 || statusStr === '22') return '#00FF88'
+
+    return '#8B8BA7'
   }
 
   const formatStatus = (status) => {
     switch (status) {
       case 'aberta':
       case 'A':
+      case 0:
         return 'Aberta'
+      case 1:
+        return 'Orçamento Gerado'
+      case 2:
+        return 'Aguardando liberação'
+      case 3:
+        return 'Liberada'
+      case 4:
+        return 'Finalizada'
+      case 5:
+        return 'Reprovada'
+      case 20:
+        return 'Parcial'
+      case 21:
+        return 'Em atraso'
+      case 22:
+        return 'Em Estoque'
       case 'em_andamento':
       case 'E':
         return 'Em Andamento'
