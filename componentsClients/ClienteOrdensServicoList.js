@@ -84,17 +84,10 @@ const ClienteOrdensServicoList = ({ navigation }) => {
               {formatCurrency(item.orde_tota)}
             </Text>
           </View>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>TÉCNICO</Text>
-            <Text style={styles.infoValue}>
-              {item.tecnico || 'Não atribuído'}
-            </Text>
-          </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>DEFEITO</Text>
-            <Text style={styles.infoValue}>
-              {item.orde_obse || 'Não atribuído'}
+            <Text style={styles.infoValueDefeito}>
+              {item.orde_defe_desc || 'Não atribuído'}
             </Text>
           </View>
         </View>
@@ -122,26 +115,26 @@ const ClienteOrdensServicoList = ({ navigation }) => {
       statusStr === 'aberta'
     )
       return '#93e0d6ff'
-    if (statusNum === 1 || statusStr === '1') return '#FFD700'
-    if (statusNum === 2 || statusStr === '2') return '#00D4FF'
-    if (statusNum === 3 || statusStr === '3') return '#00FF88'
+    if (statusNum === 1 || statusStr === '1') return '#ada15cff'
+    if (statusNum === 2 || statusStr === '2') return '#78bbc9ff'
+    if (statusNum === 3 || statusStr === '3') return '#6cac8eff'
     if (
       statusNum === 4 ||
       statusStr === '4' ||
       statusStr === 'C' ||
       statusStr === 'Finalizada'
     )
-      return '#47ff5fff'
+      return '#94d89dff'
     if (
       statusNum === 5 ||
       statusStr === '5' ||
       statusStr === 'X' ||
       statusStr === 'cancelada'
     )
-      return '#FF4757'
+      return '#d65661ff'
     if (statusNum === 20 || statusStr === '20') return '#FFD700'
-    if (statusNum === 21 || statusStr === '21') return '#FF4757'
-    if (statusNum === 22 || statusStr === '22') return '#00FF88'
+    if (statusNum === 21 || statusStr === '21') return '#af4e56ff'
+    if (statusNum === 22 || statusStr === '22') return '#72ac91ff'
 
     return '#8B8BA7'
   }
@@ -316,6 +309,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#FFFFFF',
+  },
+  infoValueDefeito: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFD700',
   },
   cardFooter: {
     alignItems: 'flex-end',

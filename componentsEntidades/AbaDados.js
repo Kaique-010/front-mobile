@@ -44,6 +44,14 @@ export default function AbaDados({ formData, handleChange }) {
         style={styles.input}
         keyboardType="numeric"
       />
+      <Text style={styles.label}>I.E</Text>
+      <TextInput
+        type={'inscricaoEstadual'}
+        value={formData.enti_insc_esta}
+        onChangeText={(text) => handleChange('enti_insc_esta', text)}
+        style={styles.input}
+        keyboardType="numeric"
+      />
     </View>
   )
 }

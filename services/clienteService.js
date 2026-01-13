@@ -75,6 +75,10 @@ export const fetchClienteOrdensServico = async (params = {}) => {
     if (!api) return []
 
     const response = await api.get('entidades/ordem-servico/', { params })
+    console.log(
+      'Ordem Servico Response:',
+      JSON.stringify(response.data, null, 2)
+    )
     return response.data.results || []
   } catch (error) {
     handleApiError(error)

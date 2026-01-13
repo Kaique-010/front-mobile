@@ -46,29 +46,62 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   }
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'aberta':
-      case 'A':
-        return '#FFD700'
-      case 'em_andamento':
-      case 'E':
-        return '#00D4FF'
-      case 'concluida':
-      case 'C':
-        return '#00FF88'
-      case 'cancelada':
-      case 'X':
-        return '#FF4757'
-      default:
-        return '#8B8BA7'
-    }
+    // Handle string or number status
+    const statusStr = String(status)
+    const statusNum = Number(status)
+
+    if (
+      statusNum === 0 ||
+      statusStr === '0' ||
+      statusStr === 'A' ||
+      statusStr === 'aberta'
+    )
+      return '#93e0d6ff'
+    if (statusNum === 1 || statusStr === '1') return '#ada15cff'
+    if (statusNum === 2 || statusStr === '2') return '#78bbc9ff'
+    if (statusNum === 3 || statusStr === '3') return '#6cac8eff'
+    if (
+      statusNum === 4 ||
+      statusStr === '4' ||
+      statusStr === 'C' ||
+      statusStr === 'Finalizada'
+    )
+      return '#94d89dff'
+    if (
+      statusNum === 5 ||
+      statusStr === '5' ||
+      statusStr === 'X' ||
+      statusStr === 'cancelada'
+    )
+      return '#d65661ff'
+    if (statusNum === 20 || statusStr === '20') return '#FFD700'
+    if (statusNum === 21 || statusStr === '21') return '#af4e56ff'
+    if (statusNum === 22 || statusStr === '22') return '#72ac91ff'
+    return '#8B8BA7'
   }
 
   const formatStatus = (status) => {
     switch (status) {
       case 'aberta':
       case 'A':
+      case 0:
         return 'Aberta'
+      case 1:
+        return 'Orçamento Gerado'
+      case 2:
+        return 'Aguardando liberação'
+      case 3:
+        return 'Liberada'
+      case 4:
+        return 'Finalizada'
+      case 5:
+        return 'Reprovada'
+      case 20:
+        return 'Parcial'
+      case 21:
+        return 'Em atraso'
+      case 22:
+        return 'Em Estoque'
       case 'em_andamento':
       case 'E':
         return 'Em Andamento'
@@ -79,9 +112,13 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
       case 'X':
         return 'Cancelada'
       default:
-        return status
-          ? status.charAt(0).toUpperCase() + status.slice(1)
-          : 'Desconhecido'
+        // Verifica se status é string antes de tentar usar métodos de string
+        if (typeof status === 'string') {
+          return (
+            status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
+          )
+        }
+        return 'Desconhecido'
     }
   }
 
@@ -101,7 +138,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   if (!ordem) {
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={60} color="#FF4757" />
+        <Ionicons name="alert-circle-outline" size={60} color="#d65661ff" />
         <Text style={styles.errorText}>Ordem de serviço não encontrada</Text>
         <TouchableOpacity
           style={styles.backButton}
@@ -150,12 +187,6 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
               {formatCurrency(ordem.orde_tota)}
             </Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>TÉCNICO</Text>
-            <Text style={styles.infoValue}>
-              {ordem.tecnico || 'Não informado'}
-            </Text>
-          </View>
         </View>
       </View>
 
@@ -163,7 +194,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
         <Text style={styles.sectionTitle}>Descrição do Serviço</Text>
         <View style={styles.descricaoCard}>
           <Text style={styles.descricaoText}>
-            {ordem.descricao || 'Nenhuma descrição informada'}
+            {ordem.orde_defe_desc || 'Nenhuma descrição informada'}
           </Text>
         </View>
       </View>
@@ -173,24 +204,23 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
         {ordem.servicos && ordem.servicos.length > 0 ? (
           ordem.servicos.map((servico, index) => (
             <View key={index} style={styles.itemCard}>
-              <Text style={styles.itemNome}>{servico.descricao}</Text>
+              <Text style={styles.itemNome}>{servico.servico_nome}</Text>
               <View style={styles.itemDetails}>
                 <View style={styles.itemRow}>
                   <Text style={styles.itemLabel}>QUANTIDADE</Text>
-                  <Text style={styles.itemValue}>{servico.quantidade}</Text>
+                  <Text style={styles.itemValue}>{servico.serv_quan}</Text>
                 </View>
                 <View style={styles.itemRow}>
                   <Text style={styles.itemLabel}>VALOR UNITÁRIO</Text>
                   <Text style={styles.itemValue}>
-                    {formatCurrency(servico.valor_unitario)}
+                    {formatCurrency(servico.serv_unit)}
                   </Text>
                 </View>
                 <View style={styles.itemRow}>
                   <Text style={styles.itemLabel}>SUBTOTAL</Text>
                   <Text style={styles.itemValue}>
                     {formatCurrency(
-                      servico.subtotal ||
-                        servico.quantidade * servico.valor_unitario
+                      servico.serv_tota || servico.serv_quan * servico.serv_unit
                     )}
                   </Text>
                 </View>
@@ -203,6 +233,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
           </View>
         )}
       </View>
+      
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Resumo de Valores</Text>
@@ -210,21 +241,21 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>SUBTOTAL</Text>
             <Text style={styles.infoValue}>
-              {formatCurrency(ordem.subtotal || ordem.valor_total)}
+              {formatCurrency(ordem.orde_tota || ordem.orde_tota)}
             </Text>
           </View>
-          {ordem.desconto > 0 && (
+          {ordem.orde_desc > 0 && (
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>DESCONTO</Text>
               <Text style={styles.infoValue}>
-                - {formatCurrency(ordem.desconto)}
+                - {formatCurrency(ordem.orde_desc)}
               </Text>
             </View>
           )}
           <View style={[styles.infoRow, styles.totalRow]}>
             <Text style={[styles.infoLabel, styles.totalLabel]}>TOTAL</Text>
             <Text style={[styles.infoValue, styles.totalValue]}>
-              {formatCurrency(ordem.valor_total)}
+              {formatCurrency(ordem.orde_tota)}
             </Text>
           </View>
         </View>
