@@ -7,9 +7,12 @@ import {
   Avatar,
   Pressable,
   Badge,
+  IconButton,
+  Icon,
 } from 'native-base'
+import { Ionicons } from '@expo/vector-icons'
 
-const ProdutoCard = memo(({ item, onPress }) => (
+const ProdutoCard = memo(({ item, onPress, quantity, onQuantityChange }) => (
   <Pressable onPress={() => onPress(item)} _pressed={{ opacity: 0.7 }}>
     <Box
       bg="#fffdfb"
@@ -32,7 +35,9 @@ const ProdutoCard = memo(({ item, onPress }) => (
                     ? item.imagem_base64
                     : `data:image/png;base64,${item.imagem_base64}`,
                 }
-              : require('../assets/logo.png')
+              : item.prod_url && item.prod_url.trim() !== ''
+                ? { uri: item.prod_url.trim() }
+                : require('../assets/logo.png')
           }
         />
         <VStack flex={1} space={1}>
@@ -62,6 +67,37 @@ const ProdutoCard = memo(({ item, onPress }) => (
               Saldo: {item.saldo}
             </Badge>
           </HStack>
+
+          {onQuantityChange && (
+            <HStack
+              justifyContent="flex-end"
+              alignItems="center"
+              mt={2}
+              space={3}>
+              <IconButton
+                icon={<Icon as={Ionicons} name="remove" size="sm" />}
+                borderRadius="full"
+                bg="gray.200"
+                _pressed={{ bg: 'gray.300' }}
+                onPress={() => {
+                  if (quantity > 1) onQuantityChange(quantity - 1)
+                }}
+                size="sm"
+              />
+              <Text fontSize="md" fontWeight="bold">
+                {quantity}
+              </Text>
+              <IconButton
+                icon={<Icon as={Ionicons} name="add" size="sm" />}
+                borderRadius="full"
+                bg="#10a2a7"
+                _icon={{ color: 'white' }}
+                _pressed={{ bg: '#0e8c91' }}
+                onPress={() => onQuantityChange(quantity + 1)}
+                size="sm"
+              />
+            </HStack>
+          )}
         </VStack>
       </HStack>
     </Box>

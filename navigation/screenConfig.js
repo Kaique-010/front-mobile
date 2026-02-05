@@ -187,6 +187,11 @@ export const screenConfigs = [
     component: Screens.ColetorEstoqueScreen,
     options: createHeaderOptions('Coletor de Estoque'),
   },
+  {
+    name: 'ConsultaProdutos',
+    component: Screens.ConsultaProdutos,
+    options: createHeaderOptions('Consulta de Produtos'),
+  },
 
   // Telas financeiras
   {

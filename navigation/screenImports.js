@@ -48,6 +48,7 @@ export { default as EntradasEstoque } from '../screens/EntradasEstoque'
 export { default as SaidasForm } from '../screens/SaidasForm'
 export { default as SaidasEstoque } from '../screens/SaidasEstoque'
 export { default as ColetorEstoqueScreen } from '../coletorEstoque/ColetorEstoqueScreen'
+export { default as ConsultaProdutos } from '../componetsProdutos/consultaProdutos'
 
 // Telas financeiras
 export { default as ContasPagarList } from '../screens/ContasPagarList'

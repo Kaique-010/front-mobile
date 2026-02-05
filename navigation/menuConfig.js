@@ -42,6 +42,12 @@ export const getMenuConfig = (hasModulo) => {
           icon: 'arrow-up-circle',
           condition: hasModulo('Saidas_Estoque'),
         },
+         {
+          name: 'Consulta de Produtos',
+          route: 'ConsultaProdutos',
+          icon: 'search',
+          condition: hasModulo('Produtos'),
+        },
         //{
         // name: 'Saídas de Estoque',
         //route: 'SaidasForm',
@@ -416,6 +422,7 @@ export const getMenuConfig = (hasModulo) => {
           iconType: 'MaterialCommunityIcons',
           condition: hasModulo('Produtos'),
         },
+       
         {
           name: 'Parâmetros do Sistema',
           route: 'ParametrosMenu',

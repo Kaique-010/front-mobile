@@ -70,13 +70,15 @@ const ProdutoModal = ({ produto, visible, onClose }) => {
             <View style={{ alignItems: 'center', marginBottom: 20 }}>
               <Image
                 source={
-                  produto?.imagem_base64
+                  produto?.imagem_base64 && produto.imagem_base64.trim() !== ''
                     ? {
                         uri: produto.imagem_base64.startsWith('data:')
                           ? produto.imagem_base64
                           : `data:image/png;base64,${produto.imagem_base64}`,
                       }
-                    : require('../assets/logo.png')
+                    : produto?.prod_url && produto.prod_url.trim() !== ''
+                      ? { uri: produto.prod_url.trim() }
+                      : require('../assets/logo.png')
                 }
                 style={{
                   width: 140,

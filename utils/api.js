@@ -41,7 +41,7 @@ const refreshToken = async () => {
       await safeSetItem('setor', String(response.data.usuario.setor))
       console.log(
         '✅ Setor atualizado via refresh:',
-        response.data.usuario.setor
+        response.data.usuario.setor,
       )
     } else {
       const claims = decodeJwtClaims(newAccess)
@@ -55,7 +55,7 @@ const refreshToken = async () => {
   } catch (error) {
     console.log(
       '❌ Erro ao renovar token:',
-      error.response?.data || error.message
+      error.response?.data || error.message,
     )
     throw error
   }
@@ -117,7 +117,7 @@ const apiFetch = async (
   method = 'get',
   data = null,
   params = null,
-  retryCount = 0
+  retryCount = 0,
 ) => {
   const maxRetries = 1
 
@@ -153,7 +153,7 @@ const apiFetch = async (
     // Log do header Authorization para debug
     console.log(
       '🔍 [DEBUG] Authorization header:',
-      config.headers.Authorization
+      config.headers.Authorization,
     )
 
     const response = await axios(config)
@@ -182,7 +182,7 @@ const apiFetch = async (
 
         console.log(
           '🔍 [DEBUG] Retry com novo token:',
-          newConfig.headers.Authorization
+          newConfig.headers.Authorization,
         )
         const retryResponse = await axios(newConfig)
         return retryResponse
@@ -260,7 +260,7 @@ export const addContextoSemFili = async (obj = {}, prefixo = '') => {
 export const apiGetComContextoos = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -272,7 +272,7 @@ export const apiGetComContextoos = async (
 export const apiGetComContexto = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -280,7 +280,7 @@ export const apiGetComContexto = async (
 
   console.log(
     `[DEBUG apiGetComContexto] endpoint=${fullEndpoint}, params=`,
-    paramsComContexto
+    paramsComContexto,
   )
 
   const response = await apiFetch(fullEndpoint, 'get', null, paramsComContexto)
@@ -290,7 +290,7 @@ export const apiGetComContexto = async (
 export const apiGetComContextoSemFili = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -302,7 +302,7 @@ export const apiGetComContextoSemFili = async (
 export const apiPostComContexto = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -315,7 +315,7 @@ export const apiPostComContexto = async (
 export const apiPostComContextoList = async (
   endpointSemApi,
   lista = [],
-  prefixo = ''
+  prefixo = '',
 ) => {
   if (!Array.isArray(lista)) {
     throw new Error('Payload deve ser uma lista')
@@ -344,7 +344,7 @@ export const addContextoControleVisita = async (obj = {}) => {
 export const apiPostComContextoSemFili = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -356,7 +356,7 @@ export const apiPostComContextoSemFili = async (
 export const apiPutComContexto = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -368,7 +368,7 @@ export const apiPutComContexto = async (
 export const apiPutComContextoSemFili = async (
   endpointSemApi,
   params = {},
-  prefixo = ''
+  prefixo = '',
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -385,7 +385,7 @@ export const apiDeleteComContexto = async (endpointSemApi) => {
     fullEndpoint,
     'delete',
     null,
-    paramsComContexto
+    paramsComContexto,
   )
   return response.data
 }
@@ -399,7 +399,7 @@ export const apiPatchComContexto = async (
   endpointSemApi,
   params = {},
   prefixo = '',
-  queryParams = null
+  queryParams = null,
 ) => {
   const slug = await getSlug()
   const fullEndpoint = `/api/${slug}/${endpointSemApi}`
@@ -408,7 +408,7 @@ export const apiPatchComContexto = async (
     fullEndpoint,
     'patch',
     paramsComContexto,
-    queryParams || null
+    queryParams || null,
   )
   return response.data
 }
@@ -428,7 +428,7 @@ export async function fetchSlugMap() {
 
   try {
     console.log(
-      `🌐 [SLUG-TIMING] Fazendo requisição para: ${BASE_URL}/api/licencas/mapa/`
+      `🌐 [SLUG-TIMING] Fazendo requisição para: ${BASE_URL}/api/licencas/mapa/`,
     )
 
     const response = await axios.get(`${BASE_URL}/api/licencas/mapa/`, {
@@ -456,7 +456,7 @@ export async function fetchSlugMap() {
     return map
   } catch (error) {
     console.error(
-      `❌ [SLUG-TIMING] Erro no fetchSlugMap após: ${Date.now() - startTime}ms`
+      `❌ [SLUG-TIMING] Erro no fetchSlugMap após: ${Date.now() - startTime}ms`,
     )
     console.error(`❌ [SLUG-TIMING] Detalhes:`, error.message)
 
@@ -475,8 +475,8 @@ export async function fetchSlugMap() {
 
       console.log(
         `📄 [SLUG-MAP] CNPJs aptos carregados do licencas.json: ${Object.keys(
-          localMap
-        ).join(', ')}`
+          localMap,
+        ).join(', ')}`,
       )
 
       // Atualizar cache com o mapa local
@@ -487,7 +487,7 @@ export async function fetchSlugMap() {
     } catch (localError) {
       console.error(
         `❌ [SLUG-TIMING] Erro ao carregar arquivo local:`,
-        localError.message
+        localError.message,
       )
       return {}
     }
@@ -551,7 +551,7 @@ axios.interceptors.request.use(
   (error) => {
     console.error('❌ [AXIOS-TIMING] Erro na requisição:', error)
     return Promise.reject(error)
-  }
+  },
 )
 
 axios.interceptors.response.use(
@@ -560,7 +560,7 @@ axios.interceptors.response.use(
     console.log(
       `📊 [AXIOS-TIMING] Status: ${response.status}, Tamanho: ${
         JSON.stringify(response.data).length
-      } chars`
+      } chars`,
     )
     return response
   },
@@ -572,7 +572,7 @@ axios.interceptors.response.use(
       console.error(
         `❌ [AXIOS-TIMING] Erro após: ${duration}ms - ${config.method?.toUpperCase()} ${
           config.url
-        }`
+        }`,
       )
     }
 
@@ -606,12 +606,12 @@ axios.interceptors.response.use(
       console.error('⏰ [AXIOS-TIMING] Timeout na requisição')
     } else if (error.response) {
       console.error(
-        `🔴 [AXIOS-TIMING] Erro HTTP ${error.response.status}: ${error.response.statusText}`
+        `🔴 [AXIOS-TIMING] Erro HTTP ${error.response.status}: ${error.response.statusText}`,
       )
       if (error.response.data) {
         console.error(
           `🔴 [AXIOS-ERROR-DATA]`,
-          JSON.stringify(error.response.data, null, 2)
+          JSON.stringify(error.response.data, null, 2),
         )
       }
     } else if (error.request) {
@@ -619,7 +619,7 @@ axios.interceptors.response.use(
     }
 
     return Promise.reject(error)
-  }
+  },
 )
 
 // Função melhorada para lidar com SQLITE_FULL
@@ -658,7 +658,7 @@ const clearNonEssentialCache = async () => {
         key.includes('CACHE') ||
         key.includes('produtos') ||
         key.includes('pedidos') ||
-        key.includes('balancete')
+        key.includes('balancete'),
     )
 
     if (cacheKeys.length > 0) {
