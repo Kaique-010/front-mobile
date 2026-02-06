@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
-import { apiGetComContexto } from '../utils/api'
+import { apiGetComContexto, apiGetComContextoSemFili } from '../utils/api'
 import { processarSalvarOrcamento } from '../componetsPisos/salvarOrcamento'
 import { useContextoApp } from '../hooks/useContextoApp'
 import { useNavigation } from '@react-navigation/native'
@@ -57,21 +57,63 @@ const ConsultaProdutos = () => {
       setLoading(true)
 
       const params = {}
-      if (termo) {
-        params.q = termo
-        params.search = termo // Backup caso backend mude
-      }
-      if (marca && marca !== '__sem_marca__') params.marca_nome = marca
-      if (marca === '__sem_marca__') params.marca_nome = '__sem_marca__'
+      if (origem === 'scanner') {
+        // Limpa filtros que podem restringir o resultado indevidamente
+        params.marca_nome = undefined
+        params.com_saldo = undefined
+        params.sem_saldo = undefined
 
-      if (saldo === 'com') {
-        params.com_saldo = true
-      } else if (saldo === 'sem') {
-        params.sem_saldo = true
+        if (termo && termo.includes('/p/')) {
+          // Normaliza a URL do QR Code para garantir que o backend reconheça o padrão
+          const parts = termo.split('/p/')
+          if (parts.length > 1) {
+            let hash = parts[1].split('/')[0].split('?')[0].trim()
+            const cleanUrl = `https://mobile-sps.site/p/${hash}`
+            console.log(`URL de Scanner normalizada: ${cleanUrl}`)
+            params.q = cleanUrl
+          } else {
+            params.q = termo
+          }
+        } else {
+          params.q = termo
+        }
+      } else {
+        // Busca manual: aplica filtros
+        if (termo) params.q = termo
+        if (marca && marca !== '__sem_marca__') params.marca_nome = marca
+        if (marca === '__sem_marca__') params.marca_nome = '__sem_marca__'
+
+        if (saldo === 'com') {
+          params.com_saldo = true
+        } else if (saldo === 'sem') {
+          params.sem_saldo = true
+        }
       }
 
       console.log('Buscando produtos:', params)
-      const data = await apiGetComContexto('produtos/produtos/busca/', params)
+      const data = await apiGetComContextoSemFili(
+        'produtos/produtos/busca/',
+        params,
+      )
+
+      if (origem === 'scanner' && data.length === 0) {
+        console.log('Tentando busca alternativa com apiGetComContexto...')
+        // Fallback: se não achar sem filial, tenta com filial
+        const dataFili = await apiGetComContexto(
+          'produtos/produtos/busca/',
+          params,
+        )
+        if (dataFili && dataFili.length > 0) {
+          console.log('Encontrado com contexto de filial!')
+          console.log(
+            'Resultado busca alternativa:',
+            JSON.stringify(dataFili).substring(0, 200),
+          )
+          setProdutos(dataFili)
+          return
+        }
+      }
+
       console.log('Resultado busca:', JSON.stringify(data).substring(0, 200))
 
       const results = Array.isArray(data) ? data : data.results || []
@@ -90,23 +132,23 @@ const ConsultaProdutos = () => {
 
       if (origem === 'scanner') {
         // Tenta encontrar correspondência exata primeiro
-        let exato = results.find(
-          (p) =>
-            String(p.prod_codi) === String(termo) ||
-            String(p.prod_coba) === String(termo) ||
-            String(p.prod_gtin) === String(termo),
-        )
+        // O backend retorna uma lista com o produto encontrado quando o match acontece
+        // Como o backend já filtrou pelo código do hash, podemos pegar o primeiro resultado
+        let exato = null
 
-        if (!exato && results.length === 1) {
-          exato = results[0]
-        }
+        if (results.length > 0) {
+          // Se retornou resultados, verifica se algum bate com o termo ou se é resultado único do hash match
+          exato = results.find(
+            (p) =>
+              String(p.prod_codi) === String(termo) ||
+              String(p.prod_coba) === String(termo) ||
+              String(p.prod_gtin) === String(termo),
+          )
 
-        if (
-          !exato &&
-          results.length > 0 &&
-          (termo.includes('http') || termo.includes('www'))
-        ) {
-          exato = results[0]
+          // Se não achou exato pelo código mas tem resultado (provavelmente veio do match do hash no backend)
+          if (!exato && results.length > 0) {
+            exato = results[0]
+          }
         }
 
         if (exato) {
