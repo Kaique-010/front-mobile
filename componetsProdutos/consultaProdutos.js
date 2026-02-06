@@ -4,19 +4,28 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Alert,
   TouchableOpacity,
+  Modal,
+  ActivityIndicator,
 } from 'react-native'
+import Toast from 'react-native-toast-message'
 import { apiGetComContexto } from '../utils/api'
+import { processarSalvarOrcamento } from '../componetsPisos/salvarOrcamento'
+import { useContextoApp } from '../hooks/useContextoApp'
 import { useNavigation } from '@react-navigation/native'
 import ProdutoModal from '../componentsProdutosDetalhados/ProdutoModal'
-
+import BuscaClienteInput from '../components/BuscaClienteInput'
+import { MaterialIcons, Ionicons } from '@expo/vector-icons'
 import BarraBusca from './componentsConsultaProdutos/barraBusca'
+import BarraTotal from './componentsConsultaProdutos/BarraTotal'
 import LeitorConsulta from './componentsConsultaProdutos/LeitorConsulta'
 import ProdutoCard from '../componentsProdutosDetalhados/ProdutoCard'
-import { Ionicons } from '@expo/vector-icons'
+
+import TotalizadorProdutos from './componentsConsultaProdutos/Funcoes/totalizadorProdutos'
 
 const ConsultaProdutos = () => {
+  const { empresaId, filialId } = useContextoApp()
+  const [salvando, setSalvando] = useState(false)
   const [produtos, setProdutos] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,9 +36,13 @@ const ConsultaProdutos = () => {
   const [produtoModalProduto, setProdutoModalProduto] = useState(null)
   const navigation = useNavigation()
 
+  // State para seleção de cliente
+  const [modalClienteVisible, setModalClienteVisible] = useState(false)
+  const [clienteSelecionado, setClienteSelecionado] = useState(null)
+
   // States para o Leitor
   const [leitorVisible, setLeitorVisible] = useState(false)
-  const [statusLeitura, setStatusLeitura] = useState('idle') // 'idle', 'loading', 'success', 'error', 'not_found'
+  const [statusLeitura, setStatusLeitura] = useState('idle')
 
   const fetchProdutos = async (
     termo = '',
@@ -46,17 +59,34 @@ const ConsultaProdutos = () => {
       const params = {}
       if (termo) {
         params.q = termo
-        params.search = termo // Envia ambos para garantir compatibilidade
+        params.search = termo // Backup caso backend mude
       }
-      if (marca && marca !== '__sem_marca__') params.marca = marca
-      if (marca === '__sem_marca__') params.sem_marca = true
-      if (saldo !== 'todos') params.saldo = saldo
+      if (marca && marca !== '__sem_marca__') params.marca_nome = marca
+      if (marca === '__sem_marca__') params.marca_nome = '__sem_marca__'
+
+      if (saldo === 'com') {
+        params.com_saldo = true
+      } else if (saldo === 'sem') {
+        params.sem_saldo = true
+      }
 
       console.log('Buscando produtos:', params)
       const data = await apiGetComContexto('produtos/produtos/busca/', params)
       console.log('Resultado busca:', JSON.stringify(data).substring(0, 200))
 
       const results = Array.isArray(data) ? data : data.results || []
+
+      // Extrair marcas únicas para o filtro se for uma busca manual sem marca selecionada
+      if (origem === 'manual' && !marca) {
+        const marcasUnicas = [
+          ...new Set(
+            results
+              .map((p) => p.prod_marc_nome || p.marca_nome)
+              .filter(Boolean),
+          ),
+        ]
+        setMarcas(['Sem marca', ...marcasUnicas.sort()])
+      }
 
       if (origem === 'scanner') {
         // Tenta encontrar correspondência exata primeiro
@@ -67,14 +97,10 @@ const ConsultaProdutos = () => {
             String(p.prod_gtin) === String(termo),
         )
 
-        // Se não achou exato, mas veio apenas 1 resultado da API, assume que é ele (busca inteligente do backend)
-        // Isso resolve casos onde o código bipado é uma URL ou padrão que o backend já tratou
         if (!exato && results.length === 1) {
           exato = results[0]
         }
 
-        // Se a busca retornou algo e o termo parece ser uma URL (contém http/https),
-        // tenta pegar o primeiro resultado válido se houver, assumindo que o backend resolveu o QR Code
         if (
           !exato &&
           results.length > 0 &&
@@ -116,9 +142,6 @@ const ConsultaProdutos = () => {
             setStatusLeitura('idle')
           }, 1500)
         } else {
-          // Se não achar exato, mas tiver resultados, mostra aviso ou nada?
-          // O usuário pediu "apenas o que foi bipado".
-          // Se não achar exato, considera não encontrado.
           setStatusLeitura('not_found')
         }
       } else {
@@ -130,7 +153,11 @@ const ConsultaProdutos = () => {
       if (origem === 'scanner') {
         setStatusLeitura('error')
       } else {
-        Alert.alert('Erro', 'Não foi possível carregar os produtos.')
+        Toast.show({
+          type: 'error',
+          text1: 'Erro',
+          text2: 'Não foi possível carregar os produtos.',
+        })
       }
       setProdutos([])
     } finally {
@@ -158,7 +185,7 @@ const ConsultaProdutos = () => {
   }
 
   const updateQuantity = (item, newQuantity) => {
-    if (newQuantity < 1) return
+    if (newQuantity < 0) return
 
     setProdutos((prev) =>
       prev.map((p) =>
@@ -170,6 +197,105 @@ const ConsultaProdutos = () => {
       ),
     )
   }
+
+  const handleSalvarPress = () => {
+    const itensComQuantidade = produtos.filter((p) => p.quantity > 0)
+
+    if (itensComQuantidade.length === 0) {
+      Toast.show({
+        type: 'info',
+        text1: 'Atenção',
+        text2: 'Selecione pelo menos um produto com quantidade maior que zero.',
+      })
+      return
+    }
+
+    setModalClienteVisible(true)
+  }
+
+  const finalizarSalvamento = async () => {
+    if (!clienteSelecionado) {
+      Toast.show({
+        type: 'info',
+        text1: 'Atenção',
+        text2: 'Selecione um cliente para continuar.',
+      })
+      return
+    }
+
+    const itensComQuantidade = produtos.filter((p) => p.quantity > 0)
+
+    const orcamentoParaSalvar = {
+      orca_empr: empresaId,
+      orca_fili: filialId,
+      orca_clie: clienteSelecionado.enti_clie,
+      orca_vend: null,
+      orca_data: new Date().toISOString().split('T')[0],
+      orca_data_prev_entr: new Date(
+        new Date().getTime() + 30 * 24 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .split('T')[0],
+      orca_stat: 0,
+      orca_obse: 'Orçamento gerado via Consulta de Produtos',
+      itens_input: itensComQuantidade.map((p) => ({
+        item_prod: p.prod_codi,
+        item_quan: p.quantity,
+        item_unit: p.prod_preco_vista,
+      })),
+      itens_removidos: [],
+      orca_tota: 0,
+      orca_mode_piso: '',
+      orca_mode_alum: '',
+      orca_mode_roda: '',
+      orca_mode_port: '',
+      orca_mode_outr: '',
+      orca_sent_piso: '',
+      orca_ajus_port: 'false',
+      orca_degr_esca: 'false',
+      orca_obra_habi: false,
+      orca_movi_mobi: false,
+      orca_remo_roda: false,
+      orca_remo_carp: false,
+      orca_croq_info: '',
+      orca_ende: '',
+      orca_nume_ende: '',
+      orca_comp: '',
+      orca_bair: '',
+      orca_cida: '',
+      orca_esta: '',
+      orca_desc: 0,
+      orca_fret: 0,
+    }
+
+    setModalClienteVisible(false) // Fecha modal antes de iniciar processo que pode ter alertas
+
+    try {
+      const response = await processarSalvarOrcamento({
+        orcamento: orcamentoParaSalvar,
+        orcamentoParam: null,
+        setSalvando,
+        navigation,
+      })
+
+      setClienteSelecionado(null)
+
+      if (response && response.orca_nume) {
+        Toast.show({
+          type: 'success',
+          text1: 'Sucesso',
+          text2: `Orçamento nº ${response.orca_nume} salvo com sucesso!`,
+        })
+        navigation.navigate('OrcamentosPisos')
+      }
+    } catch (error) {}
+  }
+
+  const total = TotalizadorProdutos(produtos)
+  const quantidadeItens = produtos.reduce(
+    (acc, p) => acc + (p.quantity || 0),
+    0,
+  )
 
   return (
     <View style={styles.container}>
@@ -239,10 +365,8 @@ const ConsultaProdutos = () => {
               filial: item.prod_fili,
             }}
             onPress={handleProdutoPress}
-            quantity={item.quantity}
-            onQuantityChange={
-              item.quantity ? (qty) => updateQuantity(item, qty) : undefined
-            }
+            quantity={item.quantity || 0}
+            onQuantityChange={(qty) => updateQuantity(item, qty)}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -252,6 +376,70 @@ const ConsultaProdutos = () => {
           )
         }
       />
+
+      <BarraTotal total={total} quantidadeItens={quantidadeItens} />
+      <TouchableOpacity
+        style={[styles.botaoSalvar, salvando && styles.botaoDesabilitado]}
+        onPress={handleSalvarPress}
+        disabled={salvando}
+        activeOpacity={0.8}>
+        {salvando ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <MaterialIcons name="save" size={20} color="#fff" />
+        )}
+        <Text style={styles.botaoSalvarTexto}>
+          {salvando ? 'Salvando...' : 'Salvar'}
+        </Text>
+      </TouchableOpacity>
+
+      <Modal
+        visible={modalClienteVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalClienteVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Selecione o Cliente</Text>
+
+            <View style={{ zIndex: 1000 }}>
+              <BuscaClienteInput
+                onSelect={setClienteSelecionado}
+                placeholder="Buscar cliente..."
+                value={
+                  clienteSelecionado
+                    ? `${clienteSelecionado.enti_clie} - ${clienteSelecionado.enti_nome}`
+                    : ''
+                }
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.botaoCancelarModal]}
+                onPress={() => {
+                  setModalClienteVisible(false)
+                  setClienteSelecionado(null)
+                }}>
+                <Text style={styles.botaoCancelarTextoModal}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  styles.botaoConfirmarModal,
+                  !clienteSelecionado && styles.botaoDesabilitado,
+                ]}
+                onPress={finalizarSalvamento}
+                disabled={!clienteSelecionado}>
+                <Text style={styles.botaoConfirmarTextoModal}>
+                  Confirmar e Salvar
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -298,6 +486,68 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: '#888',
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    maxHeight: '80%',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#333',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botaoCancelarModal: {
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  botaoConfirmarModal: {
+    backgroundColor: '#10a2a7',
+  },
+  botaoCancelarTextoModal: {
+    color: '#666',
+    fontWeight: '600',
+  },
+  botaoConfirmarTextoModal: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  botaoDesabilitado: {
+    backgroundColor: '#ccc',
+    borderWidth: 0,
+  },
+  botaoSalvar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: '#10a2a7',
   },
 })
 

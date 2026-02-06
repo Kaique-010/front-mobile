@@ -80,12 +80,13 @@ const ProdutoCard = memo(({ item, onPress, quantity, onQuantityChange }) => (
                 bg="gray.200"
                 _pressed={{ bg: 'gray.300' }}
                 onPress={() => {
-                  if (quantity > 1) onQuantityChange(quantity - 1)
+                  if (quantity > 0) onQuantityChange(quantity - 1)
                 }}
                 size="sm"
+                isDisabled={quantity <= 0}
               />
               <Text fontSize="md" fontWeight="bold">
-                {quantity}
+                {quantity || 0}
               </Text>
               <IconButton
                 icon={<Icon as={Ionicons} name="add" size="sm" />}
@@ -93,7 +94,7 @@ const ProdutoCard = memo(({ item, onPress, quantity, onQuantityChange }) => (
                 bg="#10a2a7"
                 _icon={{ color: 'white' }}
                 _pressed={{ bg: '#0e8c91' }}
-                onPress={() => onQuantityChange(quantity + 1)}
+                onPress={() => onQuantityChange((quantity || 0) + 1)}
                 size="sm"
               />
             </HStack>

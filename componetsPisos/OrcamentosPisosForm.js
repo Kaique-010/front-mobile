@@ -20,6 +20,7 @@ import {
   apiPutComContexto,
 } from '../utils/api'
 import { useContextoApp } from '../hooks/useContextoApp'
+import { processarSalvarOrcamento, calcularTotal } from './salvarOrcamento'
 
 const ORCAMENTO_PISOS_CACHE_ID = 'orcamento-pisos-edicao-cache'
 
@@ -32,20 +33,12 @@ const ABAS = {
 export default function OrcamentosPisosForm({ route, navigation }) {
   const { orcamento: orcamentoParam } = route.params || {}
   const { empresaId, filialId } = useContextoApp()
-  const [orcamento, setOrcamento] = useState({})  
+  const [orcamento, setOrcamento] = useState({})
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [modalVisivel, setModalVisivel] = useState(false)
   const [itemEditando, setItemEditando] = useState(null)
   const [abaAtiva, setAbaAtiva] = useState(ABAS.HEADER)
-
-  const calcularTotal = (itens) => {
-    return itens.reduce((total, item) => {
-      const quantidade = parseFloat(item.item_quan || 0)
-      const preco = parseFloat(item.item_unit || 0)
-      return total + (quantidade * preco || 0)
-    }, 0)
-  }
 
   const carregarContexto = async () => {
     const empresa = await AsyncStorage.getItem('empresaId')
@@ -64,7 +57,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
 
         if (orcamentoParam && orcamentoParam.orca_nume) {
           const data = await apiGetComContexto(
-            `pisos/orcamentos-pisos/${orcamentoParam.orca_nume}/`
+            `pisos/orcamentos-pisos/${orcamentoParam.orca_nume}/`,
           )
           const itens = data.itens || []
 
@@ -95,7 +88,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
 
           await AsyncStorage.setItem(
             ORCAMENTO_PISOS_CACHE_ID,
-            JSON.stringify(orcamentoMapeado)
+            JSON.stringify(orcamentoMapeado),
           )
         } else {
           await AsyncStorage.removeItem(ORCAMENTO_PISOS_CACHE_ID)
@@ -106,7 +99,11 @@ export default function OrcamentosPisosForm({ route, navigation }) {
             orca_clie: null,
             orca_vend: null,
             orca_data: new Date().toISOString().split('T')[0],
-            orca_data_prev_entr: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            orca_data_prev_entr: new Date(
+              new Date().getTime() + 30 * 24 * 60 * 60 * 1000,
+            )
+              .toISOString()
+              .split('T')[0],
             orca_stat: 0,
             orca_obse: 'Orçamento de Pisos Enviado por Mobile',
             itens_input: [],
@@ -152,7 +149,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
     console.log('🔍 [ORCAMENTO-FORM] Novo item:', novoItem)
     console.log('🔍 [ORCAMENTO-FORM] Item anterior:', itemAnterior)
     console.log('🔍 [ORCAMENTO-FORM] Estado atual do orçamento:', orcamento)
-    
+
     let novosItens = [...orcamento.itens_input]
 
     const index = itemAnterior
@@ -162,7 +159,10 @@ export default function OrcamentosPisosForm({ route, navigation }) {
     console.log('🔍 [ORCAMENTO-FORM] Índice encontrado:', index)
 
     if (index !== -1) {
-      console.log('🔍 [ORCAMENTO-FORM] Editando item existente no índice:', index)
+      console.log(
+        '🔍 [ORCAMENTO-FORM] Editando item existente no índice:',
+        index,
+      )
       novosItens[index] = novoItem
     } else {
       console.log('🔍 [ORCAMENTO-FORM] Adicionando novo item')
@@ -179,7 +179,10 @@ export default function OrcamentosPisosForm({ route, navigation }) {
         itens_input: novosItens,
         orca_tota: novoTotal,
       }
-      console.log('✅ [ORCAMENTO-FORM] Novo estado do orçamento após adicionar item:', novoEstado)
+      console.log(
+        '✅ [ORCAMENTO-FORM] Novo estado do orçamento após adicionar item:',
+        novoEstado,
+      )
       return novoEstado
     })
 
@@ -189,7 +192,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
 
   const handleRemoverItem = (item) => {
     const novosItens = orcamento.itens_input.filter(
-      (i) => i.item_prod !== item.item_prod
+      (i) => i.item_prod !== item.item_prod,
     )
 
     const novosRemovidos = item.idExistente
@@ -211,62 +214,13 @@ export default function OrcamentosPisosForm({ route, navigation }) {
   }
 
   const salvarOrcamento = async () => {
-    console.log('🔍 [ORCAMENTO-FORM] Iniciando salvamento do orçamento')
-    console.log('🔍 [ORCAMENTO-FORM] Estado atual do orçamento:', orcamento)
-    
-    if (!orcamento.orca_clie) {
-      console.log('❌ [ORCAMENTO-FORM] Cliente não selecionado - orca_clie:', orcamento.orca_clie)
-      Alert.alert('Atenção', 'Selecione um cliente para o orcamento')
-      return
-    }
-    console.log('✅ [ORCAMENTO-FORM] Cliente validado - orca_clie:', orcamento.orca_clie)
-
-    if (!orcamento.itens_input || orcamento.itens_input.length === 0) {
-      console.log('❌ [ORCAMENTO-FORM] Nenhum item no orçamento - itens_input:', orcamento.itens_input)
-      Alert.alert('Atenção', 'Adicione pelo menos um item ao orcamento')
-      return
-    }
-    console.log('✅ [ORCAMENTO-FORM] Itens validados - quantidade:', orcamento.itens_input.length)
-
-    setSalvando(true)
     try {
-      // Calcular total dos itens
-      const totalItens = calcularTotal(orcamento.itens_input)
-      console.log('🔍 [ORCAMENTO-FORM] Total dos itens calculado:', totalItens)
-
-      // Aplicar desconto geral e frete
-      const descontoGeral = Number(orcamento.orca_desc) || 0
-      const frete = Number(orcamento.orca_fret) || 0
-      const totalFinal = totalItens - descontoGeral + frete
-      console.log('🔍 [ORCAMENTO-FORM] Desconto geral:', descontoGeral)
-      console.log('🔍 [ORCAMENTO-FORM] Frete:', frete)
-      console.log('🔍 [ORCAMENTO-FORM] Total final:', totalFinal)
-
-      const dadosOrcamento = {
-        ...orcamento,
-        orca_tota: totalFinal,
-        // Converter boolean para string
-        orca_ajus_port: orcamento.orca_ajus_port ? 'true' : 'false',
-        orca_degr_esca: orcamento.orca_degr_esca ? 'true' : 'false',
-      }
-      console.log('🔍 [ORCAMENTO-FORM] Dados do orçamento preparados para envio:', dadosOrcamento)
-
-      let response
-      if (orcamentoParam && orcamentoParam.orca_nume) {
-        console.log('🔍 [ORCAMENTO-FORM] Atualizando orçamento existente:', orcamentoParam.orca_nume)
-        response = await apiPutComContexto(
-          `pisos/orcamentos-pisos/${orcamentoParam.orca_nume}/`,
-          dadosOrcamento  
-        )
-        console.log('✅ [ORCAMENTO-FORM] Response da atualização:', response)
-      } else {
-        console.log('🔍 [ORCAMENTO-FORM] Criando novo orçamento')
-        response = await apiPostComContexto('pisos/orcamentos-pisos/', dadosOrcamento)
-        console.log('✅ [ORCAMENTO-FORM] Response da criação:', response)
-      }
-
-      await AsyncStorage.removeItem(ORCAMENTO_PISOS_CACHE_ID)
-
+      await processarSalvarOrcamento({
+        orcamento,
+        orcamentoParam,
+        setSalvando,
+        navigation,
+      })
       Alert.alert(
         'Sucesso',
         `Orçamento ${orcamentoParam ? 'atualizado' : 'criado'} com sucesso!`,
@@ -275,23 +229,21 @@ export default function OrcamentosPisosForm({ route, navigation }) {
             text: 'OK',
             onPress: () => navigation.goBack(),
           },
-        ]
+        ],
       )
     } catch (error) {
-      console.error('Erro ao salvar orçamento:', error)
-      Alert.alert(
-        'Erro',
-        error.response?.data?.detail || 'Não foi possível salvar o orçamento'
-      )
-    } finally {
-      setSalvando(false)
+      // O erro já foi tratado dentro do processarSalvarOrcamento (console.error e Alert)
+      // Aqui só precisamos garantir que não tente fazer mais nada
     }
   }
 
   const renderAbaHeader = () => {
     return (
       <View style={styles.abaContent}>
-        <OrcamentoPisosHeader orcamento={orcamento} setOrcamento={setOrcamento} />
+        <OrcamentoPisosHeader
+          orcamento={orcamento}
+          setOrcamento={setOrcamento}
+        />
       </View>
     )
   }
@@ -472,7 +424,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
 
         <TouchableOpacity
           style={[styles.botaoSalvar, salvando && styles.botaoDesabilitado]}
-          onPress={salvarOrcamento} 
+          onPress={salvarOrcamento}
           disabled={salvando}
           activeOpacity={0.8}>
           {salvando ? (
@@ -495,7 +447,7 @@ export default function OrcamentosPisosForm({ route, navigation }) {
         }}
         onSave={handleAdicionarOuEditarItem}
         item={itemEditando}
-        orcamento={orcamento} 
+        orcamento={orcamento}
       />
     </View>
   )
