@@ -20,6 +20,7 @@ import BarraBusca from './componentsConsultaProdutos/barraBusca'
 import BarraTotal from './componentsConsultaProdutos/BarraTotal'
 import LeitorConsulta from './componentsConsultaProdutos/LeitorConsulta'
 import ProdutoCard from '../componentsProdutosDetalhados/ProdutoCard'
+import CadastroRapidoOutrosModal from './componentsConsultaProdutos/tipoOutros'
 
 import TotalizadorProdutos from './componentsConsultaProdutos/Funcoes/totalizadorProdutos'
 
@@ -39,6 +40,7 @@ const ConsultaProdutos = () => {
   // State para seleção de cliente
   const [modalClienteVisible, setModalClienteVisible] = useState(false)
   const [clienteSelecionado, setClienteSelecionado] = useState(null)
+  const [cadastroRapidoVisible, setCadastroRapidoVisible] = useState(false)
 
   // States para o Leitor
   const [leitorVisible, setLeitorVisible] = useState(false)
@@ -456,6 +458,18 @@ const ConsultaProdutos = () => {
               />
             </View>
 
+            <TouchableOpacity
+              onPress={() => setCadastroRapidoVisible(true)}
+              style={{
+                padding: 10,
+                alignItems: 'center',
+                marginTop: 10,
+              }}>
+              <Text style={{ color: '#10a2a7', fontWeight: 'bold' }}>
+                Não encontrou? Cadastrar Rápido
+              </Text>
+            </TouchableOpacity>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.botaoCancelarModal]}
@@ -482,6 +496,16 @@ const ConsultaProdutos = () => {
           </View>
         </View>
       </Modal>
+
+      <CadastroRapidoOutrosModal
+        visible={cadastroRapidoVisible}
+        onClose={() => setCadastroRapidoVisible(false)}
+        onSuccess={(novoCliente) => {
+          setClienteSelecionado(novoCliente)
+          // O modal fecha automaticamente pelo onClose chamado internamente ou podemos forçar
+          setCadastroRapidoVisible(false)
+        }}
+      />
     </View>
   )
 }

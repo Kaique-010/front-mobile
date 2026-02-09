@@ -1,21 +1,19 @@
 import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet} from 'react-native'
-
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { MaterialIcons, Feather } from '@expo/vector-icons'
 import { formatDate } from '../utils/formatters'
 
-export default function ControleVisitaCard({
+export default React.memo(function ControleVisitaCard({
   visita,
   onEdit,
   onDelete,
   onView,
   etapas,
 }) {
-
-  
   const etapa = etapas.find((e) => e.etap_id === visita.ctrl_etapa)
   const etapaColor = etapa?.etap_cor || '#666'
-  const etapaLabel = etapa?.etap_descricao || visita.etapa_descricao || 'Não definida'
+  const etapaLabel =
+    etapa?.etap_descricao || visita.etapa_descricao || 'Não definida'
 
   const formatDateSafe = (dateString) => {
     if (!dateString) return 'Não informado'
@@ -25,7 +23,6 @@ export default function ControleVisitaCard({
   const getStatusIcon = () => {
     if (!etapa) return 'help-circle'
 
-    // Mapear ícones baseado na descrição da etapa
     const iconMap = {
       1: 'search',
       2: 'check-circle',
@@ -149,7 +146,7 @@ export default function ControleVisitaCard({
       </View>
     </TouchableOpacity>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {

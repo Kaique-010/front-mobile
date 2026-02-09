@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
-
 import {
   View,
   Text,
@@ -18,10 +17,56 @@ import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 import ControleVisitaCard from './ControleVisitaCard'
 import ControleVisitaFilters from './ControleVisitaFilters'
 
+// Helpers moved outside component
+const getEtapaColor = (etapaId) => {
+  const colors = ['#3498db', '#e74c3c', '#f39c12', '#2ecc71', '#9b59b6']
+  return colors[etapaId % colors.length] || '#95a5a6'
+}
+
+const extrairEtapasDasVisitas = (visitas) => {
+  const etapasUnicas = new Map()
+
+  visitas.forEach((visita) => {
+    if (visita.ctrl_etapa && visita.etapa_descricao) {
+      etapasUnicas.set(visita.ctrl_etapa, {
+        etap_id: visita.ctrl_etapa,
+        etap_descricao: visita.etapa_descricao,
+        etap_cor: getEtapaColor(visita.ctrl_etapa),
+      })
+    }
+  })
+
+  return Array.from(etapasUnicas.values())
+}
+
+const keyExtractor = (item, index) => {
+  // Sempre incluir index para garantir unicidade
+  if (
+    item.ctrl_id &&
+    item.ctrl_empresa &&
+    item.ctrl_filial &&
+    item.ctrl_numero
+  ) {
+    return `ctrl_${item.ctrl_id}_${item.ctrl_empresa}_${item.ctrl_filial}_${item.ctrl_numero}_${index}`
+  }
+  if (item.ctrl_id && item.ctrl_empresa && item.ctrl_filial) {
+    return `ctrl_${item.ctrl_id}_${item.ctrl_empresa}_${item.ctrl_filial}_${index}`
+  }
+  if (item.ctrl_id) {
+    return `ctrl_${item.ctrl_id}_${index}`
+  }
+  if (item.ctrl_empresa && item.ctrl_filial && item.ctrl_numero) {
+    return `${item.ctrl_empresa}_${item.ctrl_filial}_${item.ctrl_numero}_${index}`
+  }
+  if (item.id) return `id_${item.id}_${index}`
+  return `index_${index}`
+}
+
 export default function ControleVisitasList({ navigation }) {
   const [visitas, setVisitas] = useState([])
   const [etapas, setEtapas] = useState([])
   const [stats, setStats] = useState([])
+  // eslint-disable-next-line no-unused-vars
   const [estatisticasGerais, setEstatisticasGerais] = useState({
     etapas: {},
     top_vendedores: {},
@@ -37,34 +82,22 @@ export default function ControleVisitasList({ navigation }) {
     data_inicio: '',
     data_fim: '',
     cliente_nome: '',
-    proxima_visita: false, // Novo filtro
+    proxima_visita: false,
   })
 
-  // Mover esta função para ANTES de carregarVisitas
-  const getEtapaColor = (etapaId) => {
-    const colors = ['#3498db', '#e74c3c', '#f39c12', '#2ecc71', '#9b59b6']
-    return colors[etapaId % colors.length] || '#95a5a6'
-  }
+  // Refs for tracking current values without triggering re-renders in effects
+  const filtersRef = useRef(filters)
+  const searchTextRef = useRef(searchText)
+  const firstRender = useRef(true)
 
-  const extrairEtapasDasVisitas = (visitas) => {
-    const etapasUnicas = new Map()
+  // Sync refs
+  useEffect(() => {
+    filtersRef.current = filters
+    searchTextRef.current = searchText
+  }, [filters, searchText])
 
-    visitas.forEach((visita) => {
-      if (visita.ctrl_etapa && visita.etapa_descricao) {
-        etapasUnicas.set(visita.ctrl_etapa, {
-          etap_id: visita.ctrl_etapa,
-          etap_descricao: visita.etapa_descricao,
-          etap_cor: getEtapaColor(visita.ctrl_etapa),
-        })
-      }
-    })
-
-    return Array.from(etapasUnicas.values())
-  }
-
-  // Função corrigida para aplicar filtros
   const carregarVisitas = useCallback(
-    async (filtrosAplicados = {}) => {
+    async (filtrosAplicados = {}, searchTerm = '') => {
       setLoading(true)
       try {
         // Se for filtro de próxima visita, usar endpoint específico
@@ -73,7 +106,7 @@ export default function ControleVisitasList({ navigation }) {
             'controledevisitas/controle-visitas/proximas/',
             {
               limit: 1000,
-            }
+            },
           )
 
           const proximasVisitas = response?.proximas_visitas || []
@@ -96,13 +129,16 @@ export default function ControleVisitasList({ navigation }) {
             urgencia: visita.urgencia,
           }))
 
-          // Filtrar duplicatas por ID (solução temporária para problema no backend)
-          const visitasUnicas = data.filter((visita, index, array) => 
-            array.findIndex(v => v.ctrl_id === visita.ctrl_id) === index
+          // Filtrar duplicatas por ID
+          const visitasUnicas = data.filter(
+            (visita, index, array) =>
+              array.findIndex((v) => v.ctrl_id === visita.ctrl_id) === index,
           )
-          
+
           if (visitasUnicas.length !== data.length) {
-            console.warn(`Removidas ${data.length - visitasUnicas.length} próximas visitas duplicadas`)
+            console.warn(
+              `Removidas ${data.length - visitasUnicas.length} próximas visitas duplicadas`,
+            )
           }
 
           setVisitas(visitasUnicas)
@@ -113,12 +149,12 @@ export default function ControleVisitasList({ navigation }) {
 
           // Calcular stats
           const total = visitasUnicas.length
-          const estatisticasCalculadas = etapasExtraidas.map((etapa, index) => {
+          const estatisticasCalculadas = etapasExtraidas.map((etapa) => {
             const visitasEtapa = visitasUnicas.filter(
-              (v) => v.ctrl_etapa === etapa.etap_id
+              (v) => v.ctrl_etapa === etapa.etap_id,
             )
             return {
-              id: etapa.etap_id, // ID único da etapa
+              id: etapa.etap_id,
               label: etapa.etap_descricao,
               value: etapa.etap_id,
               color: etapa.etap_cor,
@@ -134,7 +170,7 @@ export default function ControleVisitasList({ navigation }) {
 
           Toast.show({
             type: 'success',
-            text1: `${data.length} próximas visitas carregadas!`,
+            text1: `${visitasUnicas.length} próximas visitas carregadas!`,
           })
 
           return
@@ -163,13 +199,13 @@ export default function ControleVisitasList({ navigation }) {
         }
 
         // Aplicar busca por texto se existir
-        if (searchText.trim()) {
-          queryParams.search = searchText.trim()
+        if (searchTerm.trim()) {
+          queryParams.search = searchTerm.trim()
         }
 
         const response = await apiGetComContexto(
           'controledevisitas/controle-visitas/',
-          queryParams
+          queryParams,
         )
 
         // Garantir que data seja um array
@@ -180,13 +216,16 @@ export default function ControleVisitasList({ navigation }) {
           return
         }
 
-        // Filtrar duplicatas por ID (solução temporária para problema no backend)
-        const visitasUnicas = data.filter((visita, index, array) => 
-          array.findIndex(v => v.ctrl_id === visita.ctrl_id) === index
+        // Filtrar duplicatas por ID
+        const visitasUnicas = data.filter(
+          (visita, index, array) =>
+            array.findIndex((v) => v.ctrl_id === visita.ctrl_id) === index,
         )
-        
+
         if (visitasUnicas.length !== data.length) {
-          console.warn(`Removidas ${data.length - visitasUnicas.length} visitas duplicadas`)
+          console.warn(
+            `Removidas ${data.length - visitasUnicas.length} visitas duplicadas`,
+          )
         }
 
         setVisitas(visitasUnicas)
@@ -199,7 +238,7 @@ export default function ControleVisitasList({ navigation }) {
         const total = data.length
         const estatisticasCalculadas = etapasExtraidas.map((etapa) => {
           const visitasEtapa = data.filter(
-            (v) => v.ctrl_etapa === etapa.etap_id
+            (v) => v.ctrl_etapa === etapa.etap_id,
           )
           return {
             id: etapa.etap_id,
@@ -218,7 +257,7 @@ export default function ControleVisitasList({ navigation }) {
 
         Toast.show({
           type: 'success',
-          text1: `${data.length} visitas carregadas!`,
+          text1: `${visitasUnicas.length} visitas carregadas!`,
         })
       } catch (error) {
         console.error('Erro ao carregar visitas:', error)
@@ -231,84 +270,96 @@ export default function ControleVisitasList({ navigation }) {
         setLoading(false)
       }
     },
-    [searchText]
+    [],
   )
 
-  // useEffect para aplicar filtros quando mudarem
+  // useEffect para aplicar filtros e busca com debounce
+  // Ignora o primeiro render porque o useFocusEffect já vai carregar
   useEffect(() => {
-    carregarVisitas(filters)
-  }, [filters, carregarVisitas])
+    if (firstRender.current) {
+      firstRender.current = false
+      return
+    }
 
-  // useEffect para busca por texto
-  useEffect(() => {
     const timeoutId = setTimeout(() => {
-      carregarVisitas(filters)
+      carregarVisitas(filters, searchText)
     }, 500) // Debounce de 500ms
 
     return () => clearTimeout(timeoutId)
-  }, [searchText, carregarVisitas])
+  }, [filters, searchText, carregarVisitas])
 
   // Carregar apenas quando a tela ganhar foco
+  // Usa refs para garantir que temos os valores mais recentes sem disparar o efeito em mudanças
   useFocusEffect(
     useCallback(() => {
-      carregarVisitas(filters)
-    }, [])
+      carregarVisitas(filtersRef.current, searchTextRef.current)
+    }, [carregarVisitas]),
   )
 
-  const handleEdit = (visita) => {
-    navigation.navigate('ControleVisitaForm', {
-      visitaId: visita.ctrl_id,
-      mode: 'edit',
-      visita: visita,
-      cliente: {
-        id: visita.ctrl_cliente,
-        nome: visita.cliente_nome,
-      },
-      vendedor: {
-        id: visita.ctrl_vendedor,
-        nome: visita.vendedor_nome,
-      },
-    })
-  }
-
-  const handleDelete = async (visita) => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      `Deseja realmente excluir a visita ${visita.ctrl_numero}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // CORRIGIDO: endpoint duplicado
-              await apiDeleteComContexto(
-                `controledevisitas/controle-visitas/${visita.ctrl_id}/`
-              )
-              Alert.alert('Sucesso', 'Visita excluída com sucesso')
-              carregarVisitas()
-            } catch (error) {
-              console.error('Erro ao excluir visita:', error)
-              Alert.alert('Erro', 'Não foi possível excluir a visita')
-            }
-          },
+  const handleEdit = useCallback(
+    (visita) => {
+      navigation.navigate('ControleVisitaForm', {
+        visitaId: visita.ctrl_id,
+        mode: 'edit',
+        visita: visita,
+        cliente: {
+          id: visita.ctrl_cliente,
+          nome: visita.cliente_nome,
         },
-      ]
-    )
-  }
+        vendedor: {
+          id: visita.ctrl_vendedor,
+          nome: visita.vendedor_nome,
+        },
+        etapas: etapas,
+      })
+    },
+    [navigation, etapas],
+  )
 
-  const handleView = (visita) => {
-    navigation.navigate('ControleVisitaDetalhes', { visitaId: visita.ctrl_id })
-  }
+  const handleDelete = useCallback(
+    async (visita) => {
+      Alert.alert(
+        'Confirmar Exclusão',
+        `Deseja realmente excluir a visita ${visita.ctrl_numero}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await apiDeleteComContexto(
+                  `controledevisitas/controle-visitas/${visita.ctrl_id}/`,
+                )
+                Alert.alert('Sucesso', 'Visita excluída com sucesso')
+                carregarVisitas(filtersRef.current, searchTextRef.current)
+              } catch (error) {
+                console.error('Erro ao excluir visita:', error)
+                Alert.alert('Erro', 'Não foi possível excluir a visita')
+              }
+            },
+          },
+        ],
+      )
+    },
+    [carregarVisitas],
+  )
 
-  const applyFilters = (newFilters) => {
+  const handleView = useCallback(
+    (visita) => {
+      navigation.navigate('ControleVisitaDetalhes', {
+        visitaId: visita.ctrl_id,
+      })
+    },
+    [navigation],
+  )
+
+  const applyFilters = useCallback((newFilters) => {
     setFilters(newFilters)
     setShowFilters(false)
-    // carregarVisitas será chamado automaticamente pelo useEffect
-  }
+  }, [])
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     const filtrosLimpos = {
       etapa: '',
       vendedor: '',
@@ -320,20 +371,18 @@ export default function ControleVisitasList({ navigation }) {
     setFilters(filtrosLimpos)
     setSearchText('')
     setShowFilters(false)
-    // carregarVisitas será chamado automaticamente pelo useEffect
-  }
+  }, [])
+
+  const closeFilters = useCallback(() => {
+    setShowFilters(false)
+  }, [])
 
   const onRefresh = useCallback(() => {
     setRefreshing(true)
-    carregarVisitas(filters).finally(() => {
+    carregarVisitas(filtersRef.current, searchTextRef.current).finally(() => {
       setRefreshing(false)
     })
-  }, [filters, carregarVisitas])
-  useFocusEffect(
-    useCallback(() => {
-      carregarVisitas(filters)
-    }, [filters, carregarVisitas])
-  )
+  }, [carregarVisitas])
 
   const renderStatsCard = () => {
     if (!etapas || etapas.length === 0) {
@@ -373,59 +422,44 @@ export default function ControleVisitasList({ navigation }) {
     )
   }
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <View style={styles.searchContainer}>
-        <Feather
-          name="search"
-          size={20}
-          color="#666"
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por cliente, vendedor..."
-          value={searchText}
-          onChangeText={setSearchText}
-          placeholderTextColor="#666"
-        />
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setShowFilters(true)}>
-          <Feather name="filter" size={20} color="#2ecc71" />
-        </TouchableOpacity>
+  const renderScrollableHeader = useCallback(
+    () => (
+      <View style={styles.scrollableHeader}>
+        {renderStatsCard()}
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() =>
+              navigation.navigate('ControleVisitaForm', { mode: 'create' })
+            }>
+            <MaterialIcons name="add" size={24} color="#fff" />
+            <Text style={styles.addButtonText}>Nova Visita</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dashboardButton}
+            onPress={() => navigation.navigate('ControleVisitaDashboard')}>
+            <MaterialIcons name="dashboard" size={24} color="#fff" />
+            <Text style={styles.dashboardButtonText}>Dashboard</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-
-      {renderStatsCard()}
-
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() =>
-            navigation.navigate('ControleVisitaForm', { mode: 'create' })
-          }>
-          <MaterialIcons name="add" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Nova Visita</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.dashboardButton}
-          onPress={() => navigation.navigate('ControleVisitaDashboard')}>
-          <MaterialIcons name="dashboard" size={24} color="#fff" />
-          <Text style={styles.dashboardButtonText}>Dashboard</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    ),
+    [stats, etapas, navigation],
   )
 
-  const renderVisita = ({ item }) => (
-    <ControleVisitaCard
-      visita={item}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onView={handleView}
-      etapas={etapas}
-    />
+  const renderVisita = useCallback(
+    ({ item }) => (
+      <ControleVisitaCard
+        visita={item}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
+        etapas={etapas}
+      />
+    ),
+    [handleEdit, handleDelete, handleView, etapas],
   )
 
   const renderEmpty = () => (
@@ -449,27 +483,34 @@ export default function ControleVisitasList({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.fixedHeader}>
+        <View style={styles.searchContainer}>
+          <Feather
+            name="search"
+            size={20}
+            color="#666"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por cliente, vendedor..."
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholderTextColor="#666"
+          />
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowFilters(true)}>
+            <Feather name="filter" size={20} color="#2ecc71" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <FlatList
         data={visitas}
         renderItem={renderVisita}
-        keyExtractor={(item, index) => {
-          // Sempre incluir index para garantir unicidade
-          if (item.ctrl_id && item.ctrl_empresa && item.ctrl_filial && item.ctrl_numero) {
-            return `ctrl_${item.ctrl_id}_${item.ctrl_empresa}_${item.ctrl_filial}_${item.ctrl_numero}_${index}`
-          }
-          if (item.ctrl_id && item.ctrl_empresa && item.ctrl_filial) {
-            return `ctrl_${item.ctrl_id}_${item.ctrl_empresa}_${item.ctrl_filial}_${index}`
-          }
-          if (item.ctrl_id) {
-            return `ctrl_${item.ctrl_id}_${index}`
-          }
-          if (item.ctrl_empresa && item.ctrl_filial && item.ctrl_numero) {
-            return `${item.ctrl_empresa}_${item.ctrl_filial}_${item.ctrl_numero}_${index}`
-          }
-          if (item.id) return `id_${item.id}_${index}`
-          return `index_${index}`
-        }}
-        ListHeaderComponent={renderHeader}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={renderScrollableHeader}
         ListEmptyComponent={!loading ? renderEmpty : null}
         refreshControl={
           <RefreshControl
@@ -491,7 +532,7 @@ export default function ControleVisitasList({ navigation }) {
           filters={filters}
           onApply={applyFilters}
           onClear={clearFilters}
-          onClose={() => setShowFilters(false)}
+          onClose={closeFilters}
           etapas={etapas}
         />
       </Modal>
@@ -506,9 +547,17 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flexGrow: 1,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 16,
   },
-  header: {
+  fixedHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    backgroundColor: '#0d1421',
+    zIndex: 10,
+  },
+  scrollableHeader: {
     marginBottom: 16,
   },
   searchContainer: {
@@ -517,9 +566,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a252f',
     borderRadius: 12,
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 0, // Margin handled by parent padding
     borderWidth: 1,
     borderColor: '#2a3441',
+  },
+  header: {
+    marginBottom: 16,
   },
   searchIcon: {
     marginRight: 12,
