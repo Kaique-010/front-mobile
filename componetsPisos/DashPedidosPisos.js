@@ -56,8 +56,8 @@ export default function DashPedidosPisos({ navigation }) {
         }
       }
 
-      if (buscaVendedor) params.nome_vendedor = buscaVendedor
-      if (buscaCliente) params.nome_cliente = buscaCliente
+      if (buscaVendedor) params.vendedor_nome = buscaVendedor
+      if (buscaCliente) params.cliente_nome = buscaCliente
 
       const res = await apiGetComContexto('pisos/pedidos-pisos/', params)
 
@@ -95,7 +95,7 @@ export default function DashPedidosPisos({ navigation }) {
     return dados.filter((item) => {
       const matchItem = buscaItem
         ? item.itens?.some((i) =>
-            i.produto_nome?.toLowerCase().includes(buscaItem.toLowerCase())
+            i.produto_nome?.toLowerCase().includes(buscaItem.toLowerCase()),
           )
         : true
       return matchItem
@@ -104,20 +104,20 @@ export default function DashPedidosPisos({ navigation }) {
 
   const resumo = useMemo(() => {
     const totalGeral = filtrarDados.reduce(
-      (acc, item) => acc + parseFloat(item.valor_total || 0),
-      0
+      (acc, item) => acc + parseFloat(item.pedi_tota || 0),
+      0,
     )
     const quantidadePedidos = filtrarDados.length
     const quantidadeItens = filtrarDados.reduce(
-      (acc, item) => acc + parseInt(item.quantidade_total || 0),
-      0
+      (acc, item) => acc + parseInt(item.item_quan || 0),
+      0,
     )
     const ticketMedio =
       quantidadePedidos > 0 ? totalGeral / quantidadePedidos : 0
 
     const totalPorVendedor = filtrarDados.reduce((acc, item) => {
-      const vendedor = item.nome_vendedor || 'Sem vendedor'
-      acc[vendedor] = (acc[vendedor] || 0) + parseFloat(item.valor_total || 0)
+      const vendedor = item.vendedor_nome || 'Sem vendedor'
+      acc[vendedor] = (acc[vendedor] || 0) + parseFloat(item.pedi_tota || 0)
       return acc
     }, {})
 
@@ -161,23 +161,24 @@ export default function DashPedidosPisos({ navigation }) {
   const renderItem = ({ item }) => (
     <View style={styles.itemContainer}>
       <View style={styles.itemHeader}>
-        <Text style={styles.itemNumero}>Pedido #{item.numero_pedido}</Text>
-        <Text style={styles.itemData}>{formatarData(item.data_pedido)}</Text>
+        <Text style={styles.itemNumero}>Pedido #{item.pedi_nume}</Text>
+        <Text style={styles.itemData}>{formatarData(item.pedi_data)}</Text>
       </View>
       <View style={styles.itemContent}>
         <Text style={styles.itemCliente}>
-          {item.codigo_cliente} - {item.nome_cliente}
+          {item.pedi_clie} - {item.cliente_nome}
         </Text>
-        <Text style={styles.itemVendedor}>Vendedor: {item.nome_vendedor}</Text>
+        <Text style={styles.itemVendedor}>Vendedor: {item.vendedor_nome}</Text>
         <View style={styles.itemFooter}>
           <View style={styles.itemQuantidade}>
             <Text style={styles.itemQuantidadeLabel}>Qtd:</Text>
             <Text style={styles.itemQuantidadeValor}>
-              {item.quantidade_total}
+              {item.item_nume}
+              {item.item_quan}
             </Text>
           </View>
           <Text style={styles.itemValor}>
-            {parseFloat(item.valor_total || 0).toLocaleString('pt-BR', {
+            {parseFloat(item.pedi_tota || 0).toLocaleString('pt-BR', {
               style: 'currency',
               currency: 'BRL',
             })}
@@ -263,19 +264,19 @@ export default function DashPedidosPisos({ navigation }) {
         <View style={styles.filtrosBusca}>
           <TextInput
             style={styles.inputBusca}
-            placeholder="Buscar vendedor..."
+            placeholder="Buscar por vendedor..."
             value={buscaVendedor}
             onChangeText={setBuscaVendedor}
           />
           <TextInput
             style={styles.inputBusca}
-            placeholder="Buscar cliente..."
+            placeholder="Buscar por cliente..."
             value={buscaCliente}
             onChangeText={setBuscaCliente}
           />
           <TextInput
             style={styles.inputBusca}
-            placeholder="Buscar item..."
+            placeholder="Buscar por item..."
             value={buscaItem}
             onChangeText={setBuscaItem}
           />
@@ -327,7 +328,7 @@ export default function DashPedidosPisos({ navigation }) {
       <FlatList
         data={filtrarDados}
         keyExtractor={(item, index) =>
-          `${item.numero_pedido}-${item.codigo_cliente}-${index}`
+          `${item.pedi_nume}-${item.cliente_nome}-${index}`
         }
         renderItem={renderItem}
         style={styles.lista}
