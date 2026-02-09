@@ -459,7 +459,12 @@ const ConsultaProdutos = () => {
             </View>
 
             <TouchableOpacity
-              onPress={() => setCadastroRapidoVisible(true)}
+              onPress={() => {
+                setModalClienteVisible(false)
+                setTimeout(() => {
+                  setCadastroRapidoVisible(true)
+                }, 500)
+              }}
               style={{
                 padding: 10,
                 alignItems: 'center',
@@ -499,11 +504,14 @@ const ConsultaProdutos = () => {
 
       <CadastroRapidoOutrosModal
         visible={cadastroRapidoVisible}
-        onClose={() => setCadastroRapidoVisible(false)}
+        onClose={() => {
+          setCadastroRapidoVisible(false)
+          setTimeout(() => {
+            setModalClienteVisible(true)
+          }, 500)
+        }}
         onSuccess={(novoCliente) => {
           setClienteSelecionado(novoCliente)
-          // O modal fecha automaticamente pelo onClose chamado internamente ou podemos forçar
-          setCadastroRapidoVisible(false)
         }}
       />
     </View>

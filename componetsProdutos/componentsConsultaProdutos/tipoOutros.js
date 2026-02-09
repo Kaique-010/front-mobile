@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import { apiPostComContexto } from '../../utils/api'
@@ -81,40 +83,44 @@ const CadastroRapidoOutrosModal = ({ visible, onClose, onSuccess }) => {
       onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Cadastro Rápido - Outros</Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.keyboardAvoidingView}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Cadastro Rápido - Outros</Text>
 
-              <Text style={styles.label}>Nome do Cliente</Text>
-              <TextInput
-                style={styles.input}
-                value={nome}
-                onChangeText={setNome}
-                placeholder="Digite o nome do cliente"
-                autoCapitalize="words"
-              />
+                <Text style={styles.label}>Nome do Cliente</Text>
+                <TextInput
+                  style={styles.input}
+                  value={nome}
+                  onChangeText={setNome}
+                  placeholder="Digite o nome do cliente"
+                  autoCapitalize="words"
+                />
 
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
-                  onPress={onClose}
-                  disabled={loading}>
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.cancelButton]}
+                    onPress={onClose}
+                    disabled={loading}>
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.button, styles.confirmButton]}
-                  onPress={handleCadastro}
-                  disabled={loading}>
-                  {loading ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={styles.confirmButtonText}>Cadastrar</Text>
-                  )}
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.button, styles.confirmButton]}
+                    onPress={handleCadastro}
+                    disabled={loading}>
+                    {loading ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <Text style={styles.confirmButtonText}>Cadastrar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </TouchableWithoutFeedback>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
       </TouchableWithoutFeedback>
     </Modal>
@@ -127,6 +133,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  keyboardAvoidingView: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalContent: {
     width: '90%',
