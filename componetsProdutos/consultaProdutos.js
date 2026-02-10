@@ -23,6 +23,11 @@ import ProdutoCard from '../componentsProdutosDetalhados/ProdutoCard'
 import CadastroRapidoOutrosModal from './componentsConsultaProdutos/tipoOutros'
 
 import TotalizadorProdutos from './componentsConsultaProdutos/Funcoes/totalizadorProdutos'
+import database from '../componentsOrdemServico/schemas/database'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const PRODUTOS_CACHE_KEY = 'produtos_detalhados_cache'
+const PRODUTOS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
 
 const ConsultaProdutos = () => {
   const { empresaId, filialId } = useContextoApp()
@@ -51,12 +56,77 @@ const ConsultaProdutos = () => {
     marca = '',
     saldo = 'todos',
     origem = 'manual',
+    forceRefresh = false,
   ) => {
+    console.log('fetchProdutos args:', {
+      termo,
+      marca,
+      saldo,
+      origem,
+      forceRefresh,
+    })
     try {
       if (origem === 'scanner') {
         setStatusLeitura('loading')
       }
       setLoading(true)
+
+      // Lógica Offline/Cache igual ao useProdutos para busca inicial
+      if (
+        !forceRefresh &&
+        origem === 'manual' &&
+        !termo &&
+        !marca &&
+        saldo === 'todos'
+      ) {
+        try {
+          const mega = database.collections.get('mega_produtos')
+          const rows = await mega.query().fetch()
+          if (rows.length > 0) {
+            console.log(
+              `[OFFLINE] Usando MegaProdutos: ${rows.length} itens encontrados`,
+            )
+            const mapped = rows.map((r) => ({
+              codigo: r.prodCodi,
+              nome: r.prodNome,
+              marca_nome: r.marcaNome,
+              saldo: r.saldo,
+              preco_vista: r.precoVista,
+              imagem_base64: r.imagemBase64,
+              prod_codi: r.prodCodi,
+              prod_nome: r.prodNome,
+              prod_marc_nome: r.marcaNome,
+              prod_preco_vista: r.precoVista,
+            }))
+            setProdutos(mapped)
+            const marcasUnicas = [
+              ...new Set(mapped.map((p) => p.marca_nome).filter(Boolean)),
+            ]
+            setMarcas(['Sem marca', ...marcasUnicas.sort()])
+            setLoading(false)
+            return
+          }
+        } catch (e) {
+          console.log('Erro ao consultar MegaProdutos:', e)
+        }
+
+        try {
+          const cacheData = await AsyncStorage.getItem(PRODUTOS_CACHE_KEY)
+          if (cacheData) {
+            const { results, marcas, timestamp } = JSON.parse(cacheData)
+            const now = Date.now()
+            if (now - timestamp < PRODUTOS_CACHE_DURATION) {
+              console.log('[CACHE] Usando cache AsyncStorage')
+              setProdutos(results || [])
+              setMarcas(marcas || [])
+              setLoading(false)
+              return
+            }
+          }
+        } catch (e) {
+          console.log('Erro ao consultar cache AsyncStorage:', e)
+        }
+      }
 
       const params = {}
       if (origem === 'scanner') {
@@ -81,9 +151,10 @@ const ConsultaProdutos = () => {
         }
       } else {
         // Busca manual: aplica filtros
-        if (termo) params.q = termo
+        if (termo) params.search = termo
         if (marca && marca !== '__sem_marca__') params.marca_nome = marca
         if (marca === '__sem_marca__') params.marca_nome = '__sem_marca__'
+        console.log('Parametros:', params)
 
         if (saldo === 'com') {
           params.com_saldo = true
@@ -92,11 +163,16 @@ const ConsultaProdutos = () => {
         }
       }
 
-      console.log('Buscando produtos:', params)
-      const data = await apiGetComContextoSemFili(
-        'produtos/produtos/busca/',
-        params,
-      )
+      console.log('Buscando produtos:', JSON.stringify(params))
+
+      // Define endpoint baseado na origem
+      // Scanner usa busca simples, Manual usa detalhados para filtros
+      const endpoint =
+        origem === 'scanner'
+          ? 'produtos/produtos/busca/'
+          : 'produtos/produtosdetalhados/'
+
+      const data = await apiGetComContextoSemFili(endpoint, params)
 
       if (origem === 'scanner' && data.length === 0) {
         console.log('Tentando busca alternativa com apiGetComContexto...')
@@ -120,16 +196,61 @@ const ConsultaProdutos = () => {
 
       const results = Array.isArray(data) ? data : data.results || []
 
+      // Salvar no cache se for busca inicial manual sem filtros
+      if (
+        origem === 'manual' &&
+        !termo &&
+        !marca &&
+        saldo === 'todos' &&
+        results.length > 0
+      ) {
+        try {
+          // Salva no AsyncStorage
+          const marcasUnicas = [
+            ...new Set(
+              results
+                .map((p) => p.prod_marc_nome || p.marca_nome)
+                .filter(Boolean),
+            ),
+          ]
+          const marcasTratadas = ['Sem marca', ...marcasUnicas.sort()]
+
+          const cacheData = {
+            results: results,
+            marcas: marcasTratadas,
+            timestamp: Date.now(),
+          }
+          await AsyncStorage.setItem(
+            PRODUTOS_CACHE_KEY,
+            JSON.stringify(cacheData),
+          )
+          console.log('💾 [CACHE] Produtos salvos no cache')
+
+          // Salva no MegaProdutos (WatermelonDB) para uso offline robusto
+          // Nota: Simplificado para não bloquear a UI, ideal seria em background
+          // Se necessário, copie a lógica de escrita do useProdutos aqui
+        } catch (error) {
+          console.log('⚠️ Erro ao salvar cache:', error)
+        }
+      }
+
       // Extrair marcas únicas para o filtro se for uma busca manual sem marca selecionada
       if (origem === 'manual' && !marca) {
-        const marcasUnicas = [
-          ...new Set(
-            results
-              .map((p) => p.prod_marc_nome || p.marca_nome)
-              .filter(Boolean),
-          ),
-        ]
-        setMarcas(['Sem marca', ...marcasUnicas.sort()])
+        const marcasDoResult = results
+          .map((p) => p.prod_marc_nome || p.marca_nome)
+          .filter(Boolean)
+
+        setMarcas((prevMarcas) => {
+          // Mantém marcas existentes e adiciona novas encontradas
+          // Isso evita que a lista de marcas seja reduzida apenas às da página atual (ex: 20 itens)
+          const existing = new Set(prevMarcas.filter((m) => m !== 'Sem marca'))
+          marcasDoResult.forEach((m) => existing.add(m))
+          const combined = ['Sem marca', ...Array.from(existing).sort()]
+          console.log(
+            `Atualizando marcas. Antes: ${prevMarcas.length}, Depois: ${combined.length}`,
+          )
+          return combined
+        })
       }
 
       if (origem === 'scanner') {
@@ -214,8 +335,20 @@ const ConsultaProdutos = () => {
   }, [])
 
   const handleSearchSubmit = () => {
-    fetchProdutos(searchTerm, marcaSelecionada, saldoFiltro, 'manual')
+    console.log('handleSearchSubmit disparado. Termo:', searchTerm)
+    fetchProdutos(searchTerm, marcaSelecionada, saldoFiltro, 'manual', true)
   }
+
+  // Debounce para busca por texto (igual ao useProdutos)
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      if (searchTerm !== '') {
+        console.log('Debounce search disparado:', searchTerm)
+        fetchProdutos(searchTerm, marcaSelecionada, saldoFiltro, 'manual', true)
+      }
+    }, 600)
+    return () => clearTimeout(delay)
+  }, [searchTerm])
 
   const handleBarcodeRead = (code) => {
     setSearchTerm(code)
@@ -341,6 +474,10 @@ const ConsultaProdutos = () => {
     0,
   )
 
+  console.log(
+    `Renderizando ConsultaProdutos. Marcas: ${marcas.length}, Produtos: ${produtos.length}`,
+  )
+
   return (
     <View style={styles.container}>
       <ProdutoModal
@@ -397,16 +534,16 @@ const ConsultaProdutos = () => {
           <ProdutoCard
             item={{
               ...item,
-              nome: item.prod_nome,
-              marca_nome: item.prod_marc_nome || 'Geral',
-              preco_vista: item.prod_preco_vista,
-              saldo: item.saldo_estoque,
+              nome: item.nome || item.prod_nome,
+              marca_nome: item.marca_nome || item.prod_marc_nome || 'Geral',
+              preco_vista: item.preco_vista ?? item.prod_preco_vista,
+              saldo: item.saldo ?? item.saldo_estoque,
               imagem_base64: item.imagem_base64 || item.prod_foto,
               // Mapeamento para o Modal
-              codigo: item.prod_codi,
-              unidade: item.prod_unme,
-              empresa: item.prod_empr,
-              filial: item.prod_fili,
+              codigo: item.codigo || item.prod_codi,
+              unidade: item.unidade || item.prod_unme,
+              empresa: item.empresa || item.prod_empr,
+              filial: item.filial || item.prod_fili,
             }}
             onPress={handleProdutoPress}
             quantity={item.quantity || 0}

@@ -261,22 +261,31 @@ export default function DashPedidosPisos({ navigation }) {
           </View>
         </View>
 
-        <View style={styles.filtrosBusca}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TextInput
-            style={styles.inputBusca}
-            placeholder="Buscar por vendedor..."
+            style={[
+              styles.inputBusca,
+              { flex: 1, marginRight: 6, marginBottom: 0, fontSize: 12 },
+            ]}
+            placeholder="Vendedor..."
             value={buscaVendedor}
             onChangeText={setBuscaVendedor}
           />
           <TextInput
-            style={styles.inputBusca}
-            placeholder="Buscar por cliente..."
+            style={[
+              styles.inputBusca,
+              { flex: 1, marginRight: 6, marginBottom: 0, fontSize: 12 },
+            ]}
+            placeholder="Cliente..."
             value={buscaCliente}
             onChangeText={setBuscaCliente}
           />
           <TextInput
-            style={styles.inputBusca}
-            placeholder="Buscar por item..."
+            style={[
+              styles.inputBusca,
+              { flex: 1, marginBottom: 0, fontSize: 12 },
+            ]}
+            placeholder="Item..."
             value={buscaItem}
             onChangeText={setBuscaItem}
           />
@@ -323,6 +332,9 @@ export default function DashPedidosPisos({ navigation }) {
         keyExtractor={(item) => item.titulo}
         style={styles.resumoContainer}
       />
+      <Text style={styles.cabecalho}>
+        Total de Pedidos: {resumo.quantidadePedidos}
+      </Text>
 
       {/* Lista de pedidos */}
       <FlatList

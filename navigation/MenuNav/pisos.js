@@ -15,15 +15,9 @@ export const getPisosMenu = (hasModulo) => ({
       condition: hasModulo('Produtos'),
     },
     {
-      name: 'Dashboard Pisos',
+      name: 'Dashboard Pedido Pisos',
       route: 'DashPedidosPisos',
       icon: 'bar-chart-2',
-      condition: hasModulo('Pisos'),
-    },
-    {
-      name: 'Gráfico Pisos',
-      route: 'DashPedidosPisosGrafico',
-      icon: 'bar-chart',
       condition: hasModulo('Pisos'),
     },
     {
@@ -36,6 +30,12 @@ export const getPisosMenu = (hasModulo) => ({
     {
       name: 'Resumo Orçamento Pisos',
       route: 'ResumoOrcamentoPisos',
+      icon: 'file-text',
+      condition: hasModulo('Pisos'),
+    },
+    {
+      name: 'Resumo Pedido Pisos',
+      route: 'ResumoPedidoPisos',
       icon: 'file-text',
       condition: hasModulo('Pisos'),
     },

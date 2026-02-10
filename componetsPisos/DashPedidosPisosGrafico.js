@@ -23,9 +23,13 @@ export default function DashPedidosPisosGrafico({ route, navigation }) {
       .slice(0, 6)
 
     return {
-      labels: vendedores.map(([nome]) =>
-        nome.length > 8 ? nome.substring(0, 8) + '...' : nome
-      ),
+      labels: vendedores.map(([nome]) => {
+        const parts = nome.split(' ')
+        if (parts.length >= 2) {
+          return `${parts[0]} ${parts[1][0]}.`
+        }
+        return nome.length > 10 ? nome.substring(0, 10) + '...' : nome
+      }),
       datasets: [
         {
           data: vendedores.map(([, valor]) => valor),
@@ -51,19 +55,22 @@ export default function DashPedidosPisosGrafico({ route, navigation }) {
   }, [resumo.totalPorVendedor])
 
   const chartConfig = {
-    backgroundColor: '#1a1a1a',
-    backgroundGradientFrom: '#1a1a1a',
-    backgroundGradientTo: '#2a2a2a',
+    backgroundColor: '#ffffff',
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#ffffff',
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(26, 183, 223, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(44, 62, 80, ${opacity})`,
+    barPercentage: 0.7,
+    fillShadowGradient: '#3498db',
+    fillShadowGradientOpacity: 1,
     style: {
       borderRadius: 16,
     },
     propsForDots: {
       r: '6',
       strokeWidth: '2',
-      stroke: '#1ab7df',
+      stroke: '#3498db',
     },
   }
 
@@ -75,9 +82,11 @@ export default function DashPedidosPisosGrafico({ route, navigation }) {
           width={screenWidth - 40}
           height={220}
           chartConfig={chartConfig}
-          verticalLabelRotation={30}
+          verticalLabelRotation={0}
           showValuesOnTopOfBars
           fromZero
+          yAxisLabel="R$ "
+          yAxisSuffix=""
         />
       )
     } else {
@@ -96,105 +105,216 @@ export default function DashPedidosPisosGrafico({ route, navigation }) {
     }
   }
 
+  const KPICard = ({ title, value, icon, color, isMoney }) => (
+    <View
+      style={{
+        width: '48%',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}>
+      <View
+        style={{
+          backgroundColor: `${color}20`,
+          padding: 10,
+          borderRadius: 8,
+          marginRight: 12,
+        }}>
+        <MaterialIcons name={icon} size={24} color={color} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 12, color: '#7f8c8d', marginBottom: 4 }}>
+          {title}
+        </Text>
+        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2c3e50' }}>
+          {isMoney
+            ? value.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              })
+            : value.toLocaleString('pt-BR')}
+        </Text>
+      </View>
+    </View>
+  )
+
+  const FilterBadge = ({ label, icon }) => (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f1f2f6',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginRight: 8,
+      }}>
+      <MaterialIcons
+        name={icon}
+        size={14}
+        color="#7f8c8d"
+        style={{ marginRight: 6 }}
+      />
+      <Text style={{ fontSize: 12, color: '#2c3e50' }}>{label}</Text>
+    </View>
+  )
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: '#f5f6fa' }]}>
+      <View style={[styles.header, { elevation: 0, borderBottomWidth: 0 }]}>
         <TouchableOpacity
           style={styles.botaoVoltar}
           onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>📊 Gráficos - Pisos</Text>
-          <Text style={styles.headerSubtitle}>Análise Visual de Vendas</Text>
+          <Text style={styles.headerTitle}>📊 Dashboard Pisos</Text>
+          <Text style={styles.headerSubtitle}>Visão Gerencial de Vendas</Text>
         </View>
       </View>
 
-      {/* Filtros aplicados */}
-      <View style={styles.filtrosAplicados}>
-        <Text style={styles.filtrosTitle}>Filtros Aplicados:</Text>
-        <Text style={styles.filtroTexto}>
-          Período: {filtros.dataInicio} - {filtros.dataFim}
-        </Text>
-        {filtros.vendedor && (
-          <Text style={styles.filtroTexto}>Vendedor: {filtros.vendedor}</Text>
-        )}
-        {filtros.cliente && (
-          <Text style={styles.filtroTexto}>Cliente: {filtros.cliente}</Text>
-        )}
-        {filtros.item && (
-          <Text style={styles.filtroTexto}>Item: {filtros.item}</Text>
-        )}
+      {/* Barra de Filtros */}
+      <View
+        style={{
+          backgroundColor: '#fff',
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          marginBottom: 16,
+          elevation: 2,
+        }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <FilterBadge
+            icon="date-range"
+            label={`${filtros.dataInicio} até ${filtros.dataFim}`}
+          />
+          {filtros.vendedor && (
+            <FilterBadge icon="person" label={filtros.vendedor} />
+          )}
+          {filtros.cliente && (
+            <FilterBadge icon="business" label={filtros.cliente} />
+          )}
+          {filtros.item && <FilterBadge icon="category" label={filtros.item} />}
+        </ScrollView>
       </View>
 
-      {/* Seletor de tipo de gráfico */}
-      <View style={styles.tipoGraficoContainer}>
-        <TouchableOpacity
-          style={[
-            styles.botaoTipoGrafico,
-            tipoGrafico === 'barras' && styles.botaoTipoGraficoAtivo,
-          ]}
-          onPress={() => setTipoGrafico('barras')}>
-          <Text
-            style={[
-              styles.botaoTipoGraficoTexto,
-              tipoGrafico === 'barras' && styles.botaoTipoGraficoTextoAtivo,
-            ]}>
-            Barras
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.botaoTipoGrafico,
-            tipoGrafico === 'pizza' && styles.botaoTipoGraficoAtivo,
-          ]}
-          onPress={() => setTipoGrafico('pizza')}>
-          <Text
-            style={[
-              styles.botaoTipoGraficoTexto,
-              tipoGrafico === 'pizza' && styles.botaoTipoGraficoTextoAtivo,
-            ]}>
-            Pizza
-          </Text>
-        </TouchableOpacity>
+      {/* Grid de KPIs */}
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+        }}>
+        <KPICard
+          title="Total Pedidos"
+          value={resumo.quantidadePedidos}
+          icon="receipt"
+          color="#3498db"
+        />
+        <KPICard
+          title="Total Itens"
+          value={resumo.quantidadeItens}
+          icon="inventory"
+          color="#9b59b6"
+        />
+        <KPICard
+          title="Volume de Vendas"
+          value={resumo.totalGeral}
+          icon="attach-money"
+          color="#27ae60"
+          isMoney
+        />
+        <KPICard
+          title="Ticket Médio"
+          value={resumo.ticketMedio}
+          icon="trending-up"
+          color="#f39c12"
+          isMoney
+        />
       </View>
 
-      {/* Gráfico */}
-      <View style={styles.graficoContainer}>{renderGrafico()}</View>
+      {/* Seção do Gráfico */}
+      <View
+        style={{
+          backgroundColor: '#fff',
+          margin: 16,
+          borderRadius: 16,
+          padding: 20,
+          elevation: 4,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}>
+          <View>
+            <Text
+              style={{ fontSize: 18, fontWeight: 'bold', color: '#2c3e50' }}>
+              Desempenho por Vendedor
+            </Text>
+            <Text style={{ fontSize: 12, color: '#95a5a6' }}>
+              Top 6 Vendedores
+            </Text>
+          </View>
 
-      {/* Resumo estatístico */}
-      <View style={styles.resumoEstatistico}>
-        <Text style={styles.resumoTitle}>Resumo Estatístico</Text>
-        <View style={styles.estatisticaItem}>
-          <Text style={styles.estatisticaLabel}>Total de Pedidos:</Text>
-          <Text style={styles.estatisticaValor}>
-            {resumo.quantidadePedidos}
-          </Text>
+          {/* Seletor de Tipo de Gráfico */}
+          <View
+            style={{
+              flexDirection: 'row',
+              backgroundColor: '#f1f2f6',
+              borderRadius: 8,
+              padding: 4,
+            }}>
+            <TouchableOpacity
+              onPress={() => setTipoGrafico('barras')}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                backgroundColor:
+                  tipoGrafico === 'barras' ? '#fff' : 'transparent',
+                borderRadius: 6,
+                elevation: tipoGrafico === 'barras' ? 2 : 0,
+              }}>
+              <MaterialIcons
+                name="bar-chart"
+                size={20}
+                color={tipoGrafico === 'barras' ? '#3498db' : '#95a5a6'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setTipoGrafico('pizza')}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                backgroundColor:
+                  tipoGrafico === 'pizza' ? '#fff' : 'transparent',
+                borderRadius: 6,
+                elevation: tipoGrafico === 'pizza' ? 2 : 0,
+              }}>
+              <MaterialIcons
+                name="pie-chart"
+                size={20}
+                color={tipoGrafico === 'pizza' ? '#3498db' : '#95a5a6'}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.estatisticaItem}>
-          <Text style={styles.estatisticaLabel}>Total de Itens:</Text>
-          <Text style={styles.estatisticaValor}>
-            {resumo.quantidadeItens.toLocaleString('pt-BR')}
-          </Text>
-        </View>
-        <View style={styles.estatisticaItem}>
-          <Text style={styles.estatisticaLabel}>Valor Total:</Text>
-          <Text style={styles.estatisticaValor}>
-            {resumo.totalGeral.toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            })}
-          </Text>
-        </View>
-        <View style={styles.estatisticaItem}>
-          <Text style={styles.estatisticaLabel}>Ticket Médio:</Text>
-          <Text style={styles.estatisticaValor}>
-            {resumo.ticketMedio.toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            })}
-          </Text>
-        </View>
+
+        {renderGrafico()}
       </View>
     </ScrollView>
   )

@@ -354,4 +354,10 @@ export default StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 4,
   },
+  cabecalho: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
 })
