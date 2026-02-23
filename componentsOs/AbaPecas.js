@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -13,7 +13,12 @@ import { apiPostComContexto, apiGetComContexto } from '../utils/api'
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
+export default function AbaPecas({
+  orde_nume,
+  pecas = [],
+  onPecasChange,
+  setPecas,
+}) {
   const [removidos, setRemovidos] = useState([])
   const [modalVisivel, setModalVisivel] = useState(false)
   const [itemEditando, setItemEditando] = useState(null)
@@ -21,6 +26,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
   const [isLoading, setIsLoading] = useState(true)
   const [produtos, setProdutos] = useState(pecas)
   const [usuarioTemSetor, setUsuarioTemSetor] = useState(false)
+  const submitLockRef = useRef(false)
 
   // Verifica se o usuário tem setor
   useEffect(() => {
@@ -61,7 +67,9 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
           peca_unit: parseFloat(item.peca_unit || 0),
           peca_tota: parseFloat(item.peca_tota || 0),
           // Sempre preservar o preço real do produto
-          peca_unit_real: parseFloat(item.peca_unit_real || item.peca_unit || 0)
+          peca_unit_real: parseFloat(
+            item.peca_unit_real || item.peca_unit || 0,
+          ),
         }))
 
         setProdutos(produtosFormatados)
@@ -85,6 +93,8 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
     setProdutos(novos)
     if (onPecasChange) {
       onPecasChange(novos)
+    } else if (setPecas) {
+      setPecas(novos)
     }
   }
 
@@ -107,36 +117,30 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
       return false
     }
 
-   
-
     return true
   }
 
-  const adicionarOuEditarProduto = (novoItem, itemEditando) => {
+  const adicionarOuEditarProduto = (novoItem, itemEditandoParam) => {
     if (!validarProduto(novoItem)) return
 
-    // Proteção extra: não adicionar itens sem nome ou código válido
     if (!novoItem.produto_nome || !novoItem.peca_codi) {
-        return
+      return
     }
 
     let atualizados
-    if (itemEditando?.peca_id) {
-      // Editando item salvo no back-end
+    if (itemEditandoParam?.peca_id) {
       atualizados = produtos.map((p) =>
-        p.peca_id === itemEditando.peca_id ? { ...novoItem } : p
+        p.peca_id === itemEditandoParam.peca_id ? { ...novoItem } : p,
       )
-    } else if (itemEditando) {
-      // Editando item novo, sem ID ainda
+    } else if (itemEditandoParam) {
       atualizados = produtos.map((p) =>
-        !p.peca_id && p.peca_codi === itemEditando.peca_codi
+        !p.peca_id && p.peca_codi === itemEditandoParam.peca_codi
           ? { ...novoItem }
-          : p
+          : p,
       )
     } else {
-      // Adicionando novo produto
       const existe = produtos.some(
-        (p) => !p.peca_id && p.peca_codi === novoItem.peca_codi
+        (p) => String(p.peca_codi) === String(novoItem.peca_codi),
       )
       if (existe) {
         Toast.show({
@@ -152,7 +156,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
     sincronizarComPai(atualizados)
     Toast.show({
       type: 'success',
-      text1: itemEditando ? 'Produto atualizado' : 'Produto adicionado',
+      text1: itemEditandoParam ? 'Produto atualizado' : 'Produto adicionado',
       text2: novoItem.produto_nome,
     })
   }
@@ -181,7 +185,8 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
   }
 
   const salvarPecas = async () => {
-    if (isSubmitting) return
+    if (isSubmitting || submitLockRef.current) return
+    submitLockRef.current = true
     setIsSubmitting(true)
 
     try {
@@ -192,15 +197,14 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
         return Math.min(Math.max(num, 0), 99999999999.9999)
       }
 
-      const adicionar = produtos
+      const adicionarBase = produtos
         .filter((p) => !p.peca_id)
         .map((p) => {
           const quan = formatarValorNumerico(p.peca_quan)
-          // Mesmo com setor, enviar preço real
           const precoReal = p.peca_unit_real || p.peca_unit
           const unit = formatarValorNumerico(precoReal)
           const tota = formatarValorNumerico(quan * unit)
-          
+
           return {
             peca_orde: orde_nume,
             peca_codi: p.peca_codi,
@@ -212,16 +216,28 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
           }
         })
 
-      const editar = produtos
+      const adicionar = []
+      const codigosJaAdicionados = new Set()
+
+      for (const item of adicionarBase) {
+        const chave = String(item.peca_codi)
+        if (codigosJaAdicionados.has(chave)) {
+          continue
+        }
+        codigosJaAdicionados.add(chave)
+        adicionar.push(item)
+      }
+
+      const editarBase = produtos
         .filter(
-          (p) => p.peca_id && !removidos.find((r) => r.peca_id === p.peca_id)
+          (p) => p.peca_id && !removidos.find((r) => r.peca_id === p.peca_id),
         )
         .map((p) => {
           const quan = formatarValorNumerico(p.peca_quan)
           const precoReal = p.peca_unit_real || p.peca_unit
           const unit = formatarValorNumerico(precoReal)
           const tota = formatarValorNumerico(quan * unit)
-          
+
           return {
             peca_id: p.peca_id,
             peca_orde: orde_nume,
@@ -233,6 +249,18 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
             peca_fili: 1,
           }
         })
+
+      const editar = []
+      const idsJaAdicionados = new Set()
+
+      for (const item of editarBase) {
+        const chave = String(item.peca_id)
+        if (idsJaAdicionados.has(chave)) {
+          continue
+        }
+        idsJaAdicionados.add(chave)
+        editar.push(item)
+      }
 
       const remover = removidos
         .filter((r) => r.peca_id)
@@ -249,7 +277,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
 
       const response = await apiPostComContexto(
         'ordemdeservico/pecas/update-lista/',
-        payload
+        payload,
       )
 
       console.log('Resposta do servidor após salvar:', response)
@@ -267,7 +295,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
     } catch (err) {
       console.error(
         'Erro detalhado ao salvar:',
-        err.response?.data || err.message
+        err.response?.data || err.message,
       )
       Toast.show({
         type: 'error',
@@ -278,6 +306,7 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
       })
     } finally {
       setIsSubmitting(false)
+      submitLockRef.current = false
     }
   }
 
@@ -315,7 +344,9 @@ export default function AbaPecas({ orde_nume, pecas = [], onPecasChange }) {
             <>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Preço Unit.:</Text>
-                <Text style={styles.infoValor}>R$ {parseFloat(precoReal).toFixed(2)}</Text>
+                <Text style={styles.infoValor}>
+                  R$ {parseFloat(precoReal).toFixed(2)}
+                </Text>
               </View>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Total:</Text>

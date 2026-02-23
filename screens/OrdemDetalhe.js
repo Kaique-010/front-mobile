@@ -42,7 +42,7 @@ const OrdemDetalhe = ({ route }) => {
   const [ordemAtual, setOrdemAtual] = useState(ordem)
   const [prioridade, setPrioridade] = useState(ordemAtual.orde_prio)
   const [motorEmEstoque, setMotorEmEstoque] = useState(
-    ordemAtual.orde_stat_orde === 22
+    ordemAtual.orde_stat_orde === 22,
   )
   const [showDatePickerReprov, setShowDatePickerReprov] = useState(false)
   const [showSetorReprovModal, setShowSetorReprovModal] = useState(false)
@@ -51,7 +51,7 @@ const OrdemDetalhe = ({ route }) => {
   const [setorRetornarNome, setSetorRetornarNome] = useState('')
   const [showTipoModal, setShowTipoModal] = useState(false)
   const [tipoSelecionado, setTipoSelecionado] = useState(
-    ordemAtual.orde_tipo || ''
+    ordemAtual.orde_tipo || '',
   )
   const [camposVisiveis, setCamposVisiveis] = useState([])
   const [formEdicao, setFormEdicao] = useState({ ...ordemAtual })
@@ -75,17 +75,17 @@ const OrdemDetalhe = ({ route }) => {
     prioridadeValor === 0
       ? 'Normal'
       : prioridadeValor === 1
-      ? 'Alerta'
-      : prioridadeValor === 2
-      ? 'Urgente'
-      : '-'
+        ? 'Alerta'
+        : prioridadeValor === 2
+          ? 'Urgente'
+          : '-'
 
   const alterarPrioridade = async (nova) => {
     setPrioridade(nova)
     try {
       const resp = await apiPatchComContexto(
         `ordemdeservico/ordens/${ordemAtual.orde_nume}/atualizar-prioridade/`,
-        { orde_prio: nova }
+        { orde_prio: nova },
       )
       Toast.show({
         type: 'success',
@@ -151,7 +151,7 @@ const OrdemDetalhe = ({ route }) => {
 
       const resp = await apiPatchComContexto(
         `ordemdeservico/ordens/${ordemAtual.orde_nume}/`,
-        payload
+        payload,
       )
 
       setOrdemAtual((prev) => ({ ...prev, ...payload }))
@@ -216,7 +216,7 @@ const OrdemDetalhe = ({ route }) => {
   const verificarMotorEmEstoque = async () => {
     try {
       const response = await apiPatchComContexto(
-        `ordemdeservico/ordens/${ordemAtual.orde_nume}/motor-em-estoque/`
+        `ordemdeservico/ordens/${ordemAtual.orde_nume}/motor-em-estoque/`,
       )
       setMotorEmEstoque(response?.motor_em_estoque)
 
@@ -361,7 +361,7 @@ const OrdemDetalhe = ({ route }) => {
             style={styles.valueRow}>
             <Text style={[styles.value, { color: '#10a2a7' }]}>
               {STATUS_OPTIONS.find(
-                (item) => item.value === ordemAtual.orde_stat_orde
+                (item) => item.value === ordemAtual.orde_stat_orde,
               )?.label || '-'}
             </Text>
           </TouchableOpacity>
@@ -379,10 +379,10 @@ const OrdemDetalhe = ({ route }) => {
                 prioridadeValor === 0
                   ? styles.priorityDotBaixa
                   : prioridadeValor === 1
-                  ? styles.priorityDotMedia
-                  : prioridadeValor === 2
-                  ? styles.priorityDotAlta
-                  : null,
+                    ? styles.priorityDotMedia
+                    : prioridadeValor === 2
+                      ? styles.priorityDotAlta
+                      : null,
               ]}>
               <Text style={styles.priorityDotInlineText}>
                 {Number.isFinite(prioridadeValor) ? prioridadeValor : '-'}
@@ -474,8 +474,8 @@ const OrdemDetalhe = ({ route }) => {
         {abaAtiva === 'pecas' && (
           <AbaPecas
             pecas={pecas}
-            setPecas={setPecas}
             orde_nume={ordemAtual.orde_nume}
+            onPecasChange={setPecas}
           />
         )}
         {abaAtiva === 'servicos' && (
@@ -707,7 +707,7 @@ const OrdemDetalhe = ({ route }) => {
                         })
                         const resp = await apiPatchComContexto(
                           `ordemdeservico/ordens/${ordemAtual.orde_nume}/`,
-                          payload
+                          payload,
                         )
                         setOrdemAtual((prev) => ({ ...prev, ...payload }))
                         setShowTipoModal(false)
@@ -758,7 +758,7 @@ const OrdemDetalhe = ({ route }) => {
                           setSetorRetornarNome(nome || '')
                           const response = await apiPostComContexto(
                             `ordemdeservico/ordens/${ordemAtual.orde_nume}/retornar-setor/`,
-                            { setor_origem: codigo }
+                            { setor_origem: codigo },
                           )
                           setShowRetornarModal(false)
                           if (
@@ -768,7 +768,7 @@ const OrdemDetalhe = ({ route }) => {
                             Alert.alert(
                               'Sucesso',
                               `Ordem retornada para ${nome}`,
-                              [{ text: 'OK' }]
+                              [{ text: 'OK' }],
                             )
                             const ordemResp = response.ordem || response
                             handleOrdemAtualizada(ordemResp)
@@ -777,7 +777,7 @@ const OrdemDetalhe = ({ route }) => {
                               try {
                                 await apiPatchComContexto(
                                   `ordemdeservico/ordens/${ordemAtual.orde_nume}/`,
-                                  { orde_stat_orde: 4 }
+                                  { orde_stat_orde: 4 },
                                 )
                                 setOrdemAtual((prev) => ({
                                   ...prev,
@@ -786,7 +786,7 @@ const OrdemDetalhe = ({ route }) => {
                               } catch (e) {
                                 console.error(
                                   'Erro ao definir status 4 após retorno ao setor 13',
-                                  e
+                                  e,
                                 )
                               }
                             }
@@ -794,7 +794,7 @@ const OrdemDetalhe = ({ route }) => {
                             Alert.alert(
                               'Processado',
                               `Solicitação de retorno para ${nome} processada`,
-                              [{ text: 'OK' }]
+                              [{ text: 'OK' }],
                             )
                           }
                         } catch (error) {
