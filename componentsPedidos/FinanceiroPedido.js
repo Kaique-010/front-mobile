@@ -47,6 +47,7 @@ export default function FinanceiroPedido({
   const [modalVisible, setModalVisible] = useState(false)
   const [tituloEmEdicao, setTituloEmEdicao] = useState(null)
   const [showModalDatePicker, setShowModalDatePicker] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
 
   const pedi_nume = pedido?.pedi_nume
   const pedi_forn = pedido?.pedi_forn
@@ -121,7 +122,7 @@ export default function FinanceiroPedido({
     try {
       setLoading(true)
       const response = await apiGetComContexto(
-        `pedidos/consultar-titulos-pedido/${pedi_nume}/`
+        `pedidos/consultar-titulos-pedido/${pedi_nume}/`,
       )
       setTitulos(response.titulos || [])
     } catch (error) {
@@ -187,7 +188,7 @@ export default function FinanceiroPedido({
       console.log('🔍 Payload gerarTitulos:', payload)
       console.log('📋 Forma de pagamento selecionada:', formaPagamento)
       const formaDescricao = FORMAS_RECEBIMENTO.find(
-        (f) => f.codigo === formaPagamento
+        (f) => f.codigo === formaPagamento,
       )?.descricao
       console.log('📝 Descrição da forma:', formaDescricao)
       console.log('Payload para gerar títulos:', payload)
@@ -268,7 +269,7 @@ export default function FinanceiroPedido({
       console.log('🔍 Payload salvarEdicaoTitulo:', payload)
       console.log('📋 Forma de pagamento na edição:', formaPagamento)
       const formaDescricao = FORMAS_RECEBIMENTO.find(
-        (f) => f.codigo === formaPagamento
+        (f) => f.codigo === formaPagamento,
       )?.descricao
       console.log('📝 Descrição da forma na edição:', formaDescricao)
 
@@ -356,7 +357,7 @@ export default function FinanceiroPedido({
             <Text style={styles.datePickerText}>
               {tituloEmEdicao?.vencimento
                 ? new Date(tituloEmEdicao.vencimento).toLocaleDateString(
-                    'pt-BR'
+                    'pt-BR',
                   )
                 : 'Selecionar data'}
             </Text>
@@ -470,7 +471,7 @@ export default function FinanceiroPedido({
                   <Text style={styles.tituloValor}>
                     {(() => {
                       const forma = FORMAS_RECEBIMENTO.find(
-                        (f) => f.codigo === titulo.forma_pagamento
+                        (f) => f.codigo === titulo.forma_pagamento,
                       )
                       return forma
                         ? `${forma.codigo} - ${forma.descricao}`
@@ -506,23 +507,104 @@ export default function FinanceiroPedido({
           <>
             <View style={styles.formContainer}>
               <Text style={styles.pickerLabel}>Forma de Pagamento</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formaPagamento}
-                  onValueChange={setFormaPagamento}
-                  style={styles.picker}
-                  dropdownIconColor="#fff"
-                  enabled={!loading}>
-                  {FORMAS_RECEBIMENTO.map((forma) => (
-                    <Picker.Item
-                      key={forma.codigo}
-                      label={forma.descricao}
-                      value={forma.codigo}
-                      style={styles.pickerItem}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              {Platform.OS === 'ios' ? (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.pickerContainer,
+                      {
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingHorizontal: 10,
+                        height: 50,
+                      },
+                    ]}
+                    onPress={() => setShowPicker(true)}
+                    disabled={loading}>
+                    <Text style={{ color: '#fff', fontSize: 16 }}>
+                      {FORMAS_RECEBIMENTO.find(
+                        (f) => f.codigo === formaPagamento,
+                      )?.descricao || 'Selecione'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#fff" />
+                  </TouchableOpacity>
+
+                  <Modal
+                    visible={showPicker}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setShowPicker(false)}>
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: 'flex-end',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                      }}>
+                      <View
+                        style={{
+                          backgroundColor: '#232935',
+                          paddingBottom: 20,
+                        }}>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'flex-end',
+                            padding: 15,
+                            borderBottomWidth: 1,
+                            borderBottomColor: '#2c3e50',
+                            backgroundColor: '#1a2f3d',
+                          }}>
+                          <TouchableOpacity
+                            onPress={() => setShowPicker(false)}>
+                            <Text
+                              style={{
+                                color: '#10a2a7',
+                                fontSize: 18,
+                                fontWeight: 'bold',
+                              }}>
+                              Confirmar
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        <Picker
+                          selectedValue={formaPagamento}
+                          onValueChange={(itemValue) =>
+                            setFormaPagamento(itemValue)
+                          }
+                          itemStyle={{ color: '#fff' }}>
+                          {FORMAS_RECEBIMENTO.map((forma) => (
+                            <Picker.Item
+                              key={forma.codigo}
+                              label={forma.descricao}
+                              value={forma.codigo}
+                              color="#fff"
+                            />
+                          ))}
+                        </Picker>
+                      </View>
+                    </View>
+                  </Modal>
+                </>
+              ) : (
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={formaPagamento}
+                    onValueChange={setFormaPagamento}
+                    style={styles.picker}
+                    dropdownIconColor="#fff"
+                    enabled={!loading}>
+                    {FORMAS_RECEBIMENTO.map((forma) => (
+                      <Picker.Item
+                        key={forma.codigo}
+                        label={forma.descricao}
+                        value={forma.codigo}
+                        style={styles.pickerItem}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              )}
 
               <TextInput
                 label="Número de Parcelas"
