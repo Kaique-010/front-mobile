@@ -61,8 +61,15 @@ export default function AbaPecas({
       })
 
       if (response.data && Array.isArray(response.data)) {
+        // Log para debug da estrutura retornada
+        if (response.data.length > 0) {
+          console.log('Exemplo de peça retornada:', response.data[0])
+        }
+
         const produtosFormatados = response.data.map((item) => ({
           ...item,
+          // Garante que peca_id exista, mesmo que venha como id
+          peca_id: item.peca_id || item.id,
           peca_quan: parseFloat(item.peca_quan || 0),
           peca_unit: parseFloat(item.peca_unit || 0),
           peca_tota: parseFloat(item.peca_tota || 0),
@@ -171,20 +178,40 @@ export default function AbaPecas({
     setModalVisivel(true)
   }
 
-  const removerProduto = (item) => {
+  const removerProduto = async (item) => {
     const atualizados = produtos.filter((p) => p !== item)
     sincronizarComPai(atualizados)
-    if (item.peca_id) {
-      setRemovidos((prev) => [...prev, item])
+
+    // Log para debug da remoção
+    console.log('Tentando remover item:', item)
+    // Se peca_id não existir, tenta id
+    const itemId = item.peca_id || item.id
+
+    if (itemId) {
+      // Garante que o item tenha o peca_id para o backend
+      const itemParaRemover = { ...item, peca_id: itemId }
+      const novosRemovidos = [...removidos, itemParaRemover]
+      setRemovidos(novosRemovidos)
+
+      // Chama o salvar para efetivar a remoção no backend
+      await salvarPecas(atualizados, novosRemovidos)
+    } else {
+      // Se não tem ID, apenas remove da lista local
+      Toast.show({
+        type: 'success',
+        text1: 'Produto removido',
+        text2: item.produto_nome,
+      })
     }
-    Toast.show({
-      type: 'success',
-      text1: 'Produto removido',
-      text2: item.produto_nome,
-    })
   }
 
-  const salvarPecas = async () => {
+  const salvarPecas = async (produtosArg, removidosArg) => {
+    // Se a função for chamada pelo botão (evento), usa os states
+    const produtosAtuais = Array.isArray(produtosArg) ? produtosArg : produtos
+    const removidosAtuais = Array.isArray(removidosArg)
+      ? removidosArg
+      : removidos
+
     if (isSubmitting || submitLockRef.current) return
     submitLockRef.current = true
     setIsSubmitting(true)
@@ -197,7 +224,7 @@ export default function AbaPecas({
         return Math.min(Math.max(num, 0), 99999999999.9999)
       }
 
-      const adicionarBase = produtos
+      const adicionarBase = produtosAtuais
         .filter((p) => !p.peca_id)
         .map((p) => {
           const quan = formatarValorNumerico(p.peca_quan)
@@ -228,9 +255,10 @@ export default function AbaPecas({
         adicionar.push(item)
       }
 
-      const editarBase = produtos
+      const editarBase = produtosAtuais
         .filter(
-          (p) => p.peca_id && !removidos.find((r) => r.peca_id === p.peca_id),
+          (p) =>
+            p.peca_id && !removidosAtuais.find((r) => r.peca_id === p.peca_id),
         )
         .map((p) => {
           const quan = formatarValorNumerico(p.peca_quan)
@@ -262,7 +290,7 @@ export default function AbaPecas({
         editar.push(item)
       }
 
-      const remover = removidos
+      const remover = removidosAtuais
         .filter((r) => r.peca_id)
         .map((r) => ({
           peca_empr: 1,

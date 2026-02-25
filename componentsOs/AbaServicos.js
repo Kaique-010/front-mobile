@@ -95,8 +95,16 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       })
 
       const raw = response?.data ?? response?.results ?? response ?? []
+
+      // Log para debug
+      if (raw.length > 0) {
+        console.log('Exemplo de serviço retornado:', raw[0])
+      }
+
       const arr = raw.map((s) => ({
         ...s,
+        // Garante que serv_id exista, mesmo que venha como id
+        serv_id: s.serv_id || s.id,
         serv_quan: parseFloat(s.serv_quan),
         serv_unit: parseFloat(s.serv_unit),
         _local_id: nextLocalId.current++, // id estável
@@ -127,17 +135,30 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     setModalVisivel(true)
   }
 
-  const removerServico = (item) => {
-    syncPai(lista.filter((s) => s._local_id !== item._local_id))
-    if (item.serv_id) {
-      setRemovidos((prev) => [...prev, item])
-    }
+  const removerServico = async (item) => {
+    const novaLista = lista.filter((s) => s._local_id !== item._local_id)
+    syncPai(novaLista)
 
-    Toast.show({
-      type: 'success',
-      text1: 'Serviço removido',
-      text2: item.servico_nome,
-    })
+    // Log para debug
+    console.log('Tentando remover serviço:', item)
+    const itemId = item.serv_id || item.id
+
+    if (itemId) {
+      // Garante que o item tenha o serv_id para o backend
+      const itemParaRemover = { ...item, serv_id: itemId }
+      const novosRemovidos = [...removidos, itemParaRemover]
+      setRemovidos(novosRemovidos)
+
+      // Chama o salvar para efetivar a remoção no backend
+      await salvarServicos(novaLista, novosRemovidos)
+    } else {
+      // Se não tem ID, apenas remove da lista local
+      Toast.show({
+        type: 'success',
+        text1: 'Serviço removido',
+        text2: item.servico_nome,
+      })
+    }
   }
 
   const adicionarOuEditarServico = (novo, antigo) => {
@@ -153,7 +174,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       novaLista = lista.map((s) =>
         s._local_id === antigo._local_id
           ? { ...coerced, _local_id: antigo._local_id }
-          : s
+          : s,
       )
     }
     // ADICIONAR NOVO
@@ -186,7 +207,13 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
     })
   }
 
-  const salvarServicos = async () => {
+  const salvarServicos = async (listaArg, removidosArg) => {
+    // Se a função for chamada pelo botão (evento), usa os states
+    const listaServicos = Array.isArray(listaArg) ? listaArg : lista
+    const removidosServicos = Array.isArray(removidosArg)
+      ? removidosArg
+      : removidos
+
     if (isSubmitting) return
     setIsSubmitting(true)
 
@@ -203,7 +230,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         fili = filiS
       }
 
-      const adicionar = lista
+      const adicionar = listaServicos
         .filter((s) => !s.serv_id)
         .map((s) => ({
           serv_orde: orde_nume.toString(),
@@ -217,9 +244,11 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_fili: fili,
         }))
 
-      const editar = lista
+      const editar = listaServicos
         .filter(
-          (s) => s.serv_id && !removidos.some((r) => r.serv_id === s.serv_id)
+          (s) =>
+            s.serv_id &&
+            !removidosServicos.some((r) => r.serv_id === s.serv_id),
         )
         .map((s) => ({
           serv_id: s.serv_id,
@@ -233,7 +262,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
           serv_fili: fili,
         }))
 
-      const remover = removidos.map((r) => ({
+      const remover = removidosServicos.map((r) => ({
         serv_id: r.serv_id,
         serv_orde: orde_nume.toString(),
         serv_empr: empr,
@@ -349,7 +378,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       ) : (
         <FlatList
           data={(lista || []).filter(
-            (s) => s && s.servico_nome && s.serv_quan > 0
+            (s) => s && s.servico_nome && s.serv_quan > 0,
           )}
           keyExtractor={(item, index) =>
             (
