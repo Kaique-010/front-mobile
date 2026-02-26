@@ -325,12 +325,33 @@ export default function AbaPecas({
         'Erro detalhado ao salvar:',
         err.response?.data || err.message,
       )
+      let mensagemErro = 'Não foi possível salvar as peças.'
+      const errorData = err.response?.data
+
+      if (errorData) {
+        if (typeof errorData === 'string') {
+          mensagemErro = errorData
+        } else if (Array.isArray(errorData) && errorData.length > 0) {
+          mensagemErro = errorData[0]
+        } else if (typeof errorData === 'object') {
+          if (errorData.detail) {
+            mensagemErro = errorData.detail
+          } else {
+            const values = Object.values(errorData)
+            if (values.length > 0) {
+              const firstValue = values[0]
+              mensagemErro = Array.isArray(firstValue)
+                ? firstValue[0]
+                : String(firstValue)
+            }
+          }
+        }
+      }
+
       Toast.show({
         type: 'error',
         text1: 'Erro ao salvar peças',
-        text2: Array.isArray(err.response?.data)
-          ? err.response.data[0]
-          : 'Tente novamente mais tarde',
+        text2: mensagemErro,
       })
     } finally {
       setIsSubmitting(false)
