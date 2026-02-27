@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { fetchClienteOrdensServico } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 
+
 const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   const { ordemId } = route.params
   const [ordem, setOrdem] = useState(null)
