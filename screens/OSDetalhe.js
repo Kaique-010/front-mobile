@@ -52,8 +52,9 @@ const OsDetalhe = ({ route, navigation }) => {
   const { enviarWhatsOs, loading: loadingWhats } = useEnviarWhatsOs()
   const [previewVisible, setPreviewVisible] = useState(false)
   const [totalHoras, setTotalHoras] = useState(0)
+  const [horasDetalhadas, setHorasDetalhadas] = useState([])
 
-  const carregarTotalHoras = async () => {
+  const carregarHoras = async () => {
     try {
       const response = await apiGetComContexto('Os/os-hora/total-horas/', {
         os_hora_os: os.os_os,
@@ -61,13 +62,25 @@ const OsDetalhe = ({ route, navigation }) => {
         os_hora_fili: os.os_fili,
       })
       setTotalHoras(response?.total_horas || 0)
+
+      const responseDetalhes = await apiGetComContexto('Os/os-hora/', {
+        os_hora_os: String(os.os_os),
+        os_hora_empr: Number(os.os_empr),
+        os_hora_fili: Number(os.os_fili),
+      })
+      const arr = Array.isArray(responseDetalhes?.results)
+        ? responseDetalhes.results
+        : Array.isArray(responseDetalhes)
+          ? responseDetalhes
+          : []
+      setHorasDetalhadas(arr)
     } catch (error) {
-      console.error('Erro ao carregar total de horas:', error)
+      console.error('Erro ao carregar horas:', error)
     }
   }
 
   useEffect(() => {
-    carregarTotalHoras()
+    carregarHoras()
   }, [])
 
   const carregarDetalhes = async () => {
@@ -402,6 +415,13 @@ const OsDetalhe = ({ route, navigation }) => {
           local: os.os_loca_apli,
           observacoes: os.os_obje_os,
           totalHoras: totalHoras,
+          detalhesHoras: horasDetalhadas.map((r) => ({
+            data: r.os_hora_data,
+            manhaIni: r.os_hora_manh_ini,
+            manhaFim: r.os_hora_manh_fim,
+            tardeIni: r.os_hora_tard_ini,
+            tardeFim: r.os_hora_tard_fim,
+          })),
         }}
       />
     </ScrollView>
@@ -611,6 +631,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalBotaoTexto: { color: '#fff', fontWeight: 'bold' },
+  btnAssinar: {
+    flex: 1,
+    backgroundColor: '#10a2a7',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  btnAssinarText: { color: '#fff', fontWeight: 'bold' },
 })
 
 export default OsDetalhe

@@ -538,6 +538,13 @@ export default function AbaHoras({
               local: ordemServico.os_loca_apli,
               observacoes: ordemServico.os_obje_os,
               totalHoras: totalHoras,
+              detalhesHoras: registros.map((r) => ({
+                data: r.os_hora_data,
+                manhaIni: r.os_hora_manh_ini,
+                manhaFim: r.os_hora_manh_fim,
+                tardeIni: r.os_hora_tard_ini,
+                tardeFim: r.os_hora_tard_fim,
+              })),
             }}
           />
 
