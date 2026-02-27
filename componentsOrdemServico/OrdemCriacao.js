@@ -122,7 +122,7 @@ export default function CriarOrdemServico({ navigation }) {
 
       console.log(
         'Payload final a ser enviado:',
-        JSON.stringify(payload, null, 2)
+        JSON.stringify(payload, null, 2),
       )
 
       const data = await apiPostComContexto('Os/ordens/', payload)
@@ -133,12 +133,12 @@ export default function CriarOrdemServico({ navigation }) {
       }
 
       setNumeroOS(data.os_os)
-      setAbaAtiva('pecas')
+      setAbaAtiva('horas')
 
       Toast.show({
         type: 'success',
         text1: 'O.S criada com sucesso!',
-        text2: `Número da O.S: ${data.os_os}. Agora você pode incluir peças.`,
+        text2: `Número da O.S: ${data.os_os}. Agora você pode incluir horas.`,
       })
     } catch (error) {
       console.log('Erro ao criar O.S:', error)
@@ -180,12 +180,12 @@ export default function CriarOrdemServico({ navigation }) {
           await enqueueOperation('Os/ordens/', 'post', payload, localId)
 
           setNumeroOS(localId)
-          setAbaAtiva('pecas')
+          setAbaAtiva('horas')
 
           Toast.show({
             type: 'info',
             text1: 'Modo Offline',
-            text2: 'O.S criada localmente. Você pode adicionar peças.',
+            text2: 'O.S criada localmente. Você pode adicionar horas.',
           })
           return // Sai da função se enfileirou com sucesso
         } catch (offlineError) {

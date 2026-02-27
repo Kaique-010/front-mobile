@@ -30,9 +30,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useEnviarEmailOs } from '../hooks/useEnviarEmailOs'
 import { useEnviarWhatsOs } from '../hooks/useEnviarWhatsOs'
 import Toast from 'react-native-toast-message'
+import ModalPreExibicao from '../componentsOrdemServico/components/ModalPreExibicao'
+import useContextoApp from '../hooks/useContextoApp'
 
 const OsDetalhe = ({ route, navigation }) => {
   const { os } = route.params
+  const { username } = useContextoApp()
 
   const [abaAtiva, setAbaAtiva] = useState('detalhes')
   const [pecas, setPecas] = useState([])
@@ -47,6 +50,25 @@ const OsDetalhe = ({ route, navigation }) => {
   const [inputValue, setInputValue] = useState('')
   const { enviarEmailOs, loading: loadingEmail } = useEnviarEmailOs()
   const { enviarWhatsOs, loading: loadingWhats } = useEnviarWhatsOs()
+  const [previewVisible, setPreviewVisible] = useState(false)
+  const [totalHoras, setTotalHoras] = useState(0)
+
+  const carregarTotalHoras = async () => {
+    try {
+      const response = await apiGetComContexto('Os/os-hora/total-horas/', {
+        os_hora_os: os.os_os,
+        os_hora_empr: os.os_empr,
+        os_hora_fili: os.os_fili,
+      })
+      setTotalHoras(response?.total_horas || 0)
+    } catch (error) {
+      console.error('Erro ao carregar total de horas:', error)
+    }
+  }
+
+  useEffect(() => {
+    carregarTotalHoras()
+  }, [])
 
   const carregarDetalhes = async () => {
     try {
@@ -170,7 +192,7 @@ const OsDetalhe = ({ route, navigation }) => {
               await processarEnvioWhats()
             },
           },
-        ]
+        ],
       )
       return
     }
@@ -222,7 +244,7 @@ const OsDetalhe = ({ route, navigation }) => {
               style: 'destructive',
               onPress: () => navigation.dispatch(e.data.action),
             },
-          ]
+          ],
         )
       }
     }
@@ -287,7 +309,14 @@ const OsDetalhe = ({ route, navigation }) => {
           disabled={loadingEmail}>
           <Text style={styles.actionText}>Enviar E-mail</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.btnAssinar}
+          onPress={() => setPreviewVisible(true)}>
+          <Text style={styles.btnAssinarText}>Assinar O.S</Text>
+        </TouchableOpacity>
       </View>
+
       <Modal
         animationType="slide"
         transparent
@@ -359,6 +388,22 @@ const OsDetalhe = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
+
+      <ModalPreExibicao
+        visible={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        onConfirm={() => {
+          setPreviewVisible(false)
+          setAbaAtiva('horas')
+        }}
+        dados={{
+          cliente: os.cliente_nome,
+          atendente: username || 'Atendente',
+          local: os.os_loca_apli,
+          observacoes: os.os_obje_os,
+          totalHoras: totalHoras,
+        }}
+      />
     </ScrollView>
   )
 
