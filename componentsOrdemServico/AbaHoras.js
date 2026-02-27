@@ -22,6 +22,7 @@ import SignatureField from '../componentsOrdemServico/SignatureField'
 import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 import { enqueueOperation } from './services/syncService'
 import NetInfo from '@react-native-community/netinfo'
+import ModalPreExibicao from './components/ModalPreExibicao'
 
 function sanitizeSignature(base64) {
   if (!base64) return ''
@@ -88,7 +89,7 @@ export default function AbaHoras({
   setOrdemServico,
   setScrollLock,
 }) {
-  const { empresaId, filialId, usuarioId } = useContextoApp()
+  const { empresaId, filialId, usuarioId, username } = useContextoApp()
   const Container = embedded ? View : ScrollView
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
   const [manhaIni, setManhaIni] = useState('')
@@ -103,6 +104,8 @@ export default function AbaHoras({
   const [registros, setRegistros] = useState([])
   const [totalHoras, setTotalHoras] = useState(0)
   const [online, setOnline] = useState(true)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [assinaturaLiberada, setAssinaturaLiberada] = useState(false)
 
   const fmt = (n) => String(n).padStart(2, '0')
   const agora = () => {
@@ -121,13 +124,13 @@ export default function AbaHoras({
       const arr = Array.isArray(lista?.results)
         ? lista.results
         : Array.isArray(lista)
-        ? lista
-        : []
+          ? lista
+          : []
       setRegistros(arr)
 
       // Se houver registros para o dia atual, preencher os campos
       const registroHoje = arr.find(
-        (r) => String(r.os_hora_data) === String(data)
+        (r) => String(r.os_hora_data) === String(data),
       )
       if (registroHoje) {
         setManhaIni(registroHoje.os_hora_manh_ini || '')
@@ -136,10 +139,14 @@ export default function AbaHoras({
         setTardeIni(registroHoje.os_hora_tard_ini || '')
         setTardeFim(registroHoje.os_hora_tard_fim || '')
         setKmSai(
-          registroHoje.os_hora_km_sai ? String(registroHoje.os_hora_km_sai) : ''
+          registroHoje.os_hora_km_sai
+            ? String(registroHoje.os_hora_km_sai)
+            : '',
         )
         setKmChe(
-          registroHoje.os_hora_km_che ? String(registroHoje.os_hora_km_che) : ''
+          registroHoje.os_hora_km_che
+            ? String(registroHoje.os_hora_km_che)
+            : '',
         )
         setEquipamento(registroHoje.os_hora_equi || '')
         setObservacao(registroHoje.os_hora_obse || '')
@@ -172,7 +179,7 @@ export default function AbaHoras({
 
   useEffect(() => {
     const sub = NetInfo.addEventListener((state) =>
-      setOnline(!!state.isConnected)
+      setOnline(!!state.isConnected),
     )
     return () => sub && sub()
   }, [])
@@ -243,7 +250,7 @@ export default function AbaHoras({
             os_hora_os: String(os_os),
             os_hora_empr: Number(empresaId),
             os_hora_fili: Number(filialId),
-          }
+          },
         )
       } else {
         await apiPostComContexto('Os/os-hora/', payload)
@@ -260,9 +267,9 @@ export default function AbaHoras({
         const existente = encontrarRegistroAtual()
         const endpoint = existente?.os_hora_item
           ? `Os/os-hora/${existente.os_hora_item}/?os_hora_os=${String(
-              os_os
+              os_os,
             )}&os_hora_empr=${Number(empresaId)}&os_hora_fili=${Number(
-              filialId
+              filialId,
             )}`
           : 'Os/os-hora/'
         const method = existente?.os_hora_item ? 'patch' : 'post'
@@ -314,7 +321,7 @@ export default function AbaHoras({
             os_hora_os: String(os_os),
             os_hora_empr: Number(empresaId),
             os_hora_fili: Number(filialId),
-          }
+          },
         )
       } else {
         await apiPostComContexto('Os/os-hora/', { ...base, ...campos })
@@ -331,7 +338,7 @@ export default function AbaHoras({
       return Math.max(0, hf * 60 + mf - (hi * 60 + mi)) / 60
     }
     return (toHours(manhaIni, manhaFim) + toHours(tardeIni, tardeFim)).toFixed(
-      2
+      2,
     )
   }
 
@@ -518,14 +525,38 @@ export default function AbaHoras({
       )}
       {ordemServico && setOrdemServico && (
         <>
-          <SignatureField
-            label="Assinatura do Cliente"
-            value={sanitizeSignature(ordemServico.os_assi_clie)}
-            onChange={(base64) =>
-              setOrdemServico((prev) => ({ ...prev, os_assi_clie: base64 }))
-            }
-            onSigningChange={setScrollLock}
+          <ModalPreExibicao
+            visible={modalVisible}
+            onCancel={() => setModalVisible(false)}
+            onConfirm={() => {
+              setModalVisible(false)
+              setAssinaturaLiberada(true)
+            }}
+            dados={{
+              cliente: ordemServico.cliente_nome,
+              atendente: username || 'Atendente',
+              local: ordemServico.os_loca_apli,
+              observacoes: ordemServico.os_obje_os,
+              totalHoras: totalHoras,
+            }}
           />
+
+          {!ordemServico.os_assi_clie && !assinaturaLiberada ? (
+            <TouchableOpacity
+              style={styles.btnAssinar}
+              onPress={() => setModalVisible(true)}>
+              <Text style={styles.btnAssinarText}>Assinar O.S</Text>
+            </TouchableOpacity>
+          ) : (
+            <SignatureField
+              label="Assinatura do Cliente"
+              value={sanitizeSignature(ordemServico.os_assi_clie)}
+              onChange={(base64) =>
+                setOrdemServico((prev) => ({ ...prev, os_assi_clie: base64 }))
+              }
+              onSigningChange={setScrollLock}
+            />
+          )}
         </>
       )}
     </Container>
@@ -604,4 +635,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   itemText: { color: '#fff', fontSize: 12 },
+  btnAssinar: {
+    backgroundColor: '#10a2a7',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  btnAssinarText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 })
