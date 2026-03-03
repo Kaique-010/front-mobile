@@ -77,7 +77,7 @@ export const fetchClienteOrdensServico = async (params = {}) => {
     const response = await api.get('entidades/ordem-servico/', { params })
     console.log(
       'Ordem Servico Response:',
-      JSON.stringify(response.data, null, 2)
+      JSON.stringify(response.data, null, 2),
     )
     return response.data.results || []
   } catch (error) {
@@ -97,7 +97,7 @@ export const fetchClienteOrdensServicoEmEstoque = async (params = {}) => {
 
     console.log(
       'Motores em Estoque Response:',
-      JSON.stringify(response.data, null, 2)
+      JSON.stringify(response.data, null, 2),
     )
 
     if (Array.isArray(response.data)) {
@@ -135,11 +135,148 @@ export const fetchClienteDashboard = async () => {
     // Suppress 401 errors for dashboard to avoid user annoyance
     if (error.response && error.response.status === 401) {
       console.warn(
-        '[fetchClienteDashboard] 401 Unauthorized - Dashboard access denied'
+        '[fetchClienteDashboard] 401 Unauthorized - Dashboard access denied',
       )
       return null
     }
     handleApiError(error)
     return null
+  }
+}
+
+// Buscar imagens antes da ordem de serviço
+export const fetchClienteImagensAntes = async (orde_nume) => {
+  try {
+    const api = await createClienteAxios()
+    if (!api) return []
+
+    const response = await api.get('entidades/ordem-servico/imagensantes/', {
+      params: { orde_nume },
+    })
+
+    // Tratamento para resposta encapsulada (ex: { dados: [...] })
+    const data = response.data
+    if (data && data.dados && Array.isArray(data.dados)) {
+      return data.dados
+    }
+
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('[fetchClienteImagensAntes] Error:', error)
+    return []
+  }
+}
+
+// Buscar imagens durante a ordem de serviço
+export const fetchClienteImagensDurante = async (orde_nume) => {
+  try {
+    const api = await createClienteAxios()
+    if (!api) return []
+
+    const response = await api.get('entidades/ordem-servico/imagensdurante/', {
+      params: { orde_nume },
+    })
+
+    console.log(
+      '[fetchClienteImagensDurante] Response data type:',
+      typeof response.data,
+    )
+    console.log(
+      '[fetchClienteImagensDurante] Response data keys:',
+      response.data ? Object.keys(response.data) : 'null',
+    )
+
+    // Tratamento para resposta encapsulada (ex: { dados: [...] })
+    const data = response.data
+    if (data && data.dados && Array.isArray(data.dados)) {
+      console.log(
+        '[fetchClienteImagensDurante] Usando data.dados, tamanho:',
+        data.dados.length,
+      )
+      return data.dados
+    }
+
+    if (Array.isArray(data)) {
+      console.log(
+        '[fetchClienteImagensDurante] Usando data direto, tamanho:',
+        data.length,
+      )
+      return data
+    }
+
+    // Se for objeto mas não tiver dados, tenta ver se tem results (paginação do DRF)
+    if (data && data.results && Array.isArray(data.results)) {
+      console.log(
+        '[fetchClienteImagensDurante] Usando data.results, tamanho:',
+        data.results.length,
+      )
+      return data.results
+    }
+
+    console.warn(
+      '[fetchClienteImagensDurante] Formato de resposta inesperado:',
+      data,
+    )
+    return []
+  } catch (error) {
+    console.error('[fetchClienteImagensDurante] Error:', error)
+    return []
+  }
+}
+
+// Buscar imagens depois da ordem de serviço
+export const fetchClienteImagensDepois = async (orde_nume) => {
+  try {
+    const api = await createClienteAxios()
+    if (!api) return []
+
+    const response = await api.get('entidades/ordem-servico/imagensdepois/', {
+      params: { orde_nume },
+    })
+
+    console.log(
+      '[fetchClienteImagensDepois] Response data type:',
+      typeof response.data,
+    )
+    console.log(
+      '[fetchClienteImagensDepois] Response data keys:',
+      response.data ? Object.keys(response.data) : 'null',
+    )
+
+    // Tratamento para resposta encapsulada (ex: { dados: [...] })
+    const data = response.data
+    if (data && data.dados && Array.isArray(data.dados)) {
+      console.log(
+        '[fetchClienteImagensDepois] Usando data.dados, tamanho:',
+        data.dados.length,
+      )
+      return data.dados
+    }
+
+    if (Array.isArray(data)) {
+      console.log(
+        '[fetchClienteImagensDepois] Usando data direto, tamanho:',
+        data.length,
+      )
+      return data
+    }
+
+    // Se for objeto mas não tiver dados, tenta ver se tem results (paginação do DRF)
+    if (data && data.results && Array.isArray(data.results)) {
+      console.log(
+        '[fetchClienteImagensDepois] Usando data.results, tamanho:',
+        data.results.length,
+      )
+      return data.results
+    }
+
+    console.warn(
+      '[fetchClienteImagensDepois] Formato de resposta inesperado:',
+      data,
+    )
+    return []
+  } catch (error) {
+    console.error('[fetchClienteImagensDepois] Error:', error)
+    return []
   }
 }

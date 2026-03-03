@@ -11,12 +11,15 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { fetchClienteOrdensServico } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
-
+import AbaFotosAntes from './partials/abaFotosAntes'
+import AbaFotosDurante from './partials/abaFotosDurante'
+import AbaFotosDepois from './partials/abaFotosDepois'
 
 const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
-  const { ordemId } = route.params
-  const [ordem, setOrdem] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { ordemId, ordemInicial } = route.params
+  const [ordem, setOrdem] = useState(ordemInicial || null)
+  const [loading, setLoading] = useState(!ordemInicial)
+  const [activeTab, setActiveTab] = useState('geral')
 
   useEffect(() => {
     carregarOrdem()
@@ -24,13 +27,36 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
 
   const carregarOrdem = async () => {
     try {
-      setLoading(true)
-      const ordens = await fetchClienteOrdensServico()
-      const ordemEncontrada = ordens.find((o) => o.id === ordemId)
+      if (!ordem) setLoading(true)
+
+      let ordemEncontrada = null
+
+      // Tentar buscar pelo número da ordem (mais confiável)
+      const numeroOrdem = ordem?.orde_nume || ordemInicial?.orde_nume
+
+      if (numeroOrdem) {
+        const ordens = await fetchClienteOrdensServico({
+          orde_nume: numeroOrdem,
+        })
+        ordemEncontrada = ordens.find((o) => o.orde_nume === numeroOrdem)
+      }
+
+      // Se não encontrou pelo número, tenta pelo ID
+      if (!ordemEncontrada && ordemId) {
+        // Tenta buscar específico pelo ID
+        let ordens = await fetchClienteOrdensServico({ id: ordemId })
+        ordemEncontrada = ordens.find((o) => o.id === ordemId)
+
+        // Se ainda não encontrou, busca na lista geral (fallback)
+        if (!ordemEncontrada) {
+          ordens = await fetchClienteOrdensServico()
+          ordemEncontrada = ordens.find((o) => o.id === ordemId)
+        }
+      }
 
       if (ordemEncontrada) {
         setOrdem(ordemEncontrada)
-      } else {
+      } else if (!ordem) {
         Alert.alert('Erro', 'Ordem de serviço não encontrada')
         navigation.goBack()
       }
@@ -38,7 +64,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
       console.error('Erro ao carregar detalhes da ordem:', error)
       Alert.alert(
         'Erro',
-        'Não foi possível carregar os detalhes da ordem de serviço'
+        'Não foi possível carregar os detalhes da ordem de serviço',
       )
       navigation.goBack()
     } finally {
@@ -167,100 +193,169 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Informações Gerais</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>DATA DE ABERTURA</Text>
-            <Text style={styles.infoValue}>
-              {formatDate(ordem.orde_data_aber)}
+      <View style={styles.tabContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'geral' && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab('geral')}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'geral' && styles.activeTabText,
+              ]}>
+              Geral
             </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>PREVISÃO</Text>
-            <Text style={styles.infoValue}>
-              {formatDate(ordem.orde_data_prev)}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'antes' && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab('antes')}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'antes' && styles.activeTabText,
+              ]}>
+              Fotos Antes
             </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>VALOR TOTAL</Text>
-            <Text style={styles.infoValue}>
-              {formatCurrency(ordem.orde_tota)}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'durante' && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab('durante')}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'durante' && styles.activeTabText,
+              ]}>
+              Fotos Durante
             </Text>
-          </View>
-        </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'depois' && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab('depois')}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'depois' && styles.activeTabText,
+              ]}>
+              Fotos Depois
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Descrição do Serviço</Text>
-        <View style={styles.descricaoCard}>
-          <Text style={styles.descricaoText}>
-            {ordem.orde_defe_desc || 'Nenhuma descrição informada'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Serviços</Text>
-        {ordem.servicos && ordem.servicos.length > 0 ? (
-          ordem.servicos.map((servico, index) => (
-            <View key={index} style={styles.itemCard}>
-              <Text style={styles.itemNome}>{servico.servico_nome}</Text>
-              <View style={styles.itemDetails}>
-                <View style={styles.itemRow}>
-                  <Text style={styles.itemLabel}>QUANTIDADE</Text>
-                  <Text style={styles.itemValue}>{servico.serv_quan}</Text>
-                </View>
-                <View style={styles.itemRow}>
-                  <Text style={styles.itemLabel}>VALOR UNITÁRIO</Text>
-                  <Text style={styles.itemValue}>
-                    {formatCurrency(servico.serv_unit)}
-                  </Text>
-                </View>
-                <View style={styles.itemRow}>
-                  <Text style={styles.itemLabel}>SUBTOTAL</Text>
-                  <Text style={styles.itemValue}>
-                    {formatCurrency(
-                      servico.serv_tota || servico.serv_quan * servico.serv_unit
-                    )}
-                  </Text>
-                </View>
+      {activeTab === 'geral' && (
+        <>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Informações Gerais</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>DATA DE ABERTURA</Text>
+                <Text style={styles.infoValue}>
+                  {formatDate(ordem.orde_data_aber)}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>PREVISÃO</Text>
+                <Text style={styles.infoValue}>
+                  {formatDate(ordem.orde_data_prev)}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>VALOR TOTAL</Text>
+                <Text style={styles.infoValue}>
+                  {formatCurrency(ordem.orde_tota)}
+                </Text>
               </View>
             </View>
-          ))
-        ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Nenhum serviço encontrado</Text>
           </View>
-        )}
-      </View>
-      
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Resumo de Valores</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>SUBTOTAL</Text>
-            <Text style={styles.infoValue}>
-              {formatCurrency(ordem.orde_tota || ordem.orde_tota)}
-            </Text>
-          </View>
-          {ordem.orde_desc > 0 && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>DESCONTO</Text>
-              <Text style={styles.infoValue}>
-                - {formatCurrency(ordem.orde_desc)}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Descrição do Serviço</Text>
+            <View style={styles.descricaoCard}>
+              <Text style={styles.descricaoText}>
+                {ordem.orde_defe_desc || 'Nenhuma descrição informada'}
               </Text>
             </View>
-          )}
-          <View style={[styles.infoRow, styles.totalRow]}>
-            <Text style={[styles.infoLabel, styles.totalLabel]}>TOTAL</Text>
-            <Text style={[styles.infoValue, styles.totalValue]}>
-              {formatCurrency(ordem.orde_tota)}
-            </Text>
           </View>
-        </View>
-      </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Serviços</Text>
+            {ordem.servicos && ordem.servicos.length > 0 ? (
+              ordem.servicos.map((servico, index) => (
+                <View key={index} style={styles.itemCard}>
+                  <Text style={styles.itemNome}>{servico.servico_nome}</Text>
+                  <View style={styles.itemDetails}>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>QUANTIDADE</Text>
+                      <Text style={styles.itemValue}>{servico.serv_quan}</Text>
+                    </View>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>VALOR UNITÁRIO</Text>
+                      <Text style={styles.itemValue}>
+                        {formatCurrency(servico.serv_unit)}
+                      </Text>
+                    </View>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>SUBTOTAL</Text>
+                      <Text style={styles.itemValue}>
+                        {formatCurrency(
+                          servico.serv_tota ||
+                            servico.serv_quan * servico.serv_unit,
+                        )}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>Nenhum serviço encontrado</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Resumo de Valores</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>SUBTOTAL</Text>
+                <Text style={styles.infoValue}>
+                  {formatCurrency(ordem.orde_tota || ordem.orde_tota)}
+                </Text>
+              </View>
+              {ordem.orde_desc > 0 && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>DESCONTO</Text>
+                  <Text style={styles.infoValue}>
+                    - {formatCurrency(ordem.orde_desc)}
+                  </Text>
+                </View>
+              )}
+              <View style={[styles.infoRow, styles.totalRow]}>
+                <Text style={[styles.infoLabel, styles.totalLabel]}>TOTAL</Text>
+                <Text style={[styles.infoValue, styles.totalValue]}>
+                  {formatCurrency(ordem.orde_tota)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </>
+      )}
+
+      {activeTab === 'antes' && <AbaFotosAntes ordemId={ordem.orde_nume} />}
+      {activeTab === 'durante' && <AbaFotosDurante ordemId={ordem.orde_nume} />}
+      {activeTab === 'depois' && <AbaFotosDepois ordemId={ordem.orde_nume} />}
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -504,6 +599,34 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 32,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginTop: 20,
+    marginBottom: 10,
+    paddingHorizontal: 20,
+  },
+  tabButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 12,
+    borderRadius: 20,
+    backgroundColor: '#1A1A2E',
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+  },
+  activeTabButton: {
+    backgroundColor: '#00D4FF',
+    borderColor: '#00D4FF',
+  },
+  tabText: {
+    color: '#8B8BA7',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 })
 

@@ -117,6 +117,7 @@ const ClienteOrdensServicoList = ({ navigation }) => {
         onPress={() =>
           navigation.navigate('ClienteOrdensServicoDetalhes', {
             ordemId: item.id,
+            ordemInicial: item,
           })
         }>
         <View style={styles.cardHeader}>
