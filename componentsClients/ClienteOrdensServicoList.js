@@ -109,6 +109,7 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   }
 
   const renderItem = ({ item }) => {
+    console.log('ClienteOrdensServicoList item:', item.id, item.ver_preco)
     const statusColor = getStatusColor(item.orde_stat_orde)
 
     return (
@@ -145,12 +146,14 @@ const ClienteOrdensServicoList = ({ navigation }) => {
             </Text>
           </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>VALOR TOTAL</Text>
-            <Text style={styles.infoValue}>
-              {formatCurrency(item.orde_tota)}
-            </Text>
-          </View>
+          {item.ver_preco === true && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>VALOR TOTAL</Text>
+              <Text style={styles.infoValue}>
+                {formatCurrency(item.orde_tota)}
+              </Text>
+            </View>
+          )}
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>DEFEITO</Text>
             <Text style={styles.infoValueDefeito}>

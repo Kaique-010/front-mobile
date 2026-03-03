@@ -280,3 +280,4 @@ export const fetchClienteImagensDepois = async (orde_nume) => {
     return []
   }
 }
+

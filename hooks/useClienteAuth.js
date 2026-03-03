@@ -20,6 +20,8 @@ const useClienteAuth = () => {
       const documento = await AsyncStorage.getItem('documento')
       const cliente_id = await AsyncStorage.getItem('cliente_id')
       const banco = await AsyncStorage.getItem('banco')
+      const ver_preco = await AsyncStorage.getItem('ver_preco')
+      const ver_foto = await AsyncStorage.getItem('ver_foto')
 
       if (session_id && cliente_nome) {
         setCliente({
@@ -28,6 +30,8 @@ const useClienteAuth = () => {
           documento,
           cliente_id: cliente_id ? parseInt(cliente_id, 10) : null,
           banco,
+          ver_preco: ver_preco === 'true',
+          ver_foto: ver_foto === 'true',
         })
       } else {
         setCliente(null)
@@ -67,6 +71,9 @@ const useClienteAuth = () => {
       console.log('🔐 [AUTH] Login sucesso:', data.session_id)
 
       // Salvar dados da sessão
+      const ver_preco = data.permissoes?.ver_preco || false
+      const ver_foto = data.permissoes?.ver_foto || false
+
       await AsyncStorage.multiSet([
         ['session_id', data.session_id],
         ['cliente_id', data.cliente_id.toString()],
@@ -74,9 +81,15 @@ const useClienteAuth = () => {
         ['documento', data.documento],
         ['banco', data.banco],
         ['userType', 'cliente'],
+        ['ver_preco', String(ver_preco)],
+        ['ver_foto', String(ver_foto)],
       ])
 
-      setCliente(data)
+      setCliente({
+        ...data,
+        ver_preco,
+        ver_foto,
+      })
       return true
     } catch (error) {
       console.error('🔐 [AUTH] Erro:', error)
@@ -91,8 +104,12 @@ const useClienteAuth = () => {
   const logout = async () => {
     try {
       await AsyncStorage.multiRemove([
-        'session_id', 'documento', 'userType',
-        'cliente_id', 'cliente_nome', 'banco'
+        'session_id',
+        'documento',
+        'userType',
+        'cliente_id',
+        'cliente_nome',
+        'banco',
       ])
       setCliente(null)
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] })

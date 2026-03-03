@@ -25,6 +25,17 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
     carregarOrdem()
   }, [ordemId])
 
+  useEffect(() => {
+    if (ordem) {
+      console.log(
+        'ClienteOrdensServicoDetalhes ordem:',
+        ordem.orde_nume,
+        ordem.ver_preco,
+        ordem,
+      )
+    }
+  }, [ordem])
+
   const carregarOrdem = async () => {
     try {
       if (!ordem) setLoading(true)
@@ -271,12 +282,14 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                   {formatDate(ordem.orde_data_prev)}
                 </Text>
               </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>VALOR TOTAL</Text>
-                <Text style={styles.infoValue}>
-                  {formatCurrency(ordem.orde_tota)}
-                </Text>
-              </View>
+              {ordem.ver_preco === true && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>VALOR TOTAL</Text>
+                  <Text style={styles.infoValue}>
+                    {formatCurrency(ordem.orde_tota)}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -300,21 +313,25 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                       <Text style={styles.itemLabel}>QUANTIDADE</Text>
                       <Text style={styles.itemValue}>{servico.serv_quan}</Text>
                     </View>
-                    <View style={styles.itemRow}>
-                      <Text style={styles.itemLabel}>VALOR UNITÁRIO</Text>
-                      <Text style={styles.itemValue}>
-                        {formatCurrency(servico.serv_unit)}
-                      </Text>
-                    </View>
-                    <View style={styles.itemRow}>
-                      <Text style={styles.itemLabel}>SUBTOTAL</Text>
-                      <Text style={styles.itemValue}>
-                        {formatCurrency(
-                          servico.serv_tota ||
-                            servico.serv_quan * servico.serv_unit,
-                        )}
-                      </Text>
-                    </View>
+                    {ordem.ver_preco !== false && (
+                      <>
+                        <View style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>VALOR UNITÁRIO</Text>
+                          <Text style={styles.itemValue}>
+                            {formatCurrency(servico.serv_unit)}
+                          </Text>
+                        </View>
+                        <View style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>SUBTOTAL</Text>
+                          <Text style={styles.itemValue}>
+                            {formatCurrency(
+                              servico.serv_tota ||
+                                servico.serv_quan * servico.serv_unit,
+                            )}
+                          </Text>
+                        </View>
+                      </>
+                    )}
                   </View>
                 </View>
               ))
@@ -325,31 +342,35 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
             )}
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Resumo de Valores</Text>
-            <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>SUBTOTAL</Text>
-                <Text style={styles.infoValue}>
-                  {formatCurrency(ordem.orde_tota || ordem.orde_tota)}
-                </Text>
-              </View>
-              {ordem.orde_desc > 0 && (
+          {ordem.ver_preco !== false && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Resumo de Valores</Text>
+              <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>DESCONTO</Text>
+                  <Text style={styles.infoLabel}>SUBTOTAL</Text>
                   <Text style={styles.infoValue}>
-                    - {formatCurrency(ordem.orde_desc)}
+                    {formatCurrency(ordem.orde_tota || ordem.orde_tota)}
                   </Text>
                 </View>
-              )}
-              <View style={[styles.infoRow, styles.totalRow]}>
-                <Text style={[styles.infoLabel, styles.totalLabel]}>TOTAL</Text>
-                <Text style={[styles.infoValue, styles.totalValue]}>
-                  {formatCurrency(ordem.orde_tota)}
-                </Text>
+                {ordem.orde_desc > 0 && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>DESCONTO</Text>
+                    <Text style={styles.infoValue}>
+                      - {formatCurrency(ordem.orde_desc)}
+                    </Text>
+                  </View>
+                )}
+                <View style={[styles.infoRow, styles.totalRow]}>
+                  <Text style={[styles.infoLabel, styles.totalLabel]}>
+                    TOTAL
+                  </Text>
+                  <Text style={[styles.infoValue, styles.totalValue]}>
+                    {formatCurrency(ordem.orde_tota)}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
+          )}
         </>
       )}
 
