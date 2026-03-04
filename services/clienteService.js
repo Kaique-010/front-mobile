@@ -79,7 +79,7 @@ export const fetchClienteOrdensServico = async (params = {}) => {
       'Ordem Servico Response:',
       JSON.stringify(response.data, null, 2),
     )
-    return response.data.results || []
+    return response.data
   } catch (error) {
     handleApiError(error)
     return []
@@ -280,4 +280,3 @@ export const fetchClienteImagensDepois = async (orde_nume) => {
     return []
   }
 }
-

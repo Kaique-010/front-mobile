@@ -46,22 +46,29 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
       const numeroOrdem = ordem?.orde_nume || ordemInicial?.orde_nume
 
       if (numeroOrdem) {
-        const ordens = await fetchClienteOrdensServico({
+        const response = await fetchClienteOrdensServico({
           orde_nume: numeroOrdem,
         })
-        ordemEncontrada = ordens.find((o) => o.orde_nume === numeroOrdem)
+        const lista =
+          response.results || (Array.isArray(response) ? response : [])
+        ordemEncontrada = lista.find((o) => o.orde_nume === numeroOrdem)
       }
 
       // Se não encontrou pelo número, tenta pelo ID
       if (!ordemEncontrada && ordemId) {
         // Tenta buscar específico pelo ID
-        let ordens = await fetchClienteOrdensServico({ id: ordemId })
-        ordemEncontrada = ordens.find((o) => o.id === ordemId)
+        const response = await fetchClienteOrdensServico({ id: ordemId })
+        let lista =
+          response.results || (Array.isArray(response) ? response : [])
+        ordemEncontrada = lista.find((o) => o.id === ordemId)
 
         // Se ainda não encontrou, busca na lista geral (fallback)
         if (!ordemEncontrada) {
-          ordens = await fetchClienteOrdensServico()
-          ordemEncontrada = ordens.find((o) => o.id === ordemId)
+          const responseAll = await fetchClienteOrdensServico()
+          lista =
+            responseAll.results ||
+            (Array.isArray(responseAll) ? responseAll : [])
+          ordemEncontrada = lista.find((o) => o.id === ordemId)
         }
       }
 
@@ -300,6 +307,47 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 {ordem.orde_defe_desc || 'Nenhuma descrição informada'}
               </Text>
             </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Peças</Text>
+            {ordem.pecas && ordem.pecas.length > 0 ? (
+              ordem.pecas.map((peca, index) => (
+                <View key={index} style={styles.itemCard}>
+                  <Text style={styles.itemNome}>
+                    {peca.produto_nome || `Peça #${peca.peca_codi}`}
+                  </Text>
+                  <View style={styles.itemDetails}>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>QUANTIDADE</Text>
+                      <Text style={styles.itemValue}>{peca.peca_quan}</Text>
+                    </View>
+                    {ordem.ver_preco !== false && (
+                      <>
+                        <View style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>VALOR UNITÁRIO</Text>
+                          <Text style={styles.itemValue}>
+                            {formatCurrency(peca.peca_unit)}
+                          </Text>
+                        </View>
+                        <View style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>SUBTOTAL</Text>
+                          <Text style={styles.itemValue}>
+                            {formatCurrency(
+                              peca.peca_tota || peca.peca_quan * peca.peca_unit,
+                            )}
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>Nenhuma peça encontrada</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.section}>

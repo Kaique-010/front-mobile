@@ -23,11 +23,15 @@ const { width } = Dimensions.get('window')
 
 const HomeCliente = () => {
   const navigation = useNavigation()
-  const { cliente, logout } = useClienteAuth()
+  const { cliente, logout, usuario } = useClienteAuth()
+
   const [dashboardData, setDashboardData] = useState(null)
   const [pedidos, setPedidos] = useState([])
+  const [totalPedidos, setTotalPedidos] = useState(0)
   const [orcamentos, setOrcamentos] = useState([])
+  const [totalOrcamentos, setTotalOrcamentos] = useState(0)
   const [ordensServico, setOrdensServico] = useState([])
+  const [totalOrdens, setTotalOrdens] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -48,9 +52,42 @@ const HomeCliente = () => {
         ])
 
       setDashboardData(dashData)
-      setPedidos(pedidosData || [])
-      setOrcamentos(orcamentosData || [])
-      setOrdensServico(ordensData || [])
+
+      // Processar Pedidos
+      if (pedidosData && pedidosData.results) {
+        setPedidos(pedidosData.results)
+        setTotalPedidos(pedidosData.count)
+      } else if (Array.isArray(pedidosData)) {
+        setPedidos(pedidosData)
+        setTotalPedidos(pedidosData.length)
+      } else {
+        setPedidos([])
+        setTotalPedidos(0)
+      }
+
+      // Processar Orçamentos
+      if (orcamentosData && orcamentosData.results) {
+        setOrcamentos(orcamentosData.results)
+        setTotalOrcamentos(orcamentosData.count)
+      } else if (Array.isArray(orcamentosData)) {
+        setOrcamentos(orcamentosData)
+        setTotalOrcamentos(orcamentosData.length)
+      } else {
+        setOrcamentos([])
+        setTotalOrcamentos(0)
+      }
+
+      // Processar Ordens de Serviço
+      if (ordensData && ordensData.results) {
+        setOrdensServico(ordensData.results)
+        setTotalOrdens(ordensData.count)
+      } else if (Array.isArray(ordensData)) {
+        setOrdensServico(ordensData)
+        setTotalOrdens(ordensData.length)
+      } else {
+        setOrdensServico([])
+        setTotalOrdens(0)
+      }
     } catch (error) {
       console.error('Erro ao carregar dados do cliente:', error)
       Alert.alert('Erro', 'Falha ao carregar dados do cliente')
@@ -119,9 +156,6 @@ const HomeCliente = () => {
         <View style={styles.headerContent}>
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeText}>Bem-vindo</Text>
-            <Text style={styles.clienteName}>
-              {cliente?.cliente_nome || 'Cliente'}
-            </Text>
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutText}>Sair</Text>
@@ -133,6 +167,9 @@ const HomeCliente = () => {
       <View style={styles.clienteInfoCard}>
         <View style={styles.clienteInfoHeader}>
           <Text style={styles.clienteInfoTitle}>Informações</Text>
+          <Text style={styles.clienteInfoSubtitle}>
+            {cliente?.cliente_nome || 'Cliente'}
+          </Text>
         </View>
         <View style={styles.clienteInfoContent}>
           <View style={styles.infoItem}>
@@ -170,19 +207,19 @@ const HomeCliente = () => {
         <View style={styles.cardsContainer}>
           <DashboardCard
             title="Ordens de Serviço"
-            value={ordensServico.length.toString()}
+            value={totalOrdens.toString()}
             color="#87dfb6ff"
             onPress={() => navigation.navigate('ClienteOrdensServicoList')}
           />
           <DashboardCard
             title="Pedidos"
-            value={pedidos.length.toString()}
+            value={totalPedidos.toString()}
             color="#00D4FF"
             onPress={() => navigation.navigate('ClientePedidosList')}
           />
           <DashboardCard
             title="Orçamentos"
-            value={orcamentos.length.toString()}
+            value={totalOrcamentos.toString()}
             color="#c4af3bff"
             onPress={() => navigation.navigate('ClienteOrcamentosList')}
           />
@@ -216,6 +253,10 @@ const HomeCliente = () => {
         </View>
       </View>
       <Text style={styles.footer}>
+        <Image
+          source={require('../assets/logo.png')}
+          style={styles.footerImage}
+        />
         Desenvolvido por Spartacus Sistemas 2026
       </Text>
 
@@ -275,7 +316,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   welcomeText: {
-    fontSize: 13,
+    fontSize: 20,
     color: '#8B8BA7',
     fontWeight: '400',
     marginBottom: 4,
@@ -325,6 +366,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  clienteInfoSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   clienteInfoContent: {
     paddingHorizontal: 20,
@@ -468,6 +515,11 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#8B8BA7',
     marginBottom: 20,
+  },
+  footerImage: {
+    width: 20,
+    height: 20,
+    marginBottom: 0,
   },
 })
 

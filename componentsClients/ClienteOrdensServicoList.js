@@ -33,8 +33,14 @@ const STATUS_OPTIONS = [
 
 const ClienteOrdensServicoList = ({ navigation }) => {
   const [ordens, setOrdens] = useState([])
+  const [totalOrdens, setTotalOrdens] = useState(0)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+
+  // Paginação
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   // Estados para filtros
   const [filtrosVisiveis, setFiltrosVisiveis] = useState(false)
@@ -43,9 +49,13 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   const [dataFinal, setDataFinal] = useState(null)
 
   const carregarOrdens = useCallback(
-    async (filtrosOverride = null) => {
+    async (filtrosOverride = null, pagina = 1) => {
       try {
-        setLoading(true)
+        if (pagina === 1) {
+          setLoading(true)
+        } else {
+          setLoadingMore(true)
+        }
 
         const filtros = filtrosOverride || {
           status: statusFiltro,
@@ -55,6 +65,7 @@ const ClienteOrdensServicoList = ({ navigation }) => {
 
         const params = {
           ordering: '-data_abertura',
+          page: pagina,
         }
 
         if (filtros.status) params.status = filtros.status
@@ -62,12 +73,33 @@ const ClienteOrdensServicoList = ({ navigation }) => {
         if (filtros.data_final) params.data_final = filtros.data_final
 
         const data = await fetchClienteOrdensServico(params)
-        setOrdens(data || [])
+
+        if (data && data.results && Array.isArray(data.results)) {
+          if (pagina === 1) {
+            setOrdens(data.results)
+          } else {
+            setOrdens((prevOrdens) => [...prevOrdens, ...data.results])
+          }
+
+          setTotalOrdens(data.count || data.results.length)
+          setHasMore(!!data.next)
+          setPage(pagina)
+        } else if (Array.isArray(data)) {
+          // Fallback para API sem paginação
+          setOrdens(data)
+          setTotalOrdens(data.length)
+          setHasMore(false)
+        } else {
+          setOrdens([])
+          setTotalOrdens(0)
+          setHasMore(false)
+        }
       } catch (error) {
         console.error('Erro ao carregar ordens de serviço:', error)
         Alert.alert('Erro', 'Não foi possível carregar suas ordens de serviço')
       } finally {
         setLoading(false)
+        setLoadingMore(false)
         setRefreshing(false)
       }
     },
@@ -76,13 +108,19 @@ const ClienteOrdensServicoList = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      carregarOrdens()
+      carregarOrdens(null, 1)
     }, [carregarOrdens]),
   )
 
   const onRefresh = () => {
     setRefreshing(true)
-    carregarOrdens()
+    carregarOrdens(null, 1)
+  }
+
+  const loadMoreOrdens = () => {
+    if (!loadingMore && hasMore && !loading) {
+      carregarOrdens(null, page + 1)
+    }
   }
 
   const formatarDataParaAPI = (data) => {
@@ -92,7 +130,7 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   }
 
   const aplicarFiltros = () => {
-    carregarOrdens()
+    carregarOrdens(null, 1)
     setFiltrosVisiveis(false)
   }
 
@@ -101,11 +139,14 @@ const ClienteOrdensServicoList = ({ navigation }) => {
     setDataInicial(null)
     setDataFinal(null)
     setFiltrosVisiveis(false)
-    carregarOrdens({
-      status: '',
-      data_inicial: null,
-      data_final: null,
-    })
+    carregarOrdens(
+      {
+        status: '',
+        data_inicial: null,
+        data_final: null,
+      },
+      1,
+    )
   }
 
   const renderItem = ({ item }) => {
@@ -351,6 +392,8 @@ const ClienteOrdensServicoList = ({ navigation }) => {
         refreshing={refreshing}
         onRefresh={onRefresh}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMoreOrdens}
+        onEndReachedThreshold={0.1}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="construct-outline" size={60} color="#8B8BA7" />
@@ -358,6 +401,31 @@ const ClienteOrdensServicoList = ({ navigation }) => {
               Você não possui ordens de serviço
             </Text>
           </View>
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerContainer}>
+              <ActivityIndicator
+                size="small"
+                color="#00D4FF"
+                style={{ marginBottom: 8 }}
+              />
+              <Text style={styles.footerText}>Carregando mais ordens...</Text>
+            </View>
+          ) : ordens.length > 0 ? (
+            <View style={styles.footerContainer}>
+              <Text style={styles.footerText}>
+                {ordens.length} de {totalOrdens} ordens carregadas
+              </Text>
+              {ordens.length < totalOrdens && (
+                <Text style={styles.footerSubText}>
+                  Role para baixo para ver mais
+                </Text>
+              )}
+            </View>
+          ) : (
+            <View style={{ height: 20 }} />
+          )
         }
       />
     </View>
@@ -588,6 +656,26 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: '#0F0F23',
     fontWeight: '700',
+  },
+  footerContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  footerText: {
+    color: '#8B8BA7',
+    fontSize: 13,
+    textAlign: 'center',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  footerSubText: {
+    color: '#00D4FF',
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 })
 

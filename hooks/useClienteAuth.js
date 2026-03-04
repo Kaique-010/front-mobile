@@ -5,6 +5,7 @@ import { BASE_URL } from '../utils/api'
 
 const useClienteAuth = () => {
   const [cliente, setCliente] = useState(null)
+  const [usuario, setUsuario] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigation = useNavigation()
@@ -16,6 +17,7 @@ const useClienteAuth = () => {
       setError(null)
 
       const session_id = await AsyncStorage.getItem('session_id')
+      const usuario_nome = await AsyncStorage.getItem('usuario_nome')
       const cliente_nome = await AsyncStorage.getItem('cliente_nome')
       const documento = await AsyncStorage.getItem('documento')
       const cliente_id = await AsyncStorage.getItem('cliente_id')
@@ -73,6 +75,7 @@ const useClienteAuth = () => {
       // Salvar dados da sessão
       const ver_preco = data.permissoes?.ver_preco || false
       const ver_foto = data.permissoes?.ver_foto || false
+      const usuario_nome = data.usuario_nome || 'Cliente'
 
       await AsyncStorage.multiSet([
         ['session_id', data.session_id],
@@ -83,7 +86,15 @@ const useClienteAuth = () => {
         ['userType', 'cliente'],
         ['ver_preco', String(ver_preco)],
         ['ver_foto', String(ver_foto)],
+        ['usuario_nome', usuario_nome],
       ])
+
+      // Setar usuário
+      setUsuario({
+        usuario_id: data.usuario_id,
+        usuario_nome: data.usuario_nome,
+        usuario_email: data.usuario_email,
+      })
 
       setCliente({
         ...data,
@@ -112,6 +123,7 @@ const useClienteAuth = () => {
         'banco',
       ])
       setCliente(null)
+      setUsuario(null)
       navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
     } catch (error) {
       console.error('Erro logout:', error)
@@ -124,6 +136,7 @@ const useClienteAuth = () => {
     cliente,
     loading,
     error,
+    usuario,
     login,
     logout,
     isAuthenticated,
