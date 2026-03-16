@@ -81,12 +81,12 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       let empr = empresaId
       let fili = filialId
       if (!empr || !fili) {
-        const [emprS, filiS] = await Promise.all([
+        const [empr, fili] = await Promise.all([
           AsyncStorage.getItem('empresaId'),
           AsyncStorage.getItem('filialId'),
         ])
-        empr = emprS
-        fili = filiS
+        empr = empr
+        fili = fili
       }
       const response = await apiGetComContexto('ordemdeservico/servicos/', {
         serv_orde: orde_nume,

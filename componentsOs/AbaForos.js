@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   View,
   Text,
@@ -9,8 +9,17 @@ import {
   StyleSheet,
 } from 'react-native'
 import { Modal, Linking, Platform } from 'react-native'
-import {PinchGestureHandler,PanGestureHandler,TapGestureHandler,State} from 'react-native-gesture-handler'
-import {tirarFotoComGeo,enviarFotoEtapa,fetchFotos} from '../services/fotosApi'
+import {
+  PinchGestureHandler,
+  PanGestureHandler,
+  TapGestureHandler,
+  State,
+} from 'react-native-gesture-handler'
+import {
+  tirarFotoComGeo,
+  enviarFotoEtapa,
+  fetchFotos,
+} from '../services/fotosApi'
 import { BASE_URL, getAuthHeaders } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -21,14 +30,19 @@ const etapas = [
 ]
 
 export default function AbaForos({ orde_nume, codTecnico }) {
+  const NUM_COLUMNS = 3
+  const ITEM_HEIGHT = 122
+
   const [subAba, setSubAba] = useState('antes')
   const [fotos, setFotos] = useState([])
   const [modalVisible, setModalVisible] = useState(false)
-  const [imagemSelecionada, setImagemSelecionada] = useState([])
+  const [imagemSelecionada, setImagemSelecionada] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   const [slug, setSlug] = useState('')
   const [authHeaders, setAuthHeaders] = useState(null)
   const [secureSources, setSecureSources] = useState({})
+  const secureObjectUrlsRef = useRef({})
+  const secureLoadsInFlightRef = useRef(new Set())
 
   const baseScale = useRef(new Animated.Value(1)).current
   const pinchScale = useRef(new Animated.Value(1)).current
@@ -70,7 +84,24 @@ export default function AbaForos({ orde_nume, codTecnico }) {
       if (res && res.length > 0) {
       }
 
-      setFotos(res)
+      const fotosSanitizadas = (res || [])
+        .filter((item) => item && typeof item === 'object')
+        .map((item) => {
+          const { imagem_base64, imagem_data_uri, imagem_upload, ...rest } =
+            item
+          return rest
+        })
+
+      const fotosOrdenadas = fotosSanitizadas.slice().sort((a, b) => {
+        const aId = getImageId(a)
+        const bId = getImageId(b)
+        const aNum = Number(aId)
+        const bNum = Number(bId)
+        if (Number.isFinite(aNum) && Number.isFinite(bNum)) return aNum - bNum
+        return String(aId ?? '').localeCompare(String(bId ?? ''))
+      })
+
+      setFotos(fotosOrdenadas)
     } catch (error) {
       console.error(`❌ Erro ao carregar fotos da etapa ${subAba}:`, error)
       setFotos([])
@@ -111,41 +142,38 @@ export default function AbaForos({ orde_nume, codTecnico }) {
     return imageId
   }
 
+  const getDirectImageUri = (imageId) => {
+    return `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${orde_nume}/${imageId}/bin/`
+  }
+
   const openImage = (item) => {
     const imageId = getImageId(item)
-    let uri
+    const directUri = getDirectImageUri(imageId)
 
-    if (item.imagem_data_uri) {
-      uri = item.imagem_data_uri
-    } else if (item.imagem_base64) {
-      uri = `data:image/jpeg;base64,${item.imagem_base64}`
+    if (Platform.OS === 'web') {
+      setImagemSelecionada({
+        source: { uri: secureSources[imageId] || directUri },
+        item,
+      })
+    } else if (authHeaders) {
+      setImagemSelecionada({
+        source: { uri: directUri, headers: authHeaders },
+        item,
+      })
     } else {
-      const directUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${orde_nume}/${imageId}/bin/`
-      if (secureSources[imageId]) {
-        uri = secureSources[imageId]
-      } else {
-        uri = directUri
-      }
-    }
-
-    if (Platform.OS === 'web' && uri && uri.startsWith('http')) {
-      setImagemSelecionada([{ uri: secureSources[imageId] || uri }, item])
-    } else if (authHeaders && uri && uri.startsWith('http')) {
-      setImagemSelecionada([{ uri, headers: authHeaders }, item])
-    } else {
-      setImagemSelecionada([{ uri }, item])
+      setImagemSelecionada({ source: { uri: directUri }, item })
     }
     setModalVisible(true)
   }
 
   const onPinchGestureEvent = Animated.event(
     [{ nativeEvent: { scale: pinchScale } }],
-    { useNativeDriver: false }
+    { useNativeDriver: false },
   )
 
   const onPanGestureEvent = Animated.event(
     [{ nativeEvent: { translationX: pan.x, translationY: pan.y } }],
-    { useNativeDriver: false }
+    { useNativeDriver: false },
   )
 
   const onPinchHandlerStateChange = (event) => {
@@ -183,63 +211,117 @@ export default function AbaForos({ orde_nume, codTecnico }) {
     }
   }, [modalVisible, imagemSelecionada])
 
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+
+    const urls = secureObjectUrlsRef.current
+    return () => {
+      for (const key of Object.keys(urls)) {
+        try {
+          URL.revokeObjectURL(urls[key])
+        } catch {}
+      }
+      secureObjectUrlsRef.current = {}
+    }
+  }, [])
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+
+    const idsAtuais = new Set(
+      (fotos || [])
+        .map((f) => getImageId(f))
+        .filter((id) => id != null)
+        .map((id) => String(id)),
+    )
+
+    const urls = secureObjectUrlsRef.current
+    const chaves = Object.keys(urls)
+    if (chaves.length === 0) return
+
+    let teveMudanca = false
+    for (const key of chaves) {
+      if (!idsAtuais.has(String(key))) {
+        try {
+          URL.revokeObjectURL(urls[key])
+        } catch {}
+        delete urls[key]
+        teveMudanca = true
+      }
+    }
+
+    if (teveMudanca) {
+      setSecureSources((prev) => {
+        const next = { ...prev }
+        for (const key of Object.keys(next)) {
+          if (!idsAtuais.has(String(key))) delete next[key]
+        }
+        return next
+      })
+    }
+  }, [fotos, subAba])
+
   const loadSecureImage = async (imageId, imageUri) => {
+    if (Platform.OS !== 'web') return
+    if (!imageId || secureSources[imageId]) return
+    if (secureLoadsInFlightRef.current.has(imageId)) return
+
+    secureLoadsInFlightRef.current.add(imageId)
     try {
       const headers = await getAuthHeaders()
       const token = await AsyncStorage.getItem('access')
       const res = await fetch(imageUri, {
         headers: { Authorization: `Bearer ${token}`, ...headers },
       })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setSecureSources((prev) => ({ ...prev, [imageId]: reader.result }))
+      const objectUrl = URL.createObjectURL(blob)
+      const urls = secureObjectUrlsRef.current
+      if (urls[imageId]) {
+        try {
+          URL.revokeObjectURL(urls[imageId])
+        } catch {}
       }
-      reader.readAsDataURL(blob)
+      urls[imageId] = objectUrl
+      setSecureSources((prev) => ({ ...prev, [imageId]: objectUrl }))
     } catch (e) {
       console.error('Erro ao carregar imagem segura:', e)
+    } finally {
+      secureLoadsInFlightRef.current.delete(imageId)
     }
   }
 
-  const renderItem = ({ item }) => {
-    const imageId = getImageId(item)
-    let imageSource
-    if (item.imagem_data_uri) {
-      imageSource = { uri: item.imagem_data_uri }
-    } else if (item.imagem_base64) {
-      imageSource = { uri: `data:image/jpeg;base64,${item.imagem_base64}` }
-    } else {
-      const imageUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${orde_nume}/${imageId}/bin/`
-      if (secureSources[imageId]) {
-        imageSource = { uri: secureSources[imageId] }
-      } else if (Platform.OS === 'web') {
-        imageSource = { uri: imageUri }
+  const renderItem = useCallback(
+    ({ item }) => {
+      const imageId = getImageId(item)
+      let imageSource
+      const imageUri = getDirectImageUri(imageId)
+      if (Platform.OS === 'web') {
+        imageSource = { uri: secureSources[imageId] || imageUri }
       } else if (authHeaders) {
         imageSource = { uri: imageUri, headers: authHeaders }
       } else {
         imageSource = { uri: imageUri }
       }
-    }
 
-    return (
-      <TouchableOpacity onPress={() => openImage(item)}>
-        <Image
-          source={imageSource}
-          style={styles.thumb}
-          onError={(error) => {
-            console.error(`❌ Erro ao carregar imagem ${imageId}:`, error)
-            console.error(`❌ Source usado:`, imageSource)
-            console.error(`❌ Item completo:`, item)
-            const fallbackUri = `${BASE_URL}/api/${slug}/ordemdeservico/imagens-${subAba}/${orde_nume}/${imageId}/bin/`
-            loadSecureImage(imageId, fallbackUri)
-          }}
-          onLoad={() => {}}
-          onLoadStart={() => {}}
-        />
-        <Text style={styles.debugText}>ID: {imageId}</Text>
-      </TouchableOpacity>
-    )
-  }
+      return (
+        <TouchableOpacity onPress={() => openImage(item)}>
+          <Image
+            source={imageSource}
+            style={styles.thumb}
+            onError={(error) => {
+              console.error(`❌ Erro ao carregar imagem ${imageId}:`, error)
+              loadSecureImage(imageId, imageUri)
+            }}
+            onLoad={() => {}}
+            onLoadStart={() => {}}
+          />
+          <Text style={styles.debugText}>ID: {imageId}</Text>
+        </TouchableOpacity>
+      )
+    },
+    [authHeaders, secureSources, subAba, slug, orde_nume],
+  )
 
   return (
     <View style={styles.container}>
@@ -259,14 +341,27 @@ export default function AbaForos({ orde_nume, codTecnico }) {
       {fotos.length > 0 ? (
         <FlatList
           data={fotos}
-          keyExtractor={(item) => {
+          keyExtractor={(item, index) => {
             const imageId = getImageId(item)
-            return `${subAba}-${imageId}`
+            return `${subAba}-${imageId ?? index}`
           }}
           renderItem={renderItem}
-          numColumns={3}
+          numColumns={NUM_COLUMNS}
           nestedScrollEnabled={true}
           contentContainerStyle={{ padding: 8 }}
+          removeClippedSubviews={Platform.OS !== 'web'}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          updateCellsBatchingPeriod={50}
+          windowSize={5}
+          getItemLayout={(_, index) => {
+            const rowIndex = Math.floor(index / NUM_COLUMNS)
+            return {
+              length: ITEM_HEIGHT,
+              offset: ITEM_HEIGHT * rowIndex,
+              index,
+            }
+          }}
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -300,36 +395,41 @@ export default function AbaForos({ orde_nume, codTecnico }) {
                   simultaneousHandlers={[panRef, doubleTapRef]}
                   onGestureEvent={onPinchGestureEvent}
                   onHandlerStateChange={onPinchHandlerStateChange}>
-                  <Animated.Image
-                    source={imagemSelecionada[0]}
-                    style={[
-                      styles.modalImage,
-                      {
-                        transform: [...pan.getTranslateTransform(), { scale }],
-                      },
-                    ]}
-                    resizeMode="contain"
-                  />
+                  {imagemSelecionada?.source && (
+                    <Animated.Image
+                      source={imagemSelecionada.source}
+                      style={[
+                        styles.modalImage,
+                        {
+                          transform: [
+                            ...pan.getTranslateTransform(),
+                            { scale },
+                          ],
+                        },
+                      ]}
+                      resizeMode="contain"
+                    />
+                  )}
                 </PinchGestureHandler>
               </PanGestureHandler>
             </TapGestureHandler>
 
             <Text style={styles.obsText}>
-              📝 {imagemSelecionada[1]?.observacao || 'Sem observação'}
+              📝 {imagemSelecionada?.item?.observacao || 'Sem observação'}
             </Text>
 
             <Text style={styles.coordText}>
-              📍 {imagemSelecionada[1]?.img_latitude || '---'} |{' '}
-              {imagemSelecionada[1]?.img_longitude || '---'}
+              📍 {imagemSelecionada?.item?.img_latitude || '---'} |{' '}
+              {imagemSelecionada?.item?.img_longitude || '---'}
             </Text>
 
-            {imagemSelecionada[1]?.img_latitude &&
-              imagemSelecionada[1]?.img_longitude && (
+            {imagemSelecionada?.item?.img_latitude &&
+              imagemSelecionada?.item?.img_longitude && (
                 <TouchableOpacity
                   style={styles.mapButton}
                   onPress={() =>
                     Linking.openURL(
-                      `https://www.google.com/maps?q=${imagemSelecionada[1].img_latitude},${imagemSelecionada[1].img_longitude}`
+                      `https://www.google.com/maps?q=${imagemSelecionada.item.img_latitude},${imagemSelecionada.item.img_longitude}`,
                     )
                   }>
                   <Text style={styles.mapText}>Ver no Mapa</Text>
