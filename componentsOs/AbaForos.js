@@ -122,7 +122,16 @@ export default function AbaForos({ orde_nume, codTecnico }) {
       await loadFotos()
     } catch (error) {
       console.error('❌ Erro ao adicionar foto:', error)
-      alert(`Erro ao adicionar foto: ${error}`)
+      const status = error?.response?.status
+      if (status === 413) {
+        alert(
+          'Foto muito grande para enviar. Tire novamente usando 0,5x ou aproxime do objeto.'
+        )
+      } else if (typeof error === 'string') {
+        alert(error)
+      } else {
+        alert(`Erro ao adicionar foto: ${error?.message || 'Falha inesperada'}`)
+      }
     } finally {
       setIsUploading(false)
     }

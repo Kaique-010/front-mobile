@@ -6,6 +6,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 import { handleApiError } from '../utils/errorHandler'
 
+const CAMERA_QUALITY_PADRAO = 0.5
+const MAX_BASE64_LENGTH_UPLOAD = 2_500_000
+
 export const tirarFotoComGeo = () =>
   new Promise(async (resolve, reject) => {
     try {
@@ -24,8 +27,9 @@ export const tirarFotoComGeo = () =>
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
-        quality: 0.5,
+        quality: CAMERA_QUALITY_PADRAO,
         base64: true,
+        exif: false,
       })
 
       if (result.canceled) {
@@ -38,13 +42,23 @@ export const tirarFotoComGeo = () =>
         return reject('Foto inválida ou sem dados')
       }
 
+      const base64 = result.assets[0].base64
+      if (base64.length > MAX_BASE64_LENGTH_UPLOAD) {
+        Toast.show({
+          type: 'error',
+          text1: 'Foto muito grande',
+          text2: 'Tire novamente em 0,5x ou aproxime do objeto.',
+        })
+        return reject('Foto muito grande para enviar. Use 0,5x ou aproxime.')
+      }
+
       // Solicitar permissão de localização
       const locationPermission =
         await Location.requestForegroundPermissionsAsync()
 
       if (locationPermission.status !== 'granted') {
         resolve({
-          imagem_base64: result.assets[0].base64,
+          imagem_base64: base64,
           latitude: null,
           longitude: null,
         })
@@ -60,7 +74,7 @@ export const tirarFotoComGeo = () =>
         })
 
         resolve({
-          imagem_base64: result.assets[0].base64,
+          imagem_base64: base64,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         })
@@ -72,7 +86,7 @@ export const tirarFotoComGeo = () =>
       } catch (locationError) {
         console.log('❌ Erro ao obter localização:', locationError)
         resolve({
-          imagem_base64: result.assets[0].base64,
+          imagem_base64: base64,
           latitude: null,
           longitude: null,
         })
