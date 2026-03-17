@@ -685,4 +685,28 @@ export const screenConfigs = [
     component: Screens.ListarPontos,
     options: createHeaderOptions('Listar Pontos'),
   },
+
+  // Telas de CFOP
+  {
+    name: 'CfopForm',
+    component: Screens.CfopForm,
+    options: createHeaderOptions('CFOP'),
+  },
+  {
+    name: 'CfopList',
+    component: Screens.CfopList,
+    options: createHeaderOptions('Lista de CFOPs'),
+  },
+  // Telas de NCM
+  
+  {
+    name: 'NcmForm',
+    component: Screens.NcmForm,
+    options: createHeaderOptions('NCM'),
+  },
+  {
+    name: 'NcmList',
+    component: Screens.NcmList,
+    options: createHeaderOptions('Lista de NCMs'),
+  },
 ]

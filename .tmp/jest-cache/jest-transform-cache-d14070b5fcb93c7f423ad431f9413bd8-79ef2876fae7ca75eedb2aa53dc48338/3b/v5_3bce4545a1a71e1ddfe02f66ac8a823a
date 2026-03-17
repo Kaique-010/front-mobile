@@ -1,0 +1,16 @@
+b5a76c3daf5f30174f075e9dc47be295
+"use strict";
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.v5 = void 0;
+var v35_1 = require("./v35");
+var sha1_1 = __importDefault(require("./sha1"));
+exports.v5 = (0, v35_1.v35)('v5', 0x50, sha1_1.default);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJ2MzVfMSIsInJlcXVpcmUiLCJzaGExXzEiLCJfX2ltcG9ydERlZmF1bHQiLCJleHBvcnRzIiwidjUiLCJ2MzUiLCJkZWZhdWx0Il0sInNvdXJjZXMiOlsiLi4vc3JjL3Y1LnRzIl0sInNvdXJjZXNDb250ZW50IjpbbnVsbF0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7OztBQUFBLElBQUFBLEtBQUEsR0FBQUMsT0FBQTtBQUNBLElBQUFDLE1BQUEsR0FBQUMsZUFBQSxDQUFBRixPQUFBO0FBRWFHLE9BQUEsQ0FBQUMsRUFBRSxHQUFHLElBQUFMLEtBQUEsQ0FBQU0sR0FBRyxFQUFDLElBQUksRUFBRSxJQUFJLEVBQUVKLE1BQUEsQ0FBQUssT0FBSSxDQUFDIiwiaWdub3JlTGlzdCI6W119

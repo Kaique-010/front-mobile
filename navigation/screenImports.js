@@ -66,6 +66,14 @@ export { default as NotaFiscalDetalhe } from '../screens/NotaFiscalDetalhe'
 export { default as NotaFiscalXml } from '../screens/NotaFiscalXml'
 export { default as NotaFiscalForm } from '../screens/NotaFiscalForm'
 
+// Telas de CFOP
+export { default as CfopForm } from '../componentsCfop/CfopForm'
+export { default as CfopList } from '../componentsCfop/CfopList'
+
+// Telas de NCM
+export { default as NcmForm } from '../componentsNCMs/NcmForm'
+export { default as NcmList } from '../componentsNCMs/NcmList'
+
 // Telas de comissão
 export { default as ComissaoForm } from '../componentsComissao/ComissaoForm'
 export { default as ComissaoList } from '../componentsComissao/ComissaoList'

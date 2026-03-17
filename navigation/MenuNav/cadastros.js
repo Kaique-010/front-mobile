@@ -8,6 +8,12 @@ export const getCadastrosMenu = (hasModulo) => ({
       icon: 'users',
       condition: hasModulo('Entidades'),
     },
+    {
+      name: 'CFOPs',
+      route: 'CfopList',
+      icon: 'list',
+      condition: hasModulo('Entidades'),
+    },
     // Na seção cadastros
     {
       name: 'Entradas de Estoque',

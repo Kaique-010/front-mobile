@@ -8,5 +8,17 @@ export const getNotasMenu = (hasModulo) => ({
       icon: 'file-text',
       condition: hasModulo('Financeiro'),
     },
+    {
+      name: 'CFOPs',
+      route: 'CfopList',
+      icon: 'file-text',
+      condition: hasModulo('Produtos'),
+    },
+    {
+      name: 'NCMs',
+      route: 'NcmList',
+      icon: 'file-text',
+      condition: hasModulo('Produtos'),
+    },
   ].sort((a, b) => a.name.localeCompare(b.name)),
 })

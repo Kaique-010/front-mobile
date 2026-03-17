@@ -7,9 +7,9 @@ import { getStoredData } from '../services/storageService'
 
 // BASE_URL manual; altere conforme ambiente
 //export const BASE_URL = 'http://localhost:8000' // LOCAL
-//export const BASE_URL = 'http://localhost:8000' // Android emulador - dev local
+export const BASE_URL = 'http://localhost:8000' // Android emulador - dev local
 //export const BASE_URL = 'http://172.25.0.18:8000' // Dispositivo físico na rede
-export const BASE_URL = 'https://mobile-sps.site' // Produção
+//export const BASE_URL = 'https://mobile-sps.site' // Produção
 
 const refreshToken = async () => {
   const refresh = await AsyncStorage.getItem('refresh')
