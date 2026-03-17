@@ -2,7 +2,6 @@ import React, {
   useCallback,
   useMemo,
   useState,
-  useLayoutEffect,
   useEffect,
 } from 'react'
 import {
@@ -28,6 +27,7 @@ export default function CfopList({ navigation }) {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [ready, setReady] = useState(false)
 
   // Filtros
   const [buscaCFOP, setBuscaCFOP] = useState('')
@@ -105,14 +105,15 @@ export default function CfopList({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      buscarCfops({ silent: true })
+      setReady(false)
+      buscarCfops({ silent: true }).finally(() => setReady(true))
     }, [empresaId, carregando]),
   )
 
   useEffect(() => {
-    if (!empresaId || carregando) return
+    if (!empresaId || carregando || !ready) return
     const t = setTimeout(() => {
-      buscarCfops()
+      buscarCfops({ silent: true })
     }, 300)
     return () => clearTimeout(t)
   }, [empresaId, carregando, buscaCFOP])
@@ -166,15 +167,6 @@ export default function CfopList({ navigation }) {
     </View>
   )
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Carregando CFOPs...</Text>
-      </View>
-    )
-  }
-
   if (erro) {
     return (
       <View style={styles.erroContainer}>
@@ -214,6 +206,12 @@ export default function CfopList({ navigation }) {
         />
       </View>
 
+      {loading ? (
+        <View style={{ paddingVertical: 10 }}>
+          <ActivityIndicator size="small" color="#01ff16" />
+        </View>
+      ) : null}
+
       <FlatList
         data={dadosFiltrados}
         keyExtractor={(item, index) => {
@@ -223,6 +221,7 @@ export default function CfopList({ navigation }) {
         renderItem={renderItem}
         style={styles.lista}
         contentContainerStyle={styles.listaContent}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

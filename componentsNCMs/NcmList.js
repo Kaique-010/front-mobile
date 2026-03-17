@@ -22,6 +22,7 @@ export default function NcmList({ navigation }) {
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [ready, setReady] = useState(false)
 
   // Filtros
   const [buscaNCM, setBuscaNCM] = useState('')
@@ -112,14 +113,15 @@ export default function NcmList({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      buscarNcms({ silent: true })
+      setReady(false)
+      buscarNcms({ silent: true }).finally(() => setReady(true))
     }, [empresaId, carregando]),
   )
 
   useEffect(() => {
-    if (!empresaId || carregando) return
+    if (!empresaId || carregando || !ready) return
     const t = setTimeout(() => {
-      buscarNcms()
+      buscarNcms({ silent: true })
     }, 300)
     return () => clearTimeout(t)
   }, [empresaId, carregando, buscaNCM])
@@ -191,15 +193,6 @@ export default function NcmList({ navigation }) {
     </View>
   )
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Carregando NCMs...</Text>
-      </View>
-    )
-  }
-
   if (erro) {
     return (
       <View style={styles.erroContainer}>
@@ -239,6 +232,12 @@ export default function NcmList({ navigation }) {
         />
       </View>
 
+      {loading ? (
+        <View style={{ paddingVertical: 10 }}>
+          <ActivityIndicator size="small" color="#01ff16" />
+        </View>
+      ) : null}
+
       <FlatList
         data={dadosFiltrados}
         keyExtractor={(item, index) => {
@@ -248,6 +247,7 @@ export default function NcmList({ navigation }) {
         renderItem={renderItem}
         style={styles.lista}
         contentContainerStyle={styles.listaContent}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
