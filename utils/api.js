@@ -66,10 +66,10 @@ export const getAuthHeaders = async () => {
     const empresaId = await AsyncStorage.getItem('empresaId')
     const filialId = await AsyncStorage.getItem('filialId')
     const docu = await AsyncStorage.getItem('docu')
-    const setor = await AsyncStorage.getItem('setor')
-    let usuario_setor = await AsyncStorage.getItem('setor')
     const username = await AsyncStorage.getItem('username')
 
+    // FIX: chave 'setor' duplicada removida — unificado em uma só
+    let usuario_setor = await AsyncStorage.getItem('setor')
     if (!usuario_setor || usuario_setor === '0') {
       const currentToken = await AsyncStorage.getItem('access')
       const claims = decodeJwtClaims(currentToken)
@@ -78,16 +78,14 @@ export const getAuthHeaders = async () => {
         await safeSetItem('setor', usuario_setor)
       }
     }
-    const headers = {
+
+    return {
       'X-Empresa': empresaId || '1',
       'X-Filial': filialId || '1',
       'X-Docu': docu || '',
-      setor: usuario_setor || '',
-      setor: setor || '',
+      setor: usuario_setor || '',   // FIX: apenas uma entrada
       'X-Username': username || '',
     }
-
-    return headers
   } catch (error) {
     console.error('Erro ao obter headers de autenticação:', error)
     return {
@@ -99,7 +97,6 @@ export const getAuthHeaders = async () => {
     }
   }
 }
-
 // Função principal de requisição melhorada
 // Verificar conectividade antes das requisições
 const checkConnectivity = async () => {
@@ -526,12 +523,16 @@ export const request = async ({ method, endpoint, data = {}, params = {} }) => {
     const fullEndpoint = `/api/${slug}/${endpoint}`
     return await apiFetch(fullEndpoint, method, data, params)
   } catch (error) {
-    // Se tiver resposta com dados, retorna os dados do erro (padrão antigo)
-    // Se não, retorna o erro original (para pegar Network Error, Timeout, etc)
-    throw error.response?.data || error
+    // FIX: sempre lança um Error real, nunca undefined
+    if (error instanceof Error) throw error
+    if (error?.detail || error?.erro || error?.message) {
+      throw new Error(
+        error.detail || error.erro || error.message || 'Erro desconhecido',
+      )
+    }
+    throw new Error('Erro na requisição')
   }
 }
-
 // Configuração otimizada do axios
 axios.defaults.timeout = 30000 // 30 segundos em vez de 10
 axios.defaults.headers.common['Content-Type'] = 'application/json'
