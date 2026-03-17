@@ -1,9 +1,4 @@
-import React, {
-  useCallback,
-  useMemo,
-  useState,
-  useEffect,
-} from 'react'
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react'
 import {
   View,
   Text,
@@ -24,10 +19,14 @@ import { request } from '../utils/api'
 export default function CfopList({ navigation }) {
   const { hasModulo, empresaId, carregando } = useContextoApp()
   const [dados, setDados] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [erro, setErro] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [ready, setReady] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasNextPage, setHasNextPage] = useState(false)
+  const requestSeq = useRef(0)
+  const pageSize = 20
 
   // Filtros
   const [buscaCFOP, setBuscaCFOP] = useState('')
@@ -44,24 +43,51 @@ export default function CfopList({ navigation }) {
     return undefined
   }
 
-  const buscarCfops = async ({ silent = false } = {}) => {
+  const buscarCfops = async ({
+    pagina = 1,
+    append = false,
+    silent = false,
+    isRefresh = false,
+  } = {}) => {
     if (!empresaId || carregando) return
-    if (!silent) setLoading(true)
+    const seq = (requestSeq.current += 1)
+
+    if (isRefresh) setRefreshing(true)
+    if (!silent && pagina === 1) setLoading(true)
+    if (pagina > 1) setLoadingMore(true)
+
     setErro(null)
     try {
       const q = String(buscaCFOP || '').trim()
+      const params = {
+        page: pagina,
+        page_size: pageSize,
+        limit: pageSize,
+      }
       const resp = await request({
         method: 'get',
         endpoint: 'cfop/cfop',
-        params: q ? { q } : {},
+        params: q ? { ...params, q } : params,
       })
+      if (seq !== requestSeq.current) return
       const data = asData(resp)
       const lista = Array.isArray(data?.results) ? data.results : data
-      setDados(Array.isArray(lista) ? lista : [])
+      const itens = Array.isArray(lista) ? lista : []
+      if (append) {
+        setDados((prev) => [...prev, ...itens])
+      } else {
+        setDados(itens)
+      }
+      setHasNextPage(!!data?.next)
+      setPage(pagina)
     } catch (error) {
+      if (seq !== requestSeq.current) return
       setErro('Erro ao buscar CFOPs')
     } finally {
-      if (!silent) setLoading(false)
+      if (seq !== requestSeq.current) return
+      setLoading(false)
+      setLoadingMore(false)
+      setRefreshing(false)
     }
   }
 
@@ -98,22 +124,25 @@ export default function CfopList({ navigation }) {
   }
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true)
-    await buscarCfops({ silent: true })
-    setRefreshing(false)
+    await buscarCfops({
+      pagina: 1,
+      append: false,
+      silent: true,
+      isRefresh: true,
+    })
   }, [buscaCFOP, empresaId, carregando])
 
   useFocusEffect(
     useCallback(() => {
-      setReady(false)
-      buscarCfops({ silent: true }).finally(() => setReady(true))
+      if (!empresaId || carregando) return
+      buscarCfops({ pagina: 1, append: false, silent: false })
     }, [empresaId, carregando]),
   )
 
   useEffect(() => {
-    if (!empresaId || carregando || !ready) return
+    if (!empresaId || carregando) return
     const t = setTimeout(() => {
-      buscarCfops({ silent: true })
+      buscarCfops({ pagina: 1, append: false, silent: true })
     }, 300)
     return () => clearTimeout(t)
   }, [empresaId, carregando, buscaCFOP])
@@ -173,12 +202,26 @@ export default function CfopList({ navigation }) {
         <Text style={styles.erroTexto}>{erro}</Text>
         <TouchableOpacity
           style={styles.botaoTentarNovamente}
-          onPress={() => buscarCfops()}>
+          onPress={() => buscarCfops({ pagina: 1, append: false })}>
           <MaterialIcons name="refresh" size={18} color="#fff" />
           <Text style={styles.botaoTentarNovamenteTexto}>Tentar novamente</Text>
         </TouchableOpacity>
       </View>
     )
+  }
+
+  if (loading && (!dadosFiltrados || dadosFiltrados.length === 0)) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={styles.loadingText}>Carregando CFOPs...</Text>
+      </View>
+    )
+  }
+
+  const carregarMais = () => {
+    if (loading || loadingMore || refreshing || !hasNextPage) return
+    buscarCfops({ pagina: page + 1, append: true, silent: true })
   }
 
   return (
@@ -222,6 +265,15 @@ export default function CfopList({ navigation }) {
         style={styles.lista}
         contentContainerStyle={styles.listaContent}
         keyboardShouldPersistTaps="handled"
+        onEndReached={carregarMais}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: 12 }}>
+              <ActivityIndicator size="small" color="#01ff16" />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

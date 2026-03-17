@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react'
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -19,10 +19,14 @@ import { request } from '../utils/api'
 export default function NcmList({ navigation }) {
   const { hasModulo, empresaId, carregando } = useContextoApp()
   const [dados, setDados] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [erro, setErro] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [ready, setReady] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasNextPage, setHasNextPage] = useState(false)
+  const requestSeq = useRef(0)
+  const pageSize = 20
 
   // Filtros
   const [buscaNCM, setBuscaNCM] = useState('')
@@ -52,24 +56,51 @@ export default function NcmList({ navigation }) {
     return String(v)
   }
 
-  const buscarNcms = async ({ silent = false } = {}) => {
+  const buscarNcms = async ({
+    pagina = 1,
+    append = false,
+    silent = false,
+    isRefresh = false,
+  } = {}) => {
     if (!empresaId || carregando) return
-    if (!silent) setLoading(true)
+    const seq = (requestSeq.current += 1)
+
+    if (isRefresh) setRefreshing(true)
+    if (!silent && pagina === 1) setLoading(true)
+    if (pagina > 1) setLoadingMore(true)
+
     setErro(null)
     try {
       const q = String(buscaNCM || '').trim()
+      const params = {
+        page: pagina,
+        page_size: pageSize,
+        limit: pageSize,
+      }
       const resp = await request({
         method: 'get',
         endpoint: 'produtos/ncmfiscalpadrao',
-        params: q ? { q, search: q } : {},
+        params: q ? { ...params, q, search: q } : params,
       })
+      if (seq !== requestSeq.current) return
       const data = asData(resp)
       const lista = Array.isArray(data?.results) ? data.results : data
-      setDados(Array.isArray(lista) ? lista : [])
+      const itens = Array.isArray(lista) ? lista : []
+      if (append) {
+        setDados((prev) => [...prev, ...itens])
+      } else {
+        setDados(itens)
+      }
+      setHasNextPage(!!data?.next)
+      setPage(pagina)
     } catch (error) {
+      if (seq !== requestSeq.current) return
       setErro('Erro ao buscar NCMs')
     } finally {
-      if (!silent) setLoading(false)
+      if (seq !== requestSeq.current) return
+      setLoading(false)
+      setLoadingMore(false)
+      setRefreshing(false)
     }
   }
 
@@ -106,22 +137,25 @@ export default function NcmList({ navigation }) {
   }
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true)
-    await buscarNcms({ silent: true })
-    setRefreshing(false)
+    await buscarNcms({
+      pagina: 1,
+      append: false,
+      silent: true,
+      isRefresh: true,
+    })
   }, [buscaNCM, empresaId, carregando])
 
   useFocusEffect(
     useCallback(() => {
-      setReady(false)
-      buscarNcms({ silent: true }).finally(() => setReady(true))
+      if (!empresaId || carregando) return
+      buscarNcms({ pagina: 1, append: false, silent: false })
     }, [empresaId, carregando]),
   )
 
   useEffect(() => {
-    if (!empresaId || carregando || !ready) return
+    if (!empresaId || carregando) return
     const t = setTimeout(() => {
-      buscarNcms({ silent: true })
+      buscarNcms({ pagina: 1, append: false, silent: true })
     }, 300)
     return () => clearTimeout(t)
   }, [empresaId, carregando, buscaNCM])
@@ -199,12 +233,26 @@ export default function NcmList({ navigation }) {
         <Text style={styles.erroTexto}>{erro}</Text>
         <TouchableOpacity
           style={styles.botaoTentarNovamente}
-          onPress={() => buscarNcms()}>
+          onPress={() => buscarNcms({ pagina: 1, append: false })}>
           <MaterialIcons name="refresh" size={18} color="#fff" />
           <Text style={styles.botaoTentarNovamenteTexto}>Tentar novamente</Text>
         </TouchableOpacity>
       </View>
     )
+  }
+
+  if (loading && (!dadosFiltrados || dadosFiltrados.length === 0)) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={styles.loadingText}>Carregando NCMs...</Text>
+      </View>
+    )
+  }
+
+  const carregarMais = () => {
+    if (loading || loadingMore || refreshing || !hasNextPage) return
+    buscarNcms({ pagina: page + 1, append: true, silent: true })
   }
 
   return (
@@ -248,6 +296,15 @@ export default function NcmList({ navigation }) {
         style={styles.lista}
         contentContainerStyle={styles.listaContent}
         keyboardShouldPersistTaps="handled"
+        onEndReached={carregarMais}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: 12 }}>
+              <ActivityIndicator size="small" color="#01ff16" />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
