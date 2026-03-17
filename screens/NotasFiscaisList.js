@@ -14,7 +14,7 @@ import { getStoredData } from '../services/storageService'
 import {
   notasFiscaisService,
   notasFiscaisUtils,
-} from '../services/notasFiscaisService'
+} from '../componentsNotasFiscais/notasFiscaisService'
 import styles from '../styles/notasFiscaisStyles'
 
 export default function NotasFiscaisList({ navigation }) {
@@ -23,6 +23,7 @@ export default function NotasFiscaisList({ navigation }) {
   const [refreshing, setRefreshing] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [slug, setSlug] = useState('')
+  const pageSize = 20
 
   // Filtros de busca
   const [searchNumero, setSearchNumero] = useState('')
@@ -68,14 +69,22 @@ export default function NotasFiscaisList({ navigation }) {
     }
 
     try {
+      const offset = (pagina - 1) * pageSize
       const filtros = {
-        page: pagina,
+        limit: pageSize,
+        offset,
       }
 
       // Aplicar filtros de busca
-      if (searchNumero) filtros.numero_completo = searchNumero
+      if (searchNumero) {
+        filtros.numero = searchNumero
+        filtros.numero_completo = searchNumero
+      }
       if (searchEmpresa) filtros.empresa = searchEmpresa
-      if (searchStatus) filtros.status_nfe = searchStatus
+      if (searchStatus) {
+        filtros.status = searchStatus
+        filtros.status_nfe = searchStatus
+      }
       if (searchDataInicio) filtros.data_inicio = searchDataInicio
       if (searchDataFim) filtros.data_fim = searchDataFim
 
@@ -101,14 +110,14 @@ export default function NotasFiscaisList({ navigation }) {
         console.log(
           `✅ Notas carregadas na página 1: ${
             Array.isArray(notas) ? notas.length : 'não é array'
-          }`
+          }`,
         )
       } else {
         const novasNotas = response.results || response
         setNotasFiscais((prev) => {
           const total = [...prev, ...novasNotas]
           console.log(
-            `✅ Notas adicionadas - Anteriores: ${prev.length}, Novas: ${novasNotas.length}, Total: ${total.length}`
+            `✅ Notas adicionadas - Anteriores: ${prev.length}, Novas: ${novasNotas.length}, Total: ${total.length}`,
           )
           return total
         })
@@ -118,7 +127,7 @@ export default function NotasFiscaisList({ navigation }) {
       setHasNextPage(!!response.next)
       setTotalItems(
         response.count ||
-          (response.results ? response.results.length : response.length)
+          (response.results ? response.results.length : response.length),
       )
 
       console.log('📊 Estado atualizado:', {
@@ -162,7 +171,9 @@ export default function NotasFiscaisList({ navigation }) {
   }
 
   const excluirNotaFiscal = (item) => {
-    Alert.alert('Confirmação', `Excluir a nota fiscal ${item.numero}?`, [
+    const numero =
+      item?.numero_nota_fiscal ?? item?.numero ?? item?.numero_completo
+    Alert.alert('Confirmação', `Excluir a nota fiscal ${numero}?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
@@ -172,7 +183,7 @@ export default function NotasFiscaisList({ navigation }) {
             await notasFiscaisService.excluirNotaFiscal(
               item.empresa,
               item.filial,
-              item.numero
+              item.numero,
             )
 
             setNotasFiscais((prev) =>
@@ -180,8 +191,8 @@ export default function NotasFiscaisList({ navigation }) {
                 (nota) =>
                   nota.empresa !== item.empresa ||
                   nota.filial !== item.filial ||
-                  nota.numero !== item.numero
-              )
+                  nota.numero !== item.numero,
+              ),
             )
 
             Alert.alert('Sucesso', 'Nota fiscal excluída com sucesso')
@@ -201,28 +212,28 @@ export default function NotasFiscaisList({ navigation }) {
         filial: item.filial,
         numero: item.numero,
         numero_completo: item.numero_completo,
-        item: item
+        item: item,
       })
-      
+
       setIsSearching(true)
-      
+
       // Extrair apenas o número da nota (remover prefixos como "002-")
       let numeroNota = item.numero
-      
+
       if (!numeroNota && item.numero_completo) {
         // Extrair número do formato "002-10" -> "10"
         const match = item.numero_completo.match(/\d+-(\d+)/)
         numeroNota = match ? parseInt(match[1]) : item.numero_completo
       }
-      
+
       if (!numeroNota) {
         throw new Error('Número da nota fiscal não encontrado')
       }
-      
+
       const xmlData = await notasFiscaisService.buscarXmlNotaFiscal(
         item.empresa,
         item.filial,
-        numeroNota
+        numeroNota,
       )
 
       // Navegar para tela de visualização do XML
@@ -250,24 +261,50 @@ export default function NotasFiscaisList({ navigation }) {
       searchStatus,
       searchDataInicio,
       searchDataFim,
-    ])
+    ]),
   )
+
+  const formatarPessoa = (pessoa) => {
+    if (pessoa == null) return ''
+    if (typeof pessoa === 'string') return pessoa
+    if (typeof pessoa === 'number') return String(pessoa)
+    if (typeof pessoa !== 'object') return String(pessoa)
+
+    return (
+      pessoa.enti_nome ||
+      pessoa.nome ||
+      pessoa.razao_social ||
+      pessoa.fantasia ||
+      pessoa.enti_cnpj ||
+      pessoa.cnpj ||
+      pessoa.enti_cpf ||
+      pessoa.cpf ||
+      pessoa.enti_email ||
+      pessoa.email ||
+      ''
+    )
+  }
 
   const renderNotaFiscal = ({ item }) => (
     <View style={styles.itemContainer}>
       <View style={styles.itemHeader}>
-        <Text style={styles.numeroNota}>NF-e: {item.numero_nota_fiscal}</Text>
+        <Text style={styles.numeroNota}>
+          NF-e:{' '}
+          {item?.numero_nota_fiscal ?? item?.numero ?? item?.numero_completo}
+        </Text>
         <View
           style={[
             styles.statusBadge,
             {
               backgroundColor: notasFiscaisUtils.obterCorStatus(
-                item.status_nfe
+                item?.status_nfe ?? item?.status,
               ),
             },
           ]}>
           <Text style={styles.statusText}>
-            {notasFiscaisUtils.obterDescricaoStatus(item.status_nfe)}
+            {notasFiscaisUtils.obterDescricaoStatus(
+              item?.status_nfe ?? item?.status,
+            )}
           </Text>
         </View>
       </View>
@@ -283,25 +320,33 @@ export default function NotasFiscaisList({ navigation }) {
         <View style={styles.infoRow}>
           <Text style={styles.label}>Data Emissão:</Text>
           <Text style={styles.value}>
-            {notasFiscaisUtils.formatarData(item.data_emissao)}
+            {notasFiscaisUtils.formatarData(
+              item?.data_emissao ?? item?.criado_em,
+            )}
           </Text>
         </View>
 
         <View style={styles.infoRow}>
           <Text style={styles.label}>Valor Total:</Text>
           <Text style={styles.valueAmount}>
-            {notasFiscaisUtils.formatarMoeda(item.valor_total)}
+            {notasFiscaisUtils.formatarMoeda(
+              item?.valor_total ??
+                item?.valorTotal ??
+                item?.total ??
+                item?.total_nota ??
+                item?.valor,
+            )}
           </Text>
         </View>
 
-        {item.destinatario && (
+        {formatarPessoa(item.destinatario) ? (
           <View style={styles.infoRow}>
             <Text style={styles.label}>Destinatário:</Text>
             <Text style={styles.value} numberOfLines={1}>
-              {item.destinatario}
+              {formatarPessoa(item.destinatario)}
             </Text>
           </View>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.actionsContainer}>
@@ -369,7 +414,7 @@ export default function NotasFiscaisList({ navigation }) {
 
         <TextInput
           style={styles.input}
-          placeholder="Status (0=Pendente, 100=Autorizada, 101=Cancelada)"
+          placeholder="Status (0=Rascunho, 100=Autorizada, 101=Cancelada, 102= Inutilizada, 532=Denegada)"
           placeholderTextColor="#999"
           value={searchStatus}
           onChangeText={setSearchStatus}

@@ -1,0 +1,9 @@
+52f1eab4a9761055a41c7e16b1192a8e
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var REGEX = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000)$/i;
+exports.default = REGEX;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJSRUdFWCIsImV4cG9ydHMiLCJkZWZhdWx0Il0sInNvdXJjZXMiOlsiLi4vc3JjL3JlZ2V4LnRzIl0sInNvdXJjZXNDb250ZW50IjpbbnVsbF0sIm1hcHBpbmdzIjoiOzs7OztBQUFBLElBQU1BLEtBQUssR0FBRyxxSEFBcUg7QUFFbklDLE9BQUEsQ0FBQUMsT0FBQSxHQUFlRixLQUFLIiwiaWdub3JlTGlzdCI6W119

@@ -200,6 +200,56 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  itensContainer: {
+    gap: 10,
+  },
+  itemCard: {
+    backgroundColor: '#2a3f4d',
+    padding: 12,
+    borderRadius: 8,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  itemTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+  },
+  itemTotal: {
+    color: '#28a745',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  itemSub: {
+    color: '#bbb',
+    fontSize: 12,
+    marginTop: 6,
+  },
+  itemMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  metaChip: {
+    backgroundColor: '#1a2f3d',
+    borderWidth: 1,
+    borderColor: '#345686',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  metaChipText: {
+    color: '#cedaf0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
   // ====== Observações ======
   observacoes: {
     color: '#fff',

@@ -150,11 +150,12 @@ const apiFetch = async (
       ...(params && { params }),
     }
 
-    // Log do header Authorization para debug
-    console.log(
-      '🔍 [DEBUG] Authorization header:',
-      config.headers.Authorization,
-    )
+    const authHeader = config.headers.Authorization
+    const authHeaderRedacted =
+      typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+        ? `Bearer ${authHeader.slice(7, 19)}...${authHeader.slice(-6)}`
+        : authHeader
+    console.log('🔍 [DEBUG] Authorization header:', authHeaderRedacted)
 
     const response = await axios(config)
     return response
@@ -180,10 +181,13 @@ const apiFetch = async (
           ...(params && { params }),
         }
 
-        console.log(
-          '🔍 [DEBUG] Retry com novo token:',
-          newConfig.headers.Authorization,
-        )
+        const retryAuthHeader = newConfig.headers.Authorization
+        const retryAuthHeaderRedacted =
+          typeof retryAuthHeader === 'string' &&
+          retryAuthHeader.startsWith('Bearer ')
+            ? `Bearer ${retryAuthHeader.slice(7, 19)}...${retryAuthHeader.slice(-6)}`
+            : retryAuthHeader
+        console.log('🔍 [DEBUG] Retry com novo token:', retryAuthHeaderRedacted)
         const retryResponse = await axios(newConfig)
         return retryResponse
       } catch (refreshError) {

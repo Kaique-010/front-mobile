@@ -1,0 +1,16 @@
+b0aca9565ef1ea60e0dba677480f3108
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.version = void 0;
+var validate_1 = require("./validate");
+var version = function version(uuid) {
+  if (!(0, validate_1.validate)(uuid)) {
+    throw TypeError('Invalid UUID');
+  }
+  return parseInt(uuid.substr(14, 1), 16);
+};
+exports.version = version;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJ2YWxpZGF0ZV8xIiwicmVxdWlyZSIsInZlcnNpb24iLCJ1dWlkIiwidmFsaWRhdGUiLCJUeXBlRXJyb3IiLCJwYXJzZUludCIsInN1YnN0ciIsImV4cG9ydHMiXSwic291cmNlcyI6WyIuLi9zcmMvdmVyc2lvbi50cyJdLCJzb3VyY2VzQ29udGVudCI6W251bGxdLCJtYXBwaW5ncyI6Ijs7Ozs7O0FBQUEsSUFBQUEsVUFBQSxHQUFBQyxPQUFBO0FBRU8sSUFBTUMsT0FBTyxHQUFHLFNBQVZBLE9BQU9BLENBQUlDLElBQVksRUFBSTtFQUN0QyxJQUFJLENBQUMsSUFBQUgsVUFBQSxDQUFBSSxRQUFRLEVBQUNELElBQUksQ0FBQyxFQUFFO0lBQ25CLE1BQU1FLFNBQVMsQ0FBQyxjQUFjLENBQUM7RUFDakM7RUFFQSxPQUFPQyxRQUFRLENBQUNILElBQUksQ0FBQ0ksTUFBTSxDQUFDLEVBQUUsRUFBRSxDQUFDLENBQUMsRUFBRSxFQUFFLENBQUM7QUFDekMsQ0FBQztBQU5ZQyxPQUFBLENBQUFOLE9BQU8sR0FBQUEsT0FBQSIsImlnbm9yZUxpc3QiOltdfQ==

@@ -10,11 +10,11 @@ import {
   Linking,
 } from 'react-native'
 import styles from '../styles/notaFiscalXmlStyles'
-import { notasFiscaisService } from '../services/notasFiscaisService'
+import { notasFiscaisService } from '../componentsNotasFiscais/notasFiscaisService'
 
 export default function NotaFiscalXml({ route, navigation }) {
   const { xmlData, notaFiscal } = route.params
-  
+
   // Extrair o XML do objeto retornado pela API
   let xmlContent = ''
   if (typeof xmlData === 'object' && xmlData.xml_nfe) {
@@ -24,7 +24,7 @@ export default function NotaFiscalXml({ route, navigation }) {
   } else {
     xmlContent = 'XML não disponível'
   }
-  
+
   const [xmlFormatted, setXmlFormatted] = useState(xmlContent)
   const [loadingDanfe, setLoadingDanfe] = useState(false)
 
@@ -51,23 +51,22 @@ export default function NotaFiscalXml({ route, navigation }) {
   const visualizarDanfe = async () => {
     try {
       setLoadingDanfe(true)
-      
+
       // Extrair número da nota
       let numeroNota = notaFiscal.numero
       if (!numeroNota && notaFiscal.numero_completo) {
         const match = notaFiscal.numero_completo.match(/\d+-(\d+)/)
         numeroNota = match ? parseInt(match[1]) : notaFiscal.numero_completo
       }
-      
+
       const pdfUrl = await notasFiscaisService.buscarDanfeNotaFiscal(
         notaFiscal.empresa,
         notaFiscal.filial,
-        numeroNota
+        numeroNota,
       )
-      
+
       // Abrir PDF no navegador
       await Linking.openURL(pdfUrl)
-      
     } catch (error) {
       console.error('❌ Erro ao buscar DANFE:', error.message)
       Alert.alert('Erro', 'Erro ao carregar DANFE da nota fiscal')
@@ -78,7 +77,7 @@ export default function NotaFiscalXml({ route, navigation }) {
 
   const formatarXml = (xml) => {
     if (!xml) return 'XML não disponível'
-    
+
     // Formatação básica do XML para melhor legibilidade
     try {
       return xml
@@ -86,7 +85,7 @@ export default function NotaFiscalXml({ route, navigation }) {
         .replace(/^\s*\n/gm, '')
         .split('\n')
         .map((line, index) => {
-          const depth = (line.match(/^\s*/)[0].length / 2) || 0
+          const depth = line.match(/^\s*/)[0].length / 2 || 0
           const indent = '  '.repeat(depth)
           return `${indent}${line.trim()}`
         })
@@ -106,27 +105,22 @@ export default function NotaFiscalXml({ route, navigation }) {
             Número: {notaFiscal.numero} | Empresa: {notaFiscal.empresa}
           </Text>
         </View>
-        
+
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={copiarXml}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={copiarXml}>
             <Text style={styles.actionButtonText}>Copiar</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, styles.shareButton]}
-            onPress={compartilharXml}
-          >
+            onPress={compartilharXml}>
             <Text style={styles.actionButtonText}>Compartilhar</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.actionButton, styles.danfeButton]}
             onPress={visualizarDanfe}
-            disabled={loadingDanfe}
-          >
+            disabled={loadingDanfe}>
             <Text style={styles.actionButtonText}>
               {loadingDanfe ? 'Carregando...' : 'Ver DANFE'}
             </Text>
@@ -135,11 +129,10 @@ export default function NotaFiscalXml({ route, navigation }) {
       </View>
 
       {/* Conteúdo XML */}
-      <ScrollView 
+      <ScrollView
         style={styles.xmlContainer}
         showsVerticalScrollIndicator={true}
-        nestedScrollEnabled={true}
-      >
+        nestedScrollEnabled={true}>
         <View style={styles.xmlContent}>
           <Text style={styles.xmlText} selectable>
             {formatarXml(xmlFormatted)}

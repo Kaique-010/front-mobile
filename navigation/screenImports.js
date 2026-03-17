@@ -64,7 +64,7 @@ export { default as CobrancasList } from '../screens/CobrancasList'
 export { default as NotasFiscaisList } from '../screens/NotasFiscaisList'
 export { default as NotaFiscalDetalhe } from '../screens/NotaFiscalDetalhe'
 export { default as NotaFiscalXml } from '../screens/NotaFiscalXml'
-export { default as EmissaoNFe } from '../componentsNotasFiscais/EmissaoNFe'
+export { default as NotaFiscalForm } from '../screens/NotaFiscalForm'
 
 // Telas de comissão
 export { default as ComissaoForm } from '../componentsComissao/ComissaoForm'

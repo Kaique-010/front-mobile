@@ -247,14 +247,14 @@ export const screenConfigs = [
     options: createHeaderOptions('Detalhes da Nota Fiscal'),
   },
   {
+    name: 'NotaFiscalForm',
+    component: Screens.NotaFiscalForm,
+    options: createHeaderOptions('Nota Fiscal'),
+  },
+  {
     name: 'NotaFiscalXml',
     component: Screens.NotaFiscalXml,
     options: createHeaderOptions('XML da Nota Fiscal'),
-  },
-  {
-    name: 'EmissaoNFe',
-    component: Screens.EmissaoNFe,
-    options: createHeaderOptions('Emissão de NFe'),
   },
 
   // Telas de comissão

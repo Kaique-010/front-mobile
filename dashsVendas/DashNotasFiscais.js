@@ -14,7 +14,7 @@ import {
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { apiGetComContexto } from '../utils/api'
-import { notasFiscaisService } from '../services/notasFiscaisService'
+import { notasFiscaisService } from '../componentsNotasFiscais/notasFiscaisService'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import styles from '../stylesDash/DashNotasFiscaisStyles'
 
@@ -37,7 +37,7 @@ export default function DashNotasFiscais({ navigation }) {
     totalGeral: 0,
     totalAutorizadas: 0,
     totalCanceladas: 0,
-    totalPendentes: 0,
+    totalRascunhos: 0,
     quantidadeNotas: 0,
   })
 
@@ -86,7 +86,7 @@ export default function DashNotasFiscais({ navigation }) {
     const currentDate = selectedDate || dataFim
     setShowDatePickerFim(Platform.OS === 'ios')
     setDataFim(currentDate)
-    
+
     if (empresaId && filialId) {
       setTimeout(() => {
         buscarDados()
@@ -97,33 +97,37 @@ export default function DashNotasFiscais({ navigation }) {
   const calcularResumo = (dadosParaCalculo) => {
     const totalGeral = dadosParaCalculo.reduce(
       (acc, item) => acc + parseFloat(item.valor_total_nota || 0),
-      0
+      0,
     )
-    
-    const autorizadas = dadosParaCalculo.filter(item => item.status_nfe === 100)
-    const canceladas = dadosParaCalculo.filter(item => item.cancelada === true)
-    const pendentes = dadosParaCalculo.filter(item => item.status_nfe !== 100 && !item.cancelada)
+
+    const autorizadas = dadosParaCalculo.filter(
+      (item) => item.status_nfe === 100,
+    )
+    const canceladas = dadosParaCalculo.filter(
+      (item) => item.status_nfe === 101,
+    )
+    const rascunhos = dadosParaCalculo.filter((item) => item.status_nfe === 0)
 
     const totalAutorizadas = autorizadas.reduce(
       (acc, item) => acc + parseFloat(item.valor_total_nota || 0),
-      0
+      0,
     )
-    
+
     const totalCanceladas = canceladas.reduce(
       (acc, item) => acc + parseFloat(item.valor_total_nota || 0),
-      0
+      0,
     )
-    
-    const totalPendentes = pendentes.reduce(
+
+    const totalRascunhos = rascunhos.reduce(
       (acc, item) => acc + parseFloat(item.valor_total_nota || 0),
-      0
+      0,
     )
 
     setResumo({
       totalGeral,
       totalAutorizadas,
       totalCanceladas,
-      totalPendentes,
+      totalRascunhos,
       quantidadeNotas: dadosParaCalculo.length,
     })
   }
@@ -134,18 +138,14 @@ export default function DashNotasFiscais({ navigation }) {
     // Filtro por cliente
     if (buscaCliente) {
       dadosFiltrados = dadosFiltrados.filter((item) =>
-        item.nome_cliente
-          ?.toLowerCase()
-          .includes(buscaCliente.toLowerCase())
+        item.nome_cliente?.toLowerCase().includes(buscaCliente.toLowerCase()),
       )
     }
 
     // Filtro por número da nota
     if (buscaNumero) {
       dadosFiltrados = dadosFiltrados.filter((item) =>
-        item.numero_completo
-          ?.toLowerCase()
-          .includes(buscaNumero.toLowerCase())
+        item.numero_completo?.toLowerCase().includes(buscaNumero.toLowerCase()),
       )
     }
 
@@ -188,20 +188,28 @@ export default function DashNotasFiscais({ navigation }) {
 
       console.log('📊 Parâmetros da busca:', params)
 
-      const response = await notasFiscaisService.buscarDashboardNotasFiscais(params)
-      
+      const response =
+        await notasFiscaisService.buscarDashboardNotasFiscais(params)
+
       console.log('📈 Resposta do dashboard:', response)
-      
+
       setDados(response.dados || [])
       setResumo(response.resumo || {})
-      
     } catch (error) {
       console.error('❌ Erro ao buscar dados:', error)
       setErro(error.message || 'Erro ao carregar dados')
     } finally {
       setLoading(false)
     }
-  }, [buscaCliente, buscaNumero, dataInicio, dataFim, loading, empresaId, filialId])
+  }, [
+    buscaCliente,
+    buscaNumero,
+    dataInicio,
+    dataFim,
+    loading,
+    empresaId,
+    filialId,
+  ])
 
   const navegarParaGrafico = () => {
     navigation.navigate('DashNotasFiscaisGrafico', {
@@ -223,7 +231,9 @@ export default function DashNotasFiscais({ navigation }) {
   const getStatusText = (item) => {
     if (item.cancelada) return 'Cancelada'
     if (item.status_nfe === 100) return 'Autorizada'
-    return 'Pendente'
+    if (item.status_nfe === 101) return 'Cancelada'
+    if (item.status_nfe === 0) return 'Rascunho'
+    return 'Denegada'
   }
 
   const ResumoCard = ({ titulo, valor, icone, cor }) => (
@@ -248,7 +258,11 @@ export default function DashNotasFiscais({ navigation }) {
       <View style={styles.itemHeader}>
         <View style={styles.itemInfo}>
           <Text style={styles.itemNumero}>NF: {item.numero_completo}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item) }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(item) },
+            ]}>
             <Text style={styles.statusText}>{getStatusText(item)}</Text>
           </View>
         </View>
@@ -262,7 +276,9 @@ export default function DashNotasFiscais({ navigation }) {
 
       <View style={styles.itemDetalhes}>
         <Text style={styles.itemObservacaoLabel}>Observações:</Text>
-        <Text style={styles.itemObservacao}>{item.observacoes || 'Sem observações'}</Text>
+        <Text style={styles.itemObservacao}>
+          {item.observacoes || 'Sem observações'}
+        </Text>
       </View>
 
       <View style={styles.itemFooter}>
@@ -418,8 +434,8 @@ export default function DashNotasFiscais({ navigation }) {
           cor="#27ae60"
         />
         <ResumoCard
-          titulo="Pendentes"
-          valor={resumo.totalPendentes}
+          titulo="Rascunhos"
+          valor={resumo.totalRascunhos}
           icone="schedule"
           cor="#f39c12"
         />
