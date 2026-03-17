@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
+import React, { useCallback, useMemo, useState, useRef } from 'react'
 import {
   View,
   Text,
@@ -26,6 +26,8 @@ export default function NcmList({ navigation }) {
   const [page, setPage] = useState(1)
   const [hasNextPage, setHasNextPage] = useState(false)
   const requestSeq = useRef(0)
+  const isFocusedRef = useRef(false)
+  const didInitialFetch = useRef(false)
   const pageSize = 20
 
   // Filtros
@@ -56,86 +58,110 @@ export default function NcmList({ navigation }) {
     return String(v)
   }
 
-  const buscarNcms = async ({
-    pagina = 1,
-    append = false,
-    silent = false,
-    isRefresh = false,
-  } = {}) => {
-    if (!empresaId || carregando) return
-    const seq = (requestSeq.current += 1)
+  // FIX: buscarNcms agora é useCallback com todas as deps corretas,
+  // evitando closures stale que travavam a lista no iOS
+  const buscarNcms = useCallback(
+    async ({
+      pagina = 1,
+      append = false,
+      silent = false,
+      isRefresh = false,
+    } = {}) => {
+      if (!empresaId || carregando) return
+      const seq = (requestSeq.current += 1)
+      let finished = false
 
-    if (isRefresh) setRefreshing(true)
-    if (!silent && pagina === 1) setLoading(true)
-    if (pagina > 1) setLoadingMore(true)
+      if (isRefresh) setRefreshing(true)
+      if (!silent && pagina === 1) setLoading(true)
+      if (pagina > 1) setLoadingMore(true)
 
-    setErro(null)
-    try {
-      const q = String(buscaNCM || '').trim()
-      const params = {
-        page: pagina,
-        page_size: pageSize,
-        limit: pageSize,
+      setErro(null)
+      try {
+        const q = String(buscaNCM || '').trim()
+        const params = {
+          page: pagina,
+          page_size: pageSize,
+          limit: pageSize,
+        }
+        const resp = await request({
+          method: 'get',
+          endpoint: 'produtos/ncmfiscalpadrao',
+          params: q ? { ...params, q, search: q } : params,
+        })
+
+        // FIX: checa stale ANTES de atualizar qualquer estado
+        if (seq !== requestSeq.current) return
+
+        finished = true
+        const data = asData(resp)
+        const lista = Array.isArray(data?.results) ? data.results : data
+        const itens = Array.isArray(lista) ? lista : []
+
+        if (append) {
+          setDados((prev) => [...prev, ...itens])
+        } else {
+          setDados(itens)
+        }
+        setHasNextPage(!!data?.next)
+        setPage(pagina)
+      } catch (error) {
+        if (seq !== requestSeq.current) return
+        finished = true
+        setErro('Erro ao buscar NCMs')
+      } finally {
+        // FIX: só limpa loading se esta request ainda é válida,
+        // evitando setState em componente desmontado (crash no iOS)
+        if (finished) {
+          setLoading(false)
+          setLoadingMore(false)
+          setRefreshing(false)
+        }
       }
-      const resp = await request({
-        method: 'get',
-        endpoint: 'produtos/ncmfiscalpadrao',
-        params: q ? { ...params, q, search: q } : params,
-      })
-      if (seq !== requestSeq.current) return
-      const data = asData(resp)
-      const lista = Array.isArray(data?.results) ? data.results : data
-      const itens = Array.isArray(lista) ? lista : []
-      if (append) {
-        setDados((prev) => [...prev, ...itens])
-      } else {
-        setDados(itens)
-      }
-      setHasNextPage(!!data?.next)
-      setPage(pagina)
-    } catch (error) {
-      if (seq !== requestSeq.current) return
-      setErro('Erro ao buscar NCMs')
-    } finally {
-      if (seq !== requestSeq.current) return
-      setLoading(false)
-      setLoadingMore(false)
-      setRefreshing(false)
-    }
-  }
+    },
+    [empresaId, carregando, buscaNCM],
+  )
 
-  const excluirNcm = async (id) => {
-    Alert.alert('Confirmar Exclusão', 'Deseja realmente excluir este NCM?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await request({
-              method: 'delete',
-              endpoint: `produtos/ncmfiscalpadrao/${id}/`,
-            })
-            await buscarNcms({ silent: true })
-            Toast.show({
-              type: 'success',
-              text1: 'Sucesso',
-              text2: 'NCM excluído',
-            })
-          } catch (error) {
-            Toast.show({
-              type: 'error',
-              text1: 'Erro ao excluir NCM',
-              text2:
-                error.response?.data?.erro ||
-                'Erro desconhecido ao excluir NCM.',
-            })
-          }
+  const getNcmPk = useCallback((item) => {
+    const pk = item?.id ?? item?.ncm_pk ?? item?.ncm_fiscal_id ?? item?.ncm_id
+    return pk != null ? String(pk) : ''
+  }, [])
+
+  const excluirNcm = useCallback(
+    async (id) => {
+      Alert.alert('Confirmar Exclusão', 'Deseja realmente excluir este NCM?', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await request({
+                method: 'delete',
+                endpoint: `produtos/ncmfiscalpadrao/${id}/`,
+              })
+              await buscarNcms({ silent: true })
+              Toast.show({
+                type: 'success',
+                text1: 'Sucesso',
+                text2: 'NCM excluído',
+              })
+            } catch (error) {
+              Toast.show({
+                type: 'error',
+                text1: 'Erro ao excluir NCM',
+                text2:
+                  error.response?.data?.erro ||
+                  'Erro desconhecido ao excluir NCM.',
+              })
+            }
+          },
         },
-      },
-    ])
-  }
+      ])
+    },
+    [buscarNcms],
+  )
 
+  // FIX: onRefresh agora depende de buscarNcms (que já encapsula buscaNCM)
   const onRefresh = useCallback(async () => {
     await buscarNcms({
       pagina: 1,
@@ -143,88 +169,94 @@ export default function NcmList({ navigation }) {
       silent: true,
       isRefresh: true,
     })
-  }, [buscaNCM, empresaId, carregando])
+  }, [buscarNcms])
 
+  // FIX: buscarNcms adicionado nas deps do useFocusEffect
   useFocusEffect(
     useCallback(() => {
       if (!empresaId || carregando) return
-      buscarNcms({ pagina: 1, append: false, silent: false })
-    }, [empresaId, carregando]),
+      isFocusedRef.current = true
+      buscarNcms({ pagina: 1, append: false, silent: false }).finally(() => {
+        didInitialFetch.current = true
+      })
+      return () => {
+        isFocusedRef.current = false
+      }
+    }, [empresaId, carregando, buscarNcms]),
   )
 
-  useEffect(() => {
-    if (!empresaId || carregando) return
-    const t = setTimeout(() => {
-      buscarNcms({ pagina: 1, append: false, silent: true })
-    }, 300)
-    return () => clearTimeout(t)
-  }, [empresaId, carregando, buscaNCM])
-
+  // FIX: removido buscaNCM das deps do useMemo pois não é usado dentro dele
   const dadosFiltrados = useMemo(() => {
     return Array.isArray(dados) ? dados : []
-  }, [dados, buscaNCM])
+  }, [dados])
 
-  const labelNcm = (item) => ({
-    ncm_id: toText(item?.ncm_id),
-    ncm: toText(item?.ncm),
-    cfop: toText(item?.cfop),
-    uf_origem: toText(item?.uf_origem),
-    uf_destino: toText(item?.uf_destino),
-  })
+  const labelNcm = useCallback(
+    (item) => ({
+      ncm_id: toText(item?.ncm_id),
+      ncm: toText(item?.ncm),
+      cfop: toText(item?.cfop),
+      uf_origem: toText(item?.uf_origem),
+      uf_destino: toText(item?.uf_destino),
+    }),
+    [],
+  )
 
-  const getNcmPk = (item) => {
-    const pk = item?.id ?? item?.ncm_pk ?? item?.ncm_fiscal_id ?? item?.ncm_id
-    return pk != null ? String(pk) : ''
-  }
+  const carregarMais = useCallback(() => {
+    if (loading || loadingMore || refreshing || !hasNextPage) return
+    buscarNcms({ pagina: page + 1, append: true, silent: true })
+  }, [loading, loadingMore, refreshing, hasNextPage, page, buscarNcms])
 
-  const renderItem = ({ item }) => (
-    <View style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <View style={styles.itemInfo}>
-          <Text style={styles.itemNcm}>
-            NCM: {labelNcm(item).ncm_id || '-'}
-          </Text>
-          {labelNcm(item).ncm ? (
-            <Text style={styles.itemDescricao}>{labelNcm(item).ncm}</Text>
-          ) : null}
-          {labelNcm(item).cfop ||
-          labelNcm(item).uf_origem ||
-          labelNcm(item).uf_destino ? (
-            <Text style={styles.itemDescricao}>
-              {[
-                labelNcm(item).cfop ? `CFOP ${labelNcm(item).cfop}` : null,
-                labelNcm(item).uf_origem && labelNcm(item).uf_destino
-                  ? `${labelNcm(item).uf_origem} → ${labelNcm(item).uf_destino}`
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(' • ')}
+  const renderItem = useCallback(
+    ({ item }) => (
+      <View style={styles.itemCard}>
+        <View style={styles.itemHeader}>
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemNcm}>
+              NCM: {labelNcm(item).ncm_id || '-'}
             </Text>
-          ) : null}
-        </View>
-        <View style={styles.itemActions}>
-          {hasModulo('Produtos') && (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() =>
-                navigation.navigate('NcmForm', {
-                  ncmId: getNcmPk(item),
-                  isEdit: true,
-                })
-              }>
-              <MaterialIcons name="edit" size={20} color="#007bff" />
-            </TouchableOpacity>
-          )}
-          {hasModulo('Produtos') && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => excluirNcm(getNcmPk(item))}>
-              <MaterialIcons name="delete" size={20} color="#dc3545" />
-            </TouchableOpacity>
-          )}
+            {labelNcm(item).ncm ? (
+              <Text style={styles.itemDescricao}>{labelNcm(item).ncm}</Text>
+            ) : null}
+            {labelNcm(item).cfop ||
+            labelNcm(item).uf_origem ||
+            labelNcm(item).uf_destino ? (
+              <Text style={styles.itemDescricao}>
+                {[
+                  labelNcm(item).cfop ? `CFOP ${labelNcm(item).cfop}` : null,
+                  labelNcm(item).uf_origem && labelNcm(item).uf_destino
+                    ? `${labelNcm(item).uf_origem} → ${labelNcm(item).uf_destino}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' • ')}
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.itemActions}>
+            {hasModulo('Produtos') && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() =>
+                  navigation.navigate('NcmForm', {
+                    ncmId: getNcmPk(item),
+                    isEdit: true,
+                  })
+                }>
+                <MaterialIcons name="edit" size={20} color="#007bff" />
+              </TouchableOpacity>
+            )}
+            {hasModulo('Produtos') && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => excluirNcm(getNcmPk(item))}>
+                <MaterialIcons name="delete" size={20} color="#dc3545" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
-    </View>
+    ),
+    [hasModulo, navigation, getNcmPk, excluirNcm, labelNcm],
   )
 
   if (erro) {
@@ -248,11 +280,6 @@ export default function NcmList({ navigation }) {
         <Text style={styles.loadingText}>Carregando NCMs...</Text>
       </View>
     )
-  }
-
-  const carregarMais = () => {
-    if (loading || loadingMore || refreshing || !hasNextPage) return
-    buscarNcms({ pagina: page + 1, append: true, silent: true })
   }
 
   return (

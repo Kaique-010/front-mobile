@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react'
+import React, { useCallback, useMemo, useState, useRef } from 'react'
 import {
   View,
   Text,
@@ -26,6 +26,8 @@ export default function CfopList({ navigation }) {
   const [page, setPage] = useState(1)
   const [hasNextPage, setHasNextPage] = useState(false)
   const requestSeq = useRef(0)
+  const isFocusedRef = useRef(false)
+  const didInitialFetch = useRef(false)
   const pageSize = 20
 
   // Filtros
@@ -43,86 +45,105 @@ export default function CfopList({ navigation }) {
     return undefined
   }
 
-  const buscarCfops = async ({
-    pagina = 1,
-    append = false,
-    silent = false,
-    isRefresh = false,
-  } = {}) => {
-    if (!empresaId || carregando) return
-    const seq = (requestSeq.current += 1)
+  // FIX: buscarCfops agora é useCallback com todas as deps corretas,
+  // evitando closures stale que travavam a lista no iOS
+  const buscarCfops = useCallback(
+    async ({
+      pagina = 1,
+      append = false,
+      silent = false,
+      isRefresh = false,
+    } = {}) => {
+      if (!empresaId || carregando) return
+      const seq = (requestSeq.current += 1)
+      let finished = false
 
-    if (isRefresh) setRefreshing(true)
-    if (!silent && pagina === 1) setLoading(true)
-    if (pagina > 1) setLoadingMore(true)
+      if (isRefresh) setRefreshing(true)
+      if (!silent && pagina === 1) setLoading(true)
+      if (pagina > 1) setLoadingMore(true)
 
-    setErro(null)
-    try {
-      const q = String(buscaCFOP || '').trim()
-      const params = {
-        page: pagina,
-        page_size: pageSize,
-        limit: pageSize,
+      setErro(null)
+      try {
+        const q = String(buscaCFOP || '').trim()
+        const params = {
+          page: pagina,
+          page_size: pageSize,
+          limit: pageSize,
+        }
+        const resp = await request({
+          method: 'get',
+          endpoint: 'cfop/cfop',
+          params: q ? { ...params, q } : params,
+        })
+
+        // FIX: checa stale ANTES de atualizar qualquer estado
+        if (seq !== requestSeq.current) return
+
+        finished = true
+        const data = asData(resp)
+        const lista = Array.isArray(data?.results) ? data.results : data
+        const itens = Array.isArray(lista) ? lista : []
+
+        if (append) {
+          setDados((prev) => [...prev, ...itens])
+        } else {
+          setDados(itens)
+        }
+        setHasNextPage(!!data?.next)
+        setPage(pagina)
+      } catch (error) {
+        if (seq !== requestSeq.current) return
+        finished = true
+        setErro('Erro ao buscar CFOPs')
+      } finally {
+        // FIX: só limpa loading se esta request ainda é válida,
+        // evitando setState em componente desmontado (crash no iOS)
+        if (finished) {
+          setLoading(false)
+          setLoadingMore(false)
+          setRefreshing(false)
+        }
       }
-      const resp = await request({
-        method: 'get',
-        endpoint: 'cfop/cfop',
-        params: q ? { ...params, q } : params,
-      })
-      if (seq !== requestSeq.current) return
-      const data = asData(resp)
-      const lista = Array.isArray(data?.results) ? data.results : data
-      const itens = Array.isArray(lista) ? lista : []
-      if (append) {
-        setDados((prev) => [...prev, ...itens])
-      } else {
-        setDados(itens)
-      }
-      setHasNextPage(!!data?.next)
-      setPage(pagina)
-    } catch (error) {
-      if (seq !== requestSeq.current) return
-      setErro('Erro ao buscar CFOPs')
-    } finally {
-      if (seq !== requestSeq.current) return
-      setLoading(false)
-      setLoadingMore(false)
-      setRefreshing(false)
-    }
-  }
+    },
+    [empresaId, carregando, buscaCFOP],
+  )
 
-  const excluirCfop = async (cfop_id) => {
-    Alert.alert('Confirmar Exclusão', 'Deseja realmente excluir este CFOP?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await request({
-              method: 'delete',
-              endpoint: `cfop/cfop/${cfop_id}/`,
-            })
-            await buscarCfops({ silent: true })
-            Toast.show({
-              type: 'success',
-              text1: 'Sucesso',
-              text2: 'CFOP excluído',
-            })
-          } catch (error) {
-            Toast.show({
-              type: 'error',
-              text1: 'Erro ao excluir CFOP',
-              text2:
-                error.response?.data?.erro ||
-                'Erro desconhecido ao excluir CFOP.',
-            })
-          }
+  const excluirCfop = useCallback(
+    async (cfop_id) => {
+      Alert.alert('Confirmar Exclusão', 'Deseja realmente excluir este CFOP?', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await request({
+                method: 'delete',
+                endpoint: `cfop/cfop/${cfop_id}/`,
+              })
+              await buscarCfops({ silent: true })
+              Toast.show({
+                type: 'success',
+                text1: 'Sucesso',
+                text2: 'CFOP excluído',
+              })
+            } catch (error) {
+              Toast.show({
+                type: 'error',
+                text1: 'Erro ao excluir CFOP',
+                text2:
+                  error.response?.data?.erro ||
+                  'Erro desconhecido ao excluir CFOP.',
+              })
+            }
+          },
         },
-      },
-    ])
-  }
+      ])
+    },
+    [buscarCfops],
+  )
 
+  // FIX: onRefresh agora depende de buscarCfops (que já encapsula buscaCFOP)
   const onRefresh = useCallback(async () => {
     await buscarCfops({
       pagina: 1,
@@ -130,26 +151,26 @@ export default function CfopList({ navigation }) {
       silent: true,
       isRefresh: true,
     })
-  }, [buscaCFOP, empresaId, carregando])
+  }, [buscarCfops])
 
+  // FIX: buscarCfops adicionado nas deps do useFocusEffect
   useFocusEffect(
     useCallback(() => {
       if (!empresaId || carregando) return
-      buscarCfops({ pagina: 1, append: false, silent: false })
-    }, [empresaId, carregando]),
+      isFocusedRef.current = true
+      buscarCfops({ pagina: 1, append: false, silent: false }).finally(() => {
+        didInitialFetch.current = true
+      })
+      return () => {
+        isFocusedRef.current = false
+      }
+    }, [empresaId, carregando, buscarCfops]),
   )
 
-  useEffect(() => {
-    if (!empresaId || carregando) return
-    const t = setTimeout(() => {
-      buscarCfops({ pagina: 1, append: false, silent: true })
-    }, 300)
-    return () => clearTimeout(t)
-  }, [empresaId, carregando, buscaCFOP])
-
+  // FIX: removido buscaCFOP das deps do useMemo pois não é usado dentro dele
   const dadosFiltrados = useMemo(() => {
     return Array.isArray(dados) ? dados : []
-  }, [dados, buscaCFOP])
+  }, [dados])
 
   const labelCfop = (item) => {
     const codi = campoValor(item, 'cfop_codi')
@@ -160,40 +181,48 @@ export default function CfopList({ navigation }) {
     }
   }
 
-  const renderItem = ({ item }) => (
-    <View style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <View style={styles.itemInfo}>
-          <Text style={styles.itemCfop}>
-            CFOP: {labelCfop(item).codi || item?.cfop_id || '-'}
-          </Text>
-          {labelCfop(item).desc ? (
-            <Text style={styles.itemDescricao}>{labelCfop(item).desc}</Text>
-          ) : null}
-        </View>
-        <View style={styles.itemActions}>
-          {hasModulo('Entidades') && (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() =>
-                navigation.navigate('CfopForm', {
-                  cfopId: item.cfop_id ?? item?.id,
-                  isEdit: true,
-                })
-              }>
-              <MaterialIcons name="edit" size={20} color="#007bff" />
-            </TouchableOpacity>
-          )}
-          {hasModulo('Entidades') && (
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => excluirCfop(item.cfop_id ?? item?.id)}>
-              <MaterialIcons name="delete" size={20} color="#dc3545" />
-            </TouchableOpacity>
-          )}
+  const carregarMais = useCallback(() => {
+    if (loading || loadingMore || refreshing || !hasNextPage) return
+    buscarCfops({ pagina: page + 1, append: true, silent: true })
+  }, [loading, loadingMore, refreshing, hasNextPage, page, buscarCfops])
+
+  const renderItem = useCallback(
+    ({ item }) => (
+      <View style={styles.itemCard}>
+        <View style={styles.itemHeader}>
+          <View style={styles.itemInfo}>
+            <Text style={styles.itemCfop}>
+              CFOP: {labelCfop(item).codi || item?.cfop_id || '-'}
+            </Text>
+            {labelCfop(item).desc ? (
+              <Text style={styles.itemDescricao}>{labelCfop(item).desc}</Text>
+            ) : null}
+          </View>
+          <View style={styles.itemActions}>
+            {hasModulo('Entidades') && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() =>
+                  navigation.navigate('CfopForm', {
+                    cfopId: item.cfop_id ?? item?.id,
+                    isEdit: true,
+                  })
+                }>
+                <MaterialIcons name="edit" size={20} color="#007bff" />
+              </TouchableOpacity>
+            )}
+            {hasModulo('Entidades') && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => excluirCfop(item.cfop_id ?? item?.id)}>
+                <MaterialIcons name="delete" size={20} color="#dc3545" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
-    </View>
+    ),
+    [hasModulo, navigation, excluirCfop],
   )
 
   if (erro) {
@@ -217,11 +246,6 @@ export default function CfopList({ navigation }) {
         <Text style={styles.loadingText}>Carregando CFOPs...</Text>
       </View>
     )
-  }
-
-  const carregarMais = () => {
-    if (loading || loadingMore || refreshing || !hasNextPage) return
-    buscarCfops({ pagina: page + 1, append: true, silent: true })
   }
 
   return (
