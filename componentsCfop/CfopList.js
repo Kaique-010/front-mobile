@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react'
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import styles from './Styles/CfopStyles'
 import Toast from 'react-native-toast-message'
 import useContextoApp from '../hooks/useContextoApp'
-import { apiGetComContexto, apiDeleteComContexto, apiPostComContexto } from '../utils/api'
+import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 
 export default function CfopList({ navigation }) {
   const { hasModulo, empresaId, carregando } = useContextoApp()
@@ -30,10 +30,7 @@ export default function CfopList({ navigation }) {
   const didInitialFetch = useRef(false)
   const pageSize = 20
 
-  // Filtros
   const [buscaCFOP, setBuscaCFOP] = useState('')
-
-  const asData = (resp) => resp?.data ?? resp
 
   const campoValor = (item, campo) => {
     const listas = [item?.campos_padrao, item?.incidencias]
@@ -45,8 +42,8 @@ export default function CfopList({ navigation }) {
     return undefined
   }
 
-  // FIX: buscarCfops agora é useCallback com todas as deps corretas,
-  // evitando closures stale que travavam a lista no iOS
+  // FIX: usa apiGetComContexto igual às telas que funcionam (notas, dashboard)
+  // resolve o slug via contexto, sem depender do AsyncStorage isoladamente
   const buscarCfops = useCallback(
     async ({
       pagina = 1,
@@ -61,26 +58,22 @@ export default function CfopList({ navigation }) {
       if (isRefresh) setRefreshing(true)
       if (!silent && pagina === 1) setLoading(true)
       if (pagina > 1) setLoadingMore(true)
-
       setErro(null)
+
       try {
         const q = String(buscaCFOP || '').trim()
         const params = {
           page: pagina,
           page_size: pageSize,
           limit: pageSize,
+          ...(q ? { q } : {}),
         }
-        const resp = await apiGetComContexto({    
-          method: 'get',
-          endpoint: 'cfop/cfop',
-          params: q ? { ...params, q } : params,
-        })
 
-        // FIX: checa stale ANTES de atualizar qualquer estado
+        const data = await apiGetComContexto('cfop/cfop', params)
+
         if (seq !== requestSeq.current) return
-
         finished = true
-        const data = asData(resp)
+
         const lista = Array.isArray(data?.results) ? data.results : data
         const itens = Array.isArray(lista) ? lista : []
 
@@ -96,8 +89,6 @@ export default function CfopList({ navigation }) {
         finished = true
         setErro('Erro ao buscar CFOPs')
       } finally {
-        // FIX: só limpa loading se esta request ainda é válida,
-        // evitando setState em componente desmontado (crash no iOS)
         if (finished) {
           setLoading(false)
           setLoadingMore(false)
@@ -117,10 +108,8 @@ export default function CfopList({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiDeleteComContexto({  
-                method: 'delete',
-                endpoint: `cfop/cfop/${cfop_id}/`,
-              })
+              // FIX: usa apiDeleteComContexto em vez de request()
+              await apiDeleteComContexto(`cfop/cfop/${cfop_id}/`)
               await buscarCfops({ silent: true })
               Toast.show({
                 type: 'success',
@@ -132,7 +121,8 @@ export default function CfopList({ navigation }) {
                 type: 'error',
                 text1: 'Erro ao excluir CFOP',
                 text2:
-                  error.response?.data?.erro ||
+                  error?.response?.data?.erro ||
+                  error?.message ||
                   'Erro desconhecido ao excluir CFOP.',
               })
             }
@@ -143,17 +133,10 @@ export default function CfopList({ navigation }) {
     [buscarCfops],
   )
 
-  // FIX: onRefresh agora depende de buscarCfops (que já encapsula buscaCFOP)
   const onRefresh = useCallback(async () => {
-    await buscarCfops({
-      pagina: 1,
-      append: false,
-      silent: true,
-      isRefresh: true,
-    })
+    await buscarCfops({ pagina: 1, append: false, silent: true, isRefresh: true })
   }, [buscarCfops])
 
-  // FIX: buscarCfops adicionado nas deps do useFocusEffect
   useFocusEffect(
     useCallback(() => {
       if (!empresaId || carregando) return
@@ -167,7 +150,15 @@ export default function CfopList({ navigation }) {
     }, [empresaId, carregando, buscarCfops]),
   )
 
-  // FIX: removido buscaCFOP das deps do useMemo pois não é usado dentro dele
+  useEffect(() => {
+    if (!empresaId || carregando) return
+    if (!isFocusedRef.current || !didInitialFetch.current) return
+    const t = setTimeout(() => {
+      buscarCfops({ pagina: 1, append: false, silent: true })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [empresaId, carregando, buscaCFOP, buscarCfops])
+
   const dadosFiltrados = useMemo(() => {
     return Array.isArray(dados) ? dados : []
   }, [dados])

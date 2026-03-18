@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react'
 import {
   View,
   Text,
@@ -14,11 +14,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import styles from './Styles/NcmStyles'
 import Toast from 'react-native-toast-message'
 import useContextoApp from '../hooks/useContextoApp'
-import {
-  apiGetComContexto,
-  apiDeleteComContexto,
-  apiPostComContexto,
-} from '../utils/api'
+import { apiGetComContexto, apiDeleteComContexto } from '../utils/api'
 
 export default function NcmList({ navigation }) {
   const { hasModulo, empresaId, carregando } = useContextoApp()
@@ -34,10 +30,7 @@ export default function NcmList({ navigation }) {
   const didInitialFetch = useRef(false)
   const pageSize = 20
 
-  // Filtros
   const [buscaNCM, setBuscaNCM] = useState('')
-
-  const asData = (resp) => resp?.data ?? resp
 
   const toText = (v) => {
     if (v == null) return ''
@@ -62,8 +55,8 @@ export default function NcmList({ navigation }) {
     return String(v)
   }
 
-  // FIX: buscarNcms agora é useCallback com todas as deps corretas,
-  // evitando closures stale que travavam a lista no iOS
+  // FIX: usa apiGetComContexto igual às telas que funcionam (notas, dashboard)
+  // resolve o slug via contexto, sem depender do AsyncStorage isoladamente
   const buscarNcms = useCallback(
     async ({
       pagina = 1,
@@ -78,26 +71,22 @@ export default function NcmList({ navigation }) {
       if (isRefresh) setRefreshing(true)
       if (!silent && pagina === 1) setLoading(true)
       if (pagina > 1) setLoadingMore(true)
-
       setErro(null)
+
       try {
         const q = String(buscaNCM || '').trim()
         const params = {
           page: pagina,
           page_size: pageSize,
           limit: pageSize,
+          ...(q ? { q, search: q } : {}),
         }
-        const resp = await apiGetComContexto({
-          method: 'get',
-          endpoint: 'produtos/ncmfiscalpadrao',
-          params: q ? { ...params, q, search: q } : params,
-        })
 
-        // FIX: checa stale ANTES de atualizar qualquer estado
+        const data = await apiGetComContexto('produtos/ncmfiscalpadrao', params)
+
         if (seq !== requestSeq.current) return
-
         finished = true
-        const data = asData(resp)
+
         const lista = Array.isArray(data?.results) ? data.results : data
         const itens = Array.isArray(lista) ? lista : []
 
@@ -113,8 +102,6 @@ export default function NcmList({ navigation }) {
         finished = true
         setErro('Erro ao buscar NCMs')
       } finally {
-        // FIX: só limpa loading se esta request ainda é válida,
-        // evitando setState em componente desmontado (crash no iOS)
         if (finished) {
           setLoading(false)
           setLoadingMore(false)
@@ -139,10 +126,8 @@ export default function NcmList({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiDeleteComContexto({
-                method: 'delete',
-                endpoint: `produtos/ncmfiscalpadrao/${id}/`,
-              })
+              // FIX: usa apiDeleteComContexto em vez de request()
+              await apiDeleteComContexto(`produtos/ncmfiscalpadrao/${id}/`)
               await buscarNcms({ silent: true })
               Toast.show({
                 type: 'success',
@@ -154,7 +139,8 @@ export default function NcmList({ navigation }) {
                 type: 'error',
                 text1: 'Erro ao excluir NCM',
                 text2:
-                  error.response?.data?.erro ||
+                  error?.response?.data?.erro ||
+                  error?.message ||
                   'Erro desconhecido ao excluir NCM.',
               })
             }
@@ -165,17 +151,10 @@ export default function NcmList({ navigation }) {
     [buscarNcms],
   )
 
-  // FIX: onRefresh agora depende de buscarNcms (que já encapsula buscaNCM)
   const onRefresh = useCallback(async () => {
-    await buscarNcms({
-      pagina: 1,
-      append: false,
-      silent: true,
-      isRefresh: true,
-    })
+    await buscarNcms({ pagina: 1, append: false, silent: true, isRefresh: true })
   }, [buscarNcms])
 
-  // FIX: buscarNcms adicionado nas deps do useFocusEffect
   useFocusEffect(
     useCallback(() => {
       if (!empresaId || carregando) return
@@ -189,7 +168,15 @@ export default function NcmList({ navigation }) {
     }, [empresaId, carregando, buscarNcms]),
   )
 
-  // FIX: removido buscaNCM das deps do useMemo pois não é usado dentro dele
+  useEffect(() => {
+    if (!empresaId || carregando) return
+    if (!isFocusedRef.current || !didInitialFetch.current) return
+    const t = setTimeout(() => {
+      buscarNcms({ pagina: 1, append: false, silent: true })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [empresaId, carregando, buscaNCM, buscarNcms])
+
   const dadosFiltrados = useMemo(() => {
     return Array.isArray(dados) ? dados : []
   }, [dados])
