@@ -14,7 +14,11 @@ import { useFocusEffect } from '@react-navigation/native'
 import styles from './Styles/NcmStyles'
 import Toast from 'react-native-toast-message'
 import useContextoApp from '../hooks/useContextoApp'
-import { request } from '../utils/api'
+import {
+  apiGetComContexto,
+  apiDeleteComContexto,
+  apiPostComContexto,
+} from '../utils/api'
 
 export default function NcmList({ navigation }) {
   const { hasModulo, empresaId, carregando } = useContextoApp()
@@ -83,7 +87,7 @@ export default function NcmList({ navigation }) {
           page_size: pageSize,
           limit: pageSize,
         }
-        const resp = await request({
+        const resp = await apiGetComContexto({
           method: 'get',
           endpoint: 'produtos/ncmfiscalpadrao',
           params: q ? { ...params, q, search: q } : params,
@@ -135,7 +139,7 @@ export default function NcmList({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await request({
+              await apiDeleteComContexto({
                 method: 'delete',
                 endpoint: `produtos/ncmfiscalpadrao/${id}/`,
               })

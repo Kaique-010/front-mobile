@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import styles from './Styles/CfopStyles'
 import Toast from 'react-native-toast-message'
 import useContextoApp from '../hooks/useContextoApp'
-import { request } from '../utils/api'
+import { apiGetComContexto, apiDeleteComContexto, apiPostComContexto } from '../utils/api'
 
 export default function CfopList({ navigation }) {
   const { hasModulo, empresaId, carregando } = useContextoApp()
@@ -70,7 +70,7 @@ export default function CfopList({ navigation }) {
           page_size: pageSize,
           limit: pageSize,
         }
-        const resp = await request({
+        const resp = await apiGetComContexto({    
           method: 'get',
           endpoint: 'cfop/cfop',
           params: q ? { ...params, q } : params,
@@ -117,7 +117,7 @@ export default function CfopList({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await request({
+              await apiDeleteComContexto({  
                 method: 'delete',
                 endpoint: `cfop/cfop/${cfop_id}/`,
               })
