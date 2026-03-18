@@ -252,6 +252,52 @@ export const notasFiscaisService = {
       throw error
     }
   },
+
+  async transmitirNotaFiscalPorPk(id, payload = {}) {
+    const endpoint = `notasfiscais/notas-fiscais/notas/${id}/transmitir/`
+    const response = await request({
+      method: 'post',
+      endpoint,
+      data: payload,
+      params: {},
+    })
+    return response.data
+  },
+
+  async consultarNotaFiscalPorPk(id, payload = {}) {
+    const endpoint = `notasfiscais/notas-fiscais/notas/${id}/consultar/`
+    const response = await request({
+      method: 'post',
+      endpoint,
+      data: payload,
+      params: {},
+    })
+    return response.data
+  },
+
+  async inutilizarNotaFiscalPorPk(id, payload = {}) {
+    const endpoint = `notasfiscais/notas-fiscais/notas/${id}/inutilizar/`
+    console.log('🧾 [NF] Inutilizar (PK) ->', { id, endpoint, payload })
+    const response = await request({
+      method: 'post',
+      endpoint,
+      data: payload,
+      params: {},
+    })
+    return response.data
+  },
+
+  async cancelarNotaFiscalPorPk(id, payload = {}) {
+    const endpoint = `notasfiscais/notas-fiscais/notas/${id}/cancelar/`
+    console.log('🧾 [NF] Cancelar (PK) ->', { id, endpoint, payload })
+    const response = await request({
+      method: 'post',
+      endpoint,
+      data: payload,
+      params: {},
+    })
+    return response.data
+  },
 }
 
 /**
@@ -264,11 +310,34 @@ export const notasFiscaisUtils = {
    * @returns {string} Valor formatado
    */
   formatarMoeda(valor) {
-    if (!valor) return 'R$ 0,00'
+    if (valor == null) return 'R$ 0,00'
+    let n = 0
+    if (typeof valor === 'number') {
+      n = valor
+    } else {
+      const s = String(valor).trim()
+      if (!s) return 'R$ 0,00'
+
+      const soNumero = (txt) => txt.replace(/[^\d,.-]/g, '').replace(/\s/g, '')
+
+      const t = soNumero(s)
+
+      if (/^-?\d+(\.\d+)?$/.test(t)) {
+        n = Number(t)
+      } else if (/^-?\d+(,\d+)?$/.test(t)) {
+        n = Number(t.replace(',', '.'))
+      } else if (/^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(t)) {
+        n = Number(t.replace(/\./g, '').replace(',', '.'))
+      } else {
+        n = Number(t.replace(/\./g, '').replace(',', '.'))
+      }
+    }
+
+    if (!Number.isFinite(n)) return 'R$ 0,00'
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(valor)
+    }).format(n)
   },
 
   /**
@@ -348,6 +417,7 @@ export const notasFiscaisUtils = {
       0: 'Rascunho',
       100: 'Autorizada',
       101: 'Cancelada',
+      102: 'Inutilizada',
       532: 'Denegada Erro Cliente',
       110: 'Denegada',
       301: 'Rejeitada',
@@ -363,13 +433,14 @@ export const notasFiscaisUtils = {
    */
   obterCorStatus(status) {
     const coresStatus = {
-      0: '#ffc107', // Amarelo - Rascunho
-      100: '#28a745', // Verde - Autorizada
-      101: '#dc3545', // Vermelho - Cancelada
-      110: '#fd7e14', // Laranja - Denegada
-      301: '#dc3545', // Vermelho - Rejeitada
-      302: '#6c757d', // Cinza - Inutilizada
+      0: '#FDE68A',
+      100: '#BBF7D0',
+      101: '#FECACA',
+      102: '#E5E7EB',
+      110: '#FED7AA',
+      301: '#FECACA',
+      302: '#E5E7EB',
     }
-    return coresStatus[status] || '#6c757d'
+    return coresStatus[status] || '#E5E7EB'
   },
 }

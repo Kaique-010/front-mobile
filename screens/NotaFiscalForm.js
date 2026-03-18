@@ -15,6 +15,7 @@ import NotaFiscalAbaItens from '../componentsNotasFiscais/form/NotaFiscalAbaIten
 import NotaFiscalAbaCfop from '../componentsNotasFiscais/form/NotaFiscalAbaCfop'
 import NotaFiscalAbaTransporte from '../componentsNotasFiscais/form/NotaFiscalAbaTransporte'
 import NotaFiscalAbaTotais from '../componentsNotasFiscais/form/NotaFiscalAbaTotais'
+import NotaFiscalAbaFinanceiro from '../componentsNotasFiscais/form/NotaFiscalAbaFinanceiro'
 
 const ABAS = {
   PRINCIPAL: 'principal',
@@ -23,14 +24,15 @@ const ABAS = {
   CFOP: 'cfop',
   TRANSPORTE: 'transporte',
   TOTAIS: 'totais',
+  FINANCEIRO: 'financeiro',
 }
 
 const hojeISO = () => new Date().toISOString().split('T')[0]
 
 const normalizarNumero = (v) => {
-  if (v == null) return ''
+  if (v == null) return 0
   const s = String(v).trim()
-  if (!s) return ''
+  if (!s) return 0
   const n = Number(s.replace(',', '.'))
   return Number.isFinite(n) ? n : 0
 }
@@ -123,9 +125,22 @@ export default function NotaFiscalForm({ route, navigation }) {
     placa_veiculo: '',
     uf_veiculo: '',
   })
+  const [financeiro, setFinanceiro] = useState({
+    titu_form_reci: '54',
+  })
   const [itens, setItens] = useState([itemVazio(cfopPadrao)])
   const [itemEditandoIndex, setItemEditandoIndex] = useState(null)
   const [itemEditando, setItemEditando] = useState(itemVazio(cfopPadrao))
+  const notaId =
+    notaFiscalParam?.id ?? notaFiscalParam?.pk ?? notaFiscalParam?.nota_id
+  const notaFinanceiro = useMemo(
+    () => ({
+      ...financeiro,
+      titu_titu: notaId != null ? String(notaId) : '',
+      titu_clie: cliente.destinatario ? String(cliente.destinatario) : '',
+    }),
+    [cliente.destinatario, financeiro, notaId],
+  )
 
   const getAbaIcon = (aba) => {
     switch (aba) {
@@ -141,6 +156,8 @@ export default function NotaFiscalForm({ route, navigation }) {
         return 'local-shipping'
       case ABAS.TOTAIS:
         return 'receipt'
+      case ABAS.FINANCEIRO:
+        return 'attach-money'
       default:
         return 'info'
     }
@@ -160,6 +177,8 @@ export default function NotaFiscalForm({ route, navigation }) {
         return 'Transporte'
       case ABAS.TOTAIS:
         return 'Totais'
+      case ABAS.FINANCEIRO:
+        return 'Financeiro'
       default:
         return 'Principal'
     }
@@ -634,6 +653,14 @@ export default function NotaFiscalForm({ route, navigation }) {
         )
       case ABAS.TOTAIS:
         return <NotaFiscalAbaTotais styles={styles} totais={totais} />
+      case ABAS.FINANCEIRO:
+        return (
+          <NotaFiscalAbaFinanceiro
+            nota={notaFinanceiro}
+            totalGeral={totais?.total || 0}
+            setNota={setFinanceiro}
+          />
+        )
       default:
         return (
           <NotaFiscalAbaPrincipal

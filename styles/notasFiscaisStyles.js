@@ -143,8 +143,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusText: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#111827',
+    fontSize: 11,
     fontWeight: '600',
   },
 
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   valueAmount: {
-    color: '#28a745',
+    color: '#A7F3D0',
     fontSize: 14,
     fontWeight: 'bold',
     flex: 1.5,
@@ -180,28 +180,40 @@ const styles = StyleSheet.create({
   // ====== Ações do Item ======
   actionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 2,
   },
   actionButton: {
-    backgroundColor: '#345686',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 4,
-    marginBottom: 5,
-    minWidth: '22%',
+    backgroundColor: '#C7D2FE',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    flexShrink: 1,
   },
   actionButtonText: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#111827',
+    fontSize: 11,
     textAlign: 'center',
     fontWeight: '600',
   },
   xmlButton: {
-    backgroundColor: '#17a2b8',
+    backgroundColor: '#A7F3D0',
+  },
+  transmitirButton: {
+    backgroundColor: '#BBF7D0',
+  },
+  consultarButton: {
+    backgroundColor: '#BFDBFE',
+  },
+  inutilizarButton: {
+    backgroundColor: '#FED7AA',
+  },
+  cancelarButton: {
+    backgroundColor: '#FECACA',
   },
   editButton: {
-    backgroundColor: '#ffc107',
+    backgroundColor: '#FDE68A',
   },
   deleteButton: {
     backgroundColor: '#dc3545',

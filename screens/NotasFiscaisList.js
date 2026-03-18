@@ -6,10 +6,13 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native'
+import Toast from 'react-native-toast-message'
 import { getStoredData } from '../services/storageService'
 import {
   notasFiscaisService,
@@ -249,6 +252,209 @@ export default function NotasFiscaisList({ navigation }) {
     }
   }
 
+  const obterStatusNfe = (item) => item?.status_nfe ?? item?.status
+
+  const obterIdNota = (item) => item?.id ?? item?.pk ?? item?.nota_id
+
+  const obterResumoSefaz = (payload) => {
+    const data = payload || {}
+    const sefaz = data?.sefaz_response || {}
+    const status = Number(
+      data?.status ?? data?.status_nfe ?? sefaz?.status ?? data?.statusNfe,
+    )
+    const chave = data?.chave_acesso || sefaz?.chave || data?.chave
+    const protocolo =
+      data?.protocolo_autorizacao || sefaz?.protocolo || data?.protocolo
+    const motivo =
+      data?.motivo_status ||
+      sefaz?.mensagem ||
+      sefaz?.motivo ||
+      data?.mensagem ||
+      data?.motivo
+
+    return { status, chave, protocolo, motivo }
+  }
+
+  const toastSucessoAcao = (acao, payload) => {
+    const { status, chave, protocolo, motivo } = obterResumoSefaz(payload)
+
+    if (status === 100) {
+      Toast.show({
+        type: 'success',
+        text1: `${acao} concluída`,
+        text2: `Autorizada. ${chave ? `Chave: ${chave}. ` : ''}${protocolo ? `Protocolo: ${protocolo}.` : ''}`,
+        visibilityTime: 6000,
+      })
+      return
+    }
+
+    if ([103, 105].includes(status)) {
+      Toast.show({
+        type: 'warning',
+        text1: `${acao} enviada`,
+        text2: motivo || 'SEFAZ em processamento. Consulte novamente em instantes.',
+        visibilityTime: 6000,
+      })
+      return
+    }
+
+    if (Number.isFinite(status) && status > 0) {
+      Toast.show({
+        type: 'warning',
+        text1: `${acao} concluída`,
+        text2: motivo || `Status SEFAZ: ${status}`,
+        visibilityTime: 6000,
+      })
+      return
+    }
+
+    Toast.show({
+      type: 'success',
+      text1: `${acao} concluída`,
+      text2: 'Operação executada com sucesso',
+      visibilityTime: 6000,
+    })
+  }
+
+  const toastErroAcao = (acao, error) => {
+    const msg =
+      error?.response?.data?.detail ||
+      error?.response?.data?.mensagem ||
+      error?.response?.data?.erro ||
+      error?.response?.data?.error ||
+      error?.message ||
+      `Falha ao ${acao.toLowerCase()}`
+
+    Toast.show({
+      type: 'error',
+      text1: `Erro ao ${acao.toLowerCase()}`,
+      text2: String(msg),
+      visibilityTime: 6000,
+    })
+  }
+
+  const temChaveOuXml = (item) =>
+    Boolean(
+      item?.chave_acesso ||
+      item?.xml_assinado ||
+      item?.xml_autorizado ||
+      item?.chave_referenciada ||
+      item?.ultimo_protocolo,
+    )
+
+  const obterValorTotalNota = (item) =>
+    item?.valor_total ??
+    item?.valor_total_nota ??
+    item?.valor_total_nf ??
+    item?.valor_total_nfe ??
+    item?.valor_total_nota_fiscal ??
+    item?.total_nota ??
+    item?.valorTotal ??
+    item?.total ??
+    item?.valor
+
+  const executarAcaoNota = async (acao, fn) => {
+    setIsSearching(true)
+    try {
+      const result = await fn()
+      toastSucessoAcao(acao, result)
+      buscarNotasFiscais(1, true)
+    } catch (error) {
+      console.log(`❌ [NF] Falha ao ${acao}:`, {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        url: error?.config?.url,
+        method: error?.config?.method,
+      })
+      toastErroAcao(acao, error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const transmitirNota = (item) => {
+    const id = obterIdNota(item)
+    if (!id) {
+      Alert.alert('Erro', 'ID da nota fiscal não encontrado')
+      return
+    }
+    executarAcaoNota('Transmitir', async () => {
+      await notasFiscaisService.transmitirNotaFiscalPorPk(id)
+      const consulta = await notasFiscaisService.consultarNotaFiscalPorPk(id)
+      return consulta
+    })
+  }
+
+  const consultarNota = (item) => {
+    const id = obterIdNota(item)
+    if (!id) {
+      Alert.alert('Erro', 'ID da nota fiscal não encontrado')
+      return
+    }
+    executarAcaoNota('Consultar', () =>
+      notasFiscaisService.consultarNotaFiscalPorPk(id),
+    )
+  }
+
+  const inutilizarNota = (item) => {
+    const id = obterIdNota(item)
+    if (!id) {
+      Alert.alert('Erro', 'ID da nota fiscal não encontrado')
+      return
+    }
+    console.log('🧾 [NF] Clique inutilizar:', { id, empresa: item?.empresa, filial: item?.filial, numero: item?.numero })
+    const executar = () => {
+      console.log('🧾 [NF] Confirmou inutilizar:', { id })
+      return executarAcaoNota('Inutilizar', () =>
+        notasFiscaisService.inutilizarNotaFiscalPorPk(id, {
+          descricao: 'Inutilização via app',
+        }),
+      )
+    }
+
+    if (Platform.OS === 'web') {
+      const ok = window.confirm('Confirma inutilizar a numeração da nota?')
+      if (!ok) return
+      executar()
+      return
+    }
+
+    Alert.alert('Confirmação', 'Confirma inutilizar a numeração da nota?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Inutilizar', style: 'destructive', onPress: executar },
+    ])
+  }
+
+  const cancelarNota = (item) => {
+    const id = obterIdNota(item)
+    if (!id) {
+      Alert.alert('Erro', 'ID da nota fiscal não encontrado')
+      return
+    }
+    console.log('🧾 [NF] Clique cancelar:', { id, empresa: item?.empresa, filial: item?.filial, numero: item?.numero })
+    const executar = () => {
+      console.log('🧾 [NF] Confirmou cancelar:', { id })
+      return executarAcaoNota('Cancelar', () =>
+        notasFiscaisService.cancelarNotaFiscalPorPk(id, {
+          descricao: 'Cancelamento via app',
+        }),
+      )
+    }
+
+    if (Platform.OS === 'web') {
+      const ok = window.confirm('Confirma cancelar a nota?')
+      if (!ok) return
+      executar()
+      return
+    }
+
+    Alert.alert('Confirmação', 'Confirma cancelar a nota?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cancelar', style: 'destructive', onPress: executar },
+    ])
+  }
+
   useFocusEffect(
     useCallback(() => {
       if (slug) {
@@ -285,87 +491,136 @@ export default function NotasFiscaisList({ navigation }) {
     )
   }
 
-  const renderNotaFiscal = ({ item }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.itemHeader}>
-        <Text style={styles.numeroNota}>
-          NF-e:{' '}
-          {item?.numero_nota_fiscal ?? item?.numero ?? item?.numero_completo}
-        </Text>
-        <View
-          style={[
-            styles.statusBadge,
-            {
-              backgroundColor: notasFiscaisUtils.obterCorStatus(
+  const renderNotaFiscal = ({ item }) => {
+    const statusNfe = obterStatusNfe(item)
+    const bloqueada =
+      statusNfe === 100 || statusNfe === 101 || statusNfe === 102
+    const podeCancelar = statusNfe === 100
+    const podeConsultar =
+      temChaveOuXml(item) || [539, 204, 105, 100].includes(statusNfe)
+    const podeTransmitir = !bloqueada && !podeConsultar
+
+    return (
+      <View style={styles.itemContainer}>
+        <View style={styles.itemHeader}>
+          <Text style={styles.numeroNota}>
+            NF-e:{' '}
+            {item?.numero_nota_fiscal ?? item?.numero ?? item?.numero_completo}
+          </Text>
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: notasFiscaisUtils.obterCorStatus(
+                  item?.status_nfe ?? item?.status,
+                ),
+              },
+            ]}>
+            <Text style={styles.statusText}>
+              {notasFiscaisUtils.obterDescricaoStatus(
                 item?.status_nfe ?? item?.status,
-              ),
-            },
-          ]}>
-          <Text style={styles.statusText}>
-            {notasFiscaisUtils.obterDescricaoStatus(
-              item?.status_nfe ?? item?.status,
-            )}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.itemContent}>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Empresa/Filial:</Text>
-          <Text style={styles.value}>
-            {item.empresa}/{item.filial}
-          </Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Data Emissão:</Text>
-          <Text style={styles.value}>
-            {notasFiscaisUtils.formatarData(
-              item?.data_emissao ?? item?.criado_em,
-            )}
-          </Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Valor Total:</Text>
-          <Text style={styles.valueAmount}>
-            {notasFiscaisUtils.formatarMoeda(
-              item?.valor_total ??
-                item?.valorTotal ??
-                item?.total ??
-                item?.total_nota ??
-                item?.valor,
-            )}
-          </Text>
-        </View>
-
-        {formatarPessoa(item.destinatario) ? (
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Destinatário:</Text>
-            <Text style={styles.value} numberOfLines={1}>
-              {formatarPessoa(item.destinatario)}
+              )}
             </Text>
           </View>
-        ) : null}
-      </View>
+        </View>
 
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() =>
-            navigation.navigate('NotaFiscalDetalhe', { notaFiscal: item })
-          }>
-          <Text style={styles.actionButtonText}>Visualizar</Text>
-        </TouchableOpacity>
+        <View style={styles.itemContent}>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Empresa/Filial:</Text>
+            <Text style={styles.value}>
+              {item.empresa}/{item.filial}
+            </Text>
+          </View>
 
-        <TouchableOpacity
-          style={[styles.actionButton, styles.xmlButton]}
-          onPress={() => visualizarXml(item)}>
-          <Text style={styles.actionButtonText}>XML</Text>
-        </TouchableOpacity>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Data Emissão:</Text>
+            <Text style={styles.value}>
+              {notasFiscaisUtils.formatarData(
+                item?.data_emissao ?? item?.criado_em,
+              )}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Valor Total:</Text>
+            <Text style={styles.valueAmount}>
+              {notasFiscaisUtils.formatarMoeda(obterValorTotalNota(item))}
+            </Text>
+          </View>
+
+          {formatarPessoa(item.destinatario) ? (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Destinatário:</Text>
+              <Text style={styles.value} numberOfLines={1}>
+                {formatarPessoa(item.destinatario)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() =>
+              navigation.navigate('NotaFiscalDetalhe', { notaFiscal: item })
+            }>
+            <Text style={styles.actionButtonText}>Visualizar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.xmlButton]}
+            onPress={() => visualizarXml(item)}>
+            <Text style={styles.actionButtonText}>XML</Text>
+          </TouchableOpacity>
+
+          {!bloqueada && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.editButton]}
+              onPress={() =>
+                navigation.navigate('NotaFiscalForm', { notaFiscal: item })
+              }>
+              <Text style={styles.actionButtonText}>Editar</Text>
+            </TouchableOpacity>
+          )}
+
+          {podeConsultar && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.consultarButton]}
+              onPress={() => consultarNota(item)}>
+              <Text style={styles.actionButtonText}>Consultar</Text>
+            </TouchableOpacity>
+          )}
+
+          {!bloqueada && podeTransmitir && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.transmitirButton]}
+              onPress={() => transmitirNota(item)}>
+              <Text style={styles.actionButtonText}>Transmitir</Text>
+            </TouchableOpacity>
+          )}
+
+          {!bloqueada && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.inutilizarButton]}
+              onPress={() => inutilizarNota(item)}>
+              <Text style={styles.actionButtonText}>Inutilizar</Text>
+            </TouchableOpacity>
+          )}
+
+          {podeCancelar && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.cancelarButton]}
+              onPress={() => cancelarNota(item)}>
+              <Text style={styles.actionButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
       </View>
-    </View>
-  )
+    )
+  }
 
   const renderFooter = () => {
     if (!isSearching) return null
@@ -402,14 +657,6 @@ export default function NotasFiscaisList({ navigation }) {
           value={searchNumero}
           onChangeText={setSearchNumero}
           keyboardType="numeric"
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Empresa"
-          placeholderTextColor="#999"
-          value={searchEmpresa}
-          onChangeText={setSearchEmpresa}
         />
 
         <TextInput
@@ -461,12 +708,6 @@ export default function NotasFiscaisList({ navigation }) {
           style={styles.incluirButton}
           onPress={() => navigation.navigate('NotaFiscalForm')}>
           <Text style={styles.incluirButtonText}>+ Nova Nota Fiscal</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.emitirButton}
-          onPress={() => navigation.navigate('EmissaoNFe')}>
-          <Text style={styles.emitirButtonText}>📄 Emitir NFe</Text>
         </TouchableOpacity>
       </View>
 
