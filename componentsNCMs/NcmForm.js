@@ -13,9 +13,11 @@ import Toast from 'react-native-toast-message'
 import styles from './Styles/NcmStyles'
 import BuscaNcmInput from './BuscaNcmInput'
 import BuscaCstInput from './BuscaCstInput'
-import { request } from '../utils/api'
-
-const asData = (resp) => resp?.data ?? resp
+import {
+  apiGetComContexto,
+  apiPostComContexto,
+  apiPutComContexto,
+} from '../utils/api'
 
 const DEFAULT_FORM = {
   ncm: '',
@@ -76,8 +78,7 @@ export default function NcmForm({ route, navigation }) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
   }
 
-  const hidratarDeResposta = (payload) => {
-    const data = asData(payload)
+  const hidratarDeResposta = (data) => {
     setForm({
       ncm: toText(data?.ncm),
       ncm_id: toText(data?.ncm_id),
@@ -105,11 +106,11 @@ export default function NcmForm({ route, navigation }) {
       return
     setLoading(true)
     try {
-      const resp = await request({
-        method: 'get',
-        endpoint: `produtos/ncmfiscalpadrao/${ncmIdParam}/`,
-      })
-      hidratarDeResposta(resp)
+      // FIX: usa apiGetComContexto em vez de request()
+      const data = await apiGetComContexto(
+        `produtos/ncmfiscalpadrao/${ncmIdParam}/`,
+      )
+      hidratarDeResposta(data)
     } catch (e) {
       const msg =
         e?.response?.data?.detail ||
@@ -138,12 +139,8 @@ export default function NcmForm({ route, navigation }) {
       ncm: String(form.ncm || '').trim(),
       ncm_id,
       cfop: String(form.cfop || '').trim(),
-      uf_origem: String(form.uf_origem || '')
-        .trim()
-        .toUpperCase(),
-      uf_destino: String(form.uf_destino || '')
-        .trim()
-        .toUpperCase(),
+      uf_origem: String(form.uf_origem || '').trim().toUpperCase(),
+      uf_destino: String(form.uf_destino || '').trim().toUpperCase(),
       tipo_entidade: String(form.tipo_entidade || '').trim(),
       cst_icms: String(form.cst_icms || '').trim(),
       aliq_icms: String(form.aliq_icms || '').trim(),
@@ -161,21 +158,21 @@ export default function NcmForm({ route, navigation }) {
 
     setSalvando(true)
     try {
-      const resp = await request({
-        method: isEdit ? 'put' : 'post',
-        endpoint: isEdit
-          ? `produtos/ncmfiscalpadrao/${ncmIdParam}/`
-          : 'produtos/ncmfiscalpadrao/',
-        data: payload,
-      })
-      const data = asData(resp)
+      // FIX: usa apiPutComContexto ou apiPostComContexto em vez de request()
+      if (isEdit) {
+        await apiPutComContexto(
+          `produtos/ncmfiscalpadrao/${ncmIdParam}/`,
+          payload,
+        )
+      } else {
+        await apiPostComContexto('produtos/ncmfiscalpadrao/', payload)
+      }
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
         text2: isEdit ? 'NCM atualizado' : 'NCM criado',
       })
       navigation.goBack()
-      return data
     } catch (e) {
       const msg =
         e?.response?.data?.detail ||

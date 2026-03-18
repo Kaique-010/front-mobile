@@ -9,7 +9,7 @@ import {
   Keyboard,
 } from 'react-native'
 import { MaterialIcons } from '@expo/vector-icons'
-import { request } from '../utils/api'
+import { apiGetComContexto } from '../utils/api'
 import styles from './Styles/NcmStyles'
 
 const toText = (v) => {
@@ -56,12 +56,11 @@ export default function BuscaNcmInput({
     setLoading(true)
     const t = setTimeout(async () => {
       try {
-        const resp = await request({
-          method: 'get',
-          endpoint: 'produtos/ncmfiscalpadrao/buscancm',
-          params: { q, search: q, limit: 10 },
-        })
-        const data = resp?.data ?? resp
+        // FIX: usa apiGetComContexto em vez de request()
+        const data = await apiGetComContexto(
+          'produtos/ncmfiscalpadrao/buscancm',
+          { q, search: q, limit: 10 },
+        )
         const lista = Array.isArray(data?.results) ? data.results : data
         setResultados(Array.isArray(lista) ? lista : [])
         setShowResults(true)

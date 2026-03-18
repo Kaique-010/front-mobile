@@ -12,7 +12,11 @@ import {
 import { MaterialIcons } from '@expo/vector-icons'
 import Toast from 'react-native-toast-message'
 import styles from './Styles/CfopStyles'
-import { request } from '../utils/api'
+import {
+  apiGetComContexto,
+  apiPostComContexto,
+  apiPutComContexto,
+} from '../utils/api'
 import useContextoApp from '../hooks/useContextoApp'
 
 const normalizarBool = (v) => {
@@ -111,9 +115,7 @@ export default function CfopForm({ route, navigation }) {
     )
   }
 
-  const hidratarDeResposta = (payload) => {
-    const data = asData(payload)
-
+  const hidratarDeResposta = (data) => {
     const cps = Array.isArray(data?.campos_padrao) ? data.campos_padrao : []
     setCamposPadrao(
       cps.map((c) => ({
@@ -164,11 +166,8 @@ export default function CfopForm({ route, navigation }) {
 
   const carregarTemplateIncidencias = async () => {
     try {
-      const resp = await request({
-        method: 'get',
-        endpoint: 'cfop/cfop',
-      })
-      const data = asData(resp)
+      // FIX: usa apiGetComContexto em vez de request()
+      const data = await apiGetComContexto('cfop/cfop')
       const lista = Array.isArray(data?.results) ? data.results : data
       const primeiro = Array.isArray(lista) ? lista[0] : null
       const incs = Array.isArray(primeiro?.incidencias)
@@ -199,11 +198,9 @@ export default function CfopForm({ route, navigation }) {
     if (!isEdit || cfopIdParam == null) return
     setLoading(true)
     try {
-      const resp = await request({
-        method: 'get',
-        endpoint: `cfop/cfop/${cfopIdParam}/`,
-      })
-      hidratarDeResposta(resp)
+      // FIX: usa apiGetComContexto em vez de request()
+      const data = await apiGetComContexto(`cfop/cfop/${cfopIdParam}/`)
+      hidratarDeResposta(data)
     } catch (e) {
       const msg =
         e?.response?.data?.detail ||
@@ -274,19 +271,18 @@ export default function CfopForm({ route, navigation }) {
 
     setSalvando(true)
     try {
-      const resp = await request({
-        method: isEdit ? 'put' : 'post',
-        endpoint: isEdit ? `cfop/cfop/${cfopIdParam}/` : 'cfop/cfop/',
-        data: payload,
-      })
-      const data = asData(resp)
+      // FIX: usa apiPutComContexto ou apiPostComContexto em vez de request()
+      if (isEdit) {
+        await apiPutComContexto(`cfop/cfop/${cfopIdParam}/`, payload)
+      } else {
+        await apiPostComContexto('cfop/cfop/', payload)
+      }
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
         text2: isEdit ? 'CFOP atualizado' : 'CFOP criado',
       })
       navigation.goBack()
-      return data
     } catch (e) {
       const msg =
         e?.response?.data?.detail ||
