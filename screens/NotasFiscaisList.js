@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import {
   View,
@@ -18,6 +18,7 @@ import {
   notasFiscaisService,
   notasFiscaisUtils,
 } from '../componentsNotasFiscais/notasFiscaisService'
+import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 import styles from '../styles/notasFiscaisStyles'
 
 export default function NotasFiscaisList({ navigation }) {
@@ -40,6 +41,24 @@ export default function NotasFiscaisList({ navigation }) {
   const [hasNextPage, setHasNextPage] = useState(false)
   const [totalItems, setTotalItems] = useState(0)
 
+  const [totaisCards, setTotaisCards] = useState({
+    emitidas: 0,
+    inutilizadas: 0,
+    canceladas: 0,
+    loading: false,
+  })
+
+  const filtrosRef = useRef({
+    searchNumero: '',
+    searchEmpresa: '',
+    searchStatus: '',
+    searchDataInicio: '',
+    searchDataFim: '',
+  })
+  const buscarRequestSeqRef = useRef(0)
+  const totaisRequestSeqRef = useRef(0)
+  const debouncePrimeiraVezRef = useRef(true)
+
   useEffect(() => {
     const carregarSlug = async () => {
       try {
@@ -59,11 +78,74 @@ export default function NotasFiscaisList({ navigation }) {
   useEffect(() => {
     if (slug) {
       buscarNotasFiscais()
+      buscarTotaisCards()
     }
   }, [slug])
 
-  const buscarNotasFiscais = async (pagina = 1, refresh = false) => {
+  const normalizarStatusParaFiltro = (valor) => {
+    const digits = String(valor || '').replace(/\D/g, '')
+    if (!digits) return null
+    if (digits === '0') return 0
+    if (digits.length < 3) return null
+    const n = parseInt(digits, 10)
+    return Number.isFinite(n) ? n : null
+  }
+
+  const formatarDataAPI = (data) => {
+    if (!(data instanceof Date) || Number.isNaN(data.getTime())) return ''
+    const ano = data.getFullYear()
+    const mes = String(data.getMonth() + 1).padStart(2, '0')
+    const dia = String(data.getDate()).padStart(2, '0')
+    return `${ano}-${mes}-${dia}`
+  }
+
+  const montarFiltros = (pagina = 1, filtrosState = null) => {
+    const state = filtrosState || {
+      searchNumero,
+      searchEmpresa,
+      searchStatus,
+      searchDataInicio,
+      searchDataFim,
+    }
+
+    const offset = (pagina - 1) * pageSize
+    const filtros = {
+      limit: pageSize,
+      offset,
+    }
+
+    const numero = String(state.searchNumero || '').trim()
+    if (numero) {
+      filtros.numero = numero
+      filtros.numero_completo = numero
+    }
+
+    const empresa = String(state.searchEmpresa || '').trim()
+    if (empresa) filtros.empresa = empresa
+
+    const statusNormalizado = normalizarStatusParaFiltro(state.searchStatus)
+    if (statusNormalizado != null) {
+      filtros.status = statusNormalizado
+      filtros.status_nfe = statusNormalizado
+    }
+
+    const dataInicio = String(state.searchDataInicio || '').trim()
+    if (dataInicio) filtros.data_inicio = dataInicio
+
+    const dataFim = String(state.searchDataFim || '').trim()
+    if (dataFim) filtros.data_fim = dataFim
+
+    return filtros
+  }
+
+  const buscarNotasFiscais = async (
+    pagina = 1,
+    refresh = false,
+    filtrosState = null,
+  ) => {
     console.log(`🚀 Iniciando busca - Página: ${pagina}, Refresh: ${refresh}`)
+
+    const requestId = ++buscarRequestSeqRef.current
 
     if (refresh) {
       setRefreshing(true)
@@ -72,24 +154,7 @@ export default function NotasFiscaisList({ navigation }) {
     }
 
     try {
-      const offset = (pagina - 1) * pageSize
-      const filtros = {
-        limit: pageSize,
-        offset,
-      }
-
-      // Aplicar filtros de busca
-      if (searchNumero) {
-        filtros.numero = searchNumero
-        filtros.numero_completo = searchNumero
-      }
-      if (searchEmpresa) filtros.empresa = searchEmpresa
-      if (searchStatus) {
-        filtros.status = searchStatus
-        filtros.status_nfe = searchStatus
-      }
-      if (searchDataInicio) filtros.data_inicio = searchDataInicio
-      if (searchDataFim) filtros.data_fim = searchDataFim
+      const filtros = montarFiltros(pagina, filtrosState)
 
       console.log('🔍 Filtros aplicados:', filtros)
 
@@ -106,6 +171,8 @@ export default function NotasFiscaisList({ navigation }) {
         next: response?.next,
         previous: response?.previous,
       })
+
+      if (requestId !== buscarRequestSeqRef.current) return
 
       if (pagina === 1) {
         const notas = response.results || response
@@ -143,12 +210,61 @@ export default function NotasFiscaisList({ navigation }) {
     } catch (error) {
       console.log('❌ Erro ao buscar notas fiscais:', error.message)
       console.error('❌ Stack do erro:', error)
-      Alert.alert('Erro', 'Falha ao carregar notas fiscais')
+      if (requestId === buscarRequestSeqRef.current) {
+        Alert.alert('Erro', 'Falha ao carregar notas fiscais')
+      }
     } finally {
-      setIsSearching(false)
-      setRefreshing(false)
-      setLoading(false)
-      console.log('🏁 Busca finalizada')
+      if (requestId === buscarRequestSeqRef.current) {
+        setIsSearching(false)
+        setRefreshing(false)
+        setLoading(false)
+        console.log('🏁 Busca finalizada')
+      }
+    }
+  }
+
+  const buscarTotaisCards = async (filtrosState = null) => {
+    if (!slug) return
+
+    const requestId = ++totaisRequestSeqRef.current
+    setTotaisCards((prev) => ({ ...prev, loading: true }))
+
+    const base = montarFiltros(1, filtrosState)
+    const baseParams = { ...base, limit: 1, offset: 0 }
+    delete baseParams.status
+    delete baseParams.status_nfe
+
+    const obterCount = async (status) => {
+      const response = await notasFiscaisService.buscarNotasFiscais({
+        ...baseParams,
+        status,
+        status_nfe: status,
+      })
+      const count = response?.count
+      if (Number.isFinite(count)) return count
+      if (Array.isArray(response?.results)) return response.results.length
+      if (Array.isArray(response)) return response.length
+      return 0
+    }
+
+    try {
+      const [emitidas, inutilizadas, canceladas] = await Promise.all([
+        obterCount(100),
+        obterCount(102),
+        obterCount(101),
+      ])
+
+      if (requestId !== totaisRequestSeqRef.current) return
+
+      setTotaisCards({
+        emitidas,
+        inutilizadas,
+        canceladas,
+        loading: false,
+      })
+    } catch (error) {
+      if (requestId !== totaisRequestSeqRef.current) return
+      setTotaisCards((prev) => ({ ...prev, loading: false }))
     }
   }
 
@@ -161,6 +277,7 @@ export default function NotasFiscaisList({ navigation }) {
   const onRefresh = () => {
     setCurrentPage(1)
     buscarNotasFiscais(1, true)
+    buscarTotaisCards()
   }
 
   const limparFiltros = () => {
@@ -170,7 +287,16 @@ export default function NotasFiscaisList({ navigation }) {
     setSearchDataInicio('')
     setSearchDataFim('')
     setCurrentPage(1)
-    buscarNotasFiscais(1)
+    const estadoLimpo = {
+      searchNumero: '',
+      searchEmpresa: '',
+      searchStatus: '',
+      searchDataInicio: '',
+      searchDataFim: '',
+    }
+    filtrosRef.current = estadoLimpo
+    buscarNotasFiscais(1, false, estadoLimpo)
+    buscarTotaisCards(estadoLimpo)
   }
 
   const excluirNotaFiscal = (item) => {
@@ -292,7 +418,8 @@ export default function NotasFiscaisList({ navigation }) {
       Toast.show({
         type: 'warning',
         text1: `${acao} enviada`,
-        text2: motivo || 'SEFAZ em processamento. Consulte novamente em instantes.',
+        text2:
+          motivo || 'SEFAZ em processamento. Consulte novamente em instantes.',
         visibilityTime: 6000,
       })
       return
@@ -403,7 +530,12 @@ export default function NotasFiscaisList({ navigation }) {
       Alert.alert('Erro', 'ID da nota fiscal não encontrado')
       return
     }
-    console.log('🧾 [NF] Clique inutilizar:', { id, empresa: item?.empresa, filial: item?.filial, numero: item?.numero })
+    console.log('🧾 [NF] Clique inutilizar:', {
+      id,
+      empresa: item?.empresa,
+      filial: item?.filial,
+      numero: item?.numero,
+    })
     const executar = () => {
       console.log('🧾 [NF] Confirmou inutilizar:', { id })
       return executarAcaoNota('Inutilizar', () =>
@@ -432,7 +564,12 @@ export default function NotasFiscaisList({ navigation }) {
       Alert.alert('Erro', 'ID da nota fiscal não encontrado')
       return
     }
-    console.log('🧾 [NF] Clique cancelar:', { id, empresa: item?.empresa, filial: item?.filial, numero: item?.numero })
+    console.log('🧾 [NF] Clique cancelar:', {
+      id,
+      empresa: item?.empresa,
+      filial: item?.filial,
+      numero: item?.numero,
+    })
     const executar = () => {
       console.log('🧾 [NF] Confirmou cancelar:', { id })
       return executarAcaoNota('Cancelar', () =>
@@ -455,19 +592,44 @@ export default function NotasFiscaisList({ navigation }) {
     ])
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      if (slug) {
-        buscarNotasFiscais(1)
-      }
-    }, [
-      slug,
+  useEffect(() => {
+    filtrosRef.current = {
       searchNumero,
       searchEmpresa,
       searchStatus,
       searchDataInicio,
       searchDataFim,
-    ]),
+    }
+  }, [
+    searchNumero,
+    searchEmpresa,
+    searchStatus,
+    searchDataInicio,
+    searchDataFim,
+  ])
+
+  useEffect(() => {
+    if (!slug) return
+    if (debouncePrimeiraVezRef.current) {
+      debouncePrimeiraVezRef.current = false
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setCurrentPage(1)
+      buscarNotasFiscais(1, false, filtrosRef.current)
+      buscarTotaisCards(filtrosRef.current)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [slug, searchNumero, searchStatus, searchDataInicio, searchDataFim])
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!slug) return
+      buscarNotasFiscais(1, false, filtrosRef.current)
+      buscarTotaisCards(filtrosRef.current)
+    }, [slug]),
   )
 
   const formatarPessoa = (pessoa) => {
@@ -648,6 +810,31 @@ export default function NotasFiscaisList({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.cardsRow}>
+        <View style={[styles.cardSmall, styles.cardEmitidas]}>
+          <Text style={styles.cardLabel}>Emitidas</Text>
+          <Text style={styles.cardValue}>
+            {totaisCards.loading ? '...' : String(totaisCards.emitidas ?? 0)}
+          </Text>
+        </View>
+
+        <View style={[styles.cardSmall, styles.cardInutilizadas]}>
+          <Text style={styles.cardLabel}>Inutilizadas</Text>
+          <Text style={styles.cardValue}>
+            {totaisCards.loading
+              ? '...'
+              : String(totaisCards.inutilizadas ?? 0)}
+          </Text>
+        </View>
+
+        <View style={[styles.cardSmall, styles.cardCanceladas]}>
+          <Text style={styles.cardLabel}>Canceladas</Text>
+          <Text style={styles.cardValue}>
+            {totaisCards.loading ? '...' : String(totaisCards.canceladas ?? 0)}
+          </Text>
+        </View>
+      </View>
+
       {/* Filtros de Busca */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -655,7 +842,7 @@ export default function NotasFiscaisList({ navigation }) {
           placeholder="Número da NF-e"
           placeholderTextColor="#999"
           value={searchNumero}
-          onChangeText={setSearchNumero}
+          onChangeText={(t) => setSearchNumero(String(t).replace(/\D/g, ''))}
           keyboardType="numeric"
         />
 
@@ -664,32 +851,36 @@ export default function NotasFiscaisList({ navigation }) {
           placeholder="Status (0=Rascunho, 100=Autorizada, 101=Cancelada, 102= Inutilizada, 532=Denegada)"
           placeholderTextColor="#999"
           value={searchStatus}
-          onChangeText={setSearchStatus}
+          onChangeText={(t) => setSearchStatus(String(t).replace(/\D/g, ''))}
           keyboardType="numeric"
         />
 
         <View style={styles.dateContainer}>
-          <TextInput
-            style={[styles.input, styles.dateInput]}
-            placeholder="Data Início (DD/MM/AAAA)"
-            placeholderTextColor="#999"
+          <DatePickerCrossPlatform
             value={searchDataInicio}
-            onChangeText={setSearchDataInicio}
+            placeholder="Data Início"
+            style={[styles.input, styles.dateInput]}
+            textStyle={{ color: '#fff' }}
+            onChange={(date) => setSearchDataInicio(formatarDataAPI(date))}
           />
 
-          <TextInput
-            style={[styles.input, styles.dateInput]}
-            placeholder="Data Fim (DD/MM/AAAA)"
-            placeholderTextColor="#999"
+          <DatePickerCrossPlatform
             value={searchDataFim}
-            onChangeText={setSearchDataFim}
+            placeholder="Data Fim"
+            style={[styles.input, styles.dateInput]}
+            textStyle={{ color: '#fff' }}
+            onChange={(date) => setSearchDataFim(formatarDataAPI(date))}
           />
         </View>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.searchButton}
-            onPress={() => buscarNotasFiscais(1)}
+            onPress={() => {
+              setCurrentPage(1)
+              buscarNotasFiscais(1, false, filtrosRef.current)
+              buscarTotaisCards(filtrosRef.current)
+            }}
             disabled={isSearching}>
             <Text style={styles.searchButtonText}>
               {isSearching ? 'Buscando...' : 'Buscar'}

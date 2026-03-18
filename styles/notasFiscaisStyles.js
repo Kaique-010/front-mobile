@@ -33,6 +33,42 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     elevation: 2,
   },
+  cardsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 10,
+  },
+  cardSmall: {
+    flex: 1,
+    backgroundColor: '#1a2f3d',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#345686',
+  },
+  cardEmitidas: {
+    borderColor: '#28a745',
+  },
+  cardInutilizadas: {
+    borderColor: '#6c757d',
+  },
+  cardCanceladas: {
+    borderColor: '#dc3545',
+  },
+  cardLabel: {
+    color: '#bbb',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cardValue: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
   input: {
     backgroundColor: '#2a3f4d',
     padding: 12,
