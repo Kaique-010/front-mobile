@@ -83,7 +83,7 @@ export const getAuthHeaders = async () => {
       'X-Empresa': empresaId || '1',
       'X-Filial': filialId || '1',
       'X-Docu': docu || '',
-      setor: usuario_setor || '',   // FIX: apenas uma entrada
+      setor: usuario_setor || '', // FIX: apenas uma entrada
       'X-Username': username || '',
     }
   } catch (error) {

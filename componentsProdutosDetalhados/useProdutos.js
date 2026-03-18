@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { apiGetComContextoSemFili } from '../utils/api'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { apiGetComContexto } from '../utils/api'
 import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
 import NetInfo from '@react-native-community/netinfo'
@@ -7,7 +7,6 @@ import { getStoredData } from '../services/storageService'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from 'react-native-toast-message'
 
-// Cache para produtos
 const PRODUTOS_CACHE_KEY = 'produtos_detalhados_cache'
 const PRODUTOS_CACHE_DURATION = 12 * 60 * 60 * 1000 // 12 horas
 
@@ -21,10 +20,17 @@ const useProdutos = () => {
   const [hasMore, setHasMore] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
 
-  // Novos estados para filtros
   const [marcaSelecionada, setMarcaSelecionada] = useState('')
   const [saldoFiltro, setSaldoFiltro] = useState('todos')
   const [marcas, setMarcas] = useState([])
+
+  // FIX: ref para controlar se já fez a carga inicial
+  // (evita rebuscar desnecessariamente em re-renders normais)
+  const slugCarregado = useRef(false)
+  const [searchTimeout, setSearchTimeout] = useState(null)
+  const fetchLock = useRef(false)
+  const offsetRef = useRef(0)
+  const produtosCountRef = useRef(0)
 
   useEffect(() => {
     const carregarSlug = async () => {
@@ -38,101 +44,136 @@ const useProdutos = () => {
     carregarSlug()
   }, [])
 
-  // Debounce para busca
-  const [searchTimeout, setSearchTimeout] = useState(null)
+  useEffect(() => {
+    offsetRef.current = offset
+  }, [offset])
+
+  useEffect(() => {
+    produtosCountRef.current = produtos.length
+  }, [produtos.length])
 
   const buscarProdutos = useCallback(
-    async ({ reset = false }) => {
-      if (!slug || (isFetchingMore && !reset)) return
+    async ({ reset = false, forceRefresh = false } = {}) => {
+      if (!slug || fetchLock.current) return
+      fetchLock.current = true
+      try {
+        const limit = 20
 
-      // Preferir MegaProdutos para busca inicial sem filtros
-      if (
-        reset &&
-        !searchTerm &&
-        !marcaSelecionada &&
-        saldoFiltro === 'todos'
-      ) {
-        try {
-          const mega = database.collections.get('mega_produtos')
-          const rows = await mega.query().fetch()
-          if (rows.length > 0) {
-            const mapped = rows.map((r) => ({
-              codigo: r.prodCodi,
-              nome: r.prodNome,
-              marca_nome: r.marcaNome,
-              saldo: r.saldo,
-              preco_vista: r.precoVista,
-              imagem_base64: r.imagemBase64,
-            }))
-            setProdutos(mapped)
-            const marcasUnicas = [
-              ...new Set(mapped.map((p) => p.marca_nome).filter(Boolean)),
-            ]
-            setMarcas(['Sem marca', ...marcasUnicas.sort()])
-            setInitialLoading(false)
-            setIsSearching(false)
-            return
+        const getCodigo = (p) => String(p?.codigo ?? p?.prod_codi ?? '')
+        const mergeDedupe = (prev, next) => {
+          const map = new Map()
+          for (const p of prev || []) {
+            const k = getCodigo(p)
+            if (k) map.set(k, p)
           }
-        } catch {}
-        try {
-          const cacheData = await AsyncStorage.getItem(PRODUTOS_CACHE_KEY)
-          if (cacheData) {
-            const { results, marcas, timestamp } = JSON.parse(cacheData)
-            const now = Date.now()
-            if (now - timestamp < PRODUTOS_CACHE_DURATION) {
-              setProdutos(results || [])
-              setMarcas(marcas || [])
-              setInitialLoading(false)
-              setIsSearching(false)
+          for (const p of next || []) {
+            const k = getCodigo(p)
+            if (k) map.set(k, { ...(map.get(k) || {}), ...p })
+          }
+          return Array.from(map.values())
+        }
+
+        const net = await NetInfo.fetch().catch(() => null)
+        const isOnline =
+          !!net?.isConnected && (net?.isInternetReachable ?? true)
+
+        if (
+          reset &&
+          !forceRefresh &&
+          !searchTerm &&
+          !marcaSelecionada &&
+          saldoFiltro === 'todos' &&
+          !isOnline
+        ) {
+          try {
+            const empresaId = await AsyncStorage.getItem('empresaId')
+            const mega = database.collections.get('mega_produtos')
+            const clauses = []
+            if (empresaId) clauses.push(Q.where('prod_empr', String(empresaId)))
+            const rows = await mega.query(...clauses).fetch()
+            if (rows.length > 0) {
+              const mapped = rows.map((r) => ({
+                codigo: r.prodCodi,
+                nome: r.prodNome,
+                marca_nome: r.marcaNome,
+                saldo: r.saldoEstoque ?? 0,
+                preco_vista: r.precoVista,
+                imagem_base64: r.imagemBase64,
+                prod_ncm: r.prodNcm,
+                unidade: r.prodUnme,
+                empresa: r.prodEmpr,
+              }))
+              setProdutos(mapped)
+              const marcasUnicas = [
+                ...new Set(mapped.map((p) => p.marca_nome).filter(Boolean)),
+              ]
+              setMarcas(['Sem marca', ...marcasUnicas.sort()])
+              setOffset(mapped.length)
+              setHasMore(false)
               return
             }
-          }
-        } catch {}
-      }
+          } catch (e) {}
 
-      const atualOffset = reset ? 0 : offset
-      if (reset) {
-        setInitialLoading(produtos.length === 0)
-        setIsSearching(true)
-        setOffset(0)
-        setHasMore(true)
-      } else {
-        setIsFetchingMore(true)
-      }
+          try {
+            const cacheData = await AsyncStorage.getItem(PRODUTOS_CACHE_KEY)
+            if (cacheData) {
+              const { results, marcas, timestamp } = JSON.parse(cacheData)
+              const now = Date.now()
+              if (now - timestamp < PRODUTOS_CACHE_DURATION) {
+                const cachedResults = Array.isArray(results) ? results : []
+                setProdutos(cachedResults)
+                setMarcas(marcas || [])
+                setOffset(cachedResults.length)
+                setHasMore(cachedResults.length === limit)
+                return
+              }
+            }
+          } catch (e) {}
+        }
 
-      try {
+        const atualOffset = reset ? 0 : offsetRef.current
+        if (reset) {
+          setInitialLoading(produtosCountRef.current === 0)
+          setIsSearching(true)
+          setOffset(0)
+          setHasMore(true)
+        } else {
+          setIsFetchingMore(true)
+        }
+
         const params = {
-          limit: 20,
+          limit,
           offset: atualOffset,
-          search: searchTerm,
         }
+        if (searchTerm) params.search = searchTerm
 
-        // Adicionar filtros aos parâmetros
         if (marcaSelecionada) {
-          if (marcaSelecionada === 'Sem marca') {
-            params.marca_nome = '__sem_marca__'
-          } else {
-            params.marca_nome = marcaSelecionada
-          }
+          params.marca_nome =
+            marcaSelecionada === '__sem_marca__'
+              ? '__sem_marca__'
+              : marcaSelecionada
         }
+        if (saldoFiltro === 'com') params.com_saldo = true
+        if (saldoFiltro === 'sem') params.sem_saldo = true
 
-        if (saldoFiltro === 'com') {
-          params.com_saldo = true
-        } else if (saldoFiltro === 'sem') {
-          params.sem_saldo = true
-        }
+        // Não enviar `empresa`/`filial` como query param.
+        // O contexto já vai pelos headers e evita o DjangoFilterBackend aplicar filtro exato.
 
-        const data = await apiGetComContextoSemFili(
+        const data = await apiGetComContexto(
           'produtos/produtosdetalhados/',
-          params
+          params,
         )
 
         const novos = data.results || []
-        setProdutos(reset ? novos : [...produtos, ...novos])
-        setOffset(atualOffset + 20)
-        setHasMore(data.next !== null)
+        setProdutos((prev) => {
+          const nextList = reset ? novos : mergeDedupe(prev, novos)
+          const progressed = reset || nextList.length > prev.length
+          setHasMore(progressed && data?.next != null)
+          return nextList
+        })
+        setOffset(atualOffset + novos.length)
 
-        // Persistir em WatermelonDB
+        // Persistir no WatermelonDB
         try {
           await database.write(async () => {
             const col = database.collections.get('produtos_detalhados')
@@ -148,7 +189,7 @@ const useProdutos = () => {
                   row.marcaNome = p.marca_nome || null
                   row.saldo = Number(p.saldo ?? 0)
                   row.precoVista = Number(
-                    p.preco_vista ?? p.prod_preco_vista ?? 0
+                    p.preco_vista ?? p.prod_preco_vista ?? 0,
                   )
                   row.imagemBase64 = p.imagem_base64 || null
                 })
@@ -160,7 +201,7 @@ const useProdutos = () => {
                   row.marcaNome = p.marca_nome || null
                   row.saldo = Number(p.saldo ?? 0)
                   row.precoVista = Number(
-                    p.preco_vista ?? p.prod_preco_vista ?? 0
+                    p.preco_vista ?? p.prod_preco_vista ?? 0,
                   )
                   row.imagemBase64 = p.imagem_base64 || null
                 })
@@ -173,11 +214,13 @@ const useProdutos = () => {
                 await megaRows[0].update((row) => {
                   row.prodNome = p.nome || p.prod_nome
                   row.precoVista = Number(
-                    p.preco_vista ?? p.prod_preco_vista ?? 0
+                    p.preco_vista ?? p.prod_preco_vista ?? 0,
                   )
-                  row.saldo = Number(p.saldo ?? 0)
+                  row.saldoEstoque = Number(p.saldo ?? p.saldo_estoque ?? 0)
                   row.marcaNome = p.marca_nome || null
                   row.imagemBase64 = p.imagem_base64 || null
+                  row.prodNcm = p.prod_ncm || p.prodNcm || p.ncm || null
+                  row.prodUnme = p.prod_unme || p.unidade || null
                 })
               } else {
                 await mega.create((row) => {
@@ -186,79 +229,86 @@ const useProdutos = () => {
                   row.prodEmpr = empr
                   row.prodNome = p.nome || p.prod_nome
                   row.precoVista = Number(
-                    p.preco_vista ?? p.prod_preco_vista ?? 0
+                    p.preco_vista ?? p.prod_preco_vista ?? 0,
                   )
-                  row.saldo = Number(p.saldo ?? 0)
+                  row.saldoEstoque = Number(p.saldo ?? p.saldo_estoque ?? 0)
                   row.marcaNome = p.marca_nome || null
                   row.imagemBase64 = p.imagem_base64 || null
+                  row.prodNcm = p.prod_ncm || p.prodNcm || p.ncm || null
+                  row.prodUnme = p.prod_unme || p.unidade || null
                 })
               }
             }
           })
-        } catch {}
+        } catch (e) {}
 
-        // Extrair marcas únicas para o filtro
         if (reset) {
           const marcasUnicas = [
             ...new Set(novos.map((p) => p.marca_nome).filter(Boolean)),
           ]
-
           const marcasTratadas = ['Sem marca', ...marcasUnicas.sort()]
-
           setMarcas(marcasTratadas)
 
-          // Salvar no cache persistente se for busca inicial sem filtros
           if (!searchTerm && !marcaSelecionada && saldoFiltro === 'todos') {
             try {
-              const cacheData = {
-                results: novos,
-                marcas: marcasTratadas,
-                timestamp: Date.now(),
-              }
               await AsyncStorage.setItem(
                 PRODUTOS_CACHE_KEY,
-                JSON.stringify(cacheData)
+                JSON.stringify({
+                  results: novos,
+                  marcas: marcasTratadas,
+                  timestamp: Date.now(),
+                }),
               )
-              console.log(
-                '💾 [CACHE-ASYNC] Produtos salvos no cache persistente'
-              )
-            } catch (error) {
-              console.log('⚠️ Erro ao salvar cache de produtos:', error)
-            }
+            } catch (e) {}
           }
         }
       } catch (error) {
         console.log('❌ Erro ao buscar produtos:', error.message)
         try {
-          const online = await NetInfo.fetch()
+          const empresaId = await AsyncStorage.getItem('empresaId')
           const mega = database.collections.get('mega_produtos')
           const clauses = []
           if (searchTerm) {
             const termos = searchTerm.split(/\s+/).filter(Boolean)
-            clauses.push(...termos.map((t) => Q.like('prod_nome', `%${t}%`)))
+            for (const t of termos) {
+              const sanitized = Q.sanitizeLikeString(t)
+              clauses.push(
+                Q.or(
+                  Q.where('prod_nome', Q.like(`%${sanitized}%`)),
+                  Q.where('prod_codi', Q.like(`%${sanitized}%`)),
+                ),
+              )
+            }
           }
           if (marcaSelecionada) {
-            if (marcaSelecionada === 'Sem marca') {
+            if (marcaSelecionada === '__sem_marca__') {
               clauses.push(Q.where('marca_nome', null))
             } else {
               clauses.push(Q.where('marca_nome', marcaSelecionada))
             }
           }
-          if (saldoFiltro === 'com') clauses.push(Q.where('saldo', Q.gt(0)))
-          if (saldoFiltro === 'sem') clauses.push(Q.where('saldo', 0))
+          if (saldoFiltro === 'com')
+            clauses.push(Q.where('saldo_estoque', Q.gt(0)))
+          if (saldoFiltro === 'sem') {
+            clauses.push(
+              Q.or(Q.where('saldo_estoque', 0), Q.where('saldo_estoque', null)),
+            )
+          }
+          if (empresaId) clauses.push(Q.where('prod_empr', String(empresaId)))
 
-          const query = mega.query(...clauses)
-          const rows = await query.fetch()
+          const rows = await mega.query(...clauses).fetch()
           const mapped = rows.map((r) => ({
             codigo: r.prodCodi,
             nome: r.prodNome,
             marca_nome: r.marcaNome,
-            saldo: r.saldo,
+            saldo: r.saldoEstoque ?? 0,
             preco_vista: r.precoVista,
             imagem_base64: r.imagemBase64,
             prod_ncm: r.prodNcm,
+            unidade: r.prodUnme,
+            empresa: r.prodEmpr,
           }))
-          setProdutos(reset ? mapped : [...produtos, ...mapped])
+          setProdutos((prev) => (reset ? mapped : mergeDedupe(prev, mapped)))
           setHasMore(false)
         } catch (e) {
           Toast.show({
@@ -269,75 +319,63 @@ const useProdutos = () => {
           })
         }
       } finally {
+        fetchLock.current = false
         setInitialLoading(false)
         setIsSearching(false)
         setIsFetchingMore(false)
       }
     },
-    [
-      slug,
-      offset,
-      searchTerm,
-      marcaSelecionada,
-      saldoFiltro,
-      produtos,
-      isFetchingMore,
-    ]
+    [slug, searchTerm, marcaSelecionada, saldoFiltro],
   )
 
-  // Debounce para busca por texto
-  const debouncedSearch = useCallback(
-    (term) => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout)
-      }
+  // FIX: expõe recarregarLista para o ProdutosList usar no useFocusEffect
+  // invalida o cache e força busca na API para pegar produtos recém-salvos
+  const recarregarLista = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(PRODUTOS_CACHE_KEY)
+    } catch {}
+    await buscarProdutos({ reset: true, forceRefresh: true })
+  }, [buscarProdutos])
 
-      const timeout = setTimeout(() => {
-        setSearchTerm(term)
-      }, 500) // 500ms de delay
-
-      setSearchTimeout(timeout)
-    },
-    [searchTimeout]
-  )
-
+  // Carga inicial quando slug fica disponível
   useEffect(() => {
-    if (slug && produtos.length === 0 && !searchTerm) {
+    if (slug && !slugCarregado.current) {
+      slugCarregado.current = true
       buscarProdutos({ reset: true })
     }
   }, [slug])
 
+  // Debounce de busca por texto
   useEffect(() => {
+    if (!slug) return
+    const delayMs = searchTerm === '' ? 0 : 500
     const delay = setTimeout(() => {
-      if (slug && searchTerm !== '') {
-        buscarProdutos({ reset: true })
-      }
-    }, 600)
-    return () => clearTimeout(delay)
-  }, [searchTerm])
-
-  // Novo useEffect para filtros
-  useEffect(() => {
-    if (slug) {
       buscarProdutos({ reset: true })
-    }
+    }, delayMs)
+    return () => clearTimeout(delay)
+  }, [slug, searchTerm, buscarProdutos])
+
+  // Recarrega ao mudar filtros
+  useEffect(() => {
+    if (slug) buscarProdutos({ reset: true })
   }, [marcaSelecionada, saldoFiltro])
 
-  const handleSearchSubmit = () => buscarProdutos({ reset: true })
+  const handleSearchSubmit = useCallback(
+    () => buscarProdutos({ reset: true, forceRefresh: true }),
+    [buscarProdutos],
+  )
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (hasMore && !isFetchingMore && !initialLoading) {
       buscarProdutos({ reset: false })
     }
-  }
+  }, [hasMore, isFetchingMore, initialLoading, buscarProdutos])
 
-  const handleMarcaChange = (marca) => {
-    setMarcaSelecionada(marca)
-  }
-
-  const handleSaldoChange = (saldo) => {
-    setSaldoFiltro(saldo)
-  }
+  const handleMarcaChange = useCallback(
+    (marca) => setMarcaSelecionada(marca),
+    [],
+  )
+  const handleSaldoChange = useCallback((saldo) => setSaldoFiltro(saldo), [])
 
   return {
     produtos,
@@ -349,7 +387,6 @@ const useProdutos = () => {
     isFetchingMore,
     handleSearchSubmit,
     handleLoadMore,
-    // Novos retornos para filtros
     marcaSelecionada,
     setMarcaSelecionada,
     saldoFiltro,
@@ -357,6 +394,8 @@ const useProdutos = () => {
     marcas,
     handleMarcaChange,
     handleSaldoChange,
+    // FIX: exposto para o ProdutosList usar no useFocusEffect
+    recarregarLista,
   }
 }
 

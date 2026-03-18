@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Box } from 'native-base'
 import { ActivityIndicator } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
+import { useFocusEffect } from '@react-navigation/native'
 import ProdutoCard from './ProdutoCard'
 import SearchBar from './SearchBar'
 import ProdutoModal from './ProdutoModal'
@@ -27,18 +28,36 @@ export default function ProdutosList() {
     marcas,
     handleMarcaChange,
     handleSaldoChange,
+    recarregarLista,
   } = useProdutos()
 
   const [produtoSelecionado, setProdutoSelecionado] = useState(null)
+  const didFocusOnce = useRef(false)
+  const recarregarListaRef = useRef(recarregarLista)
+
+  useEffect(() => {
+    recarregarListaRef.current = recarregarLista
+  }, [recarregarLista])
+
+  useFocusEffect(
+    useCallback(() => {
+      if (didFocusOnce.current) {
+        recarregarListaRef.current?.()
+      } else {
+        didFocusOnce.current = true
+      }
+      return () => {}
+    }, []),
+  )
 
   const renderItem = useCallback(
     ({ item }) => <ProdutoCard item={item} onPress={setProdutoSelecionado} />,
-    []
+    [],
   )
 
   const keyExtractor = useCallback(
-    (item, index) => `${item.codigo}-${index}`,
-    []
+    (item, index) => String(item?.codigo ?? item?.prod_codi ?? index),
+    [],
   )
 
   const getItemLayout = useCallback(
@@ -47,7 +66,7 @@ export default function ProdutosList() {
       offset: ITEM_HEIGHT * index,
       index,
     }),
-    []
+    [],
   )
 
   if (initialLoading) {
@@ -75,7 +94,7 @@ export default function ProdutosList() {
         estimatedItemSize={ITEM_HEIGHT}
         getItemLayout={getItemLayout}
         onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.1}
         ListFooterComponent={
           isFetchingMore ? (
             <ActivityIndicator

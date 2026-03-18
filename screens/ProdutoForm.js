@@ -12,6 +12,7 @@ const Tab = createMaterialTopTabNavigator()
 export default function ProdutoFormTabs({ route, navigation }) {
   const produtoInicial = route.params?.produto || {}
   const slug = route.params?.slug || produtoInicial.slug || ''
+  const onSave = route.params?.onSave
   const [produto, setProduto] = useState(produtoInicial)
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function ProdutoFormTabs({ route, navigation }) {
             {...props}
             produto={produto}
             atualizarProduto={atualizarProduto}
+            onSave={onSave}
             slug={slug}
           />
         )}

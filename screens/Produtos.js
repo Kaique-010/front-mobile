@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo } from 'react'
+import React, { useEffect, useState, useCallback, memo, useRef } from 'react'
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
+import { useFocusEffect } from '@react-navigation/native'
 import { getStoredData } from '../services/storageService'
 import Toast from 'react-native-toast-message'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -16,7 +17,7 @@ import styles from '../styles/produtosStyles'
 import database from '../componentsOrdemServico/schemas/database'
 import { Q } from '@nozbe/watermelondb'
 
-import { apiGetComContextoSemFili } from '../utils/api'
+import { apiGetComContexto } from '../utils/api'
 import { isOnlineAsync } from '../services/conectividadeService'
 
 const ITEM_HEIGHT = 140
@@ -82,47 +83,79 @@ export default function Produtos({ navigation }) {
   const [isSearching, setIsSearching] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [slug, setSlug] = useState('')
+  const [empresaId, setEmpresaId] = useState('')
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
+  const didFocusOnce = useRef(false)
+  const fetchLock = useRef(false)
+  const offsetRef = useRef(0)
+  const produtosCountRef = useRef(0)
+  const buscarProdutosRef = useRef(null)
 
   useEffect(() => {
-    const carregarSlug = async () => {
+    const carregarContexto = async () => {
       try {
         const { slug } = await getStoredData()
         if (slug) setSlug(slug)
+        const empresaStorage = await AsyncStorage.getItem('empresaId')
+        if (empresaStorage) setEmpresaId(String(empresaStorage))
       } catch (err) {
         console.error('Erro ao carregar slug:', err.message)
       }
     }
-    carregarSlug()
+    carregarContexto()
   }, [])
+
+  useEffect(() => {
+    offsetRef.current = offset
+  }, [offset])
+
+  useEffect(() => {
+    produtosCountRef.current = produtos.length
+  }, [produtos.length])
 
   const buscarProdutos = useCallback(
     async ({ reset = false, forceRefresh = false }) => {
-      if (!slug || (isFetchingMore && !reset)) return
+      if (!slug || !empresaId || fetchLock.current) return
+      fetchLock.current = true
 
-      const atualOffset = reset ? 0 : offset
+      const limit = 50
+      const mergeDedupe = (prev, next) => {
+        const map = new Map()
+        for (const p of prev || []) {
+          const k = `${p?.prod_empr ?? ''}-${p?.prod_codi ?? ''}`
+          if (k !== '-') map.set(k, p)
+        }
+        for (const p of next || []) {
+          const k = `${p?.prod_empr ?? ''}-${p?.prod_codi ?? ''}`
+          if (k !== '-') map.set(k, { ...(map.get(k) || {}), ...p })
+        }
+        return Array.from(map.values())
+      }
+
+      const atualOffset = reset ? 0 : offsetRef.current
 
       if (reset) {
         setIsSearching(true)
         setHasMore(true)
-        if (produtos.length === 0) setInitialLoading(true)
+        setOffset(0)
+        if (produtosCountRef.current === 0) setInitialLoading(true)
       } else {
         setIsFetchingMore(true)
       }
 
       try {
         const collection = database.collections.get('mega_produtos')
-        let queryConditions = []
+        let queryConditions = [Q.where('prod_empr', String(empresaId))]
 
         if (searchTerm) {
           const sanitized = Q.sanitizeLikeString(searchTerm)
           queryConditions.push(
             Q.or(
               Q.where('prod_nome', Q.like(`%${sanitized}%`)),
-              Q.where('prod_codi', Q.like(`%${sanitized}%`))
-            )
+              Q.where('prod_codi', Q.like(`%${sanitized}%`)),
+            ),
           )
         }
 
@@ -131,51 +164,101 @@ export default function Produtos({ navigation }) {
 
         const isOnline = await isOnlineAsync()
 
-        // Se banco local vazio e online, OU se forçado refresh (busca explícita), tenta API
-        if (isOnline && ((count === 0 && !searchTerm) || forceRefresh)) {
+        if (isOnline) {
           console.log(
-            `[PRODUTOS] Buscando da API (forceRefresh: ${forceRefresh}, count: ${count})...`
+            `[PRODUTOS] Buscando da API (forceRefresh: ${forceRefresh}, count: ${count})...`,
           )
           try {
             // Usando endpoint detalhado que retorna saldo e imagem
-            const params = { limit: 50 }
+            const params = { limit, offset: atualOffset }
             if (searchTerm) {
               params.search = searchTerm
             }
 
-            const apiData = await apiGetComContextoSemFili(
+            const apiData = await apiGetComContexto(
               'produtos/produtosdetalhados/',
-              params
+              params,
             )
-            const resultsApi = apiData?.results || apiData || []
+            const resultsApi = Array.isArray(apiData?.results)
+              ? apiData.results
+              : Array.isArray(apiData)
+                ? apiData
+                : []
 
-            if (resultsApi.length > 0) {
-              const mapped = resultsApi.map((p) => ({
-                ...p, // Mantém todos os campos originais
-                prod_nome: p.nome || p.prod_nome,
-                prod_codi: String(p.codigo || p.prod_codi),
-                prod_unme: p.unidade || p.prod_unme,
-                prod_loca: p.localizacao || p.prod_loca,
-                ncm: p.ncm || p.prod_ncm,
-                marca_nome: p.marca_nome || p.prod_marca_nome || '',
-                saldo: Number(p.saldo ?? 0),
-                preco_vista: Number(p.preco_vista ?? p.prod_preco_vista ?? 0),
-                imagem_base64: p.imagem_base64 || null,
-                // Garantir campos de serviço
-                prod_e_serv: p.prod_e_serv || p.prod_eserv || false,
-                prod_list_tabe_prec:
-                  p.prod_list_tabe_prec || p.prod_list_tabe_prod || false,
-              }))
+            const mapped = resultsApi.map((p) => ({
+              ...p,
+              prod_nome: p.nome || p.prod_nome,
+              prod_codi: String(p.codigo || p.prod_codi),
+              prod_empr: String(empresaId),
+              prod_unme: p.unidade || p.prod_unme,
+              prod_loca: p.localizacao || p.prod_loca,
+              prod_ncm: p.ncm || p.prod_ncm,
+              marca_nome:
+                p.marca_nome || p.prod_marc_nome || p.prod_marca_nome || '',
+              saldo_estoque: Number(p.saldo ?? p.saldo_estoque ?? 0),
+              saldo: Number(p.saldo ?? p.saldo_estoque ?? 0),
+              preco_vista: Number(p.preco_vista ?? p.prod_preco_vista ?? 0),
+              imagem_base64: p.imagem_base64 || null,
+              prod_e_serv: p.prod_e_serv || p.prod_eserv || false,
+              prod_list_tabe_prec:
+                p.prod_list_tabe_prec || p.prod_list_tabe_prod || false,
+            }))
 
-              setProdutos(mapped)
-              setHasMore(false)
+            setProdutos((prev) => {
+              const nextList = reset ? mapped : mergeDedupe(prev, mapped)
+              const progressed = reset || nextList.length > prev.length
+              setHasMore(progressed && apiData?.next != null)
+              return nextList
+            })
+            setOffset(atualOffset + mapped.length)
+
+            try {
+              await database.write(async () => {
+                for (const p of mapped) {
+                  const codigo = String(p.prod_codi)
+                  const empr = String(p.prod_empr || empresaId)
+                  const existing = await collection
+                    .query(
+                      Q.where('prod_codi', codigo),
+                      Q.where('prod_empr', empr),
+                    )
+                    .fetch()
+                  if (existing.length) {
+                    await existing[0].update((row) => {
+                      row.prodNome = p.prod_nome
+                      row.prodUnme = p.prod_unme || null
+                      row.prodNcm = p.prod_ncm || null
+                      row.precoVista = Number(p.preco_vista ?? 0)
+                      row.saldoEstoque = Number(p.saldo_estoque ?? 0)
+                      row.marcaNome = p.marca_nome || null
+                      row.imagemBase64 = p.imagem_base64 || null
+                    })
+                  } else {
+                    await collection.create((row) => {
+                      row._raw.id = `${codigo}-${empr}`
+                      row.prodCodi = codigo
+                      row.prodEmpr = empr
+                      row.prodNome = p.prod_nome
+                      row.prodUnme = p.prod_unme || null
+                      row.prodNcm = p.prod_ncm || null
+                      row.precoVista = Number(p.preco_vista ?? 0)
+                      row.saldoEstoque = Number(p.saldo_estoque ?? 0)
+                      row.marcaNome = p.marca_nome || null
+                      row.imagemBase64 = p.imagem_base64 || null
+                    })
+                  }
+                }
+              })
+            } catch {}
+
+            if (forceRefresh) {
               Toast.show({
                 type: 'info',
                 text1: 'Modo Online',
                 text2: 'Exibindo dados atualizados da API.',
               })
-              return
             }
+            return
           } catch (errApi) {
             console.error('[PRODUTOS] Erro no fallback da API:', errApi)
           }
@@ -184,18 +267,22 @@ export default function Produtos({ navigation }) {
         const queryPaginated = collection.query(
           ...queryConditions,
           Q.skip(atualOffset),
-          Q.take(50)
+          Q.take(limit),
         )
         const results = await queryPaginated.fetch()
 
         const novos = results.map((item) => item._raw)
 
-        setProdutos(reset ? novos : [...produtos, ...novos])
-        setOffset(atualOffset + 50)
-        setHasMore(atualOffset + 50 < count)
+        setProdutos((prev) => {
+          const nextList = reset ? novos : mergeDedupe(prev, novos)
+          const progressed = reset || nextList.length > prev.length
+          setHasMore(progressed && atualOffset + novos.length < count)
+          return nextList
+        })
+        setOffset(atualOffset + novos.length)
 
         console.log(
-          `[PRODUTOS] Busca local: ${novos.length} itens. Total: ${count}`
+          `[PRODUTOS] Busca local: ${novos.length} itens. Total: ${count}`,
         )
       } catch (error) {
         console.error('Erro buscar produtos local:', error)
@@ -205,41 +292,62 @@ export default function Produtos({ navigation }) {
           text2: error.message,
         })
       } finally {
+        fetchLock.current = false
         setInitialLoading(false)
         setIsSearching(false)
         setIsFetchingMore(false)
       }
     },
-    [slug, offset, searchTerm, isFetchingMore, produtos]
+    [slug, empresaId, searchTerm],
   )
 
   useEffect(() => {
-    if (slug && produtos.length === 0 && !searchTerm) {
-      buscarProdutos({ reset: true })
-    }
-  }, [slug])
+    buscarProdutosRef.current = buscarProdutos
+  }, [buscarProdutos])
 
   useEffect(() => {
-    const delay = setTimeout(() => {
-      if (slug && searchTerm !== '') {
-        buscarProdutos({ reset: true })
+    if (slug && empresaId && produtos.length === 0 && !searchTerm) {
+      buscarProdutos({ reset: true })
+    }
+  }, [slug, empresaId, produtos.length, searchTerm, buscarProdutos])
+
+  useFocusEffect(
+    useCallback(() => {
+      if (didFocusOnce.current) {
+        buscarProdutosRef.current?.({ reset: true, forceRefresh: true })
+      } else {
+        didFocusOnce.current = true
       }
-    }, 300) // Reduzido de 600ms para 300ms para ser mais responsivo
+      return () => {}
+    }, []),
+  )
+
+  useEffect(() => {
+    const delay = setTimeout(
+      () => {
+        if (slug && empresaId) {
+          buscarProdutos({ reset: true })
+        }
+      },
+      searchTerm === '' ? 0 : 300,
+    )
     return () => clearTimeout(delay)
-  }, [searchTerm])
+  }, [slug, empresaId, searchTerm, buscarProdutos])
 
   const handleSearchSubmit = () =>
     buscarProdutos({ reset: true, forceRefresh: true })
 
   const renderItem = useCallback(
     ({ item }) => <ProdutoCard item={item} navigation={navigation} />,
-    [navigation]
+    [navigation],
   )
 
   const keyExtractor = useCallback(
     (item, index) =>
-      `${item.prod_codi}-${item.prod_empr}-${item.prod_fili}_${index}`,
-    []
+      String(
+        item?.id || `${item?.prod_empr || ''}-${item?.prod_codi || index}`,
+      ),
+    [],
   )
 
   const getItemLayout = useCallback(
@@ -248,7 +356,7 @@ export default function Produtos({ navigation }) {
       offset: ITEM_HEIGHT * index,
       index,
     }),
-    []
+    [],
   )
 
   if (initialLoading) {
@@ -298,7 +406,7 @@ export default function Produtos({ navigation }) {
             buscarProdutos({ reset: false })
           }
         }}
-        onEndReachedThreshold={0.5}
+        onEndReachedThreshold={0.1}
         ListFooterComponent={
           isFetchingMore ? (
             <ActivityIndicator

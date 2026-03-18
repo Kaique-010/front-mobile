@@ -25,6 +25,7 @@ export default function ProdutoDados({
   produto,
   atualizarProduto,
   navigation,
+  onSave,
 }) {
   const [nome, setNome] = useState(produto?.prod_nome || '')
   const [unidade, setUnidade] = useState(produto?.prod_unme || '')
@@ -312,7 +313,6 @@ export default function ProdutoDados({
         )
 
         console.log('✅ [PRODUTO-UPDATE] Resposta do servidor:', response)
-        Alert.alert('Sucesso', 'Produto atualizado com sucesso!')
 
         if (typeof atualizarProduto === 'function') {
           atualizarProduto({ ...payload, prod_codi: produto.prod_codi })
@@ -320,11 +320,16 @@ export default function ProdutoDados({
           console.warn('⚠️ atualizarProduto não é uma função em ProdutoDados')
         }
 
-        if (navigation && navigation.navigate) {
-          navigation.navigate('Preços')
-        } else {
-          console.warn('⚠️ Navigation não disponível em ProdutoDados')
-        }
+        Alert.alert('Sucesso', 'Produto atualizado com sucesso!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (typeof onSave === 'function') onSave()
+              if (navigation?.canGoBack?.()) navigation.goBack()
+              else if (navigation?.navigate) navigation.navigate('Preços')
+            },
+          },
+        ])
       } else {
         console.log('🚀 [PRODUTO-CREATE] Criando novo produto')
 
@@ -341,7 +346,6 @@ export default function ProdutoDados({
           throw new Error('Código do produto não retornado pela API')
         }
 
-        Alert.alert('Criado', `Produto criado com código: ${prod_codi}`)
         const novoProduto = { ...payload, prod_codi }
 
         if (typeof atualizarProduto === 'function') {
@@ -350,11 +354,15 @@ export default function ProdutoDados({
           console.warn('⚠️ atualizarProduto não é uma função em ProdutoDados')
         }
 
-        if (navigation && navigation.navigate) {
-          navigation.navigate('Preços')
-        } else {
-          console.warn('⚠️ Navigation não disponível em ProdutoDados')
-        }
+        Alert.alert('Criado', `Produto criado com código: ${prod_codi}`, [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (typeof onSave === 'function') onSave()
+              if (navigation?.navigate) navigation.navigate('Preços')
+            },
+          },
+        ])
       }
     } catch (err) {
       console.error('❌ [PRODUTO-ERROR] Erro completo:')
