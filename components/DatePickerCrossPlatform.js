@@ -5,13 +5,13 @@ import {
   TouchableOpacity,
   Text,
   TextInput,
-  View,
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
 const DatePickerCrossPlatform = ({
   value,
   onChange,
+  label,
   style,
   textStyle,
   disabled = false,
@@ -56,6 +56,7 @@ const DatePickerCrossPlatform = ({
             borderWidth: 1,
             borderColor: '#ddd',
             color: '#333',
+            minHeight: 46,
           },
           style,
         ]}
@@ -87,7 +88,7 @@ const DatePickerCrossPlatform = ({
 
   // Para mobile (iOS/Android)
   return (
-    <View>
+    <>
       <TouchableOpacity
         onPress={() => !disabled && setShowPicker(true)}
         style={[
@@ -97,12 +98,18 @@ const DatePickerCrossPlatform = ({
             borderRadius: 8,
             borderWidth: 1,
             borderColor: '#ddd',
+            minHeight: 46,
+            justifyContent: 'center',
           },
           style,
         ]}
         disabled={disabled}>
         <Text style={[{ color: '#333' }, textStyle]}>
-          {value ? formatDate(value) : placeholder}
+          {label
+            ? `${label}: ${value ? formatDate(value) : placeholder}`
+            : value
+              ? formatDate(value)
+              : placeholder}
         </Text>
       </TouchableOpacity>
 
@@ -197,7 +204,7 @@ const DatePickerCrossPlatform = ({
           </View>
         </Modal>
       )}
-    </View>
+    </>
   )
 }
 

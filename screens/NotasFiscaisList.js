@@ -858,7 +858,8 @@ export default function NotasFiscaisList({ navigation }) {
         <View style={styles.dateContainer}>
           <DatePickerCrossPlatform
             value={searchDataInicio}
-            placeholder="Data Início"
+            label="Início"
+            placeholder="Data Inicio"
             style={[styles.input, styles.dateInput]}
             textStyle={{ color: '#fff' }}
             onChange={(date) => setSearchDataInicio(formatarDataAPI(date))}
@@ -866,6 +867,7 @@ export default function NotasFiscaisList({ navigation }) {
 
           <DatePickerCrossPlatform
             value={searchDataFim}
+            label="Fim"
             placeholder="Data Fim"
             style={[styles.input, styles.dateInput]}
             textStyle={{ color: '#fff' }}

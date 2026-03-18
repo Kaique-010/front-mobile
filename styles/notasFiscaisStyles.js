@@ -41,8 +41,8 @@ const styles = StyleSheet.create({
   },
   cardSmall: {
     flex: 1,
-    backgroundColor: '#1a2f3d',
-    borderRadius: 8,
+    backgroundColor: '#111f35ff',
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     elevation: 2,
@@ -51,23 +51,37 @@ const styles = StyleSheet.create({
   },
   cardEmitidas: {
     borderColor: '#28a745',
+    shadowColor: '#b3e4beff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
   cardInutilizadas: {
     borderColor: '#6c757d',
+    shadowColor: '#b3e4beff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
   cardCanceladas: {
     borderColor: '#dc3545',
+    shadowColor: '#e4b3b3ff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
   cardLabel: {
-    color: '#bbb',
+    color: '#d1d0c3ff',
     fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
   },
   cardValue: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 4,
+    textAlign: 'center',
   },
   input: {
     backgroundColor: '#2a3f4d',
@@ -82,9 +96,10 @@ const styles = StyleSheet.create({
   dateContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 6,
   },
   dateInput: {
-    flex: 0.48,
+    flex: 0.49,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -94,10 +109,13 @@ const styles = StyleSheet.create({
 
   // ====== Botões de Ação ======
   searchButton: {
-    backgroundColor: '#345686',
+    backgroundColor: '#13253dff',
+    borderWidth: 1,
+    borderColor: '#5a6f8dff',
     padding: 12,
     borderRadius: 6,
-    flex: 0.48,
+    flex: 0.49,
+    elevation: 2,
   },
   searchButtonText: {
     color: '#fff',
@@ -106,10 +124,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   clearButton: {
-    backgroundColor: '#6c757d',
+    backgroundColor: '#505050ff',
+    borderWidth: 1,
+    borderColor: '#5a818dff',
     padding: 12,
     borderRadius: 6,
-    flex: 0.48,
+    flex: 0.49,
   },
   clearButtonText: {
     color: '#fff',
@@ -127,9 +147,14 @@ const styles = StyleSheet.create({
   },
   incluirButton: {
     backgroundColor: '#28a745',
-    padding: 12,
+    borderWidth: 1,
+    borderColor: '#218838',
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     borderRadius: 8,
     elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
   },
   incluirButtonText: {
@@ -140,7 +165,9 @@ const styles = StyleSheet.create({
   },
   emitirButton: {
     backgroundColor: '#007AFF',
-    padding: 12,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    paddingVertical: 8,
     borderRadius: 8,
     elevation: 2,
     flex: 1,
@@ -156,7 +183,7 @@ const styles = StyleSheet.create({
   itemContainer: {
     backgroundColor: '#1a2f3d',
     marginBottom: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 15,
     elevation: 2,
     borderLeftWidth: 4,
