@@ -66,38 +66,48 @@ export default function ResumoPedidoComFinanceiro({
       })
 
       // Verificar se há desconto aplicado
-      const temDesconto = !!pedido.desconto_geral_aplicado || (pedido.pedi_desc && Number(pedido.pedi_desc) > 0);
-      setDescontoHabilitado(temDesconto);
-      
+      const temDesconto =
+        !!pedido.desconto_geral_aplicado ||
+        (pedido.pedi_desc && Number(pedido.pedi_desc) > 0)
+      setDescontoHabilitado(temDesconto)
+
       // Definir tipo de desconto
-      setTipoDesconto(pedido.desconto_geral_tipo || 'percentual');
+      setTipoDesconto(pedido.desconto_geral_tipo || 'percentual')
 
       // Converter percentual de decimal para porcentagem
-      if (temDesconto && (pedido.desconto_geral_tipo === 'percentual' || !pedido.desconto_geral_tipo)) {
+      if (
+        temDesconto &&
+        (pedido.desconto_geral_tipo === 'percentual' ||
+          !pedido.desconto_geral_tipo)
+      ) {
         // Se temos percentual definido, usamos ele
         if (pedido.desconto_geral_percentual) {
           setPercentualDesconto(
-            String((Number(pedido.desconto_geral_percentual) * 100).toFixed(2))
-          );
-        } 
+            String((Number(pedido.desconto_geral_percentual) * 100).toFixed(2)),
+          )
+        }
         // Caso contrário, calculamos com base no desconto e subtotal
         else if (pedido.pedi_desc && pedido.pedi_topr) {
-          const percentual = (Number(pedido.pedi_desc) / Number(pedido.pedi_topr)) * 100;
-          setPercentualDesconto(String(percentual.toFixed(2)));
+          const percentual =
+            (Number(pedido.pedi_desc) / Number(pedido.pedi_topr)) * 100
+          setPercentualDesconto(String(percentual.toFixed(2)))
         } else {
-          setPercentualDesconto('');
+          setPercentualDesconto('')
         }
       } else {
-        setPercentualDesconto('');
+        setPercentualDesconto('')
       }
 
       // Converter valor para string
-      if (temDesconto && (pedido.desconto_geral_tipo === 'valor' || !pedido.desconto_geral_tipo)) {
+      if (
+        temDesconto &&
+        (pedido.desconto_geral_tipo === 'valor' || !pedido.desconto_geral_tipo)
+      ) {
         // Prioridade: desconto_geral_valor > pedi_desc
-        const valorDesc = pedido.desconto_geral_valor || pedido.pedi_desc || 0;
-        setValorDesconto(String(valorDesc));
+        const valorDesc = pedido.desconto_geral_valor || pedido.pedi_desc || 0
+        setValorDesconto(String(valorDesc))
       } else {
-        setValorDesconto('');
+        setValorDesconto('')
       }
     }
   }, [
@@ -134,7 +144,7 @@ export default function ResumoPedidoComFinanceiro({
       if (tipoDesconto === 'percentual') {
         const perc = Math.max(
           0,
-          Math.min(100, parseFloat(percentualDesconto) || 0)
+          Math.min(100, parseFloat(percentualDesconto) || 0),
         )
         descGeral = (somaSemDescontoItem * perc) / 100
       } else {
@@ -158,7 +168,7 @@ export default function ResumoPedidoComFinanceiro({
         return
       }
       const entidade = await apiGetComContexto(
-        `entidades/entidades/${pedido.pedi_forn}/`
+        `entidades/entidades/${pedido.pedi_forn}/`,
       )
       const numeroPedido = pedido.pedi_nume
       const numeroRaw = entidade.enti_celu || entidade.enti_fone || ''
@@ -166,7 +176,7 @@ export default function ResumoPedidoComFinanceiro({
       if (numeroLimpo.length < 10) {
         Alert.alert(
           'Sem WhatsApp',
-          'Essa entidade não possui número válido de WhatsApp.'
+          'Essa entidade não possui número válido de WhatsApp.',
         )
         return
       }
@@ -187,7 +197,7 @@ export default function ResumoPedidoComFinanceiro({
         .join('\n')
 
       const texto = `Novo pedido:  ${numeroPedido}!\nCliente: ${nomeCliente}\n\nItens:\n${corpo}\n\nTotal: R$ ${Number(
-        totalComDescontoGeral
+        totalComDescontoGeral,
       ).toFixed(2)}`
 
       const url = `https://wa.me/${numeroZap}?text=${encodeURIComponent(texto)}`
@@ -202,7 +212,7 @@ export default function ResumoPedidoComFinanceiro({
     if (!pedido.pedi_empr || !pedido.pedi_fili) {
       Alert.alert(
         'Erro',
-        'Empresa e filial precisam estar definidas antes de salvar.'
+        'Empresa e filial precisam estar definidas antes de salvar.',
       )
       return
     }
@@ -227,7 +237,7 @@ export default function ResumoPedidoComFinanceiro({
         pedi_obse: pedido.pedi_obse || '',
         pedi_topr: Number(pedi_topr.toFixed(2)),
         pedi_tota: Number(
-          (pedi_topr - (descontoHabilitado ? Number(descGeral) : 0)).toFixed(2)
+          (pedi_topr - (descontoHabilitado ? Number(descGeral) : 0)).toFixed(2),
         ),
         desconto_geral_aplicado: !!descontoHabilitado,
         desconto_geral_tipo: tipoDesconto,
@@ -240,12 +250,30 @@ export default function ResumoPedidoComFinanceiro({
         pedi_desc: descontoHabilitado ? Number(descGeral) : 0,
         valor_desconto: descontoHabilitado ? Number(descGeral) : 0,
         valor_subtotal: Number(pedi_topr.toFixed(2)),
-        valor_total: Number((pedi_topr - (descontoHabilitado ? Number(descGeral) : 0)).toFixed(2)),
+        valor_total: Number(
+          (pedi_topr - (descontoHabilitado ? Number(descGeral) : 0)).toFixed(2),
+        ),
         itens_input: (pedido.itens_input || []).map((item) => ({
           iped_prod: Number(item.iped_prod),
           iped_quan: Number(item.iped_quan),
           iped_unit: Number(item.iped_unit),
           iped_tota: Number(item.iped_tota),
+          iped_lote_vend:
+            item.iped_lote_vend === null || item.iped_lote_vend === undefined
+              ? null
+              : Number(item.iped_lote_vend),
+          consumo_por_lote: Array.isArray(item.consumo_por_lote)
+            ? item.consumo_por_lote
+                .map((c) => ({
+                  iped_lote_vend:
+                    c?.iped_lote_vend === null ||
+                    c?.iped_lote_vend === undefined
+                      ? null
+                      : Number(c.iped_lote_vend),
+                  iped_quan: Number(c?.iped_quan || 0),
+                }))
+                .filter((c) => Number(c.iped_quan || 0) > 0)
+            : [],
           produto_nome: item.produto_nome,
           desconto_item_disponivel: !!item.desconto_item_disponivel,
           percentual_desconto: Number(item.percentual_desconto || 0),
@@ -255,11 +283,17 @@ export default function ResumoPedidoComFinanceiro({
 
       console.log(
         '🎯 [ResumoPedidoComFinanceiro] Payload para salvar:',
-        payload
+        payload,
       )
-      
-      console.log('🔍 [DEBUG] Campo pedi_form_rece no payload:', payload.pedi_form_rece)
-      console.log('🔍 [DEBUG] Valor original do pedido.pedi_form_rece:', pedido.pedi_form_rece)
+
+      console.log(
+        '🔍 [DEBUG] Campo pedi_form_rece no payload:',
+        payload.pedi_form_rece,
+      )
+      console.log(
+        '🔍 [DEBUG] Valor original do pedido.pedi_form_rece:',
+        pedido.pedi_form_rece,
+      )
       if (pedido.pedi_nume) {
         // Atualizar pedido existente
         await apiPutComContexto(`pedidos/pedidos/${pedido.pedi_nume}/`, payload)
@@ -454,7 +488,11 @@ export default function ResumoPedidoComFinanceiro({
   )
 
   const renderAbaFinanceiro = () => (
-    <FinanceiroPedido pedido={pedido} totalGeral={totalComDescontoGeral} setPedido={setPedido} />
+    <FinanceiroPedido
+      pedido={pedido}
+      totalGeral={totalComDescontoGeral}
+      setPedido={setPedido}
+    />
   )
 
   return (

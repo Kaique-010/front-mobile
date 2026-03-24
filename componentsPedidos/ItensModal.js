@@ -14,6 +14,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import LeitorCodigoBarras from '../components/Leitor'
 import { Ionicons } from '@expo/vector-icons'
 import BuscaProdutoInput from '../components/BuscaProdutosInput'
+import BuscaProdutoInputLotes from '../components/BuscaProdutosLotes'
 import { apiGetComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -37,6 +38,9 @@ export default function ItensModal({
     tipoDesconto: 'percentual', // 'percentual' | 'valor'
     percentualDesconto: '', // em % (ex: 10 para 10%)
     valorDesconto: '', // valor absoluto
+    ipedLoteVend: null,
+    consumoPorLote: [],
+    lotes: [],
   })
   const [isScanningModal, setIsScanningModal] = useState(false)
   const [highlight, setHighlight] = useState(false)
@@ -58,6 +62,11 @@ export default function ItensModal({
         valorDesconto: itemEditando.desconto_valor
           ? String(itemEditando.desconto_valor)
           : '',
+        ipedLoteVend: itemEditando.iped_lote_vend ?? null,
+        consumoPorLote: Array.isArray(itemEditando.consumo_por_lote)
+          ? itemEditando.consumo_por_lote
+          : [],
+        lotes: Array.isArray(itemEditando.lotes) ? itemEditando.lotes : [],
       })
     } else {
       setForm({
@@ -69,6 +78,9 @@ export default function ItensModal({
         tipoDesconto: 'percentual',
         percentualDesconto: '',
         valorDesconto: '',
+        ipedLoteVend: null,
+        consumoPorLote: [],
+        lotes: [],
       })
     }
   }, [itemEditando, visivel])
@@ -97,7 +109,7 @@ export default function ItensModal({
       }
 
       const produtoDetalhado = await apiGetComContexto(
-        `produtos/produtos/${produto.prod_codi}/`
+        `produtos/produtos/${produto.prod_codi}/`,
       )
 
       if (!produtoDetalhado) {
@@ -136,7 +148,7 @@ export default function ItensModal({
     setIsScanningModal(false)
   }
 
-  // Aceita números no formato brasileiro: 
+  // Aceita números no formato brasileiro:
   // - "1,25" => 1.25
   // - "1.234,56" => 1234.56
   // - também tolera espaços e outros caracteres não numéricos
@@ -153,6 +165,55 @@ export default function ItensModal({
     }
     return parseFloat(s.replace(/[^\d.-]/g, '')) || 0
   }
+
+  useEffect(() => {
+    if (!visivel) return
+
+    const prodId = String(form.produtoId || '').trim()
+    const qtd = parseNumberBR(form.quantidade)
+    if (!prodId || qtd <= 0) return
+
+    const timeout = setTimeout(async () => {
+      try {
+        const consumoData = await apiGetComContexto(
+          'pedidos/pedidos/lotes-produtos-desc/',
+          { prod_codi: prodId, qtd },
+          'pedi_',
+        )
+
+        const consumoPorLote = Array.isArray(consumoData?.consumo)
+          ? consumoData.consumo
+              .filter(
+                (c) =>
+                  (c?.origem === 'LOTE' || c?.origem === 'SEM_LOTE') &&
+                  Number(c?.quantidade || 0) > 0,
+              )
+              .map((c) => ({
+                iped_lote_vend:
+                  c?.origem === 'LOTE' ? Number(c?.lote_lote) : null,
+                iped_quan: Number(c?.quantidade || 0),
+              }))
+          : []
+
+        const ipedLoteVend =
+          consumoPorLote.length > 0 ? consumoPorLote[0].iped_lote_vend : null
+
+        setForm((f) => {
+          if (String(f.produtoId || '').trim() !== prodId) return f
+          return {
+            ...f,
+            lotes: consumoData?.results ?? f.lotes,
+            consumoPorLote,
+            ipedLoteVend,
+          }
+        })
+      } catch (err) {
+        console.error('Erro ao recalcular consumo por lote:', err)
+      }
+    }, 400)
+
+    return () => clearTimeout(timeout)
+  }, [visivel, form.produtoId, form.quantidade])
 
   const adicionar = () => {
     const quantidadeNum = parseNumberBR(form.quantidade)
@@ -172,7 +233,7 @@ export default function ItensModal({
       if (form.tipoDesconto === 'percentual') {
         const perc = Math.max(
           0,
-          Math.min(100, parseNumberBR(form.percentualDesconto) || 0)
+          Math.min(100, parseNumberBR(form.percentualDesconto) || 0),
         )
         descontoValor = (totalBruto * perc) / 100
       } else {
@@ -193,13 +254,18 @@ export default function ItensModal({
         ? form.tipoDesconto === 'percentual'
           ? Math.max(
               0,
-              Math.min(100, parseNumberBR(form.percentualDesconto) || 0)
+              Math.min(100, parseNumberBR(form.percentualDesconto) || 0),
             ) / 100
           : totalBruto > 0
-          ? descontoValor / totalBruto
-          : 0
+            ? descontoValor / totalBruto
+            : 0
         : 0,
       desconto_valor: form.descontoHabilitado ? descontoValor : 0,
+      iped_lote_vend: form.ipedLoteVend ?? null,
+      consumo_por_lote: Array.isArray(form.consumoPorLote)
+        ? form.consumoPorLote
+        : [],
+      lotes: Array.isArray(form.lotes) ? form.lotes : [],
     }
 
     onAdicionar(novoItem, itemEditando)
@@ -214,6 +280,9 @@ export default function ItensModal({
         tipoDesconto: 'percentual',
         percentualDesconto: '',
         valorDesconto: '',
+        ipedLoteVend: null,
+        consumoPorLote: [],
+        lotes: [],
       })
     }
 
@@ -246,7 +315,7 @@ export default function ItensModal({
             <Text style={styles.label}>Produto:</Text>
             <View style={styles.buscaComIcone}>
               <View style={styles.produtoInput}>
-                <BuscaProdutoInput
+                {/* <BuscaProdutoInput
                   valorAtual={form.produtoNome}
                   onSelect={(produto) => {
                     setForm((f) => ({
@@ -255,6 +324,27 @@ export default function ItensModal({
                       produtoNome: produto.prod_nome,
                       preco: produto.prod_preco_vista?.toString() || '',
                       quantidade: '1',
+                    }))
+                    Toast.show({
+                      type: 'success',
+                      text1: 'Produto selecionado',
+                      text2: produto.prod_nome,
+                    })
+                  }}
+                />*/}
+                <BuscaProdutoInputLotes
+                  initialValue={form.produtoNome}
+                  quantidadeSolicitada={form.quantidade}
+                  onSelect={(produto) => {
+                    setForm((f) => ({
+                      ...f,
+                      produtoId: produto.prod_codi.toString(),
+                      produtoNome: produto.prod_nome,
+                      preco: produto.prod_preco_vista?.toString() || '',
+                      quantidade: '1',
+                      lotes: produto.lotes || [],
+                      consumoPorLote: produto.consumo_por_lote || [],
+                      ipedLoteVend: produto.iped_lote_vend ?? null,
                     }))
                     Toast.show({
                       type: 'success',
@@ -292,6 +382,25 @@ export default function ItensModal({
               onChangeText={(v) => onChange('preco', v)}
               style={styles.input}
             />
+
+            {Array.isArray(form.consumoPorLote) &&
+              form.consumoPorLote.length > 0 && (
+                <View style={styles.consumoContainer}>
+                  <Text style={styles.label}>Consumo por Lote:</Text>
+                  {form.consumoPorLote.map((c, idx) => (
+                    <View key={`cpl-${idx}`} style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>
+                        {c.iped_lote_vend
+                          ? `Lote ${c.iped_lote_vend}`
+                          : 'Sem lote'}
+                      </Text>
+                      <Text style={styles.detailValue}>
+                        {Number(c.iped_quan || 0).toFixed(2)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
 
             <View style={styles.descontoHeader}>
               <Text style={styles.label}>Aplicar Desconto:</Text>
@@ -355,7 +464,10 @@ export default function ItensModal({
                   if (form.tipoDesconto === 'percentual') {
                     const perc = Math.max(
                       0,
-                      Math.min(100, parseNumberBR(form.percentualDesconto) || 0)
+                      Math.min(
+                        100,
+                        parseNumberBR(form.percentualDesconto) || 0,
+                      ),
                     )
                     desc = (bruto * perc) / 100
                   } else {
@@ -429,6 +541,26 @@ const styles = StyleSheet.create({
     marginBottom: 60,
     textAlign: 'right',
     fontSize: 16,
+  },
+  consumoContainer: {
+    backgroundColor: '#0f1a24',
+    color: 'white',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#2a3441',
+  },
+  detailLabel: {
+    color: 'white',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  detailValue: {
+    color: 'white',
+    fontSize: 14,
+    marginBottom: 8,
   },
   botaoAdicionar: {
     padding: 12,

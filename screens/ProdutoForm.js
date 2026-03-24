@@ -4,6 +4,7 @@ import ProdutoDados from '../componetsProdutos/ProdutoDados'
 import ProdutoPrecos from '../componetsProdutos/ProdutoPrecos'
 import ProdutoPisos from '../componetsProdutos/ProdutoPisos'
 import ProdutoServicos from '../componetsProdutos/ProdutoServicos'
+import ProdutoLotes from '../componetsProdutos/ProdutoLotes'
 import { apiGetComContexto } from '../utils/api'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -24,10 +25,10 @@ export default function ProdutoFormTabs({ route, navigation }) {
         const empresa = empresaId ? parseInt(empresaId) : 1
         // Endpoint para buscar detalhes completos do produto
         const endpoint = `produtos/produtos/${empresa}/${produtoInicial.prod_codi}/`
-        
+
         console.log('🔄 [ProdutoForm] Buscando detalhes do produto:', endpoint)
         const data = await apiGetComContexto(endpoint)
-        
+
         if (data) {
           console.log('✅ [ProdutoForm] Detalhes recebidos e atualizados')
           setProduto((prev) => ({ ...prev, ...data }))
@@ -84,6 +85,16 @@ export default function ProdutoFormTabs({ route, navigation }) {
       <Tab.Screen name="Pisos">
         {(props) => (
           <ProdutoPisos
+            {...props}
+            produto={produto}
+            atualizarProduto={atualizarProduto}
+            slug={slug}
+          />
+        )}
+      </Tab.Screen>
+      <Tab.Screen name="Lotes">
+        {(props) => (
+          <ProdutoLotes
             {...props}
             produto={produto}
             atualizarProduto={atualizarProduto}

@@ -20,9 +20,9 @@ export default function ItensList({ itens, onEdit, onRemove }) {
   }
 
   const toggleItemExpansao = (index) => {
-    setItensExpandidos(prev => ({
+    setItensExpandidos((prev) => ({
       ...prev,
-      [index]: !prev[index]
+      [index]: !prev[index],
     }))
   }
 
@@ -37,14 +37,16 @@ export default function ItensList({ itens, onEdit, onRemove }) {
     const totalComDesconto = total - descontoItem
     const totalPreferencial = Number(item?.iped_tota) || totalComDesconto
     const isExpanded = itensExpandidos[index]
+    const consumoPorLote = Array.isArray(item?.consumo_por_lote)
+      ? item.consumo_por_lote
+      : []
 
     return (
       <View style={styles.itemContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.itemHeader}
           onPress={() => toggleItemExpansao(index)}
-          activeOpacity={0.7}
-        >
+          activeOpacity={0.7}>
           <View style={styles.itemNumber}>
             <Text style={styles.itemNumberText}>{index + 1}</Text>
           </View>
@@ -52,17 +54,19 @@ export default function ItensList({ itens, onEdit, onRemove }) {
             <Text style={styles.codigoProduto}>
               Cód: {item?.iped_prod || 'N/A'}
             </Text>
-            <Text style={styles.nomeProduto} numberOfLines={isExpanded ? undefined : 1}>
+            <Text
+              style={styles.nomeProduto}
+              numberOfLines={isExpanded ? undefined : 1}>
               {item?.produto_nome || 'Produto sem nome'}
             </Text>
             <Text style={styles.totalPreview}>
               {formatarMoeda(totalPreferencial)}
             </Text>
           </View>
-          <MaterialIcons 
-            name={isExpanded ? "expand-less" : "expand-more"} 
-            size={24} 
-            color="#18b7df" 
+          <MaterialIcons
+            name={isExpanded ? 'expand-less' : 'expand-more'}
+            size={24}
+            color="#18b7df"
           />
         </TouchableOpacity>
 
@@ -75,8 +79,36 @@ export default function ItensList({ itens, onEdit, onRemove }) {
               </View>
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Preço Unit.:</Text>
-                <Text style={styles.detailValue}>{formatarMoeda(precoUnitario)}</Text>
+                <Text style={styles.detailValue}>
+                  {formatarMoeda(precoUnitario)}
+                </Text>
               </View>
+              {item?.iped_lote_vend !== undefined &&
+                item?.iped_lote_vend !== null && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Lote:</Text>
+                    <Text style={styles.detailValue}>
+                      {String(item.iped_lote_vend)}
+                    </Text>
+                  </View>
+                )}
+              {consumoPorLote.length > 0 && (
+                <View style={{ marginTop: 6 }}>
+                  <Text style={styles.detailLabel}>Consumo por Lote:</Text>
+                  {consumoPorLote.map((c, idx) => (
+                    <View key={`cpl-${index}-${idx}`} style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>
+                        {c.iped_lote_vend
+                          ? `Lote ${c.iped_lote_vend}`
+                          : 'Sem lote'}
+                      </Text>
+                      <Text style={styles.detailValue}>
+                        {Number(c.iped_quan || 0).toFixed(2)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               {descontoItem > 0 && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Desconto:</Text>
@@ -97,16 +129,14 @@ export default function ItensList({ itens, onEdit, onRemove }) {
               <TouchableOpacity
                 style={styles.editButton}
                 onPress={() => onEdit(item)}
-                activeOpacity={0.7}
-              >
+                activeOpacity={0.7}>
                 <MaterialIcons name="edit" size={18} color="#fff" />
                 <Text style={styles.buttonText}>Editar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.removeButton}
                 onPress={() => onRemove(item)}
-                activeOpacity={0.7}
-              >
+                activeOpacity={0.7}>
                 <MaterialIcons name="delete" size={18} color="#fff" />
                 <Text style={styles.buttonText}>Remover</Text>
               </TouchableOpacity>
@@ -147,11 +177,10 @@ export default function ItensList({ itens, onEdit, onRemove }) {
   return (
     <View style={styles.container}>
       {/* Cabeçalho da Lista - Clicável para expandir/colapsar */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.listaHeader}
         onPress={() => setListaExpandida(!listaExpandida)}
-        activeOpacity={0.7}
-      >
+        activeOpacity={0.7}>
         <View style={styles.listaHeaderLeft}>
           <MaterialIcons name="list" size={24} color="#18b7df" />
           <View style={styles.listaHeaderInfo}>
@@ -163,10 +192,10 @@ export default function ItensList({ itens, onEdit, onRemove }) {
             </Text>
           </View>
         </View>
-        <MaterialIcons 
-          name={listaExpandida ? "expand-less" : "expand-more"} 
-          size={24} 
-          color="#18b7df" 
+        <MaterialIcons
+          name={listaExpandida ? 'expand-less' : 'expand-more'}
+          size={24}
+          color="#18b7df"
         />
       </TouchableOpacity>
 

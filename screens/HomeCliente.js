@@ -211,7 +211,7 @@ const HomeCliente = () => {
             color="#87dfb6ff"
             onPress={() => navigation.navigate('ClienteOrdensServicoList')}
           />
-          <DashboardCard
+          {/*<DashboardCard
             title="Pedidos"
             value={totalPedidos.toString()}
             color="#00D4FF"
@@ -221,8 +221,8 @@ const HomeCliente = () => {
             title="Orçamentos"
             value={totalOrcamentos.toString()}
             color="#c4af3bff"
-            onPress={() => navigation.navigate('ClienteOrcamentosList')}
-          />
+            onPress={() => navigation.navigate('ClienteOrcamentosList')}  
+          />*/}
         </View>
       </View>
 
@@ -235,6 +235,7 @@ const HomeCliente = () => {
             color="#00FF88"
             onPress={() => navigation.navigate('ClienteOrdensServicoList')}
           />
+          {/* 
           <QuickActionButton
             title="Meus Pedidos"
             color="#00D4FF"
@@ -245,6 +246,7 @@ const HomeCliente = () => {
             color="#FFD700"
             onPress={() => navigation.navigate('ClienteOrcamentosList')}
           />
+          */}
           <QuickActionButton
             title="Motores em Estoque"
             color="#FFD700"
