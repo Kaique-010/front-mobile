@@ -261,6 +261,7 @@ const HomeCliente = () => {
         />
         Desenvolvido por Spartacus Sistemas 2026
       </Text>
+      <Text style={styles.footer}>Versão 1.0.0</Text>
 
       <View style={styles.bottomSpacing} />
     </ScrollView>
@@ -517,6 +518,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#8B8BA7',
     marginBottom: 20,
+    marginTop: 45,
   },
   footerImage: {
     width: 20,

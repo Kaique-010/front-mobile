@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  TextInput,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { fetchClienteOrdensServico } from '../services/clienteService'
@@ -31,6 +32,41 @@ const STATUS_OPTIONS = [
   { label: 'Cancelada', value: 'X' },
 ]
 
+const ORDEM_TIPOS = {
+  1: 'Motor C.A',
+  2: 'Motor C.C',
+  3: 'Motor E.X',
+  4: 'Motor Sincrono',
+  5: 'Motor Monofásico',
+  6: 'Transformador',
+  7: 'Servo Motor',
+  8: 'Drives',
+  9: 'Campo M.C.A',
+  10: 'Campo Transformador',
+  11: 'Campo Geral',
+  12: 'Motor Bomba',
+  13: 'Bomba',
+  14: 'Redutor',
+  15: 'Gerador',
+  16: 'Eixo',
+  17: 'Carcaça',
+}
+
+const formatTipoOrdem = (tipo) => {
+  const key = String(tipo || '').trim()
+  if (!key) return '—'
+  const desc = ORDEM_TIPOS[key]
+  return desc ? `${key} - ${desc}` : key
+}
+
+const TIPO_OPTIONS = [
+  { label: 'Todos', value: '' },
+  ...Object.entries(ORDEM_TIPOS).map(([k, v]) => ({
+    label: `${k} - ${v}`,
+    value: String(k),
+  })),
+]
+
 const ClienteOrdensServicoList = ({ navigation }) => {
   const [ordens, setOrdens] = useState([])
   const [totalOrdens, setTotalOrdens] = useState(0)
@@ -47,6 +83,11 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   const [statusFiltro, setStatusFiltro] = useState('')
   const [dataInicial, setDataInicial] = useState(null)
   const [dataFinal, setDataFinal] = useState(null)
+  const [numeroFiltro, setNumeroFiltro] = useState('')
+  const [motorFiltro, setMotorFiltro] = useState('')
+  const [tipoFiltro, setTipoFiltro] = useState('')
+  const [voltagemFiltro, setVoltagemFiltro] = useState('')
+  const [potenciaFiltro, setPotenciaFiltro] = useState('')
 
   const carregarOrdens = useCallback(
     async (filtrosOverride = null, pagina = 1) => {
@@ -61,6 +102,11 @@ const ClienteOrdensServicoList = ({ navigation }) => {
           status: statusFiltro,
           data_inicial: formatarDataParaAPI(dataInicial),
           data_final: formatarDataParaAPI(dataFinal),
+          numero: numeroFiltro,
+          motor: motorFiltro,
+          tipo: tipoFiltro,
+          voltagem: voltagemFiltro,
+          potencia: potenciaFiltro,
         }
 
         const params = {
@@ -71,6 +117,11 @@ const ClienteOrdensServicoList = ({ navigation }) => {
         if (filtros.status) params.status = filtros.status
         if (filtros.data_inicial) params.data_inicial = filtros.data_inicial
         if (filtros.data_final) params.data_final = filtros.data_final
+        if (filtros.numero) params.numero = filtros.numero
+        if (filtros.motor) params.motor = filtros.motor
+        if (filtros.tipo) params.tipo = filtros.tipo
+        if (filtros.voltagem) params.voltagem = filtros.voltagem
+        if (filtros.potencia) params.potencia = filtros.potencia
 
         const data = await fetchClienteOrdensServico(params)
 
@@ -103,7 +154,16 @@ const ClienteOrdensServicoList = ({ navigation }) => {
         setRefreshing(false)
       }
     },
-    [statusFiltro, dataInicial, dataFinal],
+    [
+      statusFiltro,
+      dataInicial,
+      dataFinal,
+      numeroFiltro,
+      motorFiltro,
+      tipoFiltro,
+      voltagemFiltro,
+      potenciaFiltro,
+    ],
   )
 
   useFocusEffect(
@@ -138,12 +198,22 @@ const ClienteOrdensServicoList = ({ navigation }) => {
     setStatusFiltro('')
     setDataInicial(null)
     setDataFinal(null)
+    setNumeroFiltro('')
+    setMotorFiltro('')
+    setTipoFiltro('')
+    setVoltagemFiltro('')
+    setPotenciaFiltro('')
     setFiltrosVisiveis(false)
     carregarOrdens(
       {
         status: '',
         data_inicial: null,
         data_final: null,
+        numero: '',
+        motor: '',
+        tipo: '',
+        voltagem: '',
+        potencia: '',
       },
       1,
     )
@@ -152,6 +222,10 @@ const ClienteOrdensServicoList = ({ navigation }) => {
   const renderItem = ({ item }) => {
     console.log('ClienteOrdensServicoList item:', item.id, item.ver_preco)
     const statusColor = getStatusColor(item.orde_stat_orde)
+    const motorTexto =
+      [item.orde_mode, item.orde_seri, item.orde_patr, item.orde_plac]
+        .filter(Boolean)
+        .join(' | ') || 'Não informado'
 
     return (
       <TouchableOpacity
@@ -195,6 +269,26 @@ const ClienteOrdensServicoList = ({ navigation }) => {
               </Text>
             </View>
           )}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>MOTOR</Text>
+            <Text style={styles.infoValue}>{motorTexto}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>TIPO</Text>
+            <Text style={styles.infoValue}>
+              {formatTipoOrdem(item.orde_tipo)}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>VOLTAGEM</Text>
+            <Text style={styles.infoValue}>
+              {item.orde_volt != null ? String(item.orde_volt) : '—'}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>POTÊNCIA</Text>
+            <Text style={styles.infoValue}>{item.orde_pote || '—'}</Text>
+          </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>DEFEITO</Text>
             <Text style={styles.infoValueDefeito}>
@@ -365,6 +459,80 @@ const ClienteOrdensServicoList = ({ navigation }) => {
                 placeholder="Data final"
                 style={styles.datePicker}
                 textStyle={styles.datePickerText}
+              />
+            </View>
+          </View>
+
+          <Text style={styles.filterSectionTitle}>Tipo da Ordem</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.statusScroll}>
+            {TIPO_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.label}
+                style={[
+                  styles.statusChip,
+                  tipoFiltro === option.value && styles.statusChipSelected,
+                ]}
+                onPress={() => setTipoFiltro(option.value)}>
+                <Text
+                  style={[
+                    styles.statusChipText,
+                    tipoFiltro === option.value && styles.statusChipTextSelected,
+                  ]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <Text style={styles.filterSectionTitle}>Outros Filtros</Text>
+          <View style={styles.dateRow}>
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.dateLabel}>Número da OS</Text>
+              <TextInput
+                value={numeroFiltro}
+                onChangeText={setNumeroFiltro}
+                placeholder="Ex: 12345"
+                placeholderTextColor="#8B8BA7"
+                style={styles.textInput}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.dateLabel}>Motor</Text>
+              <TextInput
+                value={motorFiltro}
+                onChangeText={setMotorFiltro}
+                placeholder="Modelo / Série / Patrimônio"
+                placeholderTextColor="#8B8BA7"
+                style={styles.textInput}
+              />
+            </View>
+          </View>
+          <View style={styles.dateRow}>
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.dateLabel}>Voltagem</Text>
+              <TextInput
+                value={voltagemFiltro}
+                onChangeText={setVoltagemFiltro}
+                placeholder="Ex: 220"
+                placeholderTextColor="#8B8BA7"
+                style={styles.textInput}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <View style={styles.dateRow}>
+            <View style={styles.dateInputContainer}>
+              <Text style={styles.dateLabel}>Potência</Text>
+              <TextInput
+                value={potenciaFiltro}
+                onChangeText={setPotenciaFiltro}
+                placeholder="Ex: 5cv"
+                placeholderTextColor="#8B8BA7"
+                style={styles.textInput}
               />
             </View>
           </View>
@@ -630,6 +798,16 @@ const styles = StyleSheet.create({
   datePickerText: {
     color: '#FFFFFF',
     fontSize: 12,
+  },
+  textInput: {
+    backgroundColor: '#0F0F23',
+    borderColor: '#2D2D44',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 45,
+    color: '#FFFFFF',
+    fontSize: 12,
+    borderRadius: 6,
   },
   filterButtonsRow: {
     flexDirection: 'row',

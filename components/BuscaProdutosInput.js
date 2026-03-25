@@ -17,8 +17,13 @@ function useDebounce(value, delay = 300) {
   return debouncedValue
 }
 
-export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
-  const [searchTerm, setSearchTerm] = useState(initialValue)
+export default function BuscaProdutoInput({
+  onSelect,
+  initialValue = '',
+  value,
+}) {
+  const initialText = value !== undefined ? value : initialValue
+  const [searchTerm, setSearchTerm] = useState(initialText)
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   const [produtos, setProdutos] = useState([])
   const [snackbarVisible, setSnackbarVisible] = useState(false)
@@ -47,13 +52,17 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
   }, [])
 
   useEffect(() => {
+    if (value !== undefined) {
+      setSearchTerm(value || '')
+      return
+    }
     if (initialValue) setSearchTerm(initialValue)
-  }, [initialValue])
+  }, [initialValue, value])
 
   useEffect(() => {
     if (
       debouncedSearchTerm.trim().length < 2 ||
-      debouncedSearchTerm === initialValue
+      debouncedSearchTerm === initialText
     ) {
       setProdutos([])
       return
@@ -64,7 +73,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
 
       try {
         console.log(
-          `🔍 [BUSCA-OTIMIZADA] Buscando produtos para: "${debouncedSearchTerm}"`
+          `🔍 [BUSCA-OTIMIZADA] Buscando produtos para: "${debouncedSearchTerm}"`,
         )
 
         const resultados = await buscarPecas({
@@ -75,7 +84,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
         const validos = resultados.filter((p) => p?.prod_codi)
 
         console.log(
-          `✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} produtos válidos`
+          `✅ [BUSCA-OTIMIZADA] Encontrados ${validos.length} produtos válidos`,
         )
         setProdutos(validos)
       } catch (err) {
@@ -86,7 +95,7 @@ export default function BuscaProdutoInput({ onSelect, initialValue = '' }) {
     }
 
     buscar()
-  }, [debouncedSearchTerm, empresaId])
+  }, [debouncedSearchTerm, empresaId, initialText])
 
   const handleSelecionarProduto = (produto) => {
     if (!produto?.prod_codi) {

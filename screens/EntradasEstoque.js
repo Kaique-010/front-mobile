@@ -68,7 +68,7 @@ export default function ListaEntradas({ navigation }) {
       const data = await apiGetComContexto(
         `entradas_estoque/entradas-estoque/`,
         params,
-        'entr_'
+        'entr_',
       )
 
       const newResults = data.results || []
@@ -100,16 +100,16 @@ export default function ListaEntradas({ navigation }) {
           try {
             await apiGet(`/api/entradas-estoque/${entr_sequ}/`, {}, 'DELETE')
             setEntradas((prev) =>
-              prev.filter((entrada) => entrada.entr_sequ !== entr_sequ)
+              prev.filter((entrada) => entrada.entr_sequ !== entr_sequ),
             )
           } catch (error) {
             console.log(
               '❌ Erro ao excluir entrada:',
-              error.response?.data?.detail || error.message
+              error.response?.data?.detail || error.message,
             )
             Alert.alert(
               'Erro',
-              error.response?.data?.detail || 'Erro ao excluir a entrada'
+              error.response?.data?.detail || 'Erro ao excluir a entrada',
             )
           }
         },

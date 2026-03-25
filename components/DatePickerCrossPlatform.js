@@ -20,6 +20,7 @@ const DatePickerCrossPlatform = ({
 }) => {
   const [showPicker, setShowPicker] = useState(false)
   const [tempDate, setTempDate] = useState(null)
+  const [webValue, setWebValue] = useState('')
 
   const parseDate = (date) => {
     if (!date) return null
@@ -38,6 +39,15 @@ const DatePickerCrossPlatform = ({
     return dateObj.toLocaleDateString('pt-BR')
   }
 
+  const formatYYYYMMDD = (date) => {
+    const d = parseDate(date)
+    if (!d) return ''
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   const parsedValue = useMemo(() => parseDate(value), [value])
 
   useEffect(() => {
@@ -45,44 +55,44 @@ const DatePickerCrossPlatform = ({
     setTempDate(parsedValue || new Date())
   }, [showPicker, parsedValue])
 
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      setWebValue(value ? formatYYYYMMDD(value) : '')
+    }
+  }, [value])
+
   // Para web, usar input HTML nativo
   if (Platform.OS === 'web') {
     return (
-      <TextInput
-        style={[
-          {
-            backgroundColor: '#fff',
-            padding: 15,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#ddd',
-            color: '#333',
-            minHeight: 46,
-          },
-          style,
-        ]}
-        value={
-          value
-            ? (() => {
-                const dateObj = new Date(value)
-                return !isNaN(dateObj.getTime())
-                  ? dateObj.toISOString().split('T')[0]
-                  : ''
-              })()
-            : ''
-        }
-        onChangeText={(dateString) => {
-          if (dateString && onChange) {
-            const date = new Date(dateString + 'T00:00:00')
-            if (!isNaN(date.getTime())) {
-              onChange(date)
-            }
+      <input
+        type="date"
+        lang="pt-BR"
+        style={{
+          backgroundColor: '#fff',
+          padding: 15,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderStyle: 'solid',
+          borderColor: '#ddd',
+          color: '#333',
+          minHeight: 46,
+          width: '100%',
+          boxSizing: 'border-box',
+          ...(style || {}),
+        }}
+        value={webValue}
+        onChange={(e) => {
+          const dateString = e?.target?.value || ''
+          setWebValue(dateString)
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateString) && onChange) {
+            const [y, m, d] = dateString.split('-').map(Number)
+            const date = new Date(y, (m || 1) - 1, d || 1)
+            if (!isNaN(date.getTime())) onChange(date)
           }
         }}
+        onBlur={() => setWebValue(value ? formatYYYYMMDD(value) : '')}
         placeholder={placeholder}
-        editable={!disabled}
-        // Para web, usar o tipo date do HTML
-        {...(Platform.OS === 'web' && { type: 'date', lang: 'pt-BR' })}
+        disabled={disabled}
       />
     )
   }

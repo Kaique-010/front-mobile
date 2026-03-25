@@ -15,6 +15,33 @@ import AbaFotosAntes from './partials/abaFotosAntes'
 import AbaFotosDurante from './partials/abaFotosDurante'
 import AbaFotosDepois from './partials/abaFotosDepois'
 
+const ORDEM_TIPOS = {
+  1: 'Motor C.A',
+  2: 'Motor C.C',
+  3: 'Motor E.X',
+  4: 'Motor Sincrono',
+  5: 'Motor Monofásico',
+  6: 'Transformador',
+  7: 'Servo Motor',
+  8: 'Drives',
+  9: 'Campo M.C.A',
+  10: 'Campo Transformador',
+  11: 'Campo Geral',
+  12: 'Motor Bomba',
+  13: 'Bomba',
+  14: 'Redutor',
+  15: 'Gerador',
+  16: 'Eixo',
+  17: 'Carcaça',
+}
+
+const formatTipoOrdem = (tipo) => {
+  const key = String(tipo || '').trim()
+  if (!key) return '—'
+  const desc = ORDEM_TIPOS[key]
+  return desc ? `${key} - ${desc}` : key
+}
+
 const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   const { ordemId, ordemInicial } = route.params
   const [ordem, setOrdem] = useState(ordemInicial || null)
@@ -297,6 +324,41 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                   </Text>
                 </View>
               )}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Dados do Equipamento</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>MOTOR</Text>
+                <Text style={styles.infoValue}>
+                  {[
+                    ordem.orde_mode,
+                    ordem.orde_seri,
+                    ordem.orde_patr,
+                    ordem.orde_plac,
+                  ]
+                    .filter(Boolean)
+                    .join(' | ') || 'Não informado'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>TIPO</Text>
+                <Text style={styles.infoValue}>
+                  {formatTipoOrdem(ordem.orde_tipo)}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>VOLTAGEM</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_volt != null ? String(ordem.orde_volt) : '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>POTÊNCIA</Text>
+                <Text style={styles.infoValue}>{ordem.orde_pote || '—'}</Text>
+              </View>
             </View>
           </View>
 

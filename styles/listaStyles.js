@@ -50,6 +50,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#345686',
     borderRadius: 8,
     marginBottom: 10,
+    marginTop: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+
     padding: 10,
   },
   incluirButtonText: {
