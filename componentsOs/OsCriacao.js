@@ -29,6 +29,7 @@ import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
 import AbaForos from '../componentsOs/AbaForos'
 import AbaTotais from '../componentsOs/AbaTotais'
+import AbaArquivos from '../componentsOs/AbaArquivos'
 import Toast from 'react-native-toast-message'
 import {
   ORDER_FIELDS_CONFIG,
@@ -525,7 +526,7 @@ export default function CriarOrdemServico() {
       keyboardVerticalOffset={100}>
       <View style={{ padding: 20, backgroundColor: '#0f1f2a' }}>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          {['cliente', 'pecas', 'servicos', 'fotos'].map((aba) => (
+          {['cliente', 'pecas', 'servicos', 'fotos', 'arquivos'].map((aba) => (
             <TouchableOpacity
               key={aba}
               onPress={() => {
@@ -928,6 +929,10 @@ export default function CriarOrdemServico() {
               financeiroGerado={financeiroGerado}
               onFinanceiroGerado={setFinanceiroGerado}
             />
+          )}
+
+          {abaAtiva === 'arquivos' && orde_nume && (
+            <AbaArquivos orde_nume={orde_nume} />
           )}
 
           {abaAtiva !== 'cliente' && !orde_nume && (

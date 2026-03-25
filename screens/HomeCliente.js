@@ -174,7 +174,7 @@ const HomeCliente = () => {
         <View style={styles.clienteInfoContent}>
           <View style={styles.infoItem}>
             <View style={styles.infoDetails}>
-              <Text style={styles.infoLabel}>DOCUMENTO</Text>
+              <Text style={styles.infoLabel}>Documento</Text>
               <Text style={styles.infoValue}>
                 {cliente?.documento || 'N/A'}
               </Text>

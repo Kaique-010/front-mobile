@@ -16,6 +16,7 @@ import AbaPecas from '../componentsOs/AbaPecas'
 import AbaServicos from '../componentsOs/AbaServicos'
 import AbaFotos from '../componentsOs/AbaForos'
 import AbaTotais from '../componentsOs/AbaTotais'
+import AbaArquivos from '../componentsOs/AbaArquivos'
 import WorkflowButton from '../componentsOs/WorkflowButton'
 import {
   apiGetComContexto,
@@ -453,7 +454,7 @@ const OrdemDetalhe = ({ route }) => {
       </View>
 
       <View style={styles.tabs}>
-        {['detalhes', 'pecas', 'servicos', 'fotos'].map((aba) => (
+        {['detalhes', 'pecas', 'servicos', 'fotos', 'arquivos'].map((aba) => (
           <TouchableOpacity
             key={aba}
             onPress={() => setAbaAtiva(aba)}
@@ -492,6 +493,9 @@ const OrdemDetalhe = ({ route }) => {
             orde_nume={ordemAtual.orde_nume}
             codTecnico={usuarioId}
           />
+        )}
+        {abaAtiva === 'arquivos' && (
+          <AbaArquivos orde_nume={ordemAtual.orde_nume} />
         )}
         {abaAtiva === 'totais' && (
           <AbaTotais

@@ -7,6 +7,11 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  FlatList,
+  Image,
+  Modal,
+  Dimensions,
+  Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { fetchClienteOrdensServico } from '../services/clienteService'
@@ -42,6 +47,180 @@ const formatTipoOrdem = (tipo) => {
   return desc ? `${key} - ${desc}` : key
 }
 
+const detectarMimePorNome = (nome) => {
+  const ext = String(nome || '')
+    .split('.')
+    .pop()
+    ?.toLowerCase()
+  if (ext === 'png') return 'image/png'
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg'
+  if (ext === 'webp') return 'image/webp'
+  if (ext === 'gif') return 'image/gif'
+  if (ext === 'pdf') return 'application/pdf'
+  return 'application/octet-stream'
+}
+
+const montarArquivoDataUri = (arquivo) => {
+  const base =
+    arquivo?.arquivo_base64 ||
+    arquivo?.arquivoBase64 ||
+    arquivo?.base64 ||
+    arquivo?.preview
+  if (!base || typeof base !== 'string') return null
+  const b = base.trim()
+  if (!b) return null
+  if (b.startsWith('data:')) return b
+  const mime = detectarMimePorNome(arquivo?.nome)
+  return `data:${mime};base64,${b}`
+}
+
+const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
+  const [selectedUri, setSelectedUri] = useState(null)
+  const [windowSize, setWindowSize] = useState(Dimensions.get('window'))
+
+  useEffect(() => {
+    const sub = Dimensions.addEventListener('change', ({ window }) =>
+      setWindowSize(window),
+    )
+    return () => {
+      if (sub?.remove) sub.remove()
+    }
+  }, [])
+
+  const columns = Platform.OS === 'web' ? 3 : 1
+  const itemWidth =
+    columns === 1
+      ? Math.max(0, windowSize.width - 40)
+      : (windowSize.width - 40) / columns - 8
+  const itemHeight = columns === 1 ? 260 : itemWidth
+
+  const imagens = Array.isArray(arquivos)
+    ? arquivos
+        .map((a) => ({
+          id: a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu,
+          nome: a?.nome,
+          uri: montarArquivoDataUri(a),
+        }))
+        .filter(
+          (x) => typeof x.uri === 'string' && x.uri.startsWith('data:image/'),
+        )
+    : []
+
+  if (!Array.isArray(arquivos) || arquivos.length === 0) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.arquivosHeaderRow}>
+          <Text style={styles.sectionTitle}>Arquivos</Text>
+          <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
+            <Text style={styles.refreshBtnText}>Atualizar</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.emptyCard}>
+          <Ionicons name="folder-open-outline" size={48} color="#2D2D44" />
+          <Text style={styles.emptyText}>Nenhum arquivo encontrado</Text>
+        </View>
+      </View>
+    )
+  }
+
+  if (imagens.length === 0) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.arquivosHeaderRow}>
+          <Text style={styles.sectionTitle}>Arquivos</Text>
+          <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
+            <Text style={styles.refreshBtnText}>Atualizar</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.emptyCard}>
+          <Ionicons name="images-outline" size={48} color="#2D2D44" />
+          <Text style={styles.emptyText}>
+            Arquivos encontrados, mas sem imagens para exibir
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.arquivosHeaderRow}>
+        <Text style={styles.sectionTitle}>Arquivos</Text>
+        <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
+          <Text style={styles.refreshBtnText}>Atualizar</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        key={`arquivos-cols-${columns}`}
+        data={imagens}
+        keyExtractor={(item, index) => String(item?.id ?? index)}
+        numColumns={columns}
+        contentContainerStyle={styles.arquivosListContent}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[
+              styles.arquivoThumbBox,
+              { width: columns === 1 ? '100%' : itemWidth },
+            ]}
+            onPress={() => setSelectedUri(item.uri)}>
+            {columns === 1 ? (
+              <>
+                <Text style={styles.arquivoNome} numberOfLines={1}>
+                  {item?.nome || 'Arquivo'}
+                </Text>
+                <View style={[styles.arquivoImgBox, { height: itemHeight }]}>
+                  <Image
+                    source={{ uri: item.uri }}
+                    style={styles.arquivoThumb}
+                    resizeMode="contain"
+                  />
+                </View>
+              </>
+            ) : (
+              <View style={[styles.arquivoImgBox, { height: itemWidth }]}>
+                <Image
+                  source={{ uri: item.uri }}
+                  style={styles.arquivoThumb}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+        showsVerticalScrollIndicator={false}
+      />
+
+      <Modal
+        visible={!!selectedUri}
+        transparent={true}
+        onRequestClose={() => setSelectedUri(null)}
+        animationType="fade">
+        <View style={styles.modalImgContainer}>
+          <TouchableOpacity
+            style={styles.modalCloseBtn}
+            onPress={() => setSelectedUri(null)}>
+            <Ionicons name="close" size={30} color="#FFFFFF" />
+          </TouchableOpacity>
+          {selectedUri && (
+            <View
+              style={[
+                styles.modalImgBox,
+                { width: windowSize.width, height: windowSize.height * 0.85 },
+              ]}>
+              <Image
+                source={{ uri: selectedUri }}
+                style={styles.modalImg}
+                resizeMode="contain"
+              />
+            </View>
+          )}
+        </View>
+      </Modal>
+    </View>
+  )
+}
+
 const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   const { ordemId, ordemInicial } = route.params
   const [ordem, setOrdem] = useState(ordemInicial || null)
@@ -63,7 +242,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
     }
   }, [ordem])
 
-  const carregarOrdem = async () => {
+  const carregarOrdem = async (opts = {}) => {
     try {
       if (!ordem) setLoading(true)
 
@@ -75,6 +254,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
       if (numeroOrdem) {
         const response = await fetchClienteOrdensServico({
           orde_nume: numeroOrdem,
+          ...(opts.refresh ? { refresh: 1 } : {}),
         })
         const lista =
           response.results || (Array.isArray(response) ? response : [])
@@ -296,6 +476,20 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
               Fotos Depois
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === 'arquivos' && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab('arquivos')}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'arquivos' && styles.activeTabText,
+              ]}>
+              Arquivos
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -487,6 +681,12 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
       {activeTab === 'antes' && <AbaFotosAntes ordemId={ordem.orde_nume} />}
       {activeTab === 'durante' && <AbaFotosDurante ordemId={ordem.orde_nume} />}
       {activeTab === 'depois' && <AbaFotosDepois ordemId={ordem.orde_nume} />}
+      {activeTab === 'arquivos' && (
+        <AbaArquivosRelatorio
+          arquivos={ordem?.arquivos}
+          onRefresh={() => carregarOrdem({ refresh: true })}
+        />
+      )}
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -758,6 +958,72 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  arquivosHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  refreshBtn: {
+    backgroundColor: '#1A1A2E',
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  refreshBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  arquivosListContent: {
+    paddingVertical: 6,
+  },
+  arquivoThumbBox: {
+    margin: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#1A1A2E',
+    borderWidth: 1,
+    borderColor: '#2D2D44',
+  },
+  arquivoNome: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  arquivoImgBox: {
+    width: '100%',
+    backgroundColor: '#101028',
+  },
+  arquivoThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  modalImgContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+  },
+  modalImgBox: {
+    paddingHorizontal: 12,
+    paddingBottom: 24,
+  },
+  modalImg: {
+    width: '100%',
+    height: '100%',
   },
 })
 
