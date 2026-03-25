@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  ScrollView,
   FlatList,
   TextInput,
   Linking,
@@ -21,7 +22,6 @@ import {
   apiPatchComContexto,
   apiPostComContexto,
 } from '../utils/api'
-import { ScrollView } from 'react-native-web'
 
 const formatarData = (valor) => {
   if (!valor) return ''
@@ -375,8 +375,10 @@ export default function AbaArquivos({ orde_nume }) {
   }
 
   return (
-    
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled">
       <View style={styles.actionsRow}>
         <TouchableOpacity
           style={[styles.actionBtn, isLoading && styles.actionBtnDisabled]}
@@ -455,7 +457,6 @@ export default function AbaArquivos({ orde_nume }) {
           </View>
         )}
       </View>
-  
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Arquivos Anexados</Text>
@@ -465,6 +466,7 @@ export default function AbaArquivos({ orde_nume }) {
             String(item?.id ?? item?.os_arqu ?? item?.arqu_codi_arqu ?? index)
           }
           renderItem={renderItem}
+          scrollEnabled={false}
           contentContainerStyle={{ paddingBottom: 20 }}
           ListEmptyComponent={
             <Text style={styles.emptyText}>
@@ -473,7 +475,6 @@ export default function AbaArquivos({ orde_nume }) {
           }
         />
       </View>
-     
 
       <Modal
         visible={modalVisivel}
@@ -538,13 +539,16 @@ export default function AbaArquivos({ orde_nume }) {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   actionsRow: {
     flexDirection: 'row',
