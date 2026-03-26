@@ -263,6 +263,9 @@ const styles = StyleSheet.create({
   xmlButton: {
     backgroundColor: '#A7F3D0',
   },
+  danfeButton: {
+    backgroundColor: '#dc3545',
+  },
   transmitirButton: {
     backgroundColor: '#BBF7D0',
   },

@@ -13,7 +13,7 @@ import styles from '../styles/notaFiscalXmlStyles'
 import { notasFiscaisService } from '../componentsNotasFiscais/notasFiscaisService'
 
 export default function NotaFiscalXml({ route, navigation }) {
-  const { xmlData, notaFiscal } = route.params
+  const { xmlData, notaFiscal, slug } = route.params
 
   // Extrair o XML do objeto retornado pela API
   let xmlContent = ''
@@ -51,6 +51,12 @@ export default function NotaFiscalXml({ route, navigation }) {
   const visualizarDanfe = async () => {
     try {
       setLoadingDanfe(true)
+
+      const notaId = notaFiscal?.id ?? notaFiscal?.pk ?? notaFiscal?.nota_id
+      if (slug && notaId) {
+        await notasFiscaisService.abrirDanfePorPk(slug, notaId)
+        return
+      }
 
       // Extrair número da nota
       let numeroNota = notaFiscal.numero

@@ -123,6 +123,43 @@ export const fetchClienteOrdensServicoEmEstoque = async (params = {}) => {
   }
 }
 
+export const fetchClienteOrdensTodas = async (params = {}) => {
+  try {
+    const api = await createClienteAxios()
+    if (!api) return []
+
+    const response = await api.get('entidades/ordem-servico/todas_ordens/', {
+      params,
+    })
+
+    console.log(
+      'Ordens Servico Response:',
+      JSON.stringify(response.data, null, 2),
+    )
+
+    if (Array.isArray(response.data)) {
+      return response.data
+    }
+
+    // Check common wrapper fields including Portuguese 'dados'
+    const listData =
+      response.data.results ||
+      response.data.data ||
+      response.data.result ||
+      response.data.dados ||
+      response.data.items ||
+      response.data.response ||
+      response.data.payload ||
+      []
+
+    return Array.isArray(listData) ? listData : []
+  } catch (error) {
+    console.error('[fetchClienteOrdensTodas] Error:', error)
+    handleApiError(error)
+    return []
+  }
+}
+
 // Buscar dashboard do cliente
 export const fetchClienteDashboard = async () => {
   try {

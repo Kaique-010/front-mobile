@@ -1,10 +1,17 @@
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { Linking, Platform } from 'react-native'
 import {
   apiGetComContexto,
   apiPostComContexto,
   apiPutComContexto,
   apiDeleteComContexto,
+  BASE_URL,
+  getAuthHeaders,
 } from '../utils/api'
 import { request } from '../utils/api'
+import { getStoredData } from '../services/storageService'
 
 /**
  * Serviço para gerenciar operações com Notas Fiscais
@@ -141,8 +148,11 @@ export const notasFiscaisService = {
       console.log('🌐 Endpoint DANFE:', endpoint)
 
       // Retornar URL completa para abrir no navegador
-      const baseUrl = 'http://192.168.20.44:8000/api/casaa'
-      const fullUrl = `${baseUrl}/${endpoint}`
+      const { slug } = await getStoredData()
+      const base = String(BASE_URL || '').replace(/\/+$/, '')
+      const fullUrl = slug
+        ? `${base}/api/${slug}/${endpoint}`
+        : `${base}/${endpoint}`
       console.log('✅ URL DANFE gerada:', fullUrl)
 
       return fullUrl
@@ -150,6 +160,90 @@ export const notasFiscaisService = {
       console.error('❌ Erro ao buscar DANFE da nota fiscal:', error.message)
       throw error
     }
+  },
+
+  buscarUrlImpressaoNotaFiscalPorPk(slug, id) {
+    const safeSlug = String(slug || '').trim()
+    const safeId = String(id || '').trim()
+    const base = String(BASE_URL || '').replace(/\/+$/, '')
+    if (!safeSlug || !safeId) return ''
+    return `${base}/api/${safeSlug}/notasfiscais/notas-fiscais/imprimir/${safeSlug}/${safeId}/`
+  },
+
+  async abrirDanfePorPk(slug, id) {
+    const safeSlug =
+      String(slug || '').trim() || (await AsyncStorage.getItem('slug'))
+    const safeId = String(id || '').trim()
+    if (!safeSlug || !safeId) throw new Error('Parâmetros inválidos para DANFE')
+
+    const token = await AsyncStorage.getItem('access')
+    const headersExtras = await getAuthHeaders()
+    const base = String(BASE_URL || '').replace(/\/+$/, '')
+    const url = `${base}/api/${safeSlug}/notasfiscais/notas-fiscais/imprimir/${safeSlug}/${safeId}/`
+
+    if (Platform.OS === 'web') {
+      const headers = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(headersExtras || {}),
+      }
+      for (const k of Object.keys(headers)) {
+        if (headers[k] == null || headers[k] === '') delete headers[k]
+        else headers[k] = String(headers[k])
+      }
+
+      const res = await fetch(url, { method: 'GET', headers })
+      if (!res.ok) {
+        throw new Error(`Erro ao gerar DANFE (HTTP ${res.status})`)
+      }
+
+      const blob = await res.blob()
+      const objectUrl =
+        typeof URL !== 'undefined' && URL.createObjectURL
+          ? URL.createObjectURL(blob)
+          : null
+
+      if (objectUrl && typeof window !== 'undefined' && window.open) {
+        window.open(objectUrl, '_blank')
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(objectUrl)
+          } catch {}
+        }, 60_000)
+        return
+      }
+
+      const reader = new FileReader()
+      const dataUrl = await new Promise((resolve, reject) => {
+        reader.onerror = () => reject(new Error('Falha ao abrir DANFE'))
+        reader.onloadend = () => resolve(reader.result)
+        reader.readAsDataURL(blob)
+      })
+
+      if (typeof window !== 'undefined' && window.open) {
+        window.open(String(dataUrl), '_blank')
+        return
+      }
+
+      await Linking.openURL(String(dataUrl))
+      return
+    }
+
+    const fileUri =
+      (FileSystem.documentDirectory || FileSystem.cacheDirectory) +
+      `danfe_${safeId}.pdf`
+
+    const downloaded = await FileSystem.downloadAsync(url, fileUri, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+        ...headersExtras,
+      },
+    })
+
+    if (downloaded.status !== 200) {
+      throw new Error('Erro ao gerar DANFE no servidor')
+    }
+
+    await Sharing.shareAsync(downloaded.uri)
   },
 
   /**

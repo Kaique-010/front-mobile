@@ -6,6 +6,7 @@ import {
   Text,
   TextInput,
   View,
+  StyleSheet,
 } from 'react-native'
 import DateTimePicker from '@react-native-community/datetimepicker'
 
@@ -49,6 +50,7 @@ const DatePickerCrossPlatform = ({
   }
 
   const parsedValue = useMemo(() => parseDate(value), [value])
+  const flattenedStyle = useMemo(() => StyleSheet.flatten(style) || {}, [style])
 
   useEffect(() => {
     if (!showPicker) return
@@ -78,7 +80,7 @@ const DatePickerCrossPlatform = ({
           minHeight: 46,
           width: '100%',
           boxSizing: 'border-box',
-          ...(style || {}),
+          ...(flattenedStyle || {}),
         }}
         value={webValue}
         onChange={(e) => {

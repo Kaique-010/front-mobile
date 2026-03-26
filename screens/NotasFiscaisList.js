@@ -11,6 +11,7 @@ import {
   Alert,
   RefreshControl,
   Platform,
+  Linking,
 } from 'react-native'
 import Toast from 'react-native-toast-message'
 import { getStoredData } from '../services/storageService'
@@ -26,6 +27,7 @@ export default function NotasFiscaisList({ navigation }) {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
+  const [loadingDanfeId, setLoadingDanfeId] = useState(null)
   const [slug, setSlug] = useState('')
   const pageSize = 20
 
@@ -369,12 +371,34 @@ export default function NotasFiscaisList({ navigation }) {
       navigation.navigate('NotaFiscalXml', {
         xmlData,
         notaFiscal: item,
+        slug,
       })
     } catch (error) {
       console.log('❌ Erro ao buscar XML:', error.message)
       Alert.alert('Erro', 'Erro ao carregar XML da nota fiscal')
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  const imprimirNota = async (item) => {
+    const id = obterIdNota(item)
+    if (!id) {
+      Alert.alert('Erro', 'ID da nota fiscal não encontrado')
+      return
+    }
+    if (!slug) {
+      Alert.alert('Erro', 'Slug não encontrado')
+      return
+    }
+    try {
+      setLoadingDanfeId(String(id))
+      await notasFiscaisService.abrirDanfePorPk(slug, id)
+    } catch (error) {
+      console.log('❌ Erro ao abrir DANFE:', error?.message)
+      Alert.alert('Erro', 'Erro ao carregar DANFE da nota fiscal')
+    } finally {
+      setLoadingDanfeId(null)
     }
   }
 
@@ -737,6 +761,19 @@ export default function NotasFiscaisList({ navigation }) {
             onPress={() => visualizarXml(item)}>
             <Text style={styles.actionButtonText}>XML</Text>
           </TouchableOpacity>
+
+          {statusNfe === 100 && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.danfeButton]}
+              onPress={() => imprimirNota(item)}
+              disabled={loadingDanfeId === String(obterIdNota(item))}>
+              <Text style={styles.actionButtonText}>
+                {loadingDanfeId === String(obterIdNota(item))
+                  ? 'Carregando...'
+                  : 'Ver DANFE'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {!bloqueada && (
             <TouchableOpacity

@@ -17,6 +17,7 @@ import {
   fetchClienteOrcamentos,
   fetchClienteOrdensServico,
   fetchClienteDashboard,
+  fetchClienteOrdensTodas,
 } from '../services/clienteService'
 
 const { width } = Dimensions.get('window')
@@ -233,7 +234,7 @@ const HomeCliente = () => {
           <QuickActionButton
             title="Ordens de Serviço"
             color="#00FF88"
-            onPress={() => navigation.navigate('ClienteOrdensServicoList')}
+            onPress={() => navigation.navigate('ClienteOrdensTodasList')}
           />
           {/* 
           <QuickActionButton
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'center',
     marginBottom: 20,
-    marginTop: 20,
+    marginTop: 60,
     marginLeft: 20,
   },
   logoImage: {

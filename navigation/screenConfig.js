@@ -30,6 +30,11 @@ export const screenConfigs = [
     component: Screens.HomeCliente,
     options: { headerShown: false },
   },
+  {
+    name: 'ClienteOrdensTodasList',
+    component: Screens.ClienteOrdensTodasList,
+    options: createHeaderOptions('Ordens de Serviço (Todas)'),
+  },
 
   // Telas de sistema
   {
@@ -698,7 +703,7 @@ export const screenConfigs = [
     options: createHeaderOptions('Lista de CFOPs'),
   },
   // Telas de NCM
-  
+
   {
     name: 'NcmForm',
     component: Screens.NcmForm,
