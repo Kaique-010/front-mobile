@@ -221,11 +221,35 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   )
 }
 
+const CollapsibleSection = ({ title, isOpen, onToggle, children }) => {
+  return (
+    <View style={styles.section}>
+      <TouchableOpacity onPress={onToggle} style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Ionicons
+          name={isOpen ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color="#FFFFFF"
+        />
+      </TouchableOpacity>
+      {isOpen && children}
+    </View>
+  )
+}
+
 const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   const { ordemId, ordemInicial } = route.params
   const [ordem, setOrdem] = useState(ordemInicial || null)
   const [loading, setLoading] = useState(!ordemInicial)
   const [activeTab, setActiveTab] = useState('geral')
+  const [openSections, setOpenSections] = useState({
+    gerais: true,
+    equipamento: true,
+    descricao: true,
+    pecas: true,
+    servicos: true,
+    resumo: true,
+  })
 
   useEffect(() => {
     carregarOrdem()
@@ -495,8 +519,12 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
 
       {activeTab === 'geral' && (
         <>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Informações Gerais</Text>
+          <CollapsibleSection
+            title="Informações Gerais"
+            isOpen={openSections.gerais}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, gerais: !s.gerais }))
+            }>
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>DATA DE ABERTURA</Text>
@@ -519,10 +547,14 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 </View>
               )}
             </View>
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Dados do Equipamento</Text>
+          <CollapsibleSection
+            title="Dados do Equipamento"
+            isOpen={openSections.equipamento}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, equipamento: !s.equipamento }))
+            }>
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>MOTOR</Text>
@@ -546,27 +578,88 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>VOLTAGEM</Text>
                 <Text style={styles.infoValue}>
-                  {ordem.orde_volt != null ? String(ordem.orde_volt) : '—'}
+                  {ordem.orde_volt != null ? String(ordem.orde_volt) : '—'} -{' '}
+                  {ordem.voltagem_nome || '—'} (volts)
                 </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>POTÊNCIA</Text>
                 <Text style={styles.infoValue}>{ordem.orde_pote || '—'}</Text>
               </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>GRAU IP</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_grau_ip || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>FREQUÊNCIA</Text>
+                <Text style={styles.infoValue}>{ordem.orde_hz || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>ROTAÇÃO</Text>
+                <Text style={styles.infoValue}>{ordem.orde_rpm || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>ISOLAÇÃO</Text>
+                <Text style={styles.infoValue}>{ordem.orde_isol || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Nº DE SÉRIE</Text>
+                <Text style={styles.infoValue}>{ordem.orde_seri || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>MODELO</Text>
+                <Text style={styles.infoValue}>{ordem.orde_mode || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>MARCA</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_marc || '—'} - {ordem.marca_nome || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>FORMA CONSTRUTIVA</Text>
+                <Text style={styles.infoValue}>{ordem.orde_foco || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>SAÍDA DE CABOS DA LIGAÇÃO</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_esta_cabo || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>STATUS DA CAIXA</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_esta_liga || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>OBSERVAÇÕES</Text>
+                <Text style={styles.infoValue}>{ordem.orde_obse || '—'}</Text>
+              </View>
             </View>
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Descrição do Serviço</Text>
+          <CollapsibleSection
+            title="Descrição do Serviço"
+            isOpen={openSections.descricao}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, descricao: !s.descricao }))
+            }>
             <View style={styles.descricaoCard}>
               <Text style={styles.descricaoText}>
                 {ordem.orde_defe_desc || 'Nenhuma descrição informada'}
               </Text>
             </View>
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Peças</Text>
+          <CollapsibleSection
+            title="Peças"
+            isOpen={openSections.pecas}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, pecas: !s.pecas }))
+            }>
             {ordem.pecas && ordem.pecas.length > 0 ? (
               ordem.pecas.map((peca, index) => (
                 <View key={index} style={styles.itemCard}>
@@ -604,10 +697,14 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 <Text style={styles.emptyText}>Nenhuma peça encontrada</Text>
               </View>
             )}
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Serviços</Text>
+          <CollapsibleSection
+            title="Serviços"
+            isOpen={openSections.servicos}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, servicos: !s.servicos }))
+            }>
             {ordem.servicos && ordem.servicos.length > 0 ? (
               ordem.servicos.map((servico, index) => (
                 <View key={index} style={styles.itemCard}>
@@ -644,11 +741,15 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 <Text style={styles.emptyText}>Nenhum serviço encontrado</Text>
               </View>
             )}
-          </View>
+          </CollapsibleSection>
 
           {ordem.ver_preco !== false && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Resumo de Valores</Text>
+            <CollapsibleSection
+              title="Resumo de Valores"
+              isOpen={openSections.resumo}
+              onToggle={() =>
+                setOpenSections((s) => ({ ...s, resumo: !s.resumo }))
+              }>
               <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>SUBTOTAL</Text>
@@ -673,7 +774,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                   </Text>
                 </View>
               </View>
-            </View>
+            </CollapsibleSection>
           )}
         </>
       )}
@@ -775,6 +876,12 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
     paddingHorizontal: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 16,

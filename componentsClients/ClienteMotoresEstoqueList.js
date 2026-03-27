@@ -11,10 +11,7 @@ import {
   TextInput,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import {
-  fetchClienteOrdensServicoEmEstoque,
-  fetchClienteOrdensServico,
-} from '../services/clienteService'
+import { fetchClienteOrdensServicoEmEstoque } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 
@@ -155,6 +152,7 @@ const ClienteMotoresEstoqueList = ({ navigation }) => {
       motor: '',
       tipo: '',
       voltagem: '',
+      voltagem_nome: '',
       potencia: '',
     })
   }
@@ -218,9 +216,22 @@ const ClienteMotoresEstoqueList = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>MARCA</Text>
+            <Text style={styles.infoValue}>
+              {item.orde_marc != null
+                ? String(item.orde_marc || '') + ' - ' + (item.marca_nome || '')
+                : '—'}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>VOLTAGEM</Text>
             <Text style={styles.infoValue}>
-              {item.orde_volt != null ? String(item.orde_volt) : '—'}
+              {item.orde_volt != null
+                ? String(item.orde_volt) +
+                  ' - ' +
+                  (item.voltagem_nome || '—') +
+                  ' (volts)'
+                : '—'}
             </Text>
           </View>
           <View style={styles.infoRow}>
