@@ -137,7 +137,6 @@ const HomeCliente = () => {
     <>
       <StatusBar barStyle="light-content" backgroundColor="#16213E" />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-
         {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerRow}>
@@ -255,7 +254,7 @@ const styles = StyleSheet.create({
   // Header
   header: {
     backgroundColor: '#16213E',
-    paddingTop: 16,
+    paddingTop: 66, // ← +50px
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
@@ -265,12 +264,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerLeft: {
-    flexDirection: 'column',   // logo em cima, bem-vindo embaixo
+    flexDirection: 'column', // logo em cima, bem-vindo embaixo
     alignItems: 'flex-start',
     gap: 6,
   },
   logoImage: {
-    width: 180,                // ← maior
+    width: 180, // ← maior
     height: 64,
     resizeMode: 'contain',
   },
@@ -296,13 +295,13 @@ const styles = StyleSheet.create({
   // Card Informações
   clienteInfoCard: {
     backgroundColor: '#1A1A2E',
-    marginHorizontal: 20,   // ← simétrico, sem marginLeft diferente
+    marginHorizontal: 20, // ← simétrico, sem marginLeft diferente
     marginTop: 16,
     marginBottom: 8,
     borderRadius: 12,
     borderWidth: 0.8,
     borderColor: '#BB8526',
-    overflow: 'hidden',     // ← sem height fixo — cresce com o conteúdo
+    overflow: 'hidden', // ← sem height fixo — cresce com o conteúdo
   },
   clienteInfoHeader: {
     paddingHorizontal: 16,
@@ -324,7 +323,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   infoRow: {
-    flexDirection: 'column',   // label em cima, valor embaixo
+    flexDirection: 'column', // label em cima, valor embaixo
     alignItems: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -349,7 +348,7 @@ const styles = StyleSheet.create({
 
   // Seções
   section: {
-    marginTop: 24,                    // ← espaçamento consistente entre seções
+    marginTop: 24, // ← espaçamento consistente entre seções
     paddingHorizontal: 20,
   },
   sectionTitle: {
