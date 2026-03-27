@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  StatusBar,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import useClienteAuth from '../hooks/useClienteAuth'
@@ -43,7 +44,6 @@ const HomeCliente = () => {
     try {
       setLoading(true)
 
-      // Carrega dados do dashboard
       const [dashData, pedidosData, orcamentosData, ordensData] =
         await Promise.all([
           fetchClienteDashboard(),
@@ -54,40 +54,28 @@ const HomeCliente = () => {
 
       setDashboardData(dashData)
 
-      // Processar Pedidos
-      if (pedidosData && pedidosData.results) {
+      if (pedidosData?.results) {
         setPedidos(pedidosData.results)
         setTotalPedidos(pedidosData.count)
       } else if (Array.isArray(pedidosData)) {
         setPedidos(pedidosData)
         setTotalPedidos(pedidosData.length)
-      } else {
-        setPedidos([])
-        setTotalPedidos(0)
       }
 
-      // Processar Orçamentos
-      if (orcamentosData && orcamentosData.results) {
+      if (orcamentosData?.results) {
         setOrcamentos(orcamentosData.results)
         setTotalOrcamentos(orcamentosData.count)
       } else if (Array.isArray(orcamentosData)) {
         setOrcamentos(orcamentosData)
         setTotalOrcamentos(orcamentosData.length)
-      } else {
-        setOrcamentos([])
-        setTotalOrcamentos(0)
       }
 
-      // Processar Ordens de Serviço
-      if (ordensData && ordensData.results) {
+      if (ordensData?.results) {
         setOrdensServico(ordensData.results)
         setTotalOrdens(ordensData.count)
       } else if (Array.isArray(ordensData)) {
         setOrdensServico(ordensData)
         setTotalOrdens(ordensData.length)
-      } else {
-        setOrdensServico([])
-        setTotalOrdens(0)
       }
     } catch (error) {
       console.error('Erro ao carregar dados do cliente:', error)
@@ -105,235 +93,196 @@ const HomeCliente = () => {
     }
   }
 
-  const DashboardCard = ({ title, value, subtitle, onPress, color }) => (
+  // ─── Componente: card de resumo ────────────────────────────────────────────
+  const DashboardCard = ({ title, value, onPress, color }) => (
     <TouchableOpacity
       style={[styles.card, { borderLeftColor: color }]}
-      onPress={onPress}>
+      onPress={onPress}
+      activeOpacity={0.75}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{title}</Text>
         <Text style={[styles.cardValue, { color }]}>{value}</Text>
       </View>
-      {subtitle && <Text style={styles.cardSubtitle}>{subtitle}</Text>}
-      <View style={[styles.cardGlow, { backgroundColor: `${color}08` }]} />
     </TouchableOpacity>
   )
 
+  // ─── Componente: botão de ação ─────────────────────────────────────────────
   const QuickActionButton = ({ title, onPress, color }) => (
     <TouchableOpacity
-      style={[styles.quickActionButton, { borderColor: `${color}30` }]}
-      onPress={onPress}>
+      style={styles.quickActionButton}
+      onPress={onPress}
+      activeOpacity={0.75}>
       <View style={styles.quickActionContent}>
-        <Text style={styles.quickActionText}>{title}</Text>
+        <View style={styles.quickActionLeft}>
+          <View style={[styles.quickActionDot, { backgroundColor: color }]} />
+          <Text style={styles.quickActionText}>{title}</Text>
+        </View>
         <Text style={[styles.quickActionArrow, { color }]}>→</Text>
       </View>
-      <View
-        style={[styles.actionButtonGlow, { backgroundColor: `${color}05` }]}
-      />
     </TouchableOpacity>
   )
 
+  // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color="#00D4FF" />
-          <Text style={styles.loadingText}>Carregando</Text>
-        </View>
+        <ActivityIndicator size="large" color="#00D4FF" />
+        <Text style={styles.loadingText}>Carregando</Text>
       </View>
     )
   }
 
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Minimalista */}
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#16213E" />
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      <View style={styles.header}>
-        <View style={styles.logo}>
-          <Image
-            source={require('../assets/eletro.png')}
-            style={styles.logoImage}
-          />
-        </View>
-        <View style={styles.headerContent}>
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>Bem-vindo</Text>
-          </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Sair</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Informações do Cliente */}
-      <View style={styles.clienteInfoCard}>
-        <View style={styles.clienteInfoHeader}>
-          <Text style={styles.clienteInfoTitle}>Informações</Text>
-          <Text style={styles.clienteInfoSubtitle}>
-            {cliente?.cliente_nome || 'Cliente'}
-          </Text>
-        </View>
-        <View style={styles.clienteInfoContent}>
-          <View style={styles.infoItem}>
-            <View style={styles.infoDetails}>
-              <Text style={styles.infoLabel}>Documento</Text>
-              <Text style={styles.infoValue}>
-                {cliente?.documento || 'N/A'}
-              </Text>
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Image
+                source={require('../assets/eletro.png')}
+                style={styles.logoImage}
+              />
+              <Text style={styles.welcomeText}>Bem-vindo</Text>
             </View>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}>
+              <Text style={styles.logoutText}>Sair</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── Card Informações do Cliente ── */}
+        <View style={styles.clienteInfoCard}>
+          <View style={styles.clienteInfoHeader}>
+            <Text style={styles.clienteInfoLabel}>INFORMAÇÕES</Text>
+            <Text style={styles.clienteInfoNome}>
+              {cliente?.cliente_nome || 'Cliente'}
+            </Text>
           </View>
 
-          {cliente?.email && (
-            <View style={styles.infoItem}>
-              <View style={styles.infoDetails}>
-                <Text style={styles.infoLabel}>EMAIL</Text>
-                <Text style={styles.infoValue}>{cliente.email}</Text>
-              </View>
-            </View>
-          )}
+          {/* Documento */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>CNPJ / CPF</Text>
+            <Text style={styles.infoValue}>{cliente?.documento || 'N/A'}</Text>
+          </View>
 
-          {cliente?.telefone && (
-            <View style={styles.infoItem}>
-              <View style={styles.infoDetails}>
-                <Text style={styles.infoLabel}>TELEFONE</Text>
-                <Text style={styles.infoValue}>{cliente.telefone}</Text>
-              </View>
+          {cliente?.email ? (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>EMAIL</Text>
+              <Text style={styles.infoValue}>{cliente.email}</Text>
             </View>
-          )}
+          ) : null}
+
+          {cliente?.telefone ? (
+            <View style={[styles.infoRow, styles.infoRowLast]}>
+              <Text style={styles.infoLabel}>TELEFONE</Text>
+              <Text style={styles.infoValue}>{cliente.telefone}</Text>
+            </View>
+          ) : null}
         </View>
-      </View>
 
-      {/* Dashboard Cards */}
-      <View style={styles.dashboardSection}>
-        <Text style={styles.sectionTitle}>Resumo</Text>
-        <View style={styles.cardsContainer}>
+        {/* ── Resumo ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumo</Text>
           <DashboardCard
             title="Ordens de Serviço"
             value={totalOrdens.toString()}
-            color="#87dfb6ff"
+            color="#87dfb6"
             onPress={() => navigation.navigate('ClienteOrdensServicoList')}
           />
-          {/*<DashboardCard
-            title="Pedidos"
-            value={totalPedidos.toString()}
-            color="#00D4FF"
-            onPress={() => navigation.navigate('ClientePedidosList')}
-          />
-          <DashboardCard
-            title="Orçamentos"
-            value={totalOrcamentos.toString()}
-            color="#c4af3bff"
-            onPress={() => navigation.navigate('ClienteOrcamentosList')}  
-          />*/}
         </View>
-      </View>
 
-      {/* Ações Rápidas */}
-      <View style={styles.quickActionsSection}>
-        <Text style={styles.sectionTitle}>Ações</Text>
-        <View style={styles.quickActionsGrid}>
-          <QuickActionButton
-            title="Ordens de Serviço"
-            color="#00FF88"
-            onPress={() => navigation.navigate('ClienteOrdensTodasList')}
-          />
-          {/* 
-          <QuickActionButton
-            title="Meus Pedidos"
-            color="#00D4FF"
-            onPress={() => navigation.navigate('ClientePedidosList')}
-          />
-          <QuickActionButton
-            title="Orçamentos"
-            color="#FFD700"
-            onPress={() => navigation.navigate('ClienteOrcamentosList')}
-          />
-          */}
-          <QuickActionButton
-            title="Motores em Estoque"
-            color="#FFD700"
-            onPress={() => navigation.navigate('ClienteMotoresEstoqueList')}
-          />
+        {/* ── Ações ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ações</Text>
+          <View style={styles.actionsGrid}>
+            <QuickActionButton
+              title="Ordens de Serviço"
+              color="#00FF88"
+              onPress={() => navigation.navigate('ClienteOrdensTodasList')}
+            />
+            <QuickActionButton
+              title="Motores em Estoque"
+              color="#FFD700"
+              onPress={() => navigation.navigate('ClienteMotoresEstoqueList')}
+            />
+          </View>
         </View>
-      </View>
-      <Text style={styles.footer}>
-        <Image
-          source={require('../assets/logo.png')}
-          style={styles.footerImage}
-        />
-        Desenvolvido por Spartacus Sistemas 2026
-      </Text>
-      <Text style={styles.footer}>Versão 1.0.0</Text>
 
-      <View style={styles.bottomSpacing} />
-    </ScrollView>
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.footerLogo}
+          />
+          <Text style={styles.footerText}>
+            Desenvolvido por Spartacus Sistemas 2026
+          </Text>
+          <Text style={styles.footerText}>Versão 1.0.0</Text>
+        </View>
+
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+    </>
   )
 }
 
+// ─── Estilos ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F23',
   },
-  logo: {
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    marginBottom: 20,
-    marginTop: 60,
-    marginLeft: 20,
-  },
-  logoImage: {
-    width: 180,
-    height: 60,
-    resizeMode: 'contain',
-  },
 
+  // Loading
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#0F0F23',
-  },
-  loadingContent: {
-    alignItems: 'center',
-    padding: 40,
+    gap: 16,
   },
   loadingText: {
-    marginTop: 16,
     fontSize: 14,
-    fontWeight: '500',
     color: '#8B8BA7',
   },
+
+  // Header
   header: {
-    height: 180,
     backgroundColor: '#16213E',
-    justifyContent: 'flex-end',
+    paddingTop: 16,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
-  headerContent: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 50,
-    paddingBottom: 32,
   },
-  welcomeSection: {
-    flex: 1,
-    marginLeft: 20,
+  headerLeft: {
+    flexDirection: 'column',   // logo em cima, bem-vindo embaixo
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  logoImage: {
+    width: 180,                // ← maior
+    height: 64,
+    resizeMode: 'contain',
   },
   welcomeText: {
-    fontSize: 20,
+    fontSize: 15,
     color: '#8B8BA7',
     fontWeight: '400',
-    marginBottom: 4,
-  },
-  clienteName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#BB8526',
   },
   logoutButton: {
     backgroundColor: '#1A1A2E',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#FF475750',
@@ -343,162 +292,126 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+
+  // Card Informações
   clienteInfoCard: {
     backgroundColor: '#1A1A2E',
-    height: 150,
-    width: '80%',
-    marginHorizontal: 20,
-    marginLeft: 60,
-    marginTop: -10,
-    marginBottom: 20,
+    marginHorizontal: 20,   // ← simétrico, sem marginLeft diferente
+    marginTop: 16,
+    marginBottom: 8,
     borderRadius: 12,
     borderWidth: 0.8,
     borderColor: '#BB8526',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    overflow: 'hidden',     // ← sem height fixo — cresce com o conteúdo
   },
   clienteInfoHeader: {
-    padding: 20,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#BB8526',
+    borderBottomColor: '#BB852650',
   },
-  clienteInfoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  clienteInfoSubtitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  clienteInfoLabel: {
+    fontSize: 10,
+    color: '#8B8BA7',
+    fontWeight: '500',
+    letterSpacing: 0.8,
     marginBottom: 4,
   },
-  clienteInfoContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  clienteInfoNome: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  infoItem: {
+  infoRow: {
+    flexDirection: 'column',   // label em cima, valor embaixo
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#BB8526',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#BB852640',
+    gap: 4,
   },
-  infoDetails: {
-    flex: 1,
+  infoRowLast: {
+    borderBottomWidth: 0,
   },
   infoLabel: {
     fontSize: 10,
     color: '#8B8BA7',
     fontWeight: '500',
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    letterSpacing: 0.8,
   },
   infoValue: {
     fontSize: 14,
     color: '#FFFFFF',
     fontWeight: '500',
   },
-  dashboardSection: {
-    marginTop: 50,
-    marginBottom: 20,
+
+  // Seções
+  section: {
+    marginTop: 24,                    // ← espaçamento consistente entre seções
     paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  cardsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    letterSpacing: 0.3,
     marginBottom: 12,
+    marginTop: 20,
   },
+
+  // Dashboard card
   card: {
     backgroundColor: '#1A1A2E',
-    flex: 1,
-    marginHorizontal: 4,
-    padding: 16,
+    padding: 18,
     borderRadius: 12,
-    borderLeftWidth: 3,
     borderWidth: 0.8,
     borderColor: '#BB8526',
-    elevation: 2,
-    shadowColor: '#fff',
-    shadowOffset: { width: 10, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  cardGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 12,
+    borderLeftWidth: 3,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-    zIndex: 1,
   },
   cardTitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#8B8BA7',
     fontWeight: '500',
   },
   cardValue: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '600',
   },
-  cardSubtitle: {
-    fontSize: 11,
-    color: '#8B8BA7',
-    zIndex: 1,
-  },
-  quickActionsSection: {
-    marginTop: 32,
-    paddingHorizontal: 20,
-  },
-  quickActionsGrid: {
-    gap: 20,
+
+  // Botões de ação
+  actionsGrid: {
+    gap: 12,
   },
   quickActionButton: {
     backgroundColor: '#1A1A2E',
     borderRadius: 12,
     borderWidth: 0.8,
     borderColor: '#BB8526',
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  actionButtonGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 12,
-    borderWidth: 0.8,
-    borderColor: '#BB8526',
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 12,
   },
   quickActionContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    zIndex: 1,
+  },
+  quickActionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  quickActionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   quickActionText: {
     fontSize: 14,
@@ -506,25 +419,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   quickActionArrow: {
-    fontSize: 16,
-    fontWeight: '400',
+    fontSize: 18,
   },
+
+  // Footer
+  footer: {
+    alignItems: 'center',
+    paddingTop: 80,
+    paddingBottom: 8,
+    gap: 6,
+  },
+  footerLogo: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    marginBottom: 4,
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#555570',
+    textAlign: 'center',
+  },
+
   bottomSpacing: {
     height: 32,
-  },
-  footer: {
-    margin: 20,
-    alignSelf: 'center',
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#8B8BA7',
-    marginBottom: 20,
-    marginTop: 45,
-  },
-  footerImage: {
-    width: 20,
-    height: 20,
-    marginBottom: 0,
   },
 })
 

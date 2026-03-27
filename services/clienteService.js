@@ -137,19 +137,27 @@ export const fetchClienteOrdensTodas = async (params = {}) => {
       JSON.stringify(response.data, null, 2),
     )
 
-    if (Array.isArray(response.data)) {
-      return response.data
+    const data = response.data
+
+    if (
+      data &&
+      (Array.isArray(data.results) || typeof data.count === 'number')
+    ) {
+      return data
     }
 
-    // Check common wrapper fields including Portuguese 'dados'
+    if (Array.isArray(data)) {
+      return data
+    }
+
     const listData =
-      response.data.results ||
-      response.data.data ||
-      response.data.result ||
-      response.data.dados ||
-      response.data.items ||
-      response.data.response ||
-      response.data.payload ||
+      data?.results ||
+      data?.data ||
+      data?.result ||
+      data?.dados ||
+      data?.items ||
+      data?.response ||
+      data?.payload ||
       []
 
     return Array.isArray(listData) ? listData : []
