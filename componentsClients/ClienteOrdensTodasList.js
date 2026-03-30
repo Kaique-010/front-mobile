@@ -20,16 +20,7 @@ const STATUS_OPTIONS = [
   { label: 'Todas', value: '' },
   { label: 'Aberta', value: '0' },
   { label: 'Orçamento Gerado', value: '1' },
-  { label: 'Aguardando liberação', value: '2' },
   { label: 'Liberada', value: '3' },
-  { label: 'Finalizada', value: '4' },
-  { label: 'Reprovada', value: '5' },
-  { label: 'Parcial', value: '20' },
-  { label: 'Em atraso', value: '21' },
-  { label: 'Em Estoque', value: '22' },
-  { label: 'Em Andamento', value: 'E' },
-  { label: 'Concluída', value: 'C' },
-  { label: 'Cancelada', value: 'X' },
 ]
 
 const ORDEM_TIPOS = {
@@ -281,16 +272,20 @@ const ClienteOrdensTodasList = ({ navigation }) => {
               {formatTipoOrdem(item.orde_tipo)}
             </Text>
           </View>
-           <View style={styles.infoRow}>
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>MARCA</Text>
             <Text style={styles.infoValue}>
-              {item.orde_marc != null ? String(item.orde_marc || '') + ' - ' + (item.marca_nome || '') : '—'}
+              {item.orde_marc != null
+                ? String(item.orde_marc || '') + ' - ' + (item.marca_nome || '')
+                : '—'}
             </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>VOLTAGEM</Text>
             <Text style={styles.infoValue}>
-              {item.orde_volt != null ? String(item.orde_volt) + (item.voltagem_nome || '') + ' V' : '—'}
+              {item.orde_volt != null
+                ? String(item.orde_volt) + (item.voltagem_nome || '') + ' V'
+                : '—'}
             </Text>
           </View>
           <View style={styles.infoRow}>

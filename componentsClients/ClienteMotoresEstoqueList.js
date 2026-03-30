@@ -66,18 +66,7 @@ const ClienteMotoresEstoqueList = ({ navigation }) => {
 
   const STATUS_OPTIONS = [
     { label: 'Todas', value: '' },
-    { label: 'Aberta', value: '0' },
-    { label: 'Orçamento Gerado', value: '1' },
-    { label: 'Aguardando liberação', value: '2' },
-    { label: 'Liberada', value: '3' },
-    { label: 'Finalizada', value: '4' },
-    { label: 'Reprovada', value: '5' },
-    { label: 'Parcial', value: '20' },
-    { label: 'Em atraso', value: '21' },
     { label: 'Em Estoque', value: '22' },
-    { label: 'Em Andamento', value: 'E' },
-    { label: 'Concluída', value: 'C' },
-    { label: 'Cancelada', value: 'X' },
   ]
 
   useEffect(() => {
