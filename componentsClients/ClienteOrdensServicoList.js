@@ -112,6 +112,8 @@ const ClienteOrdensServicoList = ({ navigation }) => {
         if (filtros.motor) params.motor = filtros.motor
         if (filtros.tipo) params.tipo = filtros.tipo
         if (filtros.voltagem) params.voltagem = filtros.voltagem
+        if (filtros.marca) params.marca = filtros.marca
+        if (filtros.voltagem_nome) params.voltagem_nome = filtros.voltagem_nome
         if (filtros.potencia) params.potencia = filtros.potencia
 
         const data = await fetchClienteOrdensServico(params)
@@ -204,7 +206,10 @@ const ClienteOrdensServicoList = ({ navigation }) => {
         motor: '',
         tipo: '',
         voltagem: '',
+        voltagem_nome: '',
         potencia: '',
+        marca: '',
+        marca_nome: '',
       },
       1,
     )
@@ -271,9 +276,19 @@ const ClienteOrdensServicoList = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>MARCA</Text>
+            <Text style={styles.infoValue}>
+              {item.orde_marc != null
+                ? String(item.orde_marc || '') + ' - ' + (item.marca_nome || '')
+                : '—'}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>VOLTAGEM</Text>
             <Text style={styles.infoValue}>
-              {item.orde_volt != null ? String(item.orde_volt) : '—'}
+              {item.orde_volt != null
+                ? String(item.orde_volt) + (item.voltagem_nome || '') + ' V'
+                : '—'}
             </Text>
           </View>
           <View style={styles.infoRow}>
