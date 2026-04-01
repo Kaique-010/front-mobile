@@ -284,7 +284,10 @@ const ClienteOrdensTodasList = ({ navigation }) => {
             <Text style={styles.infoLabel}>VOLTAGEM</Text>
             <Text style={styles.infoValue}>
               {item.orde_volt != null
-                ? String(item.orde_volt) + (item.voltagem_nome || '') + ' V'
+                ? String(item.orde_volt || '') +
+                  ' - ' +
+                  (item.voltagem_nome || '—') +
+                  ' (volts)'
                 : '—'}
             </Text>
           </View>
