@@ -8,16 +8,17 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native'
-import DateTimePicker from '@react-native-community/datetimepicker'
+import { useNavigation } from '@react-navigation/native'
 import { Picker } from '@react-native-picker/picker'
 import useContextoApp from '../hooks/useContextoApp'
 import BuscaClienteInput from '../components/BuscaClienteInput'
 import { apiPutComContexto, apiPostComContexto } from '../utils/api'
 import Toast from 'react-native-toast-message'
+import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 
 export default function ContaPagarForm({ route }) {
   const { empresaId, filialId } = useContextoApp()
-  const [showPicker, setShowPicker] = useState({ tipo: null })
+  const navigation = useNavigation()
   const [isLoading, setIsLoading] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
 
@@ -116,6 +117,12 @@ export default function ContaPagarForm({ route }) {
         )
         Toast.show({ type: 'success', text1: 'Conta criada com sucesso!' })
       }
+
+      if (navigation?.canGoBack?.()) {
+        navigation.goBack()
+      } else {
+        navigation.navigate('ContasPagarList')
+      }
     } catch (error) {
       console.error(error)
       Toast.show({ type: 'error', text1: 'Erro ao salvar conta!' })
@@ -124,44 +131,29 @@ export default function ContaPagarForm({ route }) {
     }
   }
 
-  const renderDatePicker = () => {
-    if (!showPicker.tipo) return null
-    return (
-      <DateTimePicker
-        value={conta[showPicker.tipo] || new Date()}
-        mode="date"
-        display="default"
-        onChange={(event, selectedDate) => {
-          setShowPicker({ tipo: null })
-          if (selectedDate) {
-            setConta({ ...conta, [showPicker.tipo]: selectedDate })
-          }
-        }}
-      />
-    )
-  }
-
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#121212' }}>
       <View style={styles.container}>
         <View style={styles.row}>
           <View style={styles.col}>
             <Text style={styles.label}>Emissão:</Text>
-            <TouchableOpacity
-              onPress={() => setShowPicker({ tipo: 'titu_emis' })}>
-              <Text style={styles.input}>
-                {conta.titu_emis?.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
+            <DatePickerCrossPlatform
+              value={conta.titu_emis}
+              onChange={(d) => setConta({ ...conta, titu_emis: d })}
+              placeholder="Selecione a data"
+              style={styles.input}
+              textStyle={{ color: '#fff' }}
+            />
           </View>
           <View style={styles.col}>
             <Text style={styles.label}>Vencimento:</Text>
-            <TouchableOpacity
-              onPress={() => setShowPicker({ tipo: 'titu_venc' })}>
-              <Text style={styles.input}>
-                {conta.titu_venc?.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
+            <DatePickerCrossPlatform
+              value={conta.titu_venc}
+              onChange={(d) => setConta({ ...conta, titu_venc: d })}
+              placeholder="Selecione a data"
+              style={styles.input}
+              textStyle={{ color: '#fff' }}
+            />
           </View>
         </View>
         <Text style={styles.label}>Fornecedor:</Text>
@@ -254,7 +246,6 @@ export default function ContaPagarForm({ route }) {
           )}
         </TouchableOpacity>
 
-        {renderDatePicker()}
       </View>
     </ScrollView>
   )

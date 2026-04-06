@@ -8,18 +8,18 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native'
-import DateTimePicker from '@react-native-community/datetimepicker'
 import { useNavigation } from '@react-navigation/native'
 import { Picker } from '@react-native-picker/picker'
 import useContextoApp from '../hooks/useContextoApp'
 import BuscaClienteInput from '../components/BuscaClienteInput'
+
 import { apiPutComContexto, request } from '../utils/api'
 import Toast from 'react-native-toast-message'
+import DatePickerCrossPlatform from '../components/DatePickerCrossPlatform'
 
 export default function ContaReceberForm({ route }) {
   const { empresaId, filialId } = useContextoApp()
   const navigation = useNavigation()
-  const [showPicker, setShowPicker] = useState({ tipo: null })
   const [isLoading, setIsLoading] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
 
@@ -113,7 +113,6 @@ export default function ContaReceberForm({ route }) {
         const url = `contas_a_receber/titulos-receber/${conta.titu_empr}/${conta.titu_fili}/${conta.titu_clie}/${conta.titu_titu}/${conta.titu_seri}/${conta.titu_parc}/`
         await apiPutComContexto(url, dadosFormatados)
         Toast.show({ type: 'success', text1: 'Conta atualizada com sucesso!' })
-        navigation.goBack()
       } else {
         await request({
           method: 'post',
@@ -122,7 +121,12 @@ export default function ContaReceberForm({ route }) {
           params: { empresa_id: empresaId, filial_id: filialId },
         })
         Toast.show({ type: 'success', text1: 'Conta criada com sucesso!' })
+      }
+
+      if (navigation?.canGoBack?.()) {
         navigation.goBack()
+      } else {
+        navigation.navigate('ContasReceberList')
       }
     } catch (error) {
       console.error(error)
@@ -132,44 +136,29 @@ export default function ContaReceberForm({ route }) {
     }
   }
 
-  const renderDatePicker = () => {
-    if (!showPicker.tipo) return null
-    return (
-      <DateTimePicker
-        value={conta[showPicker.tipo] || new Date()}
-        mode="date"
-        display="default"
-        onChange={(event, selectedDate) => {
-          setShowPicker({ tipo: null })
-          if (selectedDate) {
-            setConta({ ...conta, [showPicker.tipo]: selectedDate })
-          }
-        }}
-      />
-    )
-  }
-
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#121212' }}>
       <View style={styles.container}>
         <View style={styles.row}>
           <View style={styles.col}>
             <Text style={styles.label}>Emissão:</Text>
-            <TouchableOpacity
-              onPress={() => setShowPicker({ tipo: 'titu_emis' })}>
-              <Text style={styles.input}>
-                {conta.titu_emis?.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
+            <DatePickerCrossPlatform
+              value={conta.titu_emis}
+              onChange={(d) => setConta({ ...conta, titu_emis: d })}
+              placeholder="Selecione a data"
+              style={styles.input}
+              textStyle={{ color: '#fff' }}
+            />
           </View>
           <View style={styles.col}>
             <Text style={styles.label}>Vencimento:</Text>
-            <TouchableOpacity
-              onPress={() => setShowPicker({ tipo: 'titu_venc' })}>
-              <Text style={styles.input}>
-                {conta.titu_venc?.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
+            <DatePickerCrossPlatform
+              value={conta.titu_venc}
+              onChange={(d) => setConta({ ...conta, titu_venc: d })}
+              placeholder="Selecione a data"
+              style={styles.input}
+              textStyle={{ color: '#fff' }}
+            />
           </View>
         </View>
         <Text style={styles.label}>Cliente:</Text>
@@ -261,8 +250,6 @@ export default function ContaReceberForm({ route }) {
             <Text style={styles.buttonText}>Salvar</Text>
           )}
         </TouchableOpacity>
-
-        {renderDatePicker()}
       </View>
     </ScrollView>
   )

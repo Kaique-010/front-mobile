@@ -117,11 +117,11 @@ export default function Login({ navigation }) {
   if (!fontsLoaded) return null
 
   const handleDocuChange = (text) => {
-    setDocu(text.replace(/\D/g, ''))
+    setDocu(text.replace(/\D/g, '').slice(0, 14))
   }
 
   const handleDocumentoChange = (text) => {
-    setDocumento(text.replace(/\D/g, ''))
+    setDocumento(text.replace(/\D/g, '').slice(0, 14))
   }
 
   const tentarLoginOffline = async (username, password) => {
@@ -609,6 +609,7 @@ export default function Login({ navigation }) {
                 keyboardType={keyboard}
                 secureTextEntry={isSecure && !showPassword}
                 autoCapitalize="none"
+                maxLength={label === 'CNPJ' || label === 'CPF/CNPJ' ? 14 : undefined}
                 style={[styles.input, { flex: 1 }]}
               />
               {isSecure && (

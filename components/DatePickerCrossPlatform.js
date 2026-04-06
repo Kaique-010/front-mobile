@@ -106,18 +106,18 @@ const DatePickerCrossPlatform = ({
         onPress={() => !disabled && setShowPicker(true)}
         style={[
           {
-            backgroundColor: '#fff',
-            padding: 15,
+            backgroundColor: '#283541',
+            padding: 8,
             borderRadius: 8,
             borderWidth: 1,
-            borderColor: '#ddd',
-            minHeight: 46,
+            borderColor: '#ccc',
+            minHeight: 44,
             justifyContent: 'center',
           },
           style,
         ]}
         disabled={disabled}>
-        <Text style={[{ color: '#333' }, textStyle]}>
+        <Text style={[{ color: '#fff' }, textStyle]}>
           {label
             ? `${label}: ${value ? formatDate(value) : placeholder}`
             : value
@@ -165,7 +165,7 @@ const DatePickerCrossPlatform = ({
             }}>
             <View
               style={{
-                backgroundColor: '#111827',
+                backgroundColor: '#283541',
                 paddingTop: 12,
                 paddingHorizontal: 12,
                 paddingBottom: 14,

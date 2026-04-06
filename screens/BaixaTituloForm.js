@@ -38,7 +38,7 @@ export default function BaixaTituloForm({ route, navigation }) {
   const [dataPagamento, setDataPagamento] = useState(formatarDataParaInput())
 
   const [valorPago, setValorPago] = useState(
-    titulo.titu_valo?.toString() || '0'
+    titulo.titu_valo?.toString() || '0',
   )
   const [valorJuros, setValorJuros] = useState('0')
   const [valorMulta, setValorMulta] = useState('0')
@@ -65,7 +65,7 @@ export default function BaixaTituloForm({ route, navigation }) {
     const vencimento = new Date(titulo.titu_venc)
     const diasAtraso = Math.max(
       0,
-      Math.floor((hoje - vencimento) / (1000 * 60 * 60 * 24))
+      Math.floor((hoje - vencimento) / (1000 * 60 * 60 * 24)),
     )
 
     if (diasAtraso > 0) {
@@ -92,14 +92,14 @@ export default function BaixaTituloForm({ route, navigation }) {
               }/${titulo.titu_forn}/${titulo.titu_titu}/${titulo.titu_seri}/${
                 titulo.titu_parc
               }/${formatDate(titulo.titu_emis)}/${formatDate(
-                titulo.titu_venc
+                titulo.titu_venc,
               )}/historico_baixas/`
             : `contas_a_receber/titulos-receber/${titulo.titu_empr}/${
                 titulo.titu_fili
               }/${titulo.titu_clie}/${titulo.titu_titu}/${titulo.titu_seri}/${
                 titulo.titu_parc
               }/${formatDate(titulo.titu_emis)}/${formatDate(
-                titulo.titu_venc
+                titulo.titu_venc,
               )}/historico_baixas/`
 
         const response = await apiGetComContexto(endpoint)
@@ -122,7 +122,7 @@ export default function BaixaTituloForm({ route, navigation }) {
               baixa.bapa_sub_tota ||
               baixa.bare_pago ||
               baixa.bapa_pago ||
-              0
+              0,
           )
           return total + valorBaixa
         }, 0)
@@ -138,7 +138,7 @@ export default function BaixaTituloForm({ route, navigation }) {
     } else {
       console.log(
         'Status do título não é P (Pendente), status atual:',
-        statusTitulo
+        statusTitulo,
       )
     }
   }
@@ -173,14 +173,14 @@ export default function BaixaTituloForm({ route, navigation }) {
             }/${titulo.titu_forn}/${titulo.titu_titu}/${titulo.titu_seri}/${
               titulo.titu_parc
             }/${formatDate(titulo.titu_emis)}/${formatDate(
-              titulo.titu_venc
+              titulo.titu_venc,
             )}/baixar/`
           : `contas_a_receber/titulos-receber/${titulo.titu_empr}/${
               titulo.titu_fili
             }/${titulo.titu_clie}/${titulo.titu_titu}/${titulo.titu_seri}/${
               titulo.titu_parc
             }/${formatDate(titulo.titu_emis)}/${formatDate(
-              titulo.titu_venc
+              titulo.titu_venc,
             )}/baixar/`
 
       const payload = {
@@ -200,12 +200,22 @@ export default function BaixaTituloForm({ route, navigation }) {
 
       const response = await apiPostComContexto(endpoint, payload)
 
+      const voltarParaLista = () => {
+        if (navigation?.canGoBack?.()) {
+          navigation.goBack()
+          return
+        }
+        navigation.navigate(
+          tipo === 'pagar' ? 'ContasPagarList' : 'ContasReceberList',
+        )
+      }
+
       Alert.alert(
         'Sucesso',
         `Título ${
           tipo === 'pagar' ? 'pago' : 'recebido'
         } com sucesso!\nValor: ${formatarMoeda(valorTotalCalculado())}`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        [{ text: 'OK', onPress: voltarParaLista }],
       )
     } catch (error) {
       console.error('Erro ao baixar título:', error)
