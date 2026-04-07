@@ -129,7 +129,7 @@ export default function Home() {
       })
       const recording = new Audio.Recording()
       await recording.prepareToRecordAsync(
-        Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
+        Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY,
       )
       setGravando(true)
       await recording.startAsync()
@@ -218,7 +218,7 @@ export default function Home() {
           textTransform: 'uppercase',
           fontSize: 6,
         }}>
-        Versão 1.0.17
+        Versão 1.0.15
       </Text>
       <TouchableOpacity
         style={styles.logoButton}
@@ -234,7 +234,7 @@ export default function Home() {
               [
                 { text: 'Cancelar', style: 'cancel' },
                 { text: 'Sim', onPress: async () => await iniciarGravacao() },
-              ]
+              ],
             )
           }
         }}>
@@ -323,7 +323,7 @@ const PulsingLogo = ({ active }) => {
             easing: Easing.inOut(Easing.ease),
             useNativeDriver: true,
           }),
-        ])
+        ]),
       )
       loop.start()
       return () => loop.stop()
@@ -358,14 +358,14 @@ const FormattedMessage = ({ texto }) => {
         spans.push(
           <Text key={`b-prev-${last}`} style={styles.paragraph}>
             {prev}
-          </Text>
+          </Text>,
         )
       spans.push(
         <Text
           key={`b-bold-${m.index}`}
           style={{ fontWeight: 'bold', color: '#fff' }}>
           {m[1]}
-        </Text>
+        </Text>,
       )
       last = re.lastIndex
     }
@@ -374,7 +374,7 @@ const FormattedMessage = ({ texto }) => {
       spans.push(
         <Text key={`b-rest-${last}`} style={styles.paragraph}>
           {rest}
-        </Text>
+        </Text>,
       )
     return spans.length
       ? spans
@@ -404,7 +404,7 @@ const FormattedMessage = ({ texto }) => {
             } catch (e) {}
           }}>
           {m[1]}
-        </Text>
+        </Text>,
       )
       last = re.lastIndex
     }
@@ -432,7 +432,7 @@ const FormattedMessage = ({ texto }) => {
       rows.push(
         <Text key={`h1-${i}`} style={styles.h3}>
           {h1[1]}
-        </Text>
+        </Text>,
       )
       inList = false
       continue
@@ -441,7 +441,7 @@ const FormattedMessage = ({ texto }) => {
       rows.push(
         <Text key={`h2-${i}`} style={styles.h4}>
           {h2[1]}
-        </Text>
+        </Text>,
       )
       inList = false
       continue
@@ -450,7 +450,7 @@ const FormattedMessage = ({ texto }) => {
       rows.push(
         <Text key={`h3-${i}`} style={styles.h5}>
           {h3[1]}
-        </Text>
+        </Text>,
       )
       inList = false
       continue
@@ -460,7 +460,7 @@ const FormattedMessage = ({ texto }) => {
         <View key={`li-${i}`} style={styles.listItem}>
           <Text style={styles.bullet}>•</Text>
           <Text style={styles.listText}>{renderSegments(li[1])}</Text>
-        </View>
+        </View>,
       )
       inList = true
       continue
@@ -469,7 +469,7 @@ const FormattedMessage = ({ texto }) => {
       rows.push(
         <Text key={`p-${i}`} style={styles.paragraph}>
           {renderSegments(line)}
-        </Text>
+        </Text>,
       )
       inList = false
     }
@@ -554,8 +554,8 @@ const ThinkingDots = () => {
             easing: Easing.linear,
             useNativeDriver: true,
           }),
-        ])
-      )
+        ]),
+      ),
     )
     loops.forEach((l) => l.start())
     return () => loops.forEach((l) => l.stop())

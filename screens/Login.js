@@ -286,7 +286,7 @@ export default function Login({ navigation }) {
             'X-Username': username,
           },
           timeout: 15000,
-        }
+        },
       )
 
       console.log('✅ [LOGIN] Resposta recebida do servidor')
@@ -582,7 +582,7 @@ export default function Login({ navigation }) {
       {fieldsToRender.map(
         (
           [label, value, onChange, icon, placeholder, keyboard, isSecure],
-          i
+          i,
         ) => (
           <MotiView
             key={`${isClienteLogin ? 'cliente' : 'funcionario'}-${label}`}
@@ -609,7 +609,9 @@ export default function Login({ navigation }) {
                 keyboardType={keyboard}
                 secureTextEntry={isSecure && !showPassword}
                 autoCapitalize="none"
-                maxLength={label === 'CNPJ' || label === 'CPF/CNPJ' ? 14 : undefined}
+                maxLength={
+                  label === 'CNPJ' || label === 'CPF/CNPJ' ? 14 : undefined
+                }
                 style={[styles.input, { flex: 1 }]}
               />
               {isSecure && (
@@ -625,7 +627,7 @@ export default function Login({ navigation }) {
               )}
             </View>
           </MotiView>
-        )
+        ),
       )}
 
       <MotiView
@@ -665,7 +667,7 @@ export default function Login({ navigation }) {
             textTransform: 'uppercase',
             fontSize: 6,
           }}>
-          Versão 1.0.17
+          Versão 1.0.15
         </Text>
       </MotiView>
 
