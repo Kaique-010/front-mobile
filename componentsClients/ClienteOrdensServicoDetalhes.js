@@ -15,8 +15,8 @@ import {
   Linking,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { WebView } from 'react-native-webview'
 import * as FileSystem from 'expo-file-system'
+import * as Sharing from 'expo-sharing'
 import { fetchClienteOrdensServico } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 import AbaFotosAntes from './partials/abaFotosAntes'
@@ -275,8 +275,83 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     setSelected(null)
   }
 
-  // ✅ Itens já foram materializados — apenas abre o modal
-  const handleSelect = (item) => {
+  const abrirNoDispositivo = async (item) => {
+    const uri = item?.uri
+    if (typeof uri !== 'string' || !uri.trim()) {
+      Alert.alert('Arquivo', 'Arquivo indisponível para abertura.')
+      return
+    }
+
+    if (Platform.OS === 'web') {
+      try {
+        abrirNoWeb(uri, item?.nome)
+      } catch {
+        Alert.alert('Arquivo', 'Não foi possível abrir o arquivo no navegador.')
+      }
+      return
+    }
+
+    const u = uri.trim()
+    if (u.startsWith('http://') || u.startsWith('https://')) {
+      try {
+        const can = await Linking.canOpenURL(u)
+        if (can) {
+          await Linking.openURL(u)
+          return
+        }
+      } catch {}
+    }
+
+    let localUri = u
+    if (localUri.startsWith('data:')) {
+      try {
+        const materializado = await materializarDataUri({
+          ...item,
+          uri: localUri,
+        })
+        if (typeof materializado?.uri === 'string') localUri = materializado.uri
+      } catch {}
+    }
+
+    try {
+      const sharingOk = await Sharing.isAvailableAsync()
+      if (sharingOk) {
+        await Sharing.shareAsync(localUri, {
+          mimeType: item?.mime,
+          UTI: item?.mime === 'application/pdf' ? 'com.adobe.pdf' : undefined,
+          dialogTitle: item?.nome ? `Abrir ${item.nome}` : 'Abrir arquivo',
+        })
+        return
+      }
+    } catch {}
+
+    try {
+      let openUri = localUri
+      if (Platform.OS === 'android' && openUri.startsWith('file://')) {
+        try {
+          openUri = await FileSystem.getContentUriAsync(openUri)
+        } catch {}
+      }
+      const can = await Linking.canOpenURL(openUri)
+      if (can) {
+        await Linking.openURL(openUri)
+        return
+      }
+    } catch {}
+
+    Alert.alert(
+      'Arquivo',
+      'Não foi possível abrir o arquivo neste dispositivo.',
+    )
+  }
+
+  const handleSelect = async (item) => {
+    const mime = item?.mime
+    const isImg = typeof mime === 'string' ? mime.startsWith('image/') : false
+    if (Platform.OS !== 'web' && !isImg) {
+      await abrirNoDispositivo(item)
+      return
+    }
     setSelected(item)
   }
 
@@ -338,6 +413,9 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                         source={{ uri: item.uri }}
                         style={styles.arquivoThumb}
                         resizeMode="contain"
+                        onError={() =>
+                          Alert.alert('Imagem', 'Falha ao carregar a imagem.')
+                        }
                       />
                     ) : (
                       <View style={styles.arquivoNaoImagemBox}>
@@ -365,6 +443,9 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                       source={{ uri: item.uri }}
                       style={styles.arquivoThumb}
                       resizeMode="cover"
+                      onError={() =>
+                        Alert.alert('Imagem', 'Falha ao carregar a imagem.')
+                      }
                     />
                   ) : (
                     <View style={styles.arquivoNaoImagemBox}>
@@ -408,6 +489,9 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                   source={{ uri: selected.uri }}
                   style={styles.modalImg}
                   resizeMode="contain"
+                  onError={() =>
+                    Alert.alert('Imagem', 'Falha ao carregar a imagem.')
+                  }
                 />
               ) : (
                 <>
@@ -435,11 +519,22 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                       </TouchableOpacity>
                     </View>
                   ) : (
-                    <WebView
-                      source={{ uri: selected.uri }}
-                      style={styles.webview}
-                      originWhitelist={['*']}
-                    />
+                    <View style={styles.arquivoNaoImagemBox}>
+                      <Ionicons
+                        name={
+                          selected?.mime === 'application/pdf'
+                            ? 'document-text-outline'
+                            : 'document-outline'
+                        }
+                        size={60}
+                        color="#FFFFFF"
+                      />
+                      <TouchableOpacity
+                        style={styles.refreshBtn}
+                        onPress={() => abrirNoDispositivo(selected)}>
+                        <Text style={styles.refreshBtnText}>Abrir arquivo</Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </>
               )}
@@ -1327,11 +1422,6 @@ const styles = StyleSheet.create({
   modalImg: {
     width: '100%',
     height: '100%',
-  },
-  webview: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'transparent',
   },
 })
 
