@@ -101,6 +101,45 @@ const montarArquivoDataUri = (arquivo) => {
   return `data:${mime};base64,${b}`
 }
 
+// ── Materializa um data URI em arquivo físico no cache do dispositivo ────────
+// Deve ser chamada FORA do componente para reutilização
+const materializarDataUri = async (item) => {
+  const uri = item?.uri
+  if (
+    typeof uri !== 'string' ||
+    !uri.startsWith('data:') ||
+    !uri.includes(';base64,')
+  ) {
+    return item
+  }
+
+  // ✅ Usa indexOf para não corromper base64 que eventualmente contenha vírgulas
+  const commaIndex = uri.indexOf(',')
+  const meta = uri.substring(0, commaIndex)
+  const base64 = uri.substring(commaIndex + 1)
+
+  const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+  const mime = mimeMatch?.[1] || item?.mime || 'application/octet-stream'
+
+  const extMap = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'application/pdf': 'pdf',
+  }
+  const ext = extMap[mime] ?? 'bin'
+
+  const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
+  const fileUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
+
+  await FileSystem.writeAsStringAsync(fileUri, base64, {
+    encoding: FileSystem.EncodingType.Base64,
+  })
+
+  return { ...item, uri: fileUri, tempFileUri: fileUri, mime }
+}
+
 const abrirNoWeb = (uri, nomeArquivo) => {
   if (typeof window === 'undefined') return
   if (!uri || typeof uri !== 'string') return
@@ -113,14 +152,15 @@ const abrirNoWeb = (uri, nomeArquivo) => {
     return
   }
 
-  const parts = u.split(',', 2)
-  if (parts.length !== 2) {
+  // ✅ Usa indexOf para não corromper base64
+  const commaIndex = u.indexOf(',')
+  if (commaIndex === -1) {
     window.open(u, '_blank', 'noopener,noreferrer')
     return
   }
 
-  const meta = parts[0] || ''
-  const base64 = parts[1] || ''
+  const meta = u.substring(0, commaIndex)
+  const base64 = u.substring(commaIndex + 1)
   const mimeMatch = meta.match(/^data:([^;]+);base64$/)
   const mime = (mimeMatch && mimeMatch[1]) || 'application/octet-stream'
 
@@ -147,10 +187,16 @@ const abrirNoWeb = (uri, nomeArquivo) => {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AbaArquivosRelatorio
+// ─────────────────────────────────────────────────────────────────────────────
 const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   const [selected, setSelected] = useState(null)
   const [windowSize, setWindowSize] = useState(Dimensions.get('window'))
-  const [preparing, setPreparing] = useState(false)
+
+  // ✅ Lista pré-processada: no mobile todos os data URIs já viram file://
+  const [itensProcessados, setItensProcessados] = useState([])
+  const [processandoLista, setProcessandoLista] = useState(true)
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) =>
@@ -161,6 +207,63 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     }
   }, [])
 
+  // ✅ Pré-processa todos os arquivos ao montar / quando arquivos mudar
+  useEffect(() => {
+    let cancelled = false
+
+    const processar = async () => {
+      setProcessandoLista(true)
+      try {
+        const raw = Array.isArray(arquivos)
+          ? arquivos
+              .map((a) => {
+                const uri = montarArquivoDataUri(a)
+                const mime =
+                  typeof uri === 'string' && uri.startsWith('data:')
+                    ? uri.split(';')[0].split(':')[1]
+                    : detectarMimePorNome(a?.nome)
+                return {
+                  id: a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu,
+                  nome: a?.nome,
+                  uri,
+                  mime,
+                }
+              })
+              .filter((x) => typeof x.uri === 'string' && x.uri.trim())
+          : []
+
+        // No mobile converte data URIs para arquivos físicos antes de
+        // passar para <Image>, evitando crash por decodificação inline
+        const processados = await Promise.all(
+          raw.map(async (item) => {
+            if (Platform.OS === 'web') return item
+            if (typeof item.uri !== 'string' || !item.uri.startsWith('data:')) {
+              return item
+            }
+            try {
+              return await materializarDataUri(item)
+            } catch (e) {
+              console.warn('Erro ao materializar arquivo:', item?.nome, e)
+              return item // fallback: mantém data URI
+            }
+          }),
+        )
+
+        if (!cancelled) setItensProcessados(processados)
+      } catch (e) {
+        console.error('Erro ao processar lista de arquivos:', e)
+        if (!cancelled) setItensProcessados([])
+      } finally {
+        if (!cancelled) setProcessandoLista(false)
+      }
+    }
+
+    processar()
+    return () => {
+      cancelled = true
+    }
+  }, [arquivos])
+
   const columns = Platform.OS === 'web' ? 3 : 1
   const itemWidth =
     columns === 1
@@ -169,86 +272,13 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   const itemHeight = columns === 1 ? 260 : itemWidth
 
   const fecharModal = () => {
-    const tmp = selected?.tempFileUri
     setSelected(null)
-    if (tmp && Platform.OS !== 'web') {
-      FileSystem.deleteAsync(tmp, { idempotent: true }).catch(() => {})
-    }
   }
 
-  const materializarDataUriEmArquivo = async (item) => {
-    const uri = item?.uri
-    if (
-      Platform.OS === 'web' ||
-      typeof uri !== 'string' ||
-      !uri.startsWith('data:') ||
-      !uri.includes(';base64,')
-    ) {
-      return item
-    }
-
-    // ✅ CORRETO: split no primeiro índice apenas, evita corrupção se base64 tiver vírgulas
-    const commaIndex = uri.indexOf(',')
-    const meta = uri.substring(0, commaIndex)
-    const base64 = uri.substring(commaIndex + 1)
-
-    const mimeMatch = meta.match(/^data:([^;]+);base64$/)
-    const mime =
-      (mimeMatch && mimeMatch[1]) || item?.mime || 'application/octet-stream'
-
-    let ext = 'bin'
-    if (mime === 'image/png') ext = 'png'
-    else if (mime === 'image/jpeg') ext = 'jpg'
-    else if (mime === 'image/webp') ext = 'webp'
-    else if (mime === 'image/gif') ext = 'gif'
-    else if (mime === 'application/pdf') ext = 'pdf'
-
-    const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
-    const fileUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
-
-    try {
-      await FileSystem.writeAsStringAsync(fileUri, base64, {
-        encoding: FileSystem.EncodingType.Base64,
-      })
-    } catch (e) {
-      console.error('Erro ao escrever arquivo temporário:', e)
-      // fallback: retorna o item original com data URI (funciona para imagens pequenas)
-      return item
-    }
-
-    return { ...item, uri: fileUri, tempFileUri: fileUri, mime }
+  // ✅ Itens já foram materializados — apenas abre o modal
+  const handleSelect = (item) => {
+    setSelected(item)
   }
-
-  const handleSelect = async (item) => {
-    try {
-      setPreparing(true)
-      const resolved = await materializarDataUriEmArquivo(item)
-      setSelected(resolved)
-    } catch (e) {
-      console.error('handleSelect error:', e)
-      Alert.alert('Erro', 'Não foi possível abrir o arquivo.') // ✅ antes silenciava o erro
-    } finally {
-      setPreparing(false)
-    }
-  }
-
-  const itens = Array.isArray(arquivos)
-    ? arquivos
-        .map((a) => {
-          const uri = montarArquivoDataUri(a)
-          const mime =
-            typeof uri === 'string' && uri.startsWith('data:')
-              ? uri.split(';')[0].split(':')[1]
-              : detectarMimePorNome(a?.nome)
-          return {
-            id: a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu,
-            nome: a?.nome,
-            uri,
-            mime,
-          }
-        })
-        .filter((x) => typeof x.uri === 'string' && x.uri.trim())
-    : []
 
   if (!Array.isArray(arquivos) || arquivos.length === 0) {
     return (
@@ -276,32 +306,65 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        key={`arquivos-cols-${columns}`}
-        data={itens}
-        keyExtractor={(item, index) => String(item?.id ?? index)}
-        numColumns={columns}
-        contentContainerStyle={styles.arquivosListContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.arquivoThumbBox,
-              { width: columns === 1 ? '100%' : itemWidth },
-            ]}
-            onPress={() => handleSelect(item)}
-            disabled={preparing}>
-            {columns === 1 ? (
-              <>
-                <Text style={styles.arquivoNome} numberOfLines={1}>
-                  {item?.nome || 'Arquivo'}
-                </Text>
-                <View style={[styles.arquivoImgBox, { height: itemHeight }]}>
+      {/* ✅ Mostra loading enquanto materializa os arquivos */}
+      {processandoLista ? (
+        <View style={styles.emptyCard}>
+          <ActivityIndicator color="#00D4FF" />
+          <Text style={styles.emptyText}>Carregando arquivos...</Text>
+        </View>
+      ) : (
+        <FlatList
+          key={`arquivos-cols-${columns}`}
+          data={itensProcessados}
+          keyExtractor={(item, index) => String(item?.id ?? index)}
+          numColumns={columns}
+          contentContainerStyle={styles.arquivosListContent}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.arquivoThumbBox,
+                { width: columns === 1 ? '100%' : itemWidth },
+              ]}
+              onPress={() => handleSelect(item)}>
+              {columns === 1 ? (
+                <>
+                  <Text style={styles.arquivoNome} numberOfLines={1}>
+                    {item?.nome || 'Arquivo'}
+                  </Text>
+                  <View style={[styles.arquivoImgBox, { height: itemHeight }]}>
+                    {typeof item?.mime === 'string' &&
+                    item.mime.startsWith('image/') ? (
+                      <Image
+                        source={{ uri: item.uri }}
+                        style={styles.arquivoThumb}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View style={styles.arquivoNaoImagemBox}>
+                        <Ionicons
+                          name={
+                            item?.mime === 'application/pdf'
+                              ? 'document-text-outline'
+                              : 'document-outline'
+                          }
+                          size={52}
+                          color="#2D2D44"
+                        />
+                        <Text style={styles.arquivoNaoImagemText}>
+                          {item?.mime === 'application/pdf' ? 'PDF' : 'Arquivo'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </>
+              ) : (
+                <View style={[styles.arquivoImgBox, { height: itemWidth }]}>
                   {typeof item?.mime === 'string' &&
                   item.mime.startsWith('image/') ? (
                     <Image
                       source={{ uri: item.uri }}
                       style={styles.arquivoThumb}
-                      resizeMode="contain"
+                      resizeMode="cover"
                     />
                   ) : (
                     <View style={styles.arquivoNaoImagemBox}>
@@ -311,44 +374,18 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                             ? 'document-text-outline'
                             : 'document-outline'
                         }
-                        size={52}
+                        size={46}
                         color="#2D2D44"
                       />
-                      <Text style={styles.arquivoNaoImagemText}>
-                        {item?.mime === 'application/pdf' ? 'PDF' : 'Arquivo'}
-                      </Text>
                     </View>
                   )}
                 </View>
-              </>
-            ) : (
-              <View style={[styles.arquivoImgBox, { height: itemWidth }]}>
-                {typeof item?.mime === 'string' &&
-                item.mime.startsWith('image/') ? (
-                  <Image
-                    source={{ uri: item.uri }}
-                    style={styles.arquivoThumb}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.arquivoNaoImagemBox}>
-                    <Ionicons
-                      name={
-                        item?.mime === 'application/pdf'
-                          ? 'document-text-outline'
-                          : 'document-outline'
-                      }
-                      size={46}
-                      color="#2D2D44"
-                    />
-                  </View>
-                )}
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-        showsVerticalScrollIndicator={false}
-      />
+              )}
+            </TouchableOpacity>
+          )}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
 
       <Modal
         visible={!!selected?.uri}
@@ -414,6 +451,9 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CollapsibleSection
+// ─────────────────────────────────────────────────────────────────────────────
 const CollapsibleSection = ({ title, isOpen, onToggle, children }) => {
   return (
     <View style={styles.section}>
@@ -430,6 +470,9 @@ const CollapsibleSection = ({ title, isOpen, onToggle, children }) => {
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ClienteOrdensServicoDetalhes
+// ─────────────────────────────────────────────────────────────────────────────
 const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   const { ordemId, ordemInicial } = route.params
   const [ordem, setOrdem] = useState(ordemInicial || null)
@@ -465,7 +508,6 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
 
       let ordemEncontrada = null
 
-      // Tentar buscar pelo número da ordem (mais confiável)
       const numeroOrdem = ordem?.orde_nume || ordemInicial?.orde_nume
 
       if (numeroOrdem) {
@@ -478,15 +520,12 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
         ordemEncontrada = lista.find((o) => o.orde_nume === numeroOrdem)
       }
 
-      // Se não encontrou pelo número, tenta pelo ID
       if (!ordemEncontrada && ordemId) {
-        // Tenta buscar específico pelo ID
         const response = await fetchClienteOrdensServico({ id: ordemId })
         let lista =
           response.results || (Array.isArray(response) ? response : [])
         ordemEncontrada = lista.find((o) => o.id === ordemId)
 
-        // Se ainda não encontrou, busca na lista geral (fallback)
         if (!ordemEncontrada) {
           const responseAll = await fetchClienteOrdensServico()
           lista =
@@ -515,7 +554,6 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   }
 
   const getStatusColor = (status) => {
-    // Handle string or number status
     const statusStr = String(status)
     const statusNum = Number(status)
 
@@ -581,7 +619,6 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
       case 'X':
         return 'Cancelada'
       default:
-        // Verifica se status é string antes de tentar usar métodos de string
         if (typeof status === 'string') {
           return (
             status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
@@ -637,76 +674,29 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
 
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'geral' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('geral')}>
-            <Text
+          {[
+            { key: 'geral', label: 'Geral' },
+            { key: 'antes', label: 'Fotos Antes' },
+            { key: 'durante', label: 'Fotos Durante' },
+            { key: 'depois', label: 'Fotos Depois' },
+            { key: 'arquivos', label: 'Arquivos' },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
               style={[
-                styles.tabText,
-                activeTab === 'geral' && styles.activeTabText,
-              ]}>
-              Geral
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'antes' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('antes')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'antes' && styles.activeTabText,
-              ]}>
-              Fotos Antes
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'durante' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('durante')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'durante' && styles.activeTabText,
-              ]}>
-              Fotos Durante
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'depois' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('depois')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'depois' && styles.activeTabText,
-              ]}>
-              Fotos Depois
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'arquivos' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('arquivos')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'arquivos' && styles.activeTabText,
-              ]}>
-              Arquivos
-            </Text>
-          </TouchableOpacity>
+                styles.tabButton,
+                activeTab === tab.key && styles.activeTabButton,
+              ]}
+              onPress={() => setActiveTab(tab.key)}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.key && styles.activeTabText,
+                ]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
 
@@ -947,7 +937,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>SUBTOTAL</Text>
                   <Text style={styles.infoValue}>
-                    {formatCurrency(ordem.orde_tota || ordem.orde_tota)}
+                    {formatCurrency(ordem.orde_tota)}
                   </Text>
                 </View>
                 {ordem.orde_desc > 0 && (
@@ -1201,6 +1191,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 14,
     fontWeight: '500',
+    marginTop: 8,
   },
   actions: {
     padding: 20,
