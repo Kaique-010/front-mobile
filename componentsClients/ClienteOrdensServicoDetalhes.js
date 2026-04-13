@@ -292,17 +292,37 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     }
 
     const u = uri.trim()
-    if (u.startsWith('http://') || u.startsWith('https://')) {
+    let localUri = u
+    if (localUri.startsWith('http://') || localUri.startsWith('https://')) {
       try {
-        const can = await Linking.canOpenURL(u)
-        if (can) {
-          await Linking.openURL(u)
-          return
+        await Linking.openURL(localUri)
+        return
+      } catch {}
+
+      try {
+        const extMap = {
+          'image/png': 'png',
+          'image/jpeg': 'jpg',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+          'application/pdf': 'pdf',
         }
+        const nome = item?.nome || 'arquivo'
+        const mime = item?.mime || detectarMimePorNome(nome)
+        const extFromNome = String(nome).includes('.')
+          ? String(nome).split('.').pop()?.toLowerCase()
+          : null
+        const ext =
+          (extFromNome && extFromNome.length <= 5 && extFromNome) ||
+          extMap[mime] ||
+          'bin'
+        const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
+        const targetUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
+        const downloaded = await FileSystem.downloadAsync(localUri, targetUri)
+        if (downloaded?.uri) localUri = downloaded.uri
       } catch {}
     }
 
-    let localUri = u
     if (localUri.startsWith('data:')) {
       try {
         const materializado = await materializarDataUri({
@@ -313,12 +333,23 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       } catch {}
     }
 
+    if (localUri.startsWith('file://')) {
+      try {
+        const info = await FileSystem.getInfoAsync(localUri)
+        if (!info?.exists) {
+          Alert.alert('Arquivo', 'Arquivo não encontrado no dispositivo.')
+          return
+        }
+      } catch {}
+    }
+
     try {
       const sharingOk = await Sharing.isAvailableAsync()
       if (sharingOk) {
+        const mimeType = item?.mime || detectarMimePorNome(item?.nome)
         await Sharing.shareAsync(localUri, {
-          mimeType: item?.mime,
-          UTI: item?.mime === 'application/pdf' ? 'com.adobe.pdf' : undefined,
+          mimeType,
+          UTI: mimeType === 'application/pdf' ? 'com.adobe.pdf' : undefined,
           dialogTitle: item?.nome ? `Abrir ${item.nome}` : 'Abrir arquivo',
         })
         return
@@ -332,11 +363,8 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
           openUri = await FileSystem.getContentUriAsync(openUri)
         } catch {}
       }
-      const can = await Linking.canOpenURL(openUri)
-      if (can) {
-        await Linking.openURL(openUri)
-        return
-      }
+      await Linking.openURL(openUri)
+      return
     } catch {}
 
     Alert.alert(
@@ -346,9 +374,7 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   }
 
   const handleSelect = async (item) => {
-    const mime = item?.mime
-    const isImg = typeof mime === 'string' ? mime.startsWith('image/') : false
-    if (Platform.OS !== 'web' && !isImg) {
+    if (Platform.OS !== 'web') {
       await abrirNoDispositivo(item)
       return
     }
@@ -468,80 +494,63 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         />
       )}
 
-      <Modal
-        visible={!!selected?.uri}
-        transparent={true}
-        onRequestClose={fecharModal}
-        animationType="fade">
-        <View style={styles.modalImgContainer}>
-          <TouchableOpacity style={styles.modalCloseBtn} onPress={fecharModal}>
-            <Ionicons name="close" size={30} color="#FFFFFF" />
-          </TouchableOpacity>
-          {selected?.uri && (
-            <View
-              style={[
-                styles.modalImgBox,
-                { width: windowSize.width, height: windowSize.height * 0.85 },
-              ]}>
-              {typeof selected?.mime === 'string' &&
-              selected.mime.startsWith('image/') ? (
-                <Image
-                  source={{ uri: selected.uri }}
-                  style={styles.modalImg}
-                  resizeMode="contain"
-                  onError={() =>
-                    Alert.alert('Imagem', 'Falha ao carregar a imagem.')
-                  }
-                />
-              ) : (
-                <>
-                  {Platform.OS === 'web' ? (
-                    <View style={styles.arquivoNaoImagemBox}>
-                      <Ionicons
-                        name={
-                          selected?.mime === 'application/pdf'
-                            ? 'document-text-outline'
-                            : 'document-outline'
-                        }
-                        size={60}
-                        color="#FFFFFF"
-                      />
-                      <TouchableOpacity
-                        style={styles.refreshBtn}
-                        onPress={() => {
-                          try {
-                            abrirNoWeb(selected.uri, selected?.nome)
-                          } catch {}
-                        }}>
-                        <Text style={styles.refreshBtnText}>
-                          Abrir em nova guia
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.arquivoNaoImagemBox}>
-                      <Ionicons
-                        name={
-                          selected?.mime === 'application/pdf'
-                            ? 'document-text-outline'
-                            : 'document-outline'
-                        }
-                        size={60}
-                        color="#FFFFFF"
-                      />
-                      <TouchableOpacity
-                        style={styles.refreshBtn}
-                        onPress={() => abrirNoDispositivo(selected)}>
-                        <Text style={styles.refreshBtnText}>Abrir arquivo</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </>
-              )}
-            </View>
-          )}
-        </View>
-      </Modal>
+      {Platform.OS === 'web' ? (
+        <Modal
+          visible={!!selected?.uri}
+          transparent={true}
+          onRequestClose={fecharModal}
+          animationType="fade">
+          <View style={styles.modalImgContainer}>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={fecharModal}>
+              <Ionicons name="close" size={30} color="#FFFFFF" />
+            </TouchableOpacity>
+            {selected?.uri && (
+              <View
+                style={[
+                  styles.modalImgBox,
+                  { width: windowSize.width, height: windowSize.height * 0.85 },
+                ]}>
+                {typeof selected?.mime === 'string' &&
+                selected.mime.startsWith('image/') ? (
+                  <Image
+                    source={{ uri: selected.uri }}
+                    style={styles.modalImg}
+                    resizeMode="contain"
+                    onError={() =>
+                      Alert.alert('Imagem', 'Falha ao carregar a imagem.')
+                    }
+                  />
+                ) : (
+                  <View style={styles.arquivoNaoImagemBox}>
+                    <Ionicons
+                      name={
+                        selected?.mime === 'application/pdf'
+                          ? 'document-text-outline'
+                          : 'document-outline'
+                      }
+                      size={60}
+                      color="#FFFFFF"
+                    />
+                    <TouchableOpacity
+                      style={styles.refreshBtn}
+                      onPress={() => {
+                        try {
+                          abrirNoWeb(selected.uri, selected?.nome)
+                        } catch {}
+                      }}>
+                      <Text style={styles.refreshBtnText}>
+                        Abrir em nova guia
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </Modal>
+      ) : null}
     </View>
   )
 }
