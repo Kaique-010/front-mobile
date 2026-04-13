@@ -14,7 +14,7 @@ import {
   Linking,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import * as FileSystem from 'expo-file-system'
+import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import { fetchClienteOrdensServico } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
@@ -100,6 +100,66 @@ const montarArquivoDataUri = (arquivo) => {
   return `data:${mime};base64,${b}`
 }
 
+const normalizarBase64 = (value) => {
+  if (typeof value !== 'string') return null
+  let s = value.trim()
+  if (!s) return null
+
+  if (s.startsWith('data:')) {
+    const commaIndex = s.indexOf(',')
+    if (commaIndex === -1) return null
+    s = s.substring(commaIndex + 1)
+  }
+
+  if (
+    (s.startsWith("b'") && s.endsWith("'")) ||
+    (s.startsWith('b"') && s.endsWith('"'))
+  ) {
+    s = s.substring(2, s.length - 1)
+  }
+
+  s = s.replace(/\s+/g, '')
+
+  if (s.includes('-') || s.includes('_')) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/')
+  }
+
+  const mod = s.length % 4
+  if (mod === 2) s += '=='
+  else if (mod === 3) s += '='
+  else if (mod === 1) return null
+
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(s)) return null
+  return s
+}
+
+const MAX_INLINE_BASE64_BYTES = 12 * 1024 * 1024
+
+const estimarBytesBase64 = (base64) => {
+  if (typeof base64 !== 'string') return null
+  const b = base64.trim()
+  if (!b) return null
+  const padding = b.endsWith('==') ? 2 : b.endsWith('=') ? 1 : 0
+  return Math.max(0, Math.floor((b.length * 3) / 4) - padding)
+}
+
+const confirmar = (titulo, mensagem, okText, cancelText) =>
+  new Promise((resolve) => {
+    Alert.alert(titulo, mensagem, [
+      { text: cancelText, style: 'cancel', onPress: () => resolve(false) },
+      { text: okText, onPress: () => resolve(true) },
+    ])
+  })
+
+const extrairMimeDoDataUri = (value) => {
+  if (typeof value !== 'string') return null
+  if (!value.startsWith('data:')) return null
+  const commaIndex = value.indexOf(',')
+  const meta = commaIndex === -1 ? value : value.substring(0, commaIndex)
+  const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+  return mimeMatch?.[1] || null
+}
+
 const materializarDataUri = async (item) => {
   const uri = item?.uri
   if (
@@ -112,7 +172,8 @@ const materializarDataUri = async (item) => {
 
   const commaIndex = uri.indexOf(',')
   const meta = uri.substring(0, commaIndex)
-  const base64 = uri.substring(commaIndex + 1)
+  const base64 = normalizarBase64(uri)
+  if (!base64) throw new Error('Base64 inválido')
 
   const mimeMatch = meta.match(/^data:([^;]+);base64$/)
   const mime = mimeMatch?.[1] || item?.mime || 'application/octet-stream'
@@ -322,14 +383,34 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         'bin'
 
       const safeId = String(id ?? Date.now()).replace(/[^\w-]/g, '')
-      const baseDir = FileSystem.documentDirectory || FileSystem.cacheDirectory
-      const targetUri = `${baseDir}os-arquivo-${safeId}.${ext}`
+      const baseDirs = [
+        FileSystem.documentDirectory,
+        FileSystem.cacheDirectory,
+      ].filter(Boolean)
+      if (baseDirs.length === 0) {
+        Alert.alert('Arquivo', 'Diretório do dispositivo indisponível.')
+        return
+      }
+      const buildTargetUri = (dir, extFinal) =>
+        `${dir}os-arquivo-${safeId}.${extFinal}`
+      let targetUri = buildTargetUri(baseDirs[0], ext)
 
       // 1️⃣ Se for URL remota, baixa para o storage primeiro
       if (localUri.startsWith('http://') || localUri.startsWith('https://')) {
         try {
-          const downloaded = await FileSystem.downloadAsync(localUri, targetUri)
-          if (downloaded?.uri) localUri = downloaded.uri
+          let downloaded = null
+          for (const dir of baseDirs) {
+            try {
+              const t = buildTargetUri(dir, ext)
+              downloaded = await FileSystem.downloadAsync(localUri, t)
+              if (downloaded?.uri) {
+                localUri = downloaded.uri
+                targetUri = t
+                break
+              }
+            } catch {}
+          }
+          if (!downloaded?.uri) throw new Error('download_failed')
         } catch (e) {
           console.warn(
             'Falha ao baixar arquivo remoto, tentando abrir direto:',
@@ -354,12 +435,49 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         !localUri.startsWith('data:')
       ) {
         try {
-          await FileSystem.writeAsStringAsync(targetUri, localUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          })
-          localUri = targetUri
+          const base64 = normalizarBase64(localUri)
+          if (!base64) {
+            Alert.alert('Arquivo', 'Conteúdo do arquivo inválido.')
+            return
+          }
+          const bytes = estimarBytesBase64(base64)
+          if (typeof bytes === 'number' && bytes > MAX_INLINE_BASE64_BYTES) {
+            const ok = await confirmar(
+              'Arquivo muito grande',
+              'O servidor enviou este arquivo em base64 e ele é grande demais para o celular salvar com segurança. Recomendado abrir no Web. Deseja tentar mesmo assim?',
+              'Tentar',
+              'Cancelar',
+            )
+            if (!ok) return
+          }
+          let salvouEm = null
+          for (const dir of baseDirs) {
+            try {
+              const t = buildTargetUri(dir, ext)
+              try {
+                await FileSystem.deleteAsync(t, { idempotent: true })
+              } catch {}
+              await FileSystem.writeAsStringAsync(t, base64, {
+                encoding:
+                  (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ||
+                  'base64',
+              })
+              salvouEm = t
+              break
+            } catch {}
+          }
+          if (!salvouEm) throw new Error('write_failed')
+          localUri = salvouEm
         } catch (e) {
           console.warn('Falha ao salvar base64 em arquivo:', e)
+          try {
+            const b64 = normalizarBase64(localUri)
+            if (b64) {
+              const dataUrl = `data:${mimeType};base64,${b64}`
+              await Linking.openURL(dataUrl)
+              return
+            }
+          } catch {}
           Alert.alert('Arquivo', 'Não foi possível salvar o arquivo.')
           return
         }
@@ -368,27 +486,60 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       // 3️⃣ Se for data URI, salva em arquivo físico (sem tentar exibir no app)
       if (localUri.startsWith('data:')) {
         try {
-          const commaIndex = localUri.indexOf(',')
-          if (commaIndex === -1) {
+          const base64 = normalizarBase64(localUri)
+          if (!base64) {
             Alert.alert('Arquivo', 'Conteúdo do arquivo inválido.')
             return
           }
+          const bytes = estimarBytesBase64(base64)
+          if (typeof bytes === 'number' && bytes > MAX_INLINE_BASE64_BYTES) {
+            const ok = await confirmar(
+              'Arquivo muito grande',
+              'O servidor enviou este arquivo em base64 e ele é grande demais para o celular salvar com segurança. Recomendado abrir no Web. Deseja tentar mesmo assim?',
+              'Tentar',
+              'Cancelar',
+            )
+            if (!ok) return
+          }
 
-          const meta = localUri.substring(0, commaIndex)
-          const base64 = localUri.substring(commaIndex + 1)
-
-          const mimeMatch = meta.match(/^data:([^;]+);base64$/)
-          const mime = mimeMatch?.[1] || mimeType || 'application/octet-stream'
+          const mime =
+            extrairMimeDoDataUri(localUri) ||
+            mimeType ||
+            'application/octet-stream'
 
           const extForData = extMap[mime] || ext
-          const targetForData = `${baseDir}os-arquivo-${safeId}.${extForData}`
-
-          await FileSystem.writeAsStringAsync(targetForData, base64, {
-            encoding: FileSystem.EncodingType.Base64,
-          })
-          localUri = targetForData
+          let salvouEm = null
+          for (const dir of baseDirs) {
+            try {
+              const t = buildTargetUri(dir, extForData)
+              try {
+                await FileSystem.deleteAsync(t, { idempotent: true })
+              } catch {}
+              await FileSystem.writeAsStringAsync(t, base64, {
+                encoding:
+                  (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ||
+                  'base64',
+              })
+              salvouEm = t
+              break
+            } catch {}
+          }
+          if (!salvouEm) throw new Error('write_failed')
+          localUri = salvouEm
         } catch (e) {
           console.warn('Falha ao materializar data URI:', e)
+          try {
+            const base64 = normalizarBase64(localUri)
+            if (base64) {
+              const mime =
+                extrairMimeDoDataUri(localUri) ||
+                mimeType ||
+                'application/octet-stream'
+              const dataUrl = `data:${mime};base64,${base64}`
+              await Linking.openURL(dataUrl)
+              return
+            }
+          } catch {}
           Alert.alert('Arquivo', 'Não foi possível salvar o arquivo.')
           return
         }
