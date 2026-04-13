@@ -192,9 +192,10 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   const [windowSize, setWindowSize] = useState(Dimensions.get('window'))
   const [baixando, setBaixando] = useState(null) // id do arquivo em download
 
-  // ✅ Lista pré-processada: no mobile todos os data URIs já viram file://
   const [itensProcessados, setItensProcessados] = useState([])
   const [processandoLista, setProcessandoLista] = useState(true)
+
+  const getArquivoId = (a) => a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) =>
@@ -206,93 +207,127 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   }, [])
 
   useEffect(() => {
-    let cancelled = false
+    setProcessandoLista(true)
+    try {
+      const lista = Array.isArray(arquivos) ? arquivos : []
 
-    const processar = async () => {
-      setProcessandoLista(true)
-      try {
-        const raw = Array.isArray(arquivos)
-          ? arquivos
-              .map((a) => {
-                const uri = montarArquivoDataUri(a)
-                const mime =
-                  typeof uri === 'string' && uri.startsWith('data:')
-                    ? uri.split(';')[0].split(':')[1]
-                    : detectarMimePorNome(a?.nome)
-                return {
-                  id: a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu,
-                  nome: a?.nome,
-                  uri,
-                  mime,
-                }
-              })
-              .filter((x) => typeof x.uri === 'string' && x.uri.trim())
-          : []
+      const processados = lista.map((a, index) => {
+        const id = getArquivoId(a) ?? index
+        const nome = a?.nome || 'Arquivo'
 
-        const processados = await Promise.all(
-          raw.map(async (item) => {
-            if (Platform.OS === 'web') return item
-            if (typeof item.uri !== 'string' || !item.uri.startsWith('data:')) {
-              return item
-            }
+        const base =
+          a?.arquivo_data_uri ||
+          a?.arquivoDataUri ||
+          a?.arquivo_base64 ||
+          a?.arquivoBase64 ||
+          a?.base64 ||
+          a?.preview
+
+        let mime = detectarMimePorNome(nome)
+        let uri = null
+
+        if (typeof base === 'string') {
+          const lowerPrefix = base.slice(0, 12).toLowerCase()
+          const isHttp =
+            lowerPrefix.startsWith('http://') ||
+            lowerPrefix.startsWith('https://')
+          const isFile =
+            lowerPrefix.startsWith('file://') ||
+            lowerPrefix.startsWith('blob:') ||
+            lowerPrefix.startsWith('content://') ||
+            lowerPrefix.startsWith('expo-file:')
+
+          if (isHttp || isFile) {
+            uri = base.trim()
+          } else if (base.startsWith('data:')) {
             try {
-              return await materializarDataUri(item)
-            } catch (e) {
-              console.warn('Erro ao materializar arquivo:', item?.nome, e)
-              return item
-            }
-          }),
-        )
+              mime = base.split(';')[0].split(':')[1] || mime
+            } catch {}
+            uri = Platform.OS === 'web' ? base : null
+          } else {
+            uri = Platform.OS === 'web' ? montarArquivoDataUri(a) : null
+          }
+        }
 
-        if (!cancelled) setItensProcessados(processados)
-      } catch (e) {
-        console.error('Erro ao processar lista de arquivos:', e)
-        if (!cancelled) setItensProcessados([])
-      } finally {
-        if (!cancelled) setProcessandoLista(false)
-      }
-    }
+        return { id, nome, mime, uri }
+      })
 
-    processar()
-    return () => {
-      cancelled = true
+      setItensProcessados(processados)
+    } catch (e) {
+      console.error('Erro ao processar lista de arquivos:', e)
+      setItensProcessados([])
+    } finally {
+      setProcessandoLista(false)
     }
   }, [arquivos])
 
   // ✅ Abre o arquivo no app nativo do celular via Sharing ou Linking
   const abrirNoDispositivo = async (item) => {
-    const uri = item?.uri
-    if (typeof uri !== 'string' || !uri.trim()) {
+    const id = item?.id
+    const lista = Array.isArray(arquivos) ? arquivos : []
+    const raw =
+      id == null
+        ? null
+        : lista.find((a) => String(getArquivoId(a)) === String(id))
+
+    const nome = item?.nome || raw?.nome || 'arquivo'
+    const mimeType =
+      item?.mime ||
+      (typeof raw?.tipo === 'string' && raw.tipo) ||
+      detectarMimePorNome(nome)
+
+    const base =
+      raw?.arquivo_data_uri ||
+      raw?.arquivoDataUri ||
+      raw?.arquivo_base64 ||
+      raw?.arquivoBase64 ||
+      raw?.base64 ||
+      raw?.preview ||
+      item?.uri
+
+    if (typeof base !== 'string' || !base) {
       Alert.alert('Arquivo', 'Arquivo indisponível para abertura.')
       return
     }
 
-    setBaixando(item?.id)
+    setBaixando(id)
 
     try {
-      let localUri = uri.trim()
+      let localUri = base
+      const lowerPrefix = localUri.slice(0, 12).toLowerCase()
+      const isPossivelUri =
+        lowerPrefix.startsWith('http://') ||
+        lowerPrefix.startsWith('https://') ||
+        lowerPrefix.startsWith('file://') ||
+        lowerPrefix.startsWith('content://') ||
+        lowerPrefix.startsWith('blob:') ||
+        lowerPrefix.startsWith('expo-file:') ||
+        localUri.startsWith('data:')
+      if (isPossivelUri) localUri = localUri.trim()
 
-      // 1️⃣ Se for URL remota, baixa para o cache primeiro
+      const extMap = {
+        'image/png': 'png',
+        'image/jpeg': 'jpg',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+        'application/pdf': 'pdf',
+      }
+
+      const extFromNome = String(nome).includes('.')
+        ? String(nome).split('.').pop()?.toLowerCase()
+        : null
+      const ext =
+        (extFromNome && extFromNome.length <= 5 && extFromNome) ||
+        extMap[mimeType] ||
+        'bin'
+
+      const safeId = String(id ?? Date.now()).replace(/[^\w-]/g, '')
+      const baseDir = FileSystem.documentDirectory || FileSystem.cacheDirectory
+      const targetUri = `${baseDir}os-arquivo-${safeId}.${ext}`
+
+      // 1️⃣ Se for URL remota, baixa para o storage primeiro
       if (localUri.startsWith('http://') || localUri.startsWith('https://')) {
         try {
-          const extMap = {
-            'image/png': 'png',
-            'image/jpeg': 'jpg',
-            'image/webp': 'webp',
-            'image/gif': 'gif',
-            'application/pdf': 'pdf',
-          }
-          const nome = item?.nome || 'arquivo'
-          const mime = item?.mime || detectarMimePorNome(nome)
-          const extFromNome = String(nome).includes('.')
-            ? String(nome).split('.').pop()?.toLowerCase()
-            : null
-          const ext =
-            (extFromNome && extFromNome.length <= 5 && extFromNome) ||
-            extMap[mime] ||
-            'bin'
-          const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
-          const targetUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
           const downloaded = await FileSystem.downloadAsync(localUri, targetUri)
           if (downloaded?.uri) localUri = downloaded.uri
         } catch (e) {
@@ -310,23 +345,56 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         }
       }
 
-      // 2️⃣ Se ainda for data URI, materializa em arquivo físico
-      if (localUri.startsWith('data:')) {
+      // 2️⃣ Se for base64 puro (sem data:), grava em arquivo
+      if (
+        !localUri.startsWith('http://') &&
+        !localUri.startsWith('https://') &&
+        !localUri.startsWith('file://') &&
+        !localUri.startsWith('content://') &&
+        !localUri.startsWith('data:')
+      ) {
         try {
-          const materializado = await materializarDataUri({
-            ...item,
-            uri: localUri,
+          await FileSystem.writeAsStringAsync(targetUri, localUri, {
+            encoding: FileSystem.EncodingType.Base64,
           })
-          if (typeof materializado?.uri === 'string')
-            localUri = materializado.uri
+          localUri = targetUri
         } catch (e) {
-          console.warn('Falha ao materializar data URI:', e)
-          Alert.alert('Arquivo', 'Não foi possível preparar o arquivo.')
+          console.warn('Falha ao salvar base64 em arquivo:', e)
+          Alert.alert('Arquivo', 'Não foi possível salvar o arquivo.')
           return
         }
       }
 
-      // 3️⃣ Verifica se o arquivo existe no dispositivo
+      // 3️⃣ Se for data URI, salva em arquivo físico (sem tentar exibir no app)
+      if (localUri.startsWith('data:')) {
+        try {
+          const commaIndex = localUri.indexOf(',')
+          if (commaIndex === -1) {
+            Alert.alert('Arquivo', 'Conteúdo do arquivo inválido.')
+            return
+          }
+
+          const meta = localUri.substring(0, commaIndex)
+          const base64 = localUri.substring(commaIndex + 1)
+
+          const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+          const mime = mimeMatch?.[1] || mimeType || 'application/octet-stream'
+
+          const extForData = extMap[mime] || ext
+          const targetForData = `${baseDir}os-arquivo-${safeId}.${extForData}`
+
+          await FileSystem.writeAsStringAsync(targetForData, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          })
+          localUri = targetForData
+        } catch (e) {
+          console.warn('Falha ao materializar data URI:', e)
+          Alert.alert('Arquivo', 'Não foi possível salvar o arquivo.')
+          return
+        }
+      }
+
+      // 4️⃣ Verifica se o arquivo existe no dispositivo
       if (localUri.startsWith('file://')) {
         try {
           const info = await FileSystem.getInfoAsync(localUri)
@@ -337,19 +405,18 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         } catch {}
       }
 
-      // 4️⃣ Abre no app nativo via Sharing (dialog de "Abrir com...")
+      // 5️⃣ Abre fora do app via Sharing (dialog de "Abrir com...")
       const sharingOk = await Sharing.isAvailableAsync()
       if (sharingOk) {
-        const mimeType = item?.mime || detectarMimePorNome(item?.nome)
         await Sharing.shareAsync(localUri, {
           mimeType,
           UTI: mimeType === 'application/pdf' ? 'com.adobe.pdf' : undefined,
-          dialogTitle: item?.nome ? `Abrir ${item.nome}` : 'Abrir arquivo',
+          dialogTitle: nome ? `Abrir ${nome}` : 'Abrir arquivo',
         })
         return
       }
 
-      // 5️⃣ Fallback: tenta abrir via Linking
+      // 6️⃣ Fallback: tenta abrir via Linking
       let openUri = localUri
       if (Platform.OS === 'android' && openUri.startsWith('file://')) {
         try {
@@ -439,6 +506,8 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
             const estaBaixando = baixando === item?.id
             const ehImagem =
               typeof item?.mime === 'string' && item.mime.startsWith('image/')
+            const temThumb =
+              ehImagem && typeof item?.uri === 'string' && item.uri.trim()
 
             return (
               // ✅ Card horizontal com thumb à esquerda e infos + botão download à direita
@@ -449,7 +518,7 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                 disabled={estaBaixando}>
                 {/* Thumbnail ou ícone */}
                 <View style={styles.arquivoThumbArea}>
-                  {ehImagem ? (
+                  {temThumb ? (
                     <Image
                       source={{ uri: item.uri }}
                       style={styles.arquivoThumbImg}
@@ -477,7 +546,7 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                   <Text style={styles.arquivoHint}>
                     {Platform.OS === 'web'
                       ? 'Toque para baixar'
-                      : 'Toque para abrir'}
+                      : 'Toque para baixar e abrir fora do app'}
                   </Text>
                 </View>
 
