@@ -16,6 +16,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { WebView } from 'react-native-webview'
+import * as FileSystem from 'expo-file-system'
 import { fetchClienteOrdensServico } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 import AbaFotosAntes from './partials/abaFotosAntes'
@@ -62,6 +63,20 @@ const detectarMimePorNome = (nome) => {
   return 'application/octet-stream'
 }
 
+const isUrlLike = (value) => {
+  const v = String(value || '')
+    .trim()
+    .toLowerCase()
+  return (
+    v.startsWith('http://') ||
+    v.startsWith('https://') ||
+    v.startsWith('file://') ||
+    v.startsWith('content://') ||
+    v.startsWith('blob:') ||
+    v.startsWith('expo-file:')
+  )
+}
+
 const montarArquivoDataUri = (arquivo) => {
   const base =
     arquivo?.arquivo_data_uri ||
@@ -73,6 +88,7 @@ const montarArquivoDataUri = (arquivo) => {
   if (!base || typeof base !== 'string') return null
   const b = base.trim()
   if (!b) return null
+  if (isUrlLike(b)) return b
   if (b.startsWith('data:')) return b
   let mime = detectarMimePorNome(arquivo?.nome)
   if (mime === 'application/octet-stream') {
@@ -134,6 +150,7 @@ const abrirNoWeb = (uri, nomeArquivo) => {
 const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
   const [selected, setSelected] = useState(null)
   const [windowSize, setWindowSize] = useState(Dimensions.get('window'))
+  const [preparing, setPreparing] = useState(false)
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) =>
@@ -150,6 +167,59 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       ? Math.max(0, windowSize.width - 40)
       : (windowSize.width - 40) / columns - 8
   const itemHeight = columns === 1 ? 260 : itemWidth
+
+  const fecharModal = () => {
+    const tmp = selected?.tempFileUri
+    setSelected(null)
+    if (tmp && Platform.OS !== 'web') {
+      FileSystem.deleteAsync(tmp, { idempotent: true }).catch(() => {})
+    }
+  }
+
+  const materializarDataUriEmArquivo = async (item) => {
+    const uri = item?.uri
+    if (
+      Platform.OS === 'web' ||
+      typeof uri !== 'string' ||
+      !uri.startsWith('data:') ||
+      !uri.includes(';base64,')
+    ) {
+      return item
+    }
+
+    const [meta, base64] = uri.split(',', 2)
+    const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+    const mime =
+      (mimeMatch && mimeMatch[1]) || item?.mime || 'application/octet-stream'
+
+    let ext = 'bin'
+    if (mime === 'image/png') ext = 'png'
+    else if (mime === 'image/jpeg') ext = 'jpg'
+    else if (mime === 'image/webp') ext = 'webp'
+    else if (mime === 'image/gif') ext = 'gif'
+    else if (mime === 'application/pdf') ext = 'pdf'
+
+    const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
+    const fileUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
+
+    await FileSystem.writeAsStringAsync(fileUri, base64 || '', {
+      encoding: FileSystem.EncodingType.Base64,
+    })
+
+    return { ...item, uri: fileUri, tempFileUri: fileUri, mime }
+  }
+
+  const handleSelect = async (item) => {
+    try {
+      setPreparing(true)
+      const resolved = await materializarDataUriEmArquivo(item)
+      setSelected(resolved)
+    } catch {
+      setSelected(item)
+    } finally {
+      setPreparing(false)
+    }
+  }
 
   const itens = Array.isArray(arquivos)
     ? arquivos
@@ -207,7 +277,8 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
               styles.arquivoThumbBox,
               { width: columns === 1 ? '100%' : itemWidth },
             ]}
-            onPress={() => setSelected(item)}>
+            onPress={() => handleSelect(item)}
+            disabled={preparing}>
             {columns === 1 ? (
               <>
                 <Text style={styles.arquivoNome} numberOfLines={1}>
@@ -271,12 +342,10 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       <Modal
         visible={!!selected?.uri}
         transparent={true}
-        onRequestClose={() => setSelected(null)}
+        onRequestClose={fecharModal}
         animationType="fade">
         <View style={styles.modalImgContainer}>
-          <TouchableOpacity
-            style={styles.modalCloseBtn}
-            onPress={() => setSelected(null)}>
+          <TouchableOpacity style={styles.modalCloseBtn} onPress={fecharModal}>
             <Ionicons name="close" size={30} color="#FFFFFF" />
           </TouchableOpacity>
           {selected?.uri && (
@@ -321,6 +390,7 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
                     <WebView
                       source={{ uri: selected.uri }}
                       style={styles.webview}
+                      originWhitelist={['*']}
                     />
                   )}
                 </>
