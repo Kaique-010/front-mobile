@@ -12,8 +12,10 @@ import {
   Modal,
   Dimensions,
   Platform,
+  Linking,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { WebView } from 'react-native-webview'
 import { fetchClienteOrdensServico } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 import AbaFotosAntes from './partials/abaFotosAntes'
@@ -62,6 +64,8 @@ const detectarMimePorNome = (nome) => {
 
 const montarArquivoDataUri = (arquivo) => {
   const base =
+    arquivo?.arquivo_data_uri ||
+    arquivo?.arquivoDataUri ||
     arquivo?.arquivo_base64 ||
     arquivo?.arquivoBase64 ||
     arquivo?.base64 ||
@@ -70,12 +74,65 @@ const montarArquivoDataUri = (arquivo) => {
   const b = base.trim()
   if (!b) return null
   if (b.startsWith('data:')) return b
-  const mime = detectarMimePorNome(arquivo?.nome)
+  let mime = detectarMimePorNome(arquivo?.nome)
+  if (mime === 'application/octet-stream') {
+    if (b.startsWith('iVBORw0KGgo')) mime = 'image/png'
+    else if (b.startsWith('/9j/')) mime = 'image/jpeg'
+    else if (b.startsWith('UklGR')) mime = 'image/webp'
+    else if (b.startsWith('JVBERi0')) mime = 'application/pdf'
+    else if (b.startsWith('R0lGOD')) mime = 'image/gif'
+  }
   return `data:${mime};base64,${b}`
 }
 
+const abrirNoWeb = (uri, nomeArquivo) => {
+  if (typeof window === 'undefined') return
+  if (!uri || typeof uri !== 'string') return
+
+  const u = uri.trim()
+  if (!u) return
+
+  if (!u.startsWith('data:')) {
+    window.open(u, '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  const parts = u.split(',', 2)
+  if (parts.length !== 2) {
+    window.open(u, '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  const meta = parts[0] || ''
+  const base64 = parts[1] || ''
+  const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+  const mime = (mimeMatch && mimeMatch[1]) || 'application/octet-stream'
+
+  try {
+    const binStr = atob(base64)
+    const len = binStr.length
+    const bytes = new Uint8Array(len)
+    for (let i = 0; i < len; i += 1) bytes[i] = binStr.charCodeAt(i)
+    const blob = new Blob([bytes], { type: mime })
+    const blobUrl = URL.createObjectURL(blob)
+    const w = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+    if (w && nomeArquivo) {
+      try {
+        w.document.title = nomeArquivo
+      } catch {}
+    }
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(blobUrl)
+      } catch {}
+    }, 60_000)
+  } catch {
+    window.open(u, '_blank', 'noopener,noreferrer')
+  }
+}
+
 const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
-  const [selectedUri, setSelectedUri] = useState(null)
+  const [selected, setSelected] = useState(null)
   const [windowSize, setWindowSize] = useState(Dimensions.get('window'))
 
   useEffect(() => {
@@ -94,16 +151,22 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       : (windowSize.width - 40) / columns - 8
   const itemHeight = columns === 1 ? 260 : itemWidth
 
-  const imagens = Array.isArray(arquivos)
+  const itens = Array.isArray(arquivos)
     ? arquivos
-        .map((a) => ({
-          id: a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu,
-          nome: a?.nome,
-          uri: montarArquivoDataUri(a),
-        }))
-        .filter(
-          (x) => typeof x.uri === 'string' && x.uri.startsWith('data:image/'),
-        )
+        .map((a) => {
+          const uri = montarArquivoDataUri(a)
+          const mime =
+            typeof uri === 'string' && uri.startsWith('data:')
+              ? uri.split(';')[0].split(':')[1]
+              : detectarMimePorNome(a?.nome)
+          return {
+            id: a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu,
+            nome: a?.nome,
+            uri,
+            mime,
+          }
+        })
+        .filter((x) => typeof x.uri === 'string' && x.uri.trim())
     : []
 
   if (!Array.isArray(arquivos) || arquivos.length === 0) {
@@ -123,25 +186,6 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     )
   }
 
-  if (imagens.length === 0) {
-    return (
-      <View style={styles.section}>
-        <View style={styles.arquivosHeaderRow}>
-          <Text style={styles.sectionTitle}>Arquivos</Text>
-          <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
-            <Text style={styles.refreshBtnText}>Atualizar</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.emptyCard}>
-          <Ionicons name="images-outline" size={48} color="#2D2D44" />
-          <Text style={styles.emptyText}>
-            Arquivos encontrados, mas sem imagens para exibir
-          </Text>
-        </View>
-      </View>
-    )
-  }
-
   return (
     <View style={styles.section}>
       <View style={styles.arquivosHeaderRow}>
@@ -153,7 +197,7 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
 
       <FlatList
         key={`arquivos-cols-${columns}`}
-        data={imagens}
+        data={itens}
         keyExtractor={(item, index) => String(item?.id ?? index)}
         numColumns={columns}
         contentContainerStyle={styles.arquivosListContent}
@@ -163,27 +207,60 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
               styles.arquivoThumbBox,
               { width: columns === 1 ? '100%' : itemWidth },
             ]}
-            onPress={() => setSelectedUri(item.uri)}>
+            onPress={() => setSelected(item)}>
             {columns === 1 ? (
               <>
                 <Text style={styles.arquivoNome} numberOfLines={1}>
                   {item?.nome || 'Arquivo'}
                 </Text>
                 <View style={[styles.arquivoImgBox, { height: itemHeight }]}>
-                  <Image
-                    source={{ uri: item.uri }}
-                    style={styles.arquivoThumb}
-                    resizeMode="contain"
-                  />
+                  {typeof item?.mime === 'string' &&
+                  item.mime.startsWith('image/') ? (
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={styles.arquivoThumb}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={styles.arquivoNaoImagemBox}>
+                      <Ionicons
+                        name={
+                          item?.mime === 'application/pdf'
+                            ? 'document-text-outline'
+                            : 'document-outline'
+                        }
+                        size={52}
+                        color="#2D2D44"
+                      />
+                      <Text style={styles.arquivoNaoImagemText}>
+                        {item?.mime === 'application/pdf' ? 'PDF' : 'Arquivo'}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </>
             ) : (
               <View style={[styles.arquivoImgBox, { height: itemWidth }]}>
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.arquivoThumb}
-                  resizeMode="cover"
-                />
+                {typeof item?.mime === 'string' &&
+                item.mime.startsWith('image/') ? (
+                  <Image
+                    source={{ uri: item.uri }}
+                    style={styles.arquivoThumb}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.arquivoNaoImagemBox}>
+                    <Ionicons
+                      name={
+                        item?.mime === 'application/pdf'
+                          ? 'document-text-outline'
+                          : 'document-outline'
+                      }
+                      size={46}
+                      color="#2D2D44"
+                    />
+                  </View>
+                )}
               </View>
             )}
           </TouchableOpacity>
@@ -192,27 +269,62 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       />
 
       <Modal
-        visible={!!selectedUri}
+        visible={!!selected?.uri}
         transparent={true}
-        onRequestClose={() => setSelectedUri(null)}
+        onRequestClose={() => setSelected(null)}
         animationType="fade">
         <View style={styles.modalImgContainer}>
           <TouchableOpacity
             style={styles.modalCloseBtn}
-            onPress={() => setSelectedUri(null)}>
+            onPress={() => setSelected(null)}>
             <Ionicons name="close" size={30} color="#FFFFFF" />
           </TouchableOpacity>
-          {selectedUri && (
+          {selected?.uri && (
             <View
               style={[
                 styles.modalImgBox,
                 { width: windowSize.width, height: windowSize.height * 0.85 },
               ]}>
-              <Image
-                source={{ uri: selectedUri }}
-                style={styles.modalImg}
-                resizeMode="contain"
-              />
+              {typeof selected?.mime === 'string' &&
+              selected.mime.startsWith('image/') ? (
+                <Image
+                  source={{ uri: selected.uri }}
+                  style={styles.modalImg}
+                  resizeMode="contain"
+                />
+              ) : (
+                <>
+                  {Platform.OS === 'web' ? (
+                    <View style={styles.arquivoNaoImagemBox}>
+                      <Ionicons
+                        name={
+                          selected?.mime === 'application/pdf'
+                            ? 'document-text-outline'
+                            : 'document-outline'
+                        }
+                        size={60}
+                        color="#FFFFFF"
+                      />
+                      <TouchableOpacity
+                        style={styles.refreshBtn}
+                        onPress={() => {
+                          try {
+                            abrirNoWeb(selected.uri, selected?.nome)
+                          } catch {}
+                        }}>
+                        <Text style={styles.refreshBtnText}>
+                          Abrir em nova guia
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <WebView
+                      source={{ uri: selected.uri }}
+                      style={styles.webview}
+                    />
+                  )}
+                </>
+              )}
             </View>
           )}
         </View>
@@ -1111,6 +1223,18 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  arquivoNaoImagemBox: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 10,
+  },
+  arquivoNaoImagemText: {
+    color: '#8B8BA7',
+    fontWeight: '600',
+  },
   modalImgContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
@@ -1131,6 +1255,11 @@ const styles = StyleSheet.create({
   modalImg: {
     width: '100%',
     height: '100%',
+  },
+  webview: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'transparent',
   },
 })
 
