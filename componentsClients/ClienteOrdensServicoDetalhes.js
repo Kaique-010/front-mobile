@@ -187,7 +187,11 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       return item
     }
 
-    const [meta, base64] = uri.split(',', 2)
+    // ✅ CORRETO: split no primeiro índice apenas, evita corrupção se base64 tiver vírgulas
+    const commaIndex = uri.indexOf(',')
+    const meta = uri.substring(0, commaIndex)
+    const base64 = uri.substring(commaIndex + 1)
+
     const mimeMatch = meta.match(/^data:([^;]+);base64$/)
     const mime =
       (mimeMatch && mimeMatch[1]) || item?.mime || 'application/octet-stream'
@@ -202,9 +206,15 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
     const fileUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
 
-    await FileSystem.writeAsStringAsync(fileUri, base64 || '', {
-      encoding: FileSystem.EncodingType.Base64,
-    })
+    try {
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      })
+    } catch (e) {
+      console.error('Erro ao escrever arquivo temporário:', e)
+      // fallback: retorna o item original com data URI (funciona para imagens pequenas)
+      return item
+    }
 
     return { ...item, uri: fileUri, tempFileUri: fileUri, mime }
   }
@@ -214,8 +224,9 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       setPreparing(true)
       const resolved = await materializarDataUriEmArquivo(item)
       setSelected(resolved)
-    } catch {
-      setSelected(item)
+    } catch (e) {
+      console.error('handleSelect error:', e)
+      Alert.alert('Erro', 'Não foi possível abrir o arquivo.') // ✅ antes silenciava o erro
     } finally {
       setPreparing(false)
     }
