@@ -9,7 +9,6 @@ import {
   Alert,
   FlatList,
   Image,
-  Modal,
   Dimensions,
   Platform,
   Linking,
@@ -101,8 +100,6 @@ const montarArquivoDataUri = (arquivo) => {
   return `data:${mime};base64,${b}`
 }
 
-// ── Materializa um data URI em arquivo físico no cache do dispositivo ────────
-// Deve ser chamada FORA do componente para reutilização
 const materializarDataUri = async (item) => {
   const uri = item?.uri
   if (
@@ -113,7 +110,6 @@ const materializarDataUri = async (item) => {
     return item
   }
 
-  // ✅ Usa indexOf para não corromper base64 que eventualmente contenha vírgulas
   const commaIndex = uri.indexOf(',')
   const meta = uri.substring(0, commaIndex)
   const base64 = uri.substring(commaIndex + 1)
@@ -152,7 +148,6 @@ const abrirNoWeb = (uri, nomeArquivo) => {
     return
   }
 
-  // ✅ Usa indexOf para não corromper base64
   const commaIndex = u.indexOf(',')
   if (commaIndex === -1) {
     window.open(u, '_blank', 'noopener,noreferrer')
@@ -170,13 +165,16 @@ const abrirNoWeb = (uri, nomeArquivo) => {
     const bytes = new Uint8Array(len)
     for (let i = 0; i < len; i += 1) bytes[i] = binStr.charCodeAt(i)
     const blob = new Blob([bytes], { type: mime })
+
+    // ✅ No web, força download com <a> em vez de abrir em nova guia
     const blobUrl = URL.createObjectURL(blob)
-    const w = window.open(blobUrl, '_blank', 'noopener,noreferrer')
-    if (w && nomeArquivo) {
-      try {
-        w.document.title = nomeArquivo
-      } catch {}
-    }
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = nomeArquivo || 'arquivo'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
     setTimeout(() => {
       try {
         URL.revokeObjectURL(blobUrl)
@@ -191,8 +189,8 @@ const abrirNoWeb = (uri, nomeArquivo) => {
 // AbaArquivosRelatorio
 // ─────────────────────────────────────────────────────────────────────────────
 const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
-  const [selected, setSelected] = useState(null)
   const [windowSize, setWindowSize] = useState(Dimensions.get('window'))
+  const [baixando, setBaixando] = useState(null) // id do arquivo em download
 
   // ✅ Lista pré-processada: no mobile todos os data URIs já viram file://
   const [itensProcessados, setItensProcessados] = useState([])
@@ -207,7 +205,6 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     }
   }, [])
 
-  // ✅ Pré-processa todos os arquivos ao montar / quando arquivos mudar
   useEffect(() => {
     let cancelled = false
 
@@ -232,8 +229,6 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
               .filter((x) => typeof x.uri === 'string' && x.uri.trim())
           : []
 
-        // No mobile converte data URIs para arquivos físicos antes de
-        // passar para <Image>, evitando crash por decodificação inline
         const processados = await Promise.all(
           raw.map(async (item) => {
             if (Platform.OS === 'web') return item
@@ -244,7 +239,7 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
               return await materializarDataUri(item)
             } catch (e) {
               console.warn('Erro ao materializar arquivo:', item?.nome, e)
-              return item // fallback: mantém data URI
+              return item
             }
           }),
         )
@@ -264,17 +259,7 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     }
   }, [arquivos])
 
-  const columns = Platform.OS === 'web' ? 3 : 1
-  const itemWidth =
-    columns === 1
-      ? Math.max(0, windowSize.width - 40)
-      : (windowSize.width - 40) / columns - 8
-  const itemHeight = columns === 1 ? 260 : itemWidth
-
-  const fecharModal = () => {
-    setSelected(null)
-  }
-
+  // ✅ Abre o arquivo no app nativo do celular via Sharing ou Linking
   const abrirNoDispositivo = async (item) => {
     const uri = item?.uri
     if (typeof uri !== 'string' || !uri.trim()) {
@@ -282,68 +267,77 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
       return
     }
 
-    if (Platform.OS === 'web') {
-      try {
-        abrirNoWeb(uri, item?.nome)
-      } catch {
-        Alert.alert('Arquivo', 'Não foi possível abrir o arquivo no navegador.')
-      }
-      return
-    }
-
-    const u = uri.trim()
-    let localUri = u
-    if (localUri.startsWith('http://') || localUri.startsWith('https://')) {
-      try {
-        await Linking.openURL(localUri)
-        return
-      } catch {}
-
-      try {
-        const extMap = {
-          'image/png': 'png',
-          'image/jpeg': 'jpg',
-          'image/webp': 'webp',
-          'image/gif': 'gif',
-          'application/pdf': 'pdf',
-        }
-        const nome = item?.nome || 'arquivo'
-        const mime = item?.mime || detectarMimePorNome(nome)
-        const extFromNome = String(nome).includes('.')
-          ? String(nome).split('.').pop()?.toLowerCase()
-          : null
-        const ext =
-          (extFromNome && extFromNome.length <= 5 && extFromNome) ||
-          extMap[mime] ||
-          'bin'
-        const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
-        const targetUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
-        const downloaded = await FileSystem.downloadAsync(localUri, targetUri)
-        if (downloaded?.uri) localUri = downloaded.uri
-      } catch {}
-    }
-
-    if (localUri.startsWith('data:')) {
-      try {
-        const materializado = await materializarDataUri({
-          ...item,
-          uri: localUri,
-        })
-        if (typeof materializado?.uri === 'string') localUri = materializado.uri
-      } catch {}
-    }
-
-    if (localUri.startsWith('file://')) {
-      try {
-        const info = await FileSystem.getInfoAsync(localUri)
-        if (!info?.exists) {
-          Alert.alert('Arquivo', 'Arquivo não encontrado no dispositivo.')
-          return
-        }
-      } catch {}
-    }
+    setBaixando(item?.id)
 
     try {
+      let localUri = uri.trim()
+
+      // 1️⃣ Se for URL remota, baixa para o cache primeiro
+      if (localUri.startsWith('http://') || localUri.startsWith('https://')) {
+        try {
+          const extMap = {
+            'image/png': 'png',
+            'image/jpeg': 'jpg',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
+            'application/pdf': 'pdf',
+          }
+          const nome = item?.nome || 'arquivo'
+          const mime = item?.mime || detectarMimePorNome(nome)
+          const extFromNome = String(nome).includes('.')
+            ? String(nome).split('.').pop()?.toLowerCase()
+            : null
+          const ext =
+            (extFromNome && extFromNome.length <= 5 && extFromNome) ||
+            extMap[mime] ||
+            'bin'
+          const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
+          const targetUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
+          const downloaded = await FileSystem.downloadAsync(localUri, targetUri)
+          if (downloaded?.uri) localUri = downloaded.uri
+        } catch (e) {
+          console.warn(
+            'Falha ao baixar arquivo remoto, tentando abrir direto:',
+            e,
+          )
+          // fallback: tenta abrir a URL diretamente
+          try {
+            await Linking.openURL(localUri)
+            return
+          } catch {}
+          Alert.alert('Arquivo', 'Não foi possível baixar o arquivo.')
+          return
+        }
+      }
+
+      // 2️⃣ Se ainda for data URI, materializa em arquivo físico
+      if (localUri.startsWith('data:')) {
+        try {
+          const materializado = await materializarDataUri({
+            ...item,
+            uri: localUri,
+          })
+          if (typeof materializado?.uri === 'string')
+            localUri = materializado.uri
+        } catch (e) {
+          console.warn('Falha ao materializar data URI:', e)
+          Alert.alert('Arquivo', 'Não foi possível preparar o arquivo.')
+          return
+        }
+      }
+
+      // 3️⃣ Verifica se o arquivo existe no dispositivo
+      if (localUri.startsWith('file://')) {
+        try {
+          const info = await FileSystem.getInfoAsync(localUri)
+          if (!info?.exists) {
+            Alert.alert('Arquivo', 'Arquivo não encontrado no dispositivo.')
+            return
+          }
+        } catch {}
+      }
+
+      // 4️⃣ Abre no app nativo via Sharing (dialog de "Abrir com...")
       const sharingOk = await Sharing.isAvailableAsync()
       if (sharingOk) {
         const mimeType = item?.mime || detectarMimePorNome(item?.nome)
@@ -354,9 +348,8 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         })
         return
       }
-    } catch {}
 
-    try {
+      // 5️⃣ Fallback: tenta abrir via Linking
       let openUri = localUri
       if (Platform.OS === 'android' && openUri.startsWith('file://')) {
         try {
@@ -364,21 +357,46 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         } catch {}
       }
       await Linking.openURL(openUri)
-      return
-    } catch {}
-
-    Alert.alert(
-      'Arquivo',
-      'Não foi possível abrir o arquivo neste dispositivo.',
-    )
+    } catch (e) {
+      console.error('Erro ao abrir arquivo:', e)
+      Alert.alert(
+        'Arquivo',
+        'Não foi possível abrir o arquivo neste dispositivo.',
+      )
+    } finally {
+      setBaixando(null)
+    }
   }
 
-  const handleSelect = async (item) => {
-    if (Platform.OS !== 'web') {
-      await abrirNoDispositivo(item)
+  // ✅ Ponto de entrada unificado — mobile abre no nativo, web faz download
+  const handlePress = async (item) => {
+    if (Platform.OS === 'web') {
+      try {
+        abrirNoWeb(item.uri, item?.nome)
+      } catch {
+        Alert.alert('Arquivo', 'Não foi possível baixar o arquivo.')
+      }
       return
     }
-    setSelected(item)
+    await abrirNoDispositivo(item)
+  }
+
+  const getIconePorMime = (mime) => {
+    if (typeof mime !== 'string') return 'document-outline'
+    if (mime === 'application/pdf') return 'document-text-outline'
+    if (mime.startsWith('image/')) return 'image-outline'
+    return 'document-outline'
+  }
+
+  const getLabelPorMime = (mime, nome) => {
+    if (typeof mime !== 'string') return 'Arquivo'
+    if (mime === 'application/pdf') return 'PDF'
+    if (mime.startsWith('image/')) return 'Imagem'
+    // tenta pegar extensão do nome
+    if (nome && String(nome).includes('.')) {
+      return String(nome).split('.').pop()?.toUpperCase() || 'Arquivo'
+    }
+    return 'Arquivo'
   }
 
   if (!Array.isArray(arquivos) || arquivos.length === 0) {
@@ -407,7 +425,6 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         </TouchableOpacity>
       </View>
 
-      {/* ✅ Mostra loading enquanto materializa os arquivos */}
       {processandoLista ? (
         <View style={styles.emptyCard}>
           <ActivityIndicator color="#00D4FF" />
@@ -415,142 +432,78 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         </View>
       ) : (
         <FlatList
-          key={`arquivos-cols-${columns}`}
           data={itensProcessados}
           keyExtractor={(item, index) => String(item?.id ?? index)}
-          numColumns={columns}
           contentContainerStyle={styles.arquivosListContent}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.arquivoThumbBox,
-                { width: columns === 1 ? '100%' : itemWidth },
-              ]}
-              onPress={() => handleSelect(item)}>
-              {columns === 1 ? (
-                <>
-                  <Text style={styles.arquivoNome} numberOfLines={1}>
-                    {item?.nome || 'Arquivo'}
-                  </Text>
-                  <View style={[styles.arquivoImgBox, { height: itemHeight }]}>
-                    {typeof item?.mime === 'string' &&
-                    item.mime.startsWith('image/') ? (
-                      <Image
-                        source={{ uri: item.uri }}
-                        style={styles.arquivoThumb}
-                        resizeMode="contain"
-                        onError={() =>
-                          Alert.alert('Imagem', 'Falha ao carregar a imagem.')
-                        }
-                      />
-                    ) : (
-                      <View style={styles.arquivoNaoImagemBox}>
-                        <Ionicons
-                          name={
-                            item?.mime === 'application/pdf'
-                              ? 'document-text-outline'
-                              : 'document-outline'
-                          }
-                          size={52}
-                          color="#2D2D44"
-                        />
-                        <Text style={styles.arquivoNaoImagemText}>
-                          {item?.mime === 'application/pdf' ? 'PDF' : 'Arquivo'}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </>
-              ) : (
-                <View style={[styles.arquivoImgBox, { height: itemWidth }]}>
-                  {typeof item?.mime === 'string' &&
-                  item.mime.startsWith('image/') ? (
+          renderItem={({ item }) => {
+            const estaBaixando = baixando === item?.id
+            const ehImagem =
+              typeof item?.mime === 'string' && item.mime.startsWith('image/')
+
+            return (
+              // ✅ Card horizontal com thumb à esquerda e infos + botão download à direita
+              <TouchableOpacity
+                style={styles.arquivoCard}
+                onPress={() => handlePress(item)}
+                activeOpacity={0.75}
+                disabled={estaBaixando}>
+                {/* Thumbnail ou ícone */}
+                <View style={styles.arquivoThumbArea}>
+                  {ehImagem ? (
                     <Image
                       source={{ uri: item.uri }}
-                      style={styles.arquivoThumb}
+                      style={styles.arquivoThumbImg}
                       resizeMode="cover"
-                      onError={() =>
-                        Alert.alert('Imagem', 'Falha ao carregar a imagem.')
-                      }
                     />
                   ) : (
-                    <View style={styles.arquivoNaoImagemBox}>
+                    <View style={styles.arquivoThumbIconBox}>
                       <Ionicons
-                        name={
-                          item?.mime === 'application/pdf'
-                            ? 'document-text-outline'
-                            : 'document-outline'
-                        }
-                        size={46}
-                        color="#2D2D44"
+                        name={getIconePorMime(item?.mime)}
+                        size={32}
+                        color="#00D4FF"
                       />
+                      <Text style={styles.arquivoThumbLabel}>
+                        {getLabelPorMime(item?.mime, item?.nome)}
+                      </Text>
                     </View>
                   )}
                 </View>
-              )}
-            </TouchableOpacity>
-          )}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
 
-      {Platform.OS === 'web' ? (
-        <Modal
-          visible={!!selected?.uri}
-          transparent={true}
-          onRequestClose={fecharModal}
-          animationType="fade">
-          <View style={styles.modalImgContainer}>
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={fecharModal}>
-              <Ionicons name="close" size={30} color="#FFFFFF" />
-            </TouchableOpacity>
-            {selected?.uri && (
-              <View
-                style={[
-                  styles.modalImgBox,
-                  { width: windowSize.width, height: windowSize.height * 0.85 },
-                ]}>
-                {typeof selected?.mime === 'string' &&
-                selected.mime.startsWith('image/') ? (
-                  <Image
-                    source={{ uri: selected.uri }}
-                    style={styles.modalImg}
-                    resizeMode="contain"
-                    onError={() =>
-                      Alert.alert('Imagem', 'Falha ao carregar a imagem.')
-                    }
-                  />
-                ) : (
-                  <View style={styles.arquivoNaoImagemBox}>
+                {/* Nome + hint */}
+                <View style={styles.arquivoInfo}>
+                  <Text style={styles.arquivoNome} numberOfLines={2}>
+                    {item?.nome || 'Arquivo'}
+                  </Text>
+                  <Text style={styles.arquivoHint}>
+                    {Platform.OS === 'web'
+                      ? 'Toque para baixar'
+                      : 'Toque para abrir'}
+                  </Text>
+                </View>
+
+                {/* Botão / indicador de ação */}
+                <View style={styles.arquivoAcao}>
+                  {estaBaixando ? (
+                    <ActivityIndicator size="small" color="#00D4FF" />
+                  ) : (
                     <Ionicons
                       name={
-                        selected?.mime === 'application/pdf'
-                          ? 'document-text-outline'
-                          : 'document-outline'
+                        Platform.OS === 'web'
+                          ? 'cloud-download-outline'
+                          : 'open-outline'
                       }
-                      size={60}
-                      color="#FFFFFF"
+                      size={22}
+                      color="#00D4FF"
                     />
-                    <TouchableOpacity
-                      style={styles.refreshBtn}
-                      onPress={() => {
-                        try {
-                          abrirNoWeb(selected.uri, selected?.nome)
-                        } catch {}
-                      }}>
-                      <Text style={styles.refreshBtnText}>
-                        Abrir em nova guia
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-        </Modal>
-      ) : null}
+                  )}
+                </View>
+              </TouchableOpacity>
+            )
+          }}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        />
+      )}
     </View>
   )
 }
@@ -1375,62 +1328,61 @@ const styles = StyleSheet.create({
   arquivosListContent: {
     paddingVertical: 6,
   },
-  arquivoThumbBox: {
-    margin: 4,
-    borderRadius: 8,
-    overflow: 'hidden',
+
+  // ✅ Novo card horizontal de arquivo
+  arquivoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#1A1A2E',
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 0.8,
     borderColor: '#2D2D44',
+    overflow: 'hidden',
+    minHeight: 72,
+  },
+  arquivoThumbArea: {
+    width: 72,
+    height: 72,
+    backgroundColor: '#101028',
+    flexShrink: 0,
+  },
+  arquivoThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  arquivoThumbIconBox: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  arquivoThumbLabel: {
+    color: '#8B8BA7',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  arquivoInfo: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   arquivoNome: {
     color: '#FFFFFF',
     fontWeight: '600',
-    fontSize: 13,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 8,
+    fontSize: 14,
+    marginBottom: 4,
   },
-  arquivoImgBox: {
-    width: '100%',
-    backgroundColor: '#101028',
-  },
-  arquivoThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  arquivoNaoImagemBox: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    gap: 10,
-  },
-  arquivoNaoImagemText: {
+  arquivoHint: {
     color: '#8B8BA7',
-    fontWeight: '600',
+    fontSize: 11,
   },
-  modalImgContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
+  arquivoAcao: {
+    paddingRight: 14,
+    paddingLeft: 4,
     alignItems: 'center',
-  },
-  modalCloseBtn: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 1,
-    padding: 10,
-  },
-  modalImgBox: {
-    paddingHorizontal: 12,
-    paddingBottom: 24,
-  },
-  modalImg: {
-    width: '100%',
-    height: '100%',
+    justifyContent: 'center',
+    minWidth: 36,
   },
 })
 
