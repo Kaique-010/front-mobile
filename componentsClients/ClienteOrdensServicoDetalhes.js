@@ -9,11 +9,13 @@ import {
   Alert,
   FlatList,
   Image,
-  Modal,
   Dimensions,
   Platform,
+  Linking,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
 import { fetchClienteOrdensServico } from '../services/clienteService'
 import { formatCurrency, formatDate } from '../utils/formatters'
 import AbaFotosAntes from './partials/abaFotosAntes'
@@ -60,8 +62,24 @@ const detectarMimePorNome = (nome) => {
   return 'application/octet-stream'
 }
 
+const isUrlLike = (value) => {
+  const v = String(value || '')
+    .trim()
+    .toLowerCase()
+  return (
+    v.startsWith('http://') ||
+    v.startsWith('https://') ||
+    v.startsWith('file://') ||
+    v.startsWith('content://') ||
+    v.startsWith('blob:') ||
+    v.startsWith('expo-file:')
+  )
+}
+
 const montarArquivoDataUri = (arquivo) => {
   const base =
+    arquivo?.arquivo_data_uri ||
+    arquivo?.arquivoDataUri ||
     arquivo?.arquivo_base64 ||
     arquivo?.arquivoBase64 ||
     arquivo?.base64 ||
@@ -69,14 +87,176 @@ const montarArquivoDataUri = (arquivo) => {
   if (!base || typeof base !== 'string') return null
   const b = base.trim()
   if (!b) return null
+  if (isUrlLike(b)) return b
   if (b.startsWith('data:')) return b
-  const mime = detectarMimePorNome(arquivo?.nome)
+  let mime = detectarMimePorNome(arquivo?.nome)
+  if (mime === 'application/octet-stream') {
+    if (b.startsWith('iVBORw0KGgo')) mime = 'image/png'
+    else if (b.startsWith('/9j/')) mime = 'image/jpeg'
+    else if (b.startsWith('UklGR')) mime = 'image/webp'
+    else if (b.startsWith('JVBERi0')) mime = 'application/pdf'
+    else if (b.startsWith('R0lGOD')) mime = 'image/gif'
+  }
   return `data:${mime};base64,${b}`
 }
 
+const normalizarBase64 = (value) => {
+  if (typeof value !== 'string') return null
+  let s = value.trim()
+  if (!s) return null
+
+  if (s.startsWith('data:')) {
+    const commaIndex = s.indexOf(',')
+    if (commaIndex === -1) return null
+    s = s.substring(commaIndex + 1)
+  }
+
+  if (
+    (s.startsWith("b'") && s.endsWith("'")) ||
+    (s.startsWith('b"') && s.endsWith('"'))
+  ) {
+    s = s.substring(2, s.length - 1)
+  }
+
+  s = s.replace(/\s+/g, '')
+
+  if (s.includes('-') || s.includes('_')) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/')
+  }
+
+  const mod = s.length % 4
+  if (mod === 2) s += '=='
+  else if (mod === 3) s += '='
+  else if (mod === 1) return null
+
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(s)) return null
+  return s
+}
+
+const MAX_INLINE_BASE64_BYTES = 12 * 1024 * 1024
+
+const estimarBytesBase64 = (base64) => {
+  if (typeof base64 !== 'string') return null
+  const b = base64.trim()
+  if (!b) return null
+  const padding = b.endsWith('==') ? 2 : b.endsWith('=') ? 1 : 0
+  return Math.max(0, Math.floor((b.length * 3) / 4) - padding)
+}
+
+const confirmar = (titulo, mensagem, okText, cancelText) =>
+  new Promise((resolve) => {
+    Alert.alert(titulo, mensagem, [
+      { text: cancelText, style: 'cancel', onPress: () => resolve(false) },
+      { text: okText, onPress: () => resolve(true) },
+    ])
+  })
+
+const extrairMimeDoDataUri = (value) => {
+  if (typeof value !== 'string') return null
+  if (!value.startsWith('data:')) return null
+  const commaIndex = value.indexOf(',')
+  const meta = commaIndex === -1 ? value : value.substring(0, commaIndex)
+  const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+  return mimeMatch?.[1] || null
+}
+
+const materializarDataUri = async (item) => {
+  const uri = item?.uri
+  if (
+    typeof uri !== 'string' ||
+    !uri.startsWith('data:') ||
+    !uri.includes(';base64,')
+  ) {
+    return item
+  }
+
+  const commaIndex = uri.indexOf(',')
+  const meta = uri.substring(0, commaIndex)
+  const base64 = normalizarBase64(uri)
+  if (!base64) throw new Error('Base64 inválido')
+
+  const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+  const mime = mimeMatch?.[1] || item?.mime || 'application/octet-stream'
+
+  const extMap = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'application/pdf': 'pdf',
+  }
+  const ext = extMap[mime] ?? 'bin'
+
+  const safeId = String(item?.id ?? Date.now()).replace(/[^\w-]/g, '')
+  const fileUri = `${FileSystem.cacheDirectory}os-arquivo-${safeId}.${ext}`
+
+  await FileSystem.writeAsStringAsync(fileUri, base64, {
+    encoding: FileSystem.EncodingType.Base64,
+  })
+
+  return { ...item, uri: fileUri, tempFileUri: fileUri, mime }
+}
+
+const abrirNoWeb = (uri, nomeArquivo) => {
+  if (typeof window === 'undefined') return
+  if (!uri || typeof uri !== 'string') return
+
+  const u = uri.trim()
+  if (!u) return
+
+  if (!u.startsWith('data:')) {
+    window.open(u, '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  const commaIndex = u.indexOf(',')
+  if (commaIndex === -1) {
+    window.open(u, '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  const meta = u.substring(0, commaIndex)
+  const base64 = u.substring(commaIndex + 1)
+  const mimeMatch = meta.match(/^data:([^;]+);base64$/)
+  const mime = (mimeMatch && mimeMatch[1]) || 'application/octet-stream'
+
+  try {
+    const binStr = atob(base64)
+    const len = binStr.length
+    const bytes = new Uint8Array(len)
+    for (let i = 0; i < len; i += 1) bytes[i] = binStr.charCodeAt(i)
+    const blob = new Blob([bytes], { type: mime })
+
+    // ✅ No web, força download com <a> em vez de abrir em nova guia
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = nomeArquivo || 'arquivo'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(blobUrl)
+      } catch {}
+    }, 60_000)
+  } catch {
+    window.open(u, '_blank', 'noopener,noreferrer')
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AbaArquivosRelatorio
+// ─────────────────────────────────────────────────────────────────────────────
 const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
-  const [selectedUri, setSelectedUri] = useState(null)
   const [windowSize, setWindowSize] = useState(Dimensions.get('window'))
+  const [baixando, setBaixando] = useState(null) // id do arquivo em download
+
+  const [itensProcessados, setItensProcessados] = useState([])
+  const [processandoLista, setProcessandoLista] = useState(true)
+
+  const getArquivoId = (a) => a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) =>
@@ -87,24 +267,355 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     }
   }, [])
 
-  const columns = Platform.OS === 'web' ? 3 : 1
-  const itemWidth =
-    columns === 1
-      ? Math.max(0, windowSize.width - 40)
-      : (windowSize.width - 40) / columns - 8
-  const itemHeight = columns === 1 ? 260 : itemWidth
+  useEffect(() => {
+    setProcessandoLista(true)
+    try {
+      const lista = Array.isArray(arquivos) ? arquivos : []
 
-  const imagens = Array.isArray(arquivos)
-    ? arquivos
-        .map((a) => ({
-          id: a?.id ?? a?.arqu_codi_arqu ?? a?.os_arqu,
-          nome: a?.nome,
-          uri: montarArquivoDataUri(a),
-        }))
-        .filter(
-          (x) => typeof x.uri === 'string' && x.uri.startsWith('data:image/'),
-        )
-    : []
+      const processados = lista.map((a, index) => {
+        const id = getArquivoId(a) ?? index
+        const nome = a?.nome || 'Arquivo'
+
+        const base =
+          a?.arquivo_data_uri ||
+          a?.arquivoDataUri ||
+          a?.arquivo_base64 ||
+          a?.arquivoBase64 ||
+          a?.base64 ||
+          a?.preview
+
+        let mime = detectarMimePorNome(nome)
+        let uri = null
+
+        if (typeof base === 'string') {
+          const lowerPrefix = base.slice(0, 12).toLowerCase()
+          const isHttp =
+            lowerPrefix.startsWith('http://') ||
+            lowerPrefix.startsWith('https://')
+          const isFile =
+            lowerPrefix.startsWith('file://') ||
+            lowerPrefix.startsWith('blob:') ||
+            lowerPrefix.startsWith('content://') ||
+            lowerPrefix.startsWith('expo-file:')
+
+          if (isHttp || isFile) {
+            uri = base.trim()
+          } else if (base.startsWith('data:')) {
+            try {
+              mime = base.split(';')[0].split(':')[1] || mime
+            } catch {}
+            uri = Platform.OS === 'web' ? base : null
+          } else {
+            uri = Platform.OS === 'web' ? montarArquivoDataUri(a) : null
+          }
+        }
+
+        return { id, nome, mime, uri }
+      })
+
+      setItensProcessados(processados)
+    } catch (e) {
+      console.error('Erro ao processar lista de arquivos:', e)
+      setItensProcessados([])
+    } finally {
+      setProcessandoLista(false)
+    }
+  }, [arquivos])
+
+  // ✅ Abre o arquivo no app nativo do celular via Sharing ou Linking
+  const abrirNoDispositivo = async (item) => {
+    const id = item?.id
+    const lista = Array.isArray(arquivos) ? arquivos : []
+    const raw =
+      id == null
+        ? null
+        : lista.find((a) => String(getArquivoId(a)) === String(id))
+
+    const nome = item?.nome || raw?.nome || 'arquivo'
+    const mimeType =
+      item?.mime ||
+      (typeof raw?.tipo === 'string' && raw.tipo) ||
+      detectarMimePorNome(nome)
+
+    const base =
+      raw?.arquivo_data_uri ||
+      raw?.arquivoDataUri ||
+      raw?.arquivo_base64 ||
+      raw?.arquivoBase64 ||
+      raw?.base64 ||
+      raw?.preview ||
+      item?.uri
+
+    if (typeof base !== 'string' || !base) {
+      Alert.alert('Arquivo', 'Arquivo indisponível para abertura.')
+      return
+    }
+
+    setBaixando(id)
+
+    try {
+      let localUri = base
+      const lowerPrefix = localUri.slice(0, 12).toLowerCase()
+      const isPossivelUri =
+        lowerPrefix.startsWith('http://') ||
+        lowerPrefix.startsWith('https://') ||
+        lowerPrefix.startsWith('file://') ||
+        lowerPrefix.startsWith('content://') ||
+        lowerPrefix.startsWith('blob:') ||
+        lowerPrefix.startsWith('expo-file:') ||
+        localUri.startsWith('data:')
+      if (isPossivelUri) localUri = localUri.trim()
+
+      const extMap = {
+        'image/png': 'png',
+        'image/jpeg': 'jpg',
+        'image/webp': 'webp',
+        'image/gif': 'gif',
+        'application/pdf': 'pdf',
+      }
+
+      const extFromNome = String(nome).includes('.')
+        ? String(nome).split('.').pop()?.toLowerCase()
+        : null
+      const ext =
+        (extFromNome && extFromNome.length <= 5 && extFromNome) ||
+        extMap[mimeType] ||
+        'bin'
+
+      const safeId = String(id ?? Date.now()).replace(/[^\w-]/g, '')
+      const baseDirs = [
+        FileSystem.documentDirectory,
+        FileSystem.cacheDirectory,
+      ].filter(Boolean)
+      if (baseDirs.length === 0) {
+        Alert.alert('Arquivo', 'Diretório do dispositivo indisponível.')
+        return
+      }
+      const buildTargetUri = (dir, extFinal) =>
+        `${dir}os-arquivo-${safeId}.${extFinal}`
+      let targetUri = buildTargetUri(baseDirs[0], ext)
+
+      // 1️⃣ Se for URL remota, baixa para o storage primeiro
+      if (localUri.startsWith('http://') || localUri.startsWith('https://')) {
+        try {
+          let downloaded = null
+          for (const dir of baseDirs) {
+            try {
+              const t = buildTargetUri(dir, ext)
+              downloaded = await FileSystem.downloadAsync(localUri, t)
+              if (downloaded?.uri) {
+                localUri = downloaded.uri
+                targetUri = t
+                break
+              }
+            } catch {}
+          }
+          if (!downloaded?.uri) throw new Error('download_failed')
+        } catch (e) {
+          console.warn(
+            'Falha ao baixar arquivo remoto, tentando abrir direto:',
+            e,
+          )
+          // fallback: tenta abrir a URL diretamente
+          try {
+            await Linking.openURL(localUri)
+            return
+          } catch {}
+          Alert.alert('Arquivo', 'Não foi possível baixar o arquivo.')
+          return
+        }
+      }
+
+      // 2️⃣ Se for base64 puro (sem data:), grava em arquivo
+      if (
+        !localUri.startsWith('http://') &&
+        !localUri.startsWith('https://') &&
+        !localUri.startsWith('file://') &&
+        !localUri.startsWith('content://') &&
+        !localUri.startsWith('data:')
+      ) {
+        try {
+          const base64 = normalizarBase64(localUri)
+          if (!base64) {
+            Alert.alert('Arquivo', 'Conteúdo do arquivo inválido.')
+            return
+          }
+          const bytes = estimarBytesBase64(base64)
+          if (typeof bytes === 'number' && bytes > MAX_INLINE_BASE64_BYTES) {
+            const ok = await confirmar(
+              'Arquivo muito grande',
+              'O servidor enviou este arquivo em base64 e ele é grande demais para o celular salvar com segurança. Recomendado abrir no Web. Deseja tentar mesmo assim?',
+              'Tentar',
+              'Cancelar',
+            )
+            if (!ok) return
+          }
+          let salvouEm = null
+          for (const dir of baseDirs) {
+            try {
+              const t = buildTargetUri(dir, ext)
+              try {
+                await FileSystem.deleteAsync(t, { idempotent: true })
+              } catch {}
+              await FileSystem.writeAsStringAsync(t, base64, {
+                encoding:
+                  (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ||
+                  'base64',
+              })
+              salvouEm = t
+              break
+            } catch {}
+          }
+          if (!salvouEm) throw new Error('write_failed')
+          localUri = salvouEm
+        } catch (e) {
+          console.warn('Falha ao salvar base64 em arquivo:', e)
+          try {
+            const b64 = normalizarBase64(localUri)
+            if (b64) {
+              const dataUrl = `data:${mimeType};base64,${b64}`
+              await Linking.openURL(dataUrl)
+              return
+            }
+          } catch {}
+          Alert.alert('Arquivo', 'Não foi possível salvar o arquivo.')
+          return
+        }
+      }
+
+      // 3️⃣ Se for data URI, salva em arquivo físico (sem tentar exibir no app)
+      if (localUri.startsWith('data:')) {
+        try {
+          const base64 = normalizarBase64(localUri)
+          if (!base64) {
+            Alert.alert('Arquivo', 'Conteúdo do arquivo inválido.')
+            return
+          }
+          const bytes = estimarBytesBase64(base64)
+          if (typeof bytes === 'number' && bytes > MAX_INLINE_BASE64_BYTES) {
+            const ok = await confirmar(
+              'Arquivo muito grande',
+              'O servidor enviou este arquivo em base64 e ele é grande demais para o celular salvar com segurança. Recomendado abrir no Web. Deseja tentar mesmo assim?',
+              'Tentar',
+              'Cancelar',
+            )
+            if (!ok) return
+          }
+
+          const mime =
+            extrairMimeDoDataUri(localUri) ||
+            mimeType ||
+            'application/octet-stream'
+
+          const extForData = extMap[mime] || ext
+          let salvouEm = null
+          for (const dir of baseDirs) {
+            try {
+              const t = buildTargetUri(dir, extForData)
+              try {
+                await FileSystem.deleteAsync(t, { idempotent: true })
+              } catch {}
+              await FileSystem.writeAsStringAsync(t, base64, {
+                encoding:
+                  (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ||
+                  'base64',
+              })
+              salvouEm = t
+              break
+            } catch {}
+          }
+          if (!salvouEm) throw new Error('write_failed')
+          localUri = salvouEm
+        } catch (e) {
+          console.warn('Falha ao materializar data URI:', e)
+          try {
+            const base64 = normalizarBase64(localUri)
+            if (base64) {
+              const mime =
+                extrairMimeDoDataUri(localUri) ||
+                mimeType ||
+                'application/octet-stream'
+              const dataUrl = `data:${mime};base64,${base64}`
+              await Linking.openURL(dataUrl)
+              return
+            }
+          } catch {}
+          Alert.alert('Arquivo', 'Não foi possível salvar o arquivo.')
+          return
+        }
+      }
+
+      // 4️⃣ Verifica se o arquivo existe no dispositivo
+      if (localUri.startsWith('file://')) {
+        try {
+          const info = await FileSystem.getInfoAsync(localUri)
+          if (!info?.exists) {
+            Alert.alert('Arquivo', 'Arquivo não encontrado no dispositivo.')
+            return
+          }
+        } catch {}
+      }
+
+      // 5️⃣ Abre fora do app via Sharing (dialog de "Abrir com...")
+      const sharingOk = await Sharing.isAvailableAsync()
+      if (sharingOk) {
+        await Sharing.shareAsync(localUri, {
+          mimeType,
+          UTI: mimeType === 'application/pdf' ? 'com.adobe.pdf' : undefined,
+          dialogTitle: nome ? `Abrir ${nome}` : 'Abrir arquivo',
+        })
+        return
+      }
+
+      // 6️⃣ Fallback: tenta abrir via Linking
+      let openUri = localUri
+      if (Platform.OS === 'android' && openUri.startsWith('file://')) {
+        try {
+          openUri = await FileSystem.getContentUriAsync(openUri)
+        } catch {}
+      }
+      await Linking.openURL(openUri)
+    } catch (e) {
+      console.error('Erro ao abrir arquivo:', e)
+      Alert.alert(
+        'Arquivo',
+        'Não foi possível abrir o arquivo neste dispositivo.',
+      )
+    } finally {
+      setBaixando(null)
+    }
+  }
+
+  // ✅ Ponto de entrada unificado — mobile abre no nativo, web faz download
+  const handlePress = async (item) => {
+    if (Platform.OS === 'web') {
+      try {
+        abrirNoWeb(item.uri, item?.nome)
+      } catch {
+        Alert.alert('Arquivo', 'Não foi possível baixar o arquivo.')
+      }
+      return
+    }
+    await abrirNoDispositivo(item)
+  }
+
+  const getIconePorMime = (mime) => {
+    if (typeof mime !== 'string') return 'document-outline'
+    if (mime === 'application/pdf') return 'document-text-outline'
+    if (mime.startsWith('image/')) return 'image-outline'
+    return 'document-outline'
+  }
+
+  const getLabelPorMime = (mime, nome) => {
+    if (typeof mime !== 'string') return 'Arquivo'
+    if (mime === 'application/pdf') return 'PDF'
+    if (mime.startsWith('image/')) return 'Imagem'
+    // tenta pegar extensão do nome
+    if (nome && String(nome).includes('.')) {
+      return String(nome).split('.').pop()?.toUpperCase() || 'Arquivo'
+    }
+    return 'Arquivo'
+  }
 
   if (!Array.isArray(arquivos) || arquivos.length === 0) {
     return (
@@ -123,25 +634,6 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
     )
   }
 
-  if (imagens.length === 0) {
-    return (
-      <View style={styles.section}>
-        <View style={styles.arquivosHeaderRow}>
-          <Text style={styles.sectionTitle}>Arquivos</Text>
-          <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
-            <Text style={styles.refreshBtnText}>Atualizar</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.emptyCard}>
-          <Ionicons name="images-outline" size={48} color="#2D2D44" />
-          <Text style={styles.emptyText}>
-            Arquivos encontrados, mas sem imagens para exibir
-          </Text>
-        </View>
-      </View>
-    )
-  }
-
   return (
     <View style={styles.section}>
       <View style={styles.arquivosHeaderRow}>
@@ -151,81 +643,126 @@ const AbaArquivosRelatorio = ({ arquivos, onRefresh }) => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        key={`arquivos-cols-${columns}`}
-        data={imagens}
-        keyExtractor={(item, index) => String(item?.id ?? index)}
-        numColumns={columns}
-        contentContainerStyle={styles.arquivosListContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.arquivoThumbBox,
-              { width: columns === 1 ? '100%' : itemWidth },
-            ]}
-            onPress={() => setSelectedUri(item.uri)}>
-            {columns === 1 ? (
-              <>
-                <Text style={styles.arquivoNome} numberOfLines={1}>
-                  {item?.nome || 'Arquivo'}
-                </Text>
-                <View style={[styles.arquivoImgBox, { height: itemHeight }]}>
-                  <Image
-                    source={{ uri: item.uri }}
-                    style={styles.arquivoThumb}
-                    resizeMode="contain"
-                  />
-                </View>
-              </>
-            ) : (
-              <View style={[styles.arquivoImgBox, { height: itemWidth }]}>
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.arquivoThumb}
-                  resizeMode="cover"
-                />
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-        showsVerticalScrollIndicator={false}
-      />
-
-      <Modal
-        visible={!!selectedUri}
-        transparent={true}
-        onRequestClose={() => setSelectedUri(null)}
-        animationType="fade">
-        <View style={styles.modalImgContainer}>
-          <TouchableOpacity
-            style={styles.modalCloseBtn}
-            onPress={() => setSelectedUri(null)}>
-            <Ionicons name="close" size={30} color="#FFFFFF" />
-          </TouchableOpacity>
-          {selectedUri && (
-            <View
-              style={[
-                styles.modalImgBox,
-                { width: windowSize.width, height: windowSize.height * 0.85 },
-              ]}>
-              <Image
-                source={{ uri: selectedUri }}
-                style={styles.modalImg}
-                resizeMode="contain"
-              />
-            </View>
-          )}
+      {processandoLista ? (
+        <View style={styles.emptyCard}>
+          <ActivityIndicator color="#00D4FF" />
+          <Text style={styles.emptyText}>Carregando arquivos...</Text>
         </View>
-      </Modal>
+      ) : (
+        <FlatList
+          data={itensProcessados}
+          keyExtractor={(item, index) => String(item?.id ?? index)}
+          contentContainerStyle={styles.arquivosListContent}
+          renderItem={({ item }) => {
+            const estaBaixando = baixando === item?.id
+            const ehImagem =
+              typeof item?.mime === 'string' && item.mime.startsWith('image/')
+            const temThumb =
+              ehImagem && typeof item?.uri === 'string' && item.uri.trim()
+
+            return (
+              // ✅ Card horizontal com thumb à esquerda e infos + botão download à direita
+              <TouchableOpacity
+                style={styles.arquivoCard}
+                onPress={() => handlePress(item)}
+                activeOpacity={0.75}
+                disabled={estaBaixando}>
+                {/* Thumbnail ou ícone */}
+                <View style={styles.arquivoThumbArea}>
+                  {temThumb ? (
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={styles.arquivoThumbImg}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.arquivoThumbIconBox}>
+                      <Ionicons
+                        name={getIconePorMime(item?.mime)}
+                        size={32}
+                        color="#00D4FF"
+                      />
+                      <Text style={styles.arquivoThumbLabel}>
+                        {getLabelPorMime(item?.mime, item?.nome)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Nome + hint */}
+                <View style={styles.arquivoInfo}>
+                  <Text style={styles.arquivoNome} numberOfLines={2}>
+                    {item?.nome || 'Arquivo'}
+                  </Text>
+                  <Text style={styles.arquivoHint}>
+                    {Platform.OS === 'web'
+                      ? 'Toque para baixar'
+                      : 'Toque para baixar e abrir fora do app'}
+                  </Text>
+                </View>
+
+                {/* Botão / indicador de ação */}
+                <View style={styles.arquivoAcao}>
+                  {estaBaixando ? (
+                    <ActivityIndicator size="small" color="#00D4FF" />
+                  ) : (
+                    <Ionicons
+                      name={
+                        Platform.OS === 'web'
+                          ? 'cloud-download-outline'
+                          : 'open-outline'
+                      }
+                      size={22}
+                      color="#00D4FF"
+                    />
+                  )}
+                </View>
+              </TouchableOpacity>
+            )
+          }}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        />
+      )}
     </View>
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CollapsibleSection
+// ─────────────────────────────────────────────────────────────────────────────
+const CollapsibleSection = ({ title, isOpen, onToggle, children }) => {
+  return (
+    <View style={styles.section}>
+      <TouchableOpacity onPress={onToggle} style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Ionicons
+          name={isOpen ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color="#FFFFFF"
+        />
+      </TouchableOpacity>
+      {isOpen && children}
+    </View>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ClienteOrdensServicoDetalhes
+// ─────────────────────────────────────────────────────────────────────────────
 const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   const { ordemId, ordemInicial } = route.params
   const [ordem, setOrdem] = useState(ordemInicial || null)
   const [loading, setLoading] = useState(!ordemInicial)
   const [activeTab, setActiveTab] = useState('geral')
+  const [openSections, setOpenSections] = useState({
+    gerais: true,
+    equipamento: true,
+    descricao: true,
+    pecas: true,
+    servicos: true,
+    resumo: true,
+  })
 
   useEffect(() => {
     carregarOrdem()
@@ -248,7 +785,6 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
 
       let ordemEncontrada = null
 
-      // Tentar buscar pelo número da ordem (mais confiável)
       const numeroOrdem = ordem?.orde_nume || ordemInicial?.orde_nume
 
       if (numeroOrdem) {
@@ -261,15 +797,12 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
         ordemEncontrada = lista.find((o) => o.orde_nume === numeroOrdem)
       }
 
-      // Se não encontrou pelo número, tenta pelo ID
       if (!ordemEncontrada && ordemId) {
-        // Tenta buscar específico pelo ID
         const response = await fetchClienteOrdensServico({ id: ordemId })
         let lista =
           response.results || (Array.isArray(response) ? response : [])
         ordemEncontrada = lista.find((o) => o.id === ordemId)
 
-        // Se ainda não encontrou, busca na lista geral (fallback)
         if (!ordemEncontrada) {
           const responseAll = await fetchClienteOrdensServico()
           lista =
@@ -298,7 +831,6 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
   }
 
   const getStatusColor = (status) => {
-    // Handle string or number status
     const statusStr = String(status)
     const statusNum = Number(status)
 
@@ -364,7 +896,6 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
       case 'X':
         return 'Cancelada'
       default:
-        // Verifica se status é string antes de tentar usar métodos de string
         if (typeof status === 'string') {
           return (
             status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
@@ -420,83 +951,40 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
 
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'geral' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('geral')}>
-            <Text
+          {[
+            { key: 'geral', label: 'Geral' },
+            { key: 'antes', label: 'Fotos Antes' },
+            { key: 'durante', label: 'Fotos Durante' },
+            { key: 'depois', label: 'Fotos Depois' },
+            { key: 'arquivos', label: 'Arquivos' },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
               style={[
-                styles.tabText,
-                activeTab === 'geral' && styles.activeTabText,
-              ]}>
-              Geral
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'antes' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('antes')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'antes' && styles.activeTabText,
-              ]}>
-              Fotos Antes
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'durante' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('durante')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'durante' && styles.activeTabText,
-              ]}>
-              Fotos Durante
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'depois' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('depois')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'depois' && styles.activeTabText,
-              ]}>
-              Fotos Depois
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tabButton,
-              activeTab === 'arquivos' && styles.activeTabButton,
-            ]}
-            onPress={() => setActiveTab('arquivos')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'arquivos' && styles.activeTabText,
-              ]}>
-              Arquivos
-            </Text>
-          </TouchableOpacity>
+                styles.tabButton,
+                activeTab === tab.key && styles.activeTabButton,
+              ]}
+              onPress={() => setActiveTab(tab.key)}>
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.key && styles.activeTabText,
+                ]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
 
       {activeTab === 'geral' && (
         <>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Informações Gerais</Text>
+          <CollapsibleSection
+            title="Informações Gerais"
+            isOpen={openSections.gerais}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, gerais: !s.gerais }))
+            }>
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>DATA DE ABERTURA</Text>
@@ -519,10 +1007,14 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 </View>
               )}
             </View>
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Dados do Equipamento</Text>
+          <CollapsibleSection
+            title="Dados do Equipamento"
+            isOpen={openSections.equipamento}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, equipamento: !s.equipamento }))
+            }>
             <View style={styles.infoCard}>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>MOTOR</Text>
@@ -546,27 +1038,88 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>VOLTAGEM</Text>
                 <Text style={styles.infoValue}>
-                  {ordem.orde_volt != null ? String(ordem.orde_volt) : '—'}
+                  {ordem.orde_volt != null ? String(ordem.orde_volt) : '—'} -{' '}
+                  {ordem.voltagem_nome || '—'} (volts)
                 </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>POTÊNCIA</Text>
                 <Text style={styles.infoValue}>{ordem.orde_pote || '—'}</Text>
               </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>GRAU IP</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_grau_ip || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>FREQUÊNCIA</Text>
+                <Text style={styles.infoValue}>{ordem.orde_hz || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>ROTAÇÃO</Text>
+                <Text style={styles.infoValue}>{ordem.orde_rpm || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>ISOLAÇÃO</Text>
+                <Text style={styles.infoValue}>{ordem.orde_isol || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Nº DE SÉRIE</Text>
+                <Text style={styles.infoValue}>{ordem.orde_seri || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>MODELO</Text>
+                <Text style={styles.infoValue}>{ordem.orde_mode || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>MARCA</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_marc || '—'} - {ordem.marca_nome || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>FORMA CONSTRUTIVA</Text>
+                <Text style={styles.infoValue}>{ordem.orde_foco || '—'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>SAÍDA DE CABOS DA LIGAÇÃO</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_esta_cabo || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>STATUS DA CAIXA</Text>
+                <Text style={styles.infoValue}>
+                  {ordem.orde_esta_liga || '—'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>OBSERVAÇÕES</Text>
+                <Text style={styles.infoValue}>{ordem.orde_obse || '—'}</Text>
+              </View>
             </View>
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Descrição do Serviço</Text>
+          <CollapsibleSection
+            title="Descrição do Serviço"
+            isOpen={openSections.descricao}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, descricao: !s.descricao }))
+            }>
             <View style={styles.descricaoCard}>
               <Text style={styles.descricaoText}>
                 {ordem.orde_defe_desc || 'Nenhuma descrição informada'}
               </Text>
             </View>
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Peças</Text>
+          <CollapsibleSection
+            title="Peças"
+            isOpen={openSections.pecas}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, pecas: !s.pecas }))
+            }>
             {ordem.pecas && ordem.pecas.length > 0 ? (
               ordem.pecas.map((peca, index) => (
                 <View key={index} style={styles.itemCard}>
@@ -604,10 +1157,14 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 <Text style={styles.emptyText}>Nenhuma peça encontrada</Text>
               </View>
             )}
-          </View>
+          </CollapsibleSection>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Serviços</Text>
+          <CollapsibleSection
+            title="Serviços"
+            isOpen={openSections.servicos}
+            onToggle={() =>
+              setOpenSections((s) => ({ ...s, servicos: !s.servicos }))
+            }>
             {ordem.servicos && ordem.servicos.length > 0 ? (
               ordem.servicos.map((servico, index) => (
                 <View key={index} style={styles.itemCard}>
@@ -644,16 +1201,20 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                 <Text style={styles.emptyText}>Nenhum serviço encontrado</Text>
               </View>
             )}
-          </View>
+          </CollapsibleSection>
 
           {ordem.ver_preco !== false && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Resumo de Valores</Text>
+            <CollapsibleSection
+              title="Resumo de Valores"
+              isOpen={openSections.resumo}
+              onToggle={() =>
+                setOpenSections((s) => ({ ...s, resumo: !s.resumo }))
+              }>
               <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>SUBTOTAL</Text>
                   <Text style={styles.infoValue}>
-                    {formatCurrency(ordem.orde_tota || ordem.orde_tota)}
+                    {formatCurrency(ordem.orde_tota)}
                   </Text>
                 </View>
                 {ordem.orde_desc > 0 && (
@@ -673,7 +1234,7 @@ const ClienteOrdensServicoDetalhes = ({ route, navigation }) => {
                   </Text>
                 </View>
               </View>
-            </View>
+            </CollapsibleSection>
           )}
         </>
       )}
@@ -775,6 +1336,12 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
     paddingHorizontal: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 16,
@@ -901,6 +1468,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 14,
     fontWeight: '500',
+    marginTop: 8,
   },
   actions: {
     padding: 20,
@@ -980,50 +1548,61 @@ const styles = StyleSheet.create({
   arquivosListContent: {
     paddingVertical: 6,
   },
-  arquivoThumbBox: {
-    margin: 4,
-    borderRadius: 8,
-    overflow: 'hidden',
+
+  // ✅ Novo card horizontal de arquivo
+  arquivoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#1A1A2E',
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 0.8,
     borderColor: '#2D2D44',
+    overflow: 'hidden',
+    minHeight: 72,
+  },
+  arquivoThumbArea: {
+    width: 72,
+    height: 72,
+    backgroundColor: '#101028',
+    flexShrink: 0,
+  },
+  arquivoThumbImg: {
+    width: '100%',
+    height: '100%',
+  },
+  arquivoThumbIconBox: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  arquivoThumbLabel: {
+    color: '#8B8BA7',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  arquivoInfo: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   arquivoNome: {
     color: '#FFFFFF',
     fontWeight: '600',
-    fontSize: 13,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 8,
+    fontSize: 14,
+    marginBottom: 4,
   },
-  arquivoImgBox: {
-    width: '100%',
-    backgroundColor: '#101028',
+  arquivoHint: {
+    color: '#8B8BA7',
+    fontSize: 11,
   },
-  arquivoThumb: {
-    width: '100%',
-    height: '100%',
-  },
-  modalImgContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
+  arquivoAcao: {
+    paddingRight: 14,
+    paddingLeft: 4,
     alignItems: 'center',
-  },
-  modalCloseBtn: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 1,
-    padding: 10,
-  },
-  modalImgBox: {
-    paddingHorizontal: 12,
-    paddingBottom: 24,
-  },
-  modalImg: {
-    width: '100%',
-    height: '100%',
+    justifyContent: 'center',
+    minWidth: 36,
   },
 })
 

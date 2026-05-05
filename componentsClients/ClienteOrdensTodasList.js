@@ -20,16 +20,7 @@ const STATUS_OPTIONS = [
   { label: 'Todas', value: '' },
   { label: 'Aberta', value: '0' },
   { label: 'Orçamento Gerado', value: '1' },
-  { label: 'Aguardando liberação', value: '2' },
   { label: 'Liberada', value: '3' },
-  { label: 'Finalizada', value: '4' },
-  { label: 'Reprovada', value: '5' },
-  { label: 'Parcial', value: '20' },
-  { label: 'Em atraso', value: '21' },
-  { label: 'Em Estoque', value: '22' },
-  { label: 'Em Andamento', value: 'E' },
-  { label: 'Concluída', value: 'C' },
-  { label: 'Cancelada', value: 'X' },
 ]
 
 const ORDEM_TIPOS = {
@@ -106,6 +97,7 @@ const ClienteOrdensTodasList = ({ navigation }) => {
           motor: motorFiltro,
           tipo: tipoFiltro,
           voltagem: voltagemFiltro,
+          voltagem_nome: voltagemFiltro,
           potencia: potenciaFiltro,
         }
 
@@ -120,7 +112,7 @@ const ClienteOrdensTodasList = ({ navigation }) => {
         if (filtros.numero) params.numero = filtros.numero
         if (filtros.motor) params.motor = filtros.motor
         if (filtros.tipo) params.tipo = filtros.tipo
-        if (filtros.voltagem) params.voltagem = filtros.voltagem
+        if (filtros.voltagem_nome) params.voltagem = filtros.voltagem_nome
         if (filtros.potencia) params.potencia = filtros.potencia
 
         const data = await fetchClienteOrdensTodas(params)
@@ -213,6 +205,7 @@ const ClienteOrdensTodasList = ({ navigation }) => {
         motor: '',
         tipo: '',
         voltagem: '',
+        voltagem_nome: '',
         potencia: '',
       },
       1,
@@ -280,9 +273,17 @@ const ClienteOrdensTodasList = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>MARCA</Text>
+            <Text style={styles.infoValue}>
+              {item.orde_marc != null
+                ? String(item.orde_marc || '') + ' - ' + (item.marca_nome || '')
+                : '—'}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>VOLTAGEM</Text>
             <Text style={styles.infoValue}>
-              {item.orde_volt != null ? String(item.orde_volt) : '—'}
+              {item.voltagem_nome || '—'} (volts)
             </Text>
           </View>
           <View style={styles.infoRow}>
