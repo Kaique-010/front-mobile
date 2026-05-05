@@ -3,12 +3,14 @@ import {
   View,
   Text,
   FlatList,
+  TextInput,
   ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native'
 
 import { transporteService } from './servicetransportes'
+import styles from '../styles/cteListStyles'
 
 export default function CteListScreen({ navigation }) {
   const [ctes, setCtes] = useState([])
@@ -18,13 +20,18 @@ export default function CteListScreen({ navigation }) {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
-  async function carregar(pagina = 1, reset = false) {
+  async function carregar(pagina = 1, reset = false, termo = '') {
     try {
       if (pagina === 1 && !refreshing) setLoading(true)
       if (pagina > 1) setLoadingMore(true)
+      if (reset) setIsSearching(true)
 
-      const data = await transporteService.listarCtes({ page: pagina })
+      const params = { page: pagina }
+      if (termo) params.search = termo
+      const data = await transporteService.listarCtes(params)
 
       const novos = data.results || data || []
 
@@ -32,11 +39,16 @@ export default function CteListScreen({ navigation }) {
       setNext(data.next || null)
       setPage(pagina)
     } catch (e) {
-      console.log('Erro ao carregar CT-e:', e?.response?.data || e.message)
+      console.log('Erro ao carregar CT-e:', {
+        status: e?.response?.status,
+        data: e?.response?.data,
+        message: e?.message,
+      })
     } finally {
       setLoading(false)
       setLoadingMore(false)
       setRefreshing(false)
+      setIsSearching(false)
     }
   }
 
@@ -44,21 +56,32 @@ export default function CteListScreen({ navigation }) {
     carregar(1, true)
   }, [])
 
+  useEffect(() => {
+    const delay = setTimeout(
+      () => {
+        carregar(1, true, searchTerm.trim())
+      },
+      searchTerm === '' ? 0 : 300,
+    )
+
+    return () => clearTimeout(delay)
+  }, [searchTerm])
+
   function onRefresh() {
     setRefreshing(true)
-    carregar(1, true)
+    carregar(1, true, searchTerm.trim())
   }
 
   function carregarMais() {
     if (!next || loadingMore || loading) return
-    carregar(page + 1, false)
+    carregar(page + 1, false, searchTerm.trim())
   }
 
   function renderFooter() {
     if (!loadingMore) return null
 
     return (
-      <View style={{ paddingVertical: 16 }}>
+      <View style={styles.footerLoading}>
         <ActivityIndicator />
       </View>
     )
@@ -68,8 +91,8 @@ export default function CteListScreen({ navigation }) {
     if (loading) return null
 
     return (
-      <View style={{ padding: 24, alignItems: 'center' }}>
-        <Text>Nenhum CT-e encontrado.</Text>
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Nenhum CT-e encontrado.</Text>
       </View>
     )
   }
@@ -78,19 +101,12 @@ export default function CteListScreen({ navigation }) {
     return (
       <TouchableOpacity
         onPress={() => navigation.navigate('CteForm', { id: item.id })}
-        style={{
-          padding: 14,
-          borderBottomWidth: 1,
-          borderColor: '#e5e5e5',
-          backgroundColor: '#fff',
-        }}>
-        <Text style={{ fontWeight: '700', fontSize: 16 }}>
-          CT-e #{item.numero || item.id}
-        </Text>
+        style={styles.card}>
+        <Text style={styles.titulo}>CT-e #{item.numero || item.id}</Text>
 
-        <Text>Status: {item.status ?? '-'}</Text>
-        <Text>Emissão: {item.emissao || '-'}</Text>
-        <Text>Chave: {item.chave_acesso || '-'}</Text>
+        <Text style={styles.linha}>Status: {item.status ?? '-'}</Text>
+        <Text style={styles.linha}>Emissão: {item.emissao || '-'}</Text>
+        <Text style={styles.linha}>Chave: {item.chave_acesso || '-'}</Text>
       </TouchableOpacity>
     )
   }
@@ -100,21 +116,49 @@ export default function CteListScreen({ navigation }) {
   }
 
   return (
-    <FlatList
-      data={ctes}
-      keyExtractor={(item, index) => String(item.id || index)}
-      renderItem={renderItem}
-      ListEmptyComponent={renderEmpty}
-      ListFooterComponent={renderFooter}
-      onEndReached={carregarMais}
-      onEndReachedThreshold={0.4}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      contentContainerStyle={{
-        flexGrow: 1,
-        backgroundColor: '#f5f5f5',
-      }}
-    />
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.incluirButton}
+        onPress={() => navigation.navigate('CteForm')}>
+        <Text style={styles.incluirButtonText}>+ Incluir CT-e</Text>
+      </TouchableOpacity>
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Buscar por número, chave ou status"
+          placeholderTextColor="#777"
+          style={styles.input}
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          onSubmitEditing={() => carregar(1, true, searchTerm.trim())}
+        />
+
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={() => carregar(1, true, searchTerm.trim())}>
+          <Text style={styles.searchButtonText}>
+            {isSearching ? '🔍...' : 'Buscar'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={ctes}
+        keyExtractor={(item, index) => String(item.id || index)}
+        renderItem={renderItem}
+        ListEmptyComponent={renderEmpty}
+        ListFooterComponent={renderFooter}
+        onEndReached={carregarMais}
+        onEndReachedThreshold={0.4}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      />
+
+      <Text style={styles.footerText}>
+        {ctes.length} CT-e{ctes.length !== 1 ? 's' : ''} encontrado
+        {ctes.length !== 1 ? 's' : ''}
+      </Text>
+    </View>
   )
 }
