@@ -12,6 +12,7 @@ import { getProducaoMenu } from './MenuNav/producao'
 import { getRegistroPontoMenu } from './MenuNav/registroPonto'
 import { getUtilitariosMenu } from './MenuNav/utilitarios'
 import { getVendasMenu } from './MenuNav/vendas'
+import { getTransporteMenu } from './MenuNav/transportes'
 
 // Configuração centralizada do menu do drawer
 export const getMenuConfig = (hasModulo) => {
@@ -30,6 +31,7 @@ export const getMenuConfig = (hasModulo) => {
     registroPonto: getRegistroPontoMenu(hasModulo),
     utilitarios: getUtilitariosMenu(hasModulo),
     vendas: getVendasMenu(hasModulo),
+    transporte: getTransporteMenu(hasModulo),
   }
 }
 

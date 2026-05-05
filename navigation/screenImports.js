@@ -66,6 +66,11 @@ export { default as NotaFiscalDetalhe } from '../screens/NotaFiscalDetalhe'
 export { default as NotaFiscalXml } from '../screens/NotaFiscalXml'
 export { default as NotaFiscalForm } from '../screens/NotaFiscalForm'
 
+// Telas de transporte
+
+export { default as CteListScreen } from '../componentsTransportes/CteListScreen'
+export { default as MdfeListScreen } from '../componentsTransportes/MdfeListScreen'
+
 // Telas de CFOP
 export { default as CfopForm } from '../componentsCfop/CfopForm'
 export { default as CfopList } from '../componentsCfop/CfopList'

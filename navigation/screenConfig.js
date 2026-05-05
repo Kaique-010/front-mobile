@@ -262,6 +262,18 @@ export const screenConfigs = [
     options: createHeaderOptions('XML da Nota Fiscal'),
   },
 
+  // Telas de transporte
+  {
+    name: 'CteList',
+    component: Screens.CteListScreen,
+    options: createHeaderOptions('CT-e'),
+  },
+  {
+    name: 'MdfeList',
+    component: Screens.MdfeListScreen,
+    options: createHeaderOptions('MDF-e'),
+  },
+
   // Telas de comissão
   {
     name: 'ComissaoForm',
