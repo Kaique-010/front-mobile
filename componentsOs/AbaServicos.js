@@ -81,12 +81,12 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       let empr = empresaId
       let fili = filialId
       if (!empr || !fili) {
-        const [empr, fili] = await Promise.all([
+        const [emprS, filiS] = await Promise.all([
           AsyncStorage.getItem('empresaId'),
           AsyncStorage.getItem('filialId'),
         ])
-        empr = empr
-        fili = fili
+        empr = emprS
+        fili = filiS
       }
       const response = await apiGetComContexto('ordemdeservico/servicos/', {
         serv_orde: orde_nume,
@@ -95,20 +95,33 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
       })
 
       const raw = response?.data ?? response?.results ?? response ?? []
+      const arrRaw = Array.isArray(raw) ? raw : []
 
       // Log para debug
-      if (raw.length > 0) {
-        console.log('Exemplo de serviço retornado:', raw[0])
+      if (arrRaw.length > 0) {
+        console.log('Exemplo de serviço retornado:', arrRaw[0])
       }
 
-      const arr = raw.map((s) => ({
-        ...s,
-        // Garante que serv_id exista, mesmo que venha como id
-        serv_id: s.serv_id || s.id,
-        serv_quan: parseFloat(s.serv_quan),
-        serv_unit: parseFloat(s.serv_unit),
-        _local_id: nextLocalId.current++, // id estável
-      }))
+      const arr = arrRaw.map((s) => {
+        const quantidade = parseFloat(s?.serv_quan ?? 0)
+        const unit = parseFloat(s?.serv_unit ?? 0)
+        const nome =
+          s?.servico_nome ||
+          s?.serv_nome ||
+          s?.serv_desc ||
+          s?.descricao ||
+          s?.nome ||
+          'Serviço'
+
+        return {
+          ...s,
+          serv_id: s?.serv_id || s?.id,
+          serv_quan: Number.isFinite(quantidade) ? quantidade : 0,
+          serv_unit: Number.isFinite(unit) ? unit : 0,
+          servico_nome: nome,
+          _local_id: nextLocalId.current++,
+        }
+      })
 
       setLista(arr)
       setServicos(arr)
@@ -377,9 +390,7 @@ export default function AbaServicos({ servicos = [], setServicos, orde_nume }) {
         </View>
       ) : (
         <FlatList
-          data={(lista || []).filter(
-            (s) => s && s.servico_nome && s.serv_quan > 0,
-          )}
+          data={(lista || []).filter((s) => s)}
           keyExtractor={(item, index) =>
             (
               item?._local_id ??
