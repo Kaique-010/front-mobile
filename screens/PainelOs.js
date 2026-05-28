@@ -58,6 +58,9 @@ const prioridadeColors = {
 const PainelAcompanhamento = ({ navigation }) => {
   const [ordens, setOrdens] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [offset, setOffset] = useState(0)
   const [filtroStatus, setFiltroStatus] = useState(null)
   const [filtroPrioridade, setFiltroPrioridade] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -104,15 +107,15 @@ const PainelAcompanhamento = ({ navigation }) => {
     return option ? option.label : '-'
   }
 
-  const calcularContadores = (ordensData) => {
-    const abertas = ordensData.filter((o) => o.orde_stat_orde === 0).length
-    const liberadas = ordensData.filter((o) => o.orde_stat_orde === 3).length
-    const atrasadas = ordensData.filter((o) => o.orde_stat_orde === 21).length
-    return { abertas, atrasadas, liberadas, total: ordensData.length }
-  }
+  const fetchOrdens = async (filtros = {}, isLoadMore = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+      setOffset(0)
+      setHasMore(true)
+    }
 
-  const fetchOrdens = async (filtros = {}) => {
-    setLoading(true)
     try {
       const params = new URLSearchParams()
       if (filtros.cliente_nome) {
@@ -121,6 +124,11 @@ const PainelAcompanhamento = ({ navigation }) => {
       if (filtros.orde_nume) {
         params.append('orde_nume', filtros.orde_nume)
       }
+
+      // Adiciona paginação
+      const currentOffset = isLoadMore ? offset : 0
+      params.append('limit', '50')
+      params.append('offset', currentOffset.toString())
 
       const queryString = params.toString()
       const url = `ordemdeservico/ordens/${
@@ -142,14 +150,49 @@ const PainelAcompanhamento = ({ navigation }) => {
         if (possibleArrays.length > 0) ordensData = possibleArrays[0]
       }
 
-      console.log('📊 FRONTEND - Total de registros:', ordensData.length)
-      setOrdens(ordensData)
-      setContadores(calcularContadores(ordensData))
+      console.log(
+        '📊 FRONTEND - Total de registros nesta página:',
+        ordensData.length,
+      )
+
+      if (isLoadMore) {
+        setOrdens((prev) => [...prev, ...ordensData])
+        setOffset((prev) => prev + 50)
+      } else {
+        setOrdens(ordensData)
+        setOffset(50)
+      }
+
+      // Verifica se há mais dados
+      setHasMore(ordensData.length === 50)
     } catch (error) {
       console.error('❌ FRONTEND - Erro ao buscar ordens:', error)
-      setOrdens([])
+      if (!isLoadMore) {
+        setOrdens([])
+      }
     } finally {
       setLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+  const fetchContadores = async () => {
+    try {
+      const url = 'ordemdeservico/ordens/contadores/'
+      console.log('🔍 FRONTEND - URL contadores:', url)
+
+      const response = await apiGetComContextoos(url)
+
+      if (response && typeof response === 'object') {
+        setContadores({
+          abertas: response.abertas || 0,
+          atrasadas: response.atrasadas || 0,
+          liberadas: response.liberadas || 0,
+          total: response.total || 0,
+        })
+      }
+    } catch (error) {
+      console.error('❌ FRONTEND - Erro ao buscar contadores:', error)
     }
   }
 
@@ -170,11 +213,17 @@ const PainelAcompanhamento = ({ navigation }) => {
     fetchOrdens(filtros)
   }
 
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore && !loading) {
+      fetchOrdens({}, true)
+    }
+  }
+
   const debouncedFetch = useCallback(
     debounce((term) => {
       executarBusca(term)
     }, 600),
-    []
+    [],
   )
 
   const handleSearch = (text) => {
@@ -186,12 +235,14 @@ const PainelAcompanhamento = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       fetchOrdens()
+      fetchContadores()
       const intervalo = setInterval(() => {
         console.log('⏰ Atualizando ordens automaticamente...')
         fetchOrdens()
+        fetchContadores()
       }, 5400000) // 1h30
       return () => clearInterval(intervalo)
-    }, [])
+    }, []),
   )
 
   const ordensFiltradasLocalmente = useMemo(() => {
@@ -203,13 +254,13 @@ const PainelAcompanhamento = ({ navigation }) => {
           ? parseInt(filtroStatus, 10)
           : filtroStatus
       resultado = resultado.filter(
-        (ordem) => ordem.orde_stat_orde === statusNumerico
+        (ordem) => ordem.orde_stat_orde === statusNumerico,
       )
     }
 
     if (filtroPrioridade !== null) {
       resultado = resultado.filter(
-        (ordem) => ordem.orde_prio === filtroPrioridade
+        (ordem) => ordem.orde_prio === filtroPrioridade,
       )
     }
 
@@ -295,21 +346,21 @@ const PainelAcompanhamento = ({ navigation }) => {
           problema: styles.colProblemaTV,
         }
       : isMobile
-      ? {
-          os: styles.colOSMobile,
-          cliente: styles.colClienteMobile,
-          status: styles.colStatusMobile,
-          setor: styles.colSetorMobile,
-        }
-      : {
-          os: styles.colOS,
-          cliente: styles.colCliente,
-          status: styles.colStatus,
-          prioridade: styles.colPrioridade,
-          setor: styles.colSetor,
-          data: styles.colData,
-          problema: styles.colProblema,
-        }
+        ? {
+            os: styles.colOSMobile,
+            cliente: styles.colClienteMobile,
+            status: styles.colStatusMobile,
+            setor: styles.colSetorMobile,
+          }
+        : {
+            os: styles.colOS,
+            cliente: styles.colCliente,
+            status: styles.colStatus,
+            prioridade: styles.colPrioridade,
+            setor: styles.colSetor,
+            data: styles.colData,
+            problema: styles.colProblema,
+          }
 
     const headerStyle = isTV ? styles.tableHeaderTV : styles.tableHeader
     const textStyle = isTV ? styles.tableHeaderTextTV : styles.tableHeaderText
@@ -395,21 +446,21 @@ const PainelAcompanhamento = ({ navigation }) => {
           problema: styles.colProblemaTV,
         }
       : isMobile
-      ? {
-          os: styles.colOSMobile,
-          cliente: styles.colClienteMobile,
-          status: styles.colStatusMobile,
-          setor: styles.colSetorMobile,
-        }
-      : {
-          os: styles.colOS,
-          cliente: styles.colCliente,
-          status: styles.colStatus,
-          prioridade: styles.colPrioridade,
-          setor: styles.colSetor,
-          data: styles.colData,
-          problema: styles.colProblema,
-        }
+        ? {
+            os: styles.colOSMobile,
+            cliente: styles.colClienteMobile,
+            status: styles.colStatusMobile,
+            setor: styles.colSetorMobile,
+          }
+        : {
+            os: styles.colOS,
+            cliente: styles.colCliente,
+            status: styles.colStatus,
+            prioridade: styles.colPrioridade,
+            setor: styles.colSetor,
+            data: styles.colData,
+            problema: styles.colProblema,
+          }
 
     const rowStyle = isTV ? styles.tableRowTV : styles.tableRow
     const textStyle = isTV ? styles.tableCellTextTV : styles.tableCellText
@@ -453,10 +504,10 @@ const PainelAcompanhamento = ({ navigation }) => {
                 {item.orde_prio === '0'
                   ? 'Normal'
                   : item.orde_prio === '1'
-                  ? 'Alerta'
-                  : item.orde_prio === '2'
-                  ? 'Urgente'
-                  : '-'}
+                    ? 'Alerta'
+                    : item.orde_prio === '2'
+                      ? 'Urgente'
+                      : '-'}
               </Text>
             </View>
           </View>
@@ -488,18 +539,18 @@ const PainelAcompanhamento = ({ navigation }) => {
     const containerStyle = isTV
       ? styles.indicadorTV
       : isMobile
-      ? styles.indicadorMobile
-      : styles.indicador
+        ? styles.indicadorMobile
+        : styles.indicador
     const labelStyle = isTV
       ? styles.indicadorLabelTV
       : isMobile
-      ? styles.indicadorLabelMobile
-      : styles.indicadorLabel
+        ? styles.indicadorLabelMobile
+        : styles.indicadorLabel
     const valorStyle = isTV
       ? styles.indicadorValorTV
       : isMobile
-      ? styles.indicadorValorMobile
-      : styles.indicadorValor
+        ? styles.indicadorValorMobile
+        : styles.indicadorValor
 
     return (
       <View style={[containerStyle, { backgroundColor: bgColor }]}>
@@ -513,26 +564,26 @@ const PainelAcompanhamento = ({ navigation }) => {
     modoAtual === 'tv'
       ? styles.containerTV
       : modoAtual === 'mobile'
-      ? styles.containerMobile
-      : styles.container
+        ? styles.containerMobile
+        : styles.container
   const logoStyle =
     modoAtual === 'tv'
       ? styles.logoTV
       : modoAtual === 'mobile'
-      ? styles.logoMobile
-      : styles.logo
+        ? styles.logoMobile
+        : styles.logo
   const indicadoresStyle =
     modoAtual === 'tv'
       ? styles.indicadoresTV
       : modoAtual === 'mobile'
-      ? styles.indicadoresMobile
-      : styles.indicadores
+        ? styles.indicadoresMobile
+        : styles.indicadores
   const filtrosStyle =
     modoAtual === 'tv'
       ? styles.filtrosTV
       : modoAtual === 'mobile'
-      ? styles.filtrosMobile
-      : styles.filtros
+        ? styles.filtrosMobile
+        : styles.filtros
 
   return (
     <View style={containerStyle}>
@@ -551,10 +602,10 @@ const PainelAcompanhamento = ({ navigation }) => {
               {modoAtual === 'auto'
                 ? 'Auto'
                 : modoAtual === 'tv'
-                ? 'TV'
-                : modoAtual === 'mobile'
-                ? 'Mobile'
-                : 'Desktop'}
+                  ? 'TV'
+                  : modoAtual === 'mobile'
+                    ? 'Mobile'
+                    : 'Desktop'}
             </Text>
           </TouchableOpacity>
 
@@ -578,8 +629,8 @@ const PainelAcompanhamento = ({ navigation }) => {
             modoAtual === 'tv'
               ? styles.botaoCriarTV
               : modoAtual === 'mobile'
-              ? styles.botaoCriarMobile
-              : styles.botaoCriar
+                ? styles.botaoCriarMobile
+                : styles.botaoCriar
           }
           activeOpacity={0.7}
           onPress={() => navigation.navigate('OsCriacao')}>
@@ -589,8 +640,8 @@ const PainelAcompanhamento = ({ navigation }) => {
               modoAtual === 'tv'
                 ? styles.botaoCriarTextTV
                 : modoAtual === 'mobile'
-                ? styles.botaoCriarTextMobile
-                : styles.botaoCriarTexto
+                  ? styles.botaoCriarTextMobile
+                  : styles.botaoCriarTexto
             }>
             Nova O.S.
           </Text>
@@ -617,8 +668,8 @@ const PainelAcompanhamento = ({ navigation }) => {
                   modoAtual === 'tv'
                     ? styles.filtroButtonTV
                     : modoAtual === 'mobile'
-                    ? styles.filtroButtonMobile
-                    : styles.filtroButton,
+                      ? styles.filtroButtonMobile
+                      : styles.filtroButton,
                   {
                     backgroundColor:
                       value !== null
@@ -636,8 +687,8 @@ const PainelAcompanhamento = ({ navigation }) => {
                     modoAtual === 'tv'
                       ? styles.filtroButtonTextTV
                       : modoAtual === 'mobile'
-                      ? styles.filtroButtonTextMobile
-                      : styles.filtroButtonText,
+                        ? styles.filtroButtonTextMobile
+                        : styles.filtroButtonText,
                     { fontWeight: filtroStatus === value ? 'bold' : 'normal' },
                   ]}>
                   {label}
@@ -665,8 +716,8 @@ const PainelAcompanhamento = ({ navigation }) => {
                   modoAtual === 'tv'
                     ? styles.filtroButtonTV
                     : modoAtual === 'mobile'
-                    ? styles.filtroButtonMobile
-                    : styles.filtroButton,
+                      ? styles.filtroButtonMobile
+                      : styles.filtroButton,
                   {
                     backgroundColor:
                       value !== null
@@ -684,8 +735,8 @@ const PainelAcompanhamento = ({ navigation }) => {
                     modoAtual === 'tv'
                       ? styles.filtroButtonTextTV
                       : modoAtual === 'mobile'
-                      ? styles.filtroButtonTextMobile
-                      : styles.filtroButtonText,
+                        ? styles.filtroButtonTextMobile
+                        : styles.filtroButtonText,
                     {
                       fontWeight:
                         filtroPrioridade === value ? 'bold' : 'normal',
@@ -763,7 +814,18 @@ const PainelAcompanhamento = ({ navigation }) => {
           {renderTableHeader()}
           <ScrollView
             style={styles.tableScrollView}
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+            onScroll={({ nativeEvent }) => {
+              const { layoutMeasurement, contentOffset, contentSize } =
+                nativeEvent
+              if (
+                layoutMeasurement.height + contentOffset.y >=
+                contentSize.height - 50
+              ) {
+                handleLoadMore()
+              }
+            }}
+            scrollEventThrottle={400}>
             {ordensFiltradasLocalmente.length === 0 ? (
               <View
                 style={
@@ -779,20 +841,45 @@ const PainelAcompanhamento = ({ navigation }) => {
                 </Text>
               </View>
             ) : (
-              ordensFiltradasLocalmente.map((item, index) => (
-                <View
-                  key={`${item.orde_empr || 'emp'}-${item.orde_fili || 'fil'}-${
-                    item.orde_nume || 'num'
-                  }-${item.cliente_codigo || 'cli'}-${index}`}>
-                  {renderTableRow({ item })}
-                </View>
-              ))
+              <>
+                {ordensFiltradasLocalmente.map((item, index) => (
+                  <View
+                    key={`${item.orde_empr || 'emp'}-${item.orde_fili || 'fil'}-${
+                      item.orde_nume || 'num'
+                    }-${item.cliente_codigo || 'cli'}-${index}`}>
+                    {renderTableRow({ item })}
+                  </View>
+                ))}
+                {loadingMore && (
+                  <View style={extraStyles.loadingMoreContainer}>
+                    <ActivityIndicator size="small" color="#284665" />
+                    <Text style={extraStyles.loadingMoreText}>
+                      Carregando mais...
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </ScrollView>
         </View>
       )}
     </View>
   )
+}
+
+// Estilos extras para os novos componentes
+const extraStyles = {
+  loadingMoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  loadingMoreText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#333',
+  },
 }
 
 export default PainelAcompanhamento
